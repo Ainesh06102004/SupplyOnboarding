@@ -15,7 +15,7 @@ import { SALES_CHANNELS, HEALTH_POSITIONING_OPTIONS } from '@/lib/constants/onbo
 import { validateStep1 } from '@/lib/validations/step1'
 
 /* ────────────────────────────────────────────────
- *  Shared input class — premium KOI styling
+ *  Shared input class - premium KOI styling
  * ──────────────────────────────────────────────── */
 const INPUT_CLASS =
   'h-12 rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 text-sm placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
@@ -299,7 +299,7 @@ export default function Step1BrandSetup() {
 
 
 /* ────────────────────────────────────────────────
- *  FieldWrapper — label + error display (internal)
+ *  FieldWrapper - label + error display (internal)
  * ──────────────────────────────────────────────── */
 function FieldWrapper({ id, label, required, error, children }) {
   return (
@@ -315,7 +315,7 @@ function FieldWrapper({ id, label, required, error, children }) {
 }
 
 /* ────────────────────────────────────────────────
- *  InlineError — validation error text (internal)
+ *  InlineError - validation error text (internal)
  * ──────────────────────────────────────────────── */
 function InlineError({ message }) {
   return (

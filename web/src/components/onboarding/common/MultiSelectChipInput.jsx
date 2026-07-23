@@ -251,7 +251,7 @@ export default function MultiSelectChipInput({
 }
 
 /* ────────────────────────────────────────────────
- *  Chip — removable purple pill (internal)
+ *  Chip - removable purple pill (internal)
  * ──────────────────────────────────────────────── */
 function Chip({ label, onRemove }) {
   return (

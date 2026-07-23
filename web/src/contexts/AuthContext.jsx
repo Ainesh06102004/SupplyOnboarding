@@ -31,7 +31,25 @@ export function AuthProvider({ children }) {
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (nextUser) => {
+      async (nextUser) => {
+        if (nextUser) {
+          try {
+            const token = await nextUser.getIdToken();
+            await fetch("/api/auth/session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token }),
+            });
+          } catch (e) {
+            console.error("Failed to sync session token:", e);
+          }
+        } else {
+          try {
+            await fetch("/api/auth/session", { method: "DELETE" });
+          } catch (e) {
+            console.error("Failed to clear session token:", e);
+          }
+        }
         setUser(nextUser);
         setLoading(false);
       },

@@ -107,7 +107,7 @@ export default function VerificationPage() {
         </Button>
       </div>
 
-      {/* SECTION 1 — KPI CARDS */}
+      {/* SECTION 1 - KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard icon={CheckCircle} value={KPI_DATA.submitted} label="Products Submitted" styleType="neutral" />
         <StatsCard icon={Activity} value={KPI_DATA.aiReview} label="AI Review" styleType="special" />
@@ -115,7 +115,7 @@ export default function VerificationPage() {
         <StatsCard icon={ShieldCheck} value={KPI_DATA.approved} label="Approved" styleType="success" />
       </div>
 
-      {/* SECTION 2 — KANBAN PIPELINE */}
+      {/* SECTION 2 - KANBAN PIPELINE */}
       <div>
         <h3 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "var(--font-koi-heading)" }}>Verification Pipeline</h3>
         <div className="flex overflow-x-auto gap-6 pb-4 hide-scrollbar snap-x">
@@ -245,7 +245,7 @@ export default function VerificationPage() {
       {/* BOTTOM GRID: TABLE & RIGHT PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* SECTION 3 — DETAILED TABLE (Spans 2 columns) */}
+        {/* SECTION 3 - DETAILED TABLE (Spans 2 columns) */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <h3 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>All Submissions</h3>
@@ -303,7 +303,7 @@ export default function VerificationPage() {
           </div>
         </div>
 
-        {/* SECTION 4 — RIGHT PANEL */}
+        {/* SECTION 4 - RIGHT PANEL */}
         <div className="space-y-6">
           
           {/* Card 1: Risk Alerts */}

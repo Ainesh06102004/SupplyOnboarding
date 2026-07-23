@@ -8,6 +8,8 @@ import {
   Trash2, Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import AddressManager from "@/components/store/AddressManager";
+import { signOutUser } from "@/lib/firebase/auth";
 
 // ─── KOI SCORE RING REUSED FOR PROGRESS ───
 function ProgressRing({ progress, size = 64 }) {
@@ -34,6 +36,15 @@ function ProgressRing({ progress, size = 64 }) {
 
 export default function ProfilePage() {
   const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOutUser();
+      router.push("/store/shop");
+    } catch (e) {
+      console.error("Logout failed:", e);
+    }
+  };
 
   // State
   const [activeGoal, setActiveGoal] = useState("Muscle Gain");
@@ -202,47 +213,7 @@ export default function ProfilePage() {
             
             {/* 4. Addresses */}
             <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)]">
-               <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[16px] font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Saved Addresses</h3>
-                  <button className="text-[12px] font-bold text-[#2D7A5E] flex items-center gap-1 hover:text-[#0E4032] transition-colors">
-                     <Plus className="w-3.5 h-3.5" /> Add
-                  </button>
-               </div>
-               <div className="space-y-3">
-                  {/* Address Card 1 */}
-                  <div className="border border-[#0E4032]/20 rounded-xl p-4 bg-[#F2F6EC]/50 relative">
-                     <div className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-[#0E4032] shrink-0 mt-0.5" />
-                        <div>
-                           <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[13px] font-bold text-[#0E4032]">Home</span>
-                              <span className="text-[9px] font-bold bg-[#0E4032] text-white px-1.5 py-0.5 rounded uppercase tracking-wider">Default</span>
-                           </div>
-                           <p className="text-[12px] font-medium text-[#5A6B5A] leading-tight mb-3">Road No 12, Banjara Hills<br/>Hyderabad, Telangana 500034</p>
-                           <div className="flex gap-4">
-                              <button className="text-[11px] font-bold text-[#0E4032] hover:underline">Edit</button>
-                              <button className="text-[11px] font-bold text-[#C94B40] hover:underline">Delete</button>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-                  {/* Address Card 2 */}
-                  <div className="border border-[#E2E8D8] rounded-xl p-4 bg-white hover:border-[#0E4032]/20 transition-colors">
-                     <div className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-[#5A6B5A] shrink-0 mt-0.5" />
-                        <div>
-                           <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[13px] font-bold text-[#0E4032]">Work</span>
-                           </div>
-                           <p className="text-[12px] font-medium text-[#5A6B5A] leading-tight mb-3">Mindspace IT Park, Hitech City<br/>Hyderabad, Telangana 500081</p>
-                           <div className="flex gap-4">
-                              <button className="text-[11px] font-bold text-[#0E4032] hover:underline">Set Default</button>
-                              <button className="text-[11px] font-bold text-[#0E4032] hover:underline">Edit</button>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+               <AddressManager />
             </section>
 
             {/* 5. Payment Methods */}
@@ -326,7 +297,10 @@ export default function ProfilePage() {
                   </div>
                </div>
                <div className="p-2 bg-[#F2F6EC]/30">
-                  <button className="w-full py-3 flex items-center justify-center gap-2 text-[#C94B40] hover:bg-[#C94B40]/10 rounded-xl transition-colors font-bold text-[13px]">
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full py-3 flex items-center justify-center gap-2 text-[#C94B40] hover:bg-[#C94B40]/10 rounded-xl transition-colors font-bold text-[13px]"
+                  >
                      <LogOut className="w-4 h-4" /> Log Out
                   </button>
                </div>

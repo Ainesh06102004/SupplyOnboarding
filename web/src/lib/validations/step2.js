@@ -1,5 +1,5 @@
 /**
- * KOI Onboarding — Step 2 Product Portfolio Validation
+ * KOI Onboarding - Step 2 Product Portfolio Validation
  */
 
 /**

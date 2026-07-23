@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
 } from "firebase/auth";
 import { getFirebaseAuth } from "./client";
 
@@ -62,4 +64,31 @@ export async function signInWithGoogle() {
 export async function signOutUser() {
   const auth = getAuthOrThrow();
   return signOut(auth);
+}
+
+export function setupRecaptcha(containerId) {
+  const auth = getAuthOrThrow();
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      size: "invisible",
+      callback: (response) => {
+        // reCAPTCHA solved
+      },
+    });
+  }
+  return window.recaptchaVerifier;
+}
+
+export function clearRecaptcha() {
+  if (window.recaptchaVerifier) {
+    try {
+      window.recaptchaVerifier.clear();
+    } catch (e) {}
+    window.recaptchaVerifier = null;
+  }
+}
+
+export async function signInWithPhone(phoneNumber, appVerifier) {
+  const auth = getAuthOrThrow();
+  return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
 }

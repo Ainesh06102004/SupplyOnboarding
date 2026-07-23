@@ -65,7 +65,7 @@ export default function SkuEntryCard({
               Product Name <span className="text-danger">*</span>
             </label>
             <Input
-              placeholder="e.g. Crunchy Protein Bar — Dark Cocoa"
+              placeholder="e.g. Crunchy Protein Bar - Dark Cocoa"
               value={data.productName || ''}
               onChange={(e) => onChange('productName', e.target.value)}
               className={INPUT_CLASS}
@@ -101,7 +101,7 @@ export default function SkuEntryCard({
 }
 
 /* ────────────────────────────────────────────────
- *  LabelUploadField — tab switch between Upload / Paste Link
+ *  LabelUploadField - tab switch between Upload / Paste Link
  * ──────────────────────────────────────────────── */
 function LabelUploadField({
   label,

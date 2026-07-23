@@ -1,26 +1,47 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Home, Store, ShoppingCart, Package, User } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import OTPLoginModal from "@/components/auth/OTPLoginModal";
 
-export default function StoreNavigation() {
+function NavigationContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const items = useCartStore(state => state.items);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (searchParams.get("login") === "required") {
+      setIsLoginOpen(true);
+      // Clean up the URL parameter
+      const params = new URLSearchParams(searchParams);
+      params.delete("login");
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
 
   useEffect(() => setMounted(true), []);
 
-  // Hide global navigation entirely on checkout page
-  if (pathname === "/store/checkout") return null;
+  // Hide global navigation entirely on checkout and product-detail pages
+  // (those provide their own bespoke chrome / sticky purchase bar).
+  if (pathname === "/store/checkout" || pathname.startsWith("/store/product/")) return null;
+
+  // The editorial landing (/store) and shop (/store/shop) ship their own
+  // bespoke top nav (EditorialNav). Suppress the shared desktop navbar there to
+  // avoid a duplicate header; the mobile bottom tab bar still renders.
+  const isHome = pathname === "/store" || pathname === "/store/shop";
 
   const totalItems = mounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
   const hasActiveOrder = true; // Mock logic to display dot
 
   const NAV_ITEMS = [
-    { label: "Home", href: "/", icon: Home },
+    { label: "Home", href: "/store", icon: Home },
     { label: "Store", href: "/store/shop", icon: Store },
     { label: "Cart", href: "/store/cart", icon: ShoppingCart },
     { label: "Orders", href: "/store/orders", icon: Package },
@@ -30,14 +51,14 @@ export default function StoreNavigation() {
   return (
     <>
       {/* ─── DESKTOP TOP NAVBAR ─── */}
+      {!isHome && (
       <nav className="hidden md:block sticky top-0 z-50 backdrop-blur-xl bg-[#F2F6EC]/85 border-b border-[#E2E8D8]/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-8">
-             <Link href="/" className="text-3xl font-bold tracking-tighter text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>
+             <Link href="/store" className="text-3xl font-bold tracking-tighter text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>
                KOI
              </Link>
              <div className="flex items-center gap-6 mt-1">
-                <Link href="/" className="text-[13px] font-bold text-[#5A6B5A] hover:text-[#0E4032] transition-colors uppercase tracking-wider">Discover</Link>
                 <Link href="/store/shop" className={`text-[13px] font-bold transition-colors uppercase tracking-wider ${pathname === "/store/shop" ? "text-[#0E4032]" : "text-[#5A6B5A] hover:text-[#0E4032]"}`}>Store</Link>
                 <Link href="/store/orders" className={`text-[13px] font-bold transition-colors uppercase tracking-wider flex items-center gap-1.5 ${pathname === "/store/orders" ? "text-[#0E4032]" : "text-[#5A6B5A] hover:text-[#0E4032]"}`}>
                   Orders
@@ -53,6 +74,7 @@ export default function StoreNavigation() {
           </Link>
         </div>
       </nav>
+      )}
 
       {/* ─── MOBILE BOTTOM NAVBAR ─── */}
       <nav className="md:hidden fixed bottom-4 left-4 right-4 z-[60] animate-in slide-in-from-bottom duration-500 pb-safe">
@@ -98,6 +120,22 @@ export default function StoreNavigation() {
           padding-bottom: env(safe-area-inset-bottom);
         }
       `}</style>
+      
+      <OTPLoginModal 
+        open={isLoginOpen} 
+        onOpenChange={setIsLoginOpen}
+        onComplete={() => {
+          // If they wanted to go to profile, let them, or just stay here
+        }}
+      />
     </>
+  );
+}
+
+export default function StoreNavigation() {
+  return (
+    <Suspense fallback={null}>
+      <NavigationContent />
+    </Suspense>
   );
 }

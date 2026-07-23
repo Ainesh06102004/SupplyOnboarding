@@ -15,7 +15,7 @@ const hanken = Hanken_Grotesk({
 import StoreNavigation from "./StoreNavigation";
 
 export const metadata = {
-  title: "KOI — The Better Choices Store",
+  title: "KOI - The Better Choices Store",
   description:
     "Every product here earned its place. We decoded ingredients, labels and nutrition so you don't have to.",
 };

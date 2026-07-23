@@ -37,7 +37,7 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      {/* SECTION 1 — HERO HEADER */}
+      {/* SECTION 1 - HERO HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-[32px] md:text-[36px] font-display font-bold text-[#111827] tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
@@ -60,7 +60,7 @@ export default function DashboardOverviewPage() {
         </Button>
       </div>
 
-      {/* SECTION 2 — KPI CARDS */}
+      {/* SECTION 2 - KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard 
           icon={Package} 
@@ -88,13 +88,13 @@ export default function DashboardOverviewPage() {
         />
       </div>
 
-      {/* SECTION 3 — TWO COLUMN GRID (Alerts & Pipeline) */}
+      {/* SECTION 3 - TWO COLUMN GRID (Alerts & Pipeline) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AlertCard alerts={DASHBOARD_ALERTS} />
         <VerificationPipeline pipeline={VERIFICATION_PIPELINE} />
       </div>
 
-      {/* SECTION 4 — TWO COLUMN GRID (Recent Products & Trust Metrics) */}
+      {/* SECTION 4 - TWO COLUMN GRID (Recent Products & Trust Metrics) */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
         <div className="overflow-hidden">
           <RecentProductsTable products={RECENT_PRODUCTS} />

@@ -19,7 +19,7 @@ export async function fetchAllProducts() {
     .eq('status', 'approved');
 
   if (error) {
-    console.error("Error fetching products:", error);
+    console.error("Error fetching products:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     return [];
   }
 

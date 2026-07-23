@@ -1,5 +1,5 @@
 /**
- * KOI Onboarding — Step 1 Brand Setup Validation
+ * KOI Onboarding - Step 1 Brand Setup Validation
  *
  * Regex patterns and validation helpers for the Brand Setup form.
  * Kept separate from the component to stay testable and reusable.

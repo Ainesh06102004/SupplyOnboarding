@@ -48,7 +48,7 @@ export default function ProductsPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      {/* SECTION 1 — HEADER */}
+      {/* SECTION 1 - HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-[32px] md:text-[36px] font-display font-bold text-[#111827] tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
@@ -69,7 +69,7 @@ export default function ProductsPage() {
         </Link>
       </div>
 
-      {/* SECTION 2 — KPI CARDS */}
+      {/* SECTION 2 - KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard 
           icon={Package} 
@@ -97,10 +97,10 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* SECTION 3 — TOOLBAR */}
+      {/* SECTION 3 - TOOLBAR */}
       <ProductsToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      {/* SECTION 4 — PRODUCTS TABLE */}
+      {/* SECTION 4 - PRODUCTS TABLE */}
       <ProductsTable loading={loading} products={products} />
 
     </div>

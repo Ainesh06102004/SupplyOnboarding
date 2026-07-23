@@ -1,5 +1,5 @@
 /**
- * KOI Onboarding — Static Option Sets
+ * KOI Onboarding - Static Option Sets
  *
  * Central source of truth for every multi-select, dropdown, and chip input
  * used across the brand onboarding wizard.

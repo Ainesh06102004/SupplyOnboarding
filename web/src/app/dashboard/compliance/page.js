@@ -122,7 +122,7 @@ export default function CompliancePage() {
         </Button>
       </div>
 
-      {/* SECTION 1 — COMPLIANCE SCORE HERO */}
+      {/* SECTION 1 - COMPLIANCE SCORE HERO */}
       <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-10 items-center">
           
@@ -182,7 +182,7 @@ export default function CompliancePage() {
         </div>
       </div>
 
-      {/* SECTION 2 — DOCUMENT VAULT */}
+      {/* SECTION 2 - DOCUMENT VAULT */}
       <div>
         <h3 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "var(--font-koi-heading)" }}>Document Vault</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -219,7 +219,7 @@ export default function CompliancePage() {
       {/* BOTTOM GRID (Alerts, Missing Coverage, Timeline) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* SECTION 4 — MISSING COVERAGE (Spans 2 columns) */}
+        {/* SECTION 4 - MISSING COVERAGE (Spans 2 columns) */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
             <Info className="w-5 h-5 text-gray-400" />
@@ -258,7 +258,7 @@ export default function CompliancePage() {
         {/* RIGHT COLUMN: ALERTS & TIMELINE */}
         <div className="space-y-6 flex flex-col">
           
-          {/* SECTION 3 — EXPIRY ALERTS */}
+          {/* SECTION 3 - EXPIRY ALERTS */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
               <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -305,7 +305,7 @@ export default function CompliancePage() {
             </div>
           </div>
 
-          {/* SECTION 5 — TIMELINE */}
+          {/* SECTION 5 - TIMELINE */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex-1">
             <h3 className="font-bold text-gray-900 mb-5 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
               <Clock className="w-5 h-5 text-[#0E4032]" />
