@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, Target, TrendingUp, Sparkles, Plus,
   ArrowUpRight, Leaf, ShieldCheck, Dumbbell, Activity, CheckCircle2, ChevronRight,
-  X, Check, SlidersHorizontal, ChevronDown, Filter, Baby, Heart, Flame, Command, ShoppingBag, ArrowRight
+  X, Check, SlidersHorizontal, ChevronDown, Filter, Baby, Heart, Flame, Command, ShoppingBag, ArrowRight, Sprout, Zap
 } from "lucide-react";
 import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";

@@ -32,6 +32,7 @@ export default function MultiSelectChipInput({
   selected = [],
   onChange,
   maxSelections = Infinity,
+  disabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')

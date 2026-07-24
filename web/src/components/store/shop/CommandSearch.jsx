@@ -7,7 +7,7 @@
 // Purely a presentation layer over the shop's real product array + filters.
 // ============================================================================
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Search, X, CornerDownLeft, ArrowUp, ArrowDown, Sparkles,
   TrendingUp, Package, Leaf, Store, Clock, BookOpen, Dumbbell, ShieldCheck,
@@ -36,6 +36,10 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
   const [prevQuery, setPrevQuery] = useState("");
+  const [phIndex, setPhIndex] = useState(0);
+  const [recent, setRecent] = useState([]);
+  const inputRef = useRef(null);
+  const listRef = useRef(null);
   if (query !== prevQuery) {
     setPrevQuery(query);
     setSel(0);
@@ -50,10 +54,7 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
     }
   }
 
-  const [phIndex, setPhIndex] = useState(0);
-  const [recent, setRecent] = useState([]);
-  const inputRef = useRef(null);
-  const listRef = useRef(null);
+
 
   // open lifecycle: focus, lock scroll
   useEffect(() => {
