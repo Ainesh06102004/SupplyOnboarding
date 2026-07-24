@@ -7,6 +7,7 @@
 // ============================================================================
 
 import React, { useRef, useState } from "react";
+import Image from "next/image";
 import { Check, Maximize2, X, ShieldCheck } from "lucide-react";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Reveal, ScoreRing } from "@/components/store/landing/primitives";
@@ -37,13 +38,13 @@ function Viewer({ product, active, isPhoto, onExpand }) {
       style={{ background: isPhoto ? "#000" : `radial-gradient(120% 120% at 50% 20%, #FFFFFF 0%, ${C.cream} 100%)` }}
     >
       {src ? (
-        <img
+        <Image
           src={src}
           alt={`${product.name} - ${LABELS[active] || active}`}
-          loading="eager"
-          decoding="async"
+          priority
+          fill
           draggable="false"
-          className={isPhoto ? "h-full w-full object-cover" : "h-full w-full object-contain p-10"}
+          className={isPhoto ? "object-cover" : "object-contain p-10"}
           style={{
             mixBlendMode: isPhoto ? "normal" : "multiply",
             transformOrigin: `${origin.x}% ${origin.y}%`,
@@ -110,7 +111,7 @@ export default function ProductHero({ product }) {
                       className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all duration-200 sm:h-24 sm:w-24"
                       style={{ borderColor: on ? C.forest : "transparent", background: photo ? "#000" : C.cream, opacity: on ? 1 : 0.7 }}
                     >
-                      <img src={product.image[k]} alt="" className={photo ? "h-full w-full object-cover" : "h-full w-full object-contain p-2"} style={{ mixBlendMode: photo ? "normal" : "multiply" }} loading="lazy" />
+                      <Image src={product.image[k]} alt="" fill className={photo ? "object-cover" : "object-contain p-2"} style={{ mixBlendMode: photo ? "normal" : "multiply" }} />
                       <span className="absolute inset-x-0 bottom-0 bg-black/30 py-0.5 text-center text-[8px] font-bold uppercase tracking-wide text-white">{LABELS[k]}</span>
                     </button>
                   );
@@ -172,13 +173,15 @@ export default function ProductHero({ product }) {
           <button aria-label="Close" className="absolute right-5 top-5 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white backdrop-blur-md">
             <X className="h-5 w-5" />
           </button>
-          <img
-            src={product.image?.[active]}
-            alt={product.name}
-            className="relative max-h-[85vh] max-w-[90vw] rounded-2xl object-contain duration-300 animate-in zoom-in-95"
-            style={{ background: isPhoto ? "transparent" : "#fff" }}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="relative h-[85vh] w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={product.image?.[active]}
+              alt={product.name}
+              fill
+              className="rounded-2xl object-contain animate-in zoom-in-95 duration-300"
+              style={{ background: isPhoto ? "transparent" : "#fff" }}
+            />
+          </div>
         </div>
       )}
     </section>

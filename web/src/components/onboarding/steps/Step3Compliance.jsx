@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ShieldCheck } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
-import ProgressHeader from '../common/ProgressHeader'
+import OnboardingLayout from '../layout/OnboardingLayout'
 import InfoBanner from '../common/InfoBanner'
 import DocumentUploadCard from '../common/DocumentUploadCard'
 import StepActionBar from '../common/StepActionBar'
@@ -114,15 +114,7 @@ export default function Step3Compliance() {
 
   /* ── Render ───────────────────────────── */
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <ProgressHeader
-        step={3}
-        totalSteps={4}
-        title="Compliance & Certifications"
-        subtitle="Help us verify regulatory compliance and scientific backing to build consumer trust."
-        saveStatus="saved"
-      />
-
+    <OnboardingLayout step={3} title="Compliance & Certifications" subtitle="Help us verify regulatory compliance and scientific backing to build consumer trust." saveStatus="saved">
       <main className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
         <div className="max-w-[1100px] mx-auto space-y-7">
 
@@ -217,7 +209,7 @@ export default function Step3Compliance() {
         submitLabel="Submit for Review"
         isSaving={isSaving}
       />
-    </div>
+    </OnboardingLayout>
   )
 }
 

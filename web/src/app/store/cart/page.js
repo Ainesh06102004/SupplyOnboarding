@@ -257,7 +257,8 @@ export default function CartPage() {
   
   // Hydration fix for Zustand
   useEffect(() => {
-    setMounted(true);
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
   }, []);
 
   const items = useCartStore(state => state.items);

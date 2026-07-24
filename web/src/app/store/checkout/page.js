@@ -49,12 +49,15 @@ export default function CheckoutPage() {
 
   // Hydration fix
   useEffect(() => {
-    setMounted(true);
-    // If empty cart somehow gets here, redirect back to shop
-    if (items.length === 0) {
-      router.push("/store/shop");
-    }
-  }, [items, router]);
+    const t = setTimeout(() => {
+      setMounted(true);
+      // If empty cart somehow gets here, redirect back to shop
+      if (items.length === 0) {
+        router.push("/store/shop");
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [items.length, router]);
 
   if (!mounted || items.length === 0) return null;
 
@@ -169,7 +172,7 @@ export default function CheckoutPage() {
                    <div>
                       <h4 className="text-[14px] font-bold text-[#0E4032] mb-1">Delivered fresh within 2–4 hours</h4>
                       <p className="text-[13px] text-[#5A6B5A] leading-relaxed">
-                         Temperature-sensitive products handled carefully using KOI's cold-chain packaging.
+                         We prioritize local makers and rapid, eco-friendly delivery routes to ensure your groceries don&apos;t just arrive fast, but arrive fresh.
                       </p>
                    </div>
                 </div>

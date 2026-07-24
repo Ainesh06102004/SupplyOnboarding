@@ -6,13 +6,14 @@
 // IngredientStrip · FilterBar · FilterDrawer · ProductGrid · MiniCart
 // ============================================================================
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Search, Command, Sparkles, ArrowRight, ArrowUpRight, ShoppingBag, X, Check,
-  SlidersHorizontal, ChevronDown, Filter, Leaf, Plus,
-  Dumbbell, ShieldCheck, Sprout, Zap, Activity, Baby, Heart, Flame,
+  Search, Target, TrendingUp, Sparkles, Plus,
+  ArrowUpRight, Leaf, ShieldCheck, Dumbbell, Activity, CheckCircle2, ChevronRight,
+  X, Check, SlidersHorizontal, ChevronDown, Filter, Baby, Heart, Flame, Command, ShoppingBag, ArrowRight
 } from "lucide-react";
+import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Reveal, Eyebrow, Marquee, ScoreRing, ArrowButton, Grain } from "@/components/store/landing/primitives";
@@ -63,9 +64,9 @@ function useTypewriter(words) {
   const [del, setDel] = useState(false);
   useEffect(() => {
     if (reduced) {
-      setText(words[i % words.length]);
-      const t = setTimeout(() => setI((v) => v + 1), 2600);
-      return () => clearTimeout(t);
+      const t1 = setTimeout(() => setText(words[i % words.length]), 0);
+      const t2 = setTimeout(() => setI((v) => v + 1), 2600);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
     const word = words[i % words.length];
     let t;
@@ -74,7 +75,12 @@ function useTypewriter(words) {
       else t = setTimeout(() => setDel(true), 1700);
     } else {
       if (text.length > 0) t = setTimeout(() => setText(word.slice(0, text.length - 1)), 26);
-      else { setDel(false); setI((v) => v + 1); }
+      else { 
+        t = setTimeout(() => {
+          setDel(false);
+          setI((v) => v + 1);
+        }, 0);
+      }
     }
     return () => clearTimeout(t);
   }, [text, del, i, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -234,13 +240,12 @@ export function FeaturedEditorial({ product, onSelect }) {
 
             {/* product */}
             <div className="relative z-10 mx-auto aspect-square w-full max-w-[420px]">
-              <button onClick={() => onSelect?.(product)} className="block h-full w-full" aria-label={`Open ${product.name}`}>
-                <img
+              <button onClick={() => onSelect?.(product)} className="block relative h-full w-full" aria-label={`Open ${product.name}`}>
+                <Image
                   src={product.image?.hero}
                   alt={`${product.brand} - ${product.name}`}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.04]"
+                  fill
+                  className="object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.04]"
                   style={{ animation: "koi-float 8s ease-in-out infinite" }}
                 />
               </button>
@@ -579,7 +584,10 @@ export function MiniCart() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const items = useCartStore((s) => s.items);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
   if (!mounted) return null;
   const totalItems = items.reduce((n, i) => n + i.quantity, 0);
   const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);

@@ -1,7 +1,93 @@
 import React, { useState } from 'react'
-import { Upload, Image as ImageIcon, Sparkles, CheckCircle2, AlertCircle, X } from 'lucide-react'
+import { Upload, Image as ImageIcon, Sparkles, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useProductCreationStore } from '@/store/productCreationStore'
+
+const UploadCard = ({ title, badge, badgeColor = 'bg-gray-100 text-gray-600', description, children, error }) => (
+  <div className={`bg-white border ${error ? 'border-red-300' : 'border-gray-200'} rounded-2xl p-6 shadow-sm`}>
+    <div className="flex justify-between items-start mb-2">
+      <h4 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
+      <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded ${badgeColor}`}>
+        {badge}
+      </span>
+    </div>
+    <p className="text-sm text-gray-500 mb-6">{description}</p>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-3 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</p>}
+  </div>
+)
+
+const SingleDropzone = ({ type, accept = ".pdf,.jpg,.jpeg,.png", acceptText = "PNG, JPG, PDF", assets, handleSingleFile }) => {
+  const file = assets[type]
+
+  return (
+    <label className={`
+      flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all
+      ${file ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}
+    `}>
+      <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+        {file ? (
+          <>
+            <CheckCircle2 className="w-8 h-8 text-green-500 mb-2" />
+            <p className="text-sm font-semibold text-green-700 truncate max-w-[200px]">{file.name}</p>
+            <p className="text-xs text-green-600 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+          </>
+        ) : (
+          <>
+            <Upload className="w-8 h-8 mb-2 text-gray-400" />
+            <p className="text-sm text-gray-600 font-medium">Click or drag to upload</p>
+            <p className="text-xs text-gray-400 mt-1">{acceptText} max 10MB</p>
+          </>
+        )}
+      </div>
+      <input 
+        type="file" 
+        className="hidden" 
+        accept={accept}
+        onChange={(e) => handleSingleFile(type, e.target.files[0])}
+      />
+    </label>
+  )
+}
+
+const MultiDropzone = ({ type, accept = ".pdf,.jpg,.jpeg,.png", acceptText = "PNG, JPG, PDF", assets, handleMultipleFiles, removeMultipleFile }) => {
+  const files = assets[type] || []
+
+  return (
+    <div>
+      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-all">
+        <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+          <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
+          <p className="text-sm text-gray-600 font-medium">Click or drag to upload multiple</p>
+          <p className="text-xs text-gray-400 mt-1">{acceptText} max 10MB</p>
+        </div>
+        <input 
+          type="file" 
+          multiple
+          className="hidden" 
+          accept={accept}
+          onChange={(e) => handleMultipleFiles(type, e.target.files)}
+        />
+      </label>
+
+      {files.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {files.map((file, idx) => (
+            <div key={idx} className="flex justify-between items-center bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg text-sm">
+              <span className="truncate max-w-[200px] text-gray-700">{file.name}</span>
+              <button 
+                onClick={() => removeMultipleFile(type, idx)}
+                className="p-1 text-gray-400 hover:text-red-500 rounded ml-2"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Step3LabelUpload() {
   const { assets, updateAssets, setCurrentStep } = useProductCreationStore()
@@ -42,7 +128,6 @@ export default function Step3LabelUpload() {
 
     setLoading(true)
     try {
-      // Simulate save delay for assets. Real upload to Supabase Storage can occur here or at final submission
       await new Promise(resolve => setTimeout(resolve, 800))
       setCurrentStep(4)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -57,98 +142,11 @@ export default function Step3LabelUpload() {
   const handleSaveDraft = async () => {
     setLoading(true)
     try {
-      // Simulate save
       await new Promise(resolve => setTimeout(resolve, 800))
       alert('Draft saved successfully!')
     } finally {
       setLoading(false)
     }
-  }
-
-  const UploadCard = ({ title, badge, badgeColor = 'bg-gray-100 text-gray-600', description, children, error }) => (
-    <div className={`bg-white border ${error ? 'border-red-300' : 'border-gray-200'} rounded-2xl p-6 shadow-sm`}>
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
-        <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded ${badgeColor}`}>
-          {badge}
-        </span>
-      </div>
-      <p className="text-sm text-gray-500 mb-6">{description}</p>
-      {children}
-      {error && <p className="text-red-500 text-xs mt-3 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</p>}
-    </div>
-  )
-
-  const SingleDropzone = ({ type, accept = ".pdf,.jpg,.jpeg,.png", acceptText = "PNG, JPG, PDF" }) => {
-    const file = assets[type]
-
-    return (
-      <label className={`
-        flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all
-        ${file ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}
-      `}>
-        <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
-          {file ? (
-            <>
-              <CheckCircle2 className="w-8 h-8 text-green-500 mb-2" />
-              <p className="text-sm font-semibold text-green-700 truncate max-w-[200px]">{file.name}</p>
-              <p className="text-xs text-green-600 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            </>
-          ) : (
-            <>
-              <Upload className="w-8 h-8 mb-2 text-gray-400" />
-              <p className="text-sm text-gray-600 font-medium">Click or drag to upload</p>
-              <p className="text-xs text-gray-400 mt-1">{acceptText} max 10MB</p>
-            </>
-          )}
-        </div>
-        <input 
-          type="file" 
-          className="hidden" 
-          accept={accept}
-          onChange={(e) => handleSingleFile(type, e.target.files[0])}
-        />
-      </label>
-    )
-  }
-
-  const MultiDropzone = ({ type, accept = ".pdf,.jpg,.jpeg,.png", acceptText = "PNG, JPG, PDF" }) => {
-    const files = assets[type] || []
-
-    return (
-      <div>
-        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-all">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
-            <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
-            <p className="text-sm text-gray-600 font-medium">Click or drag to upload multiple</p>
-            <p className="text-xs text-gray-400 mt-1">{acceptText} max 10MB</p>
-          </div>
-          <input 
-            type="file" 
-            multiple
-            className="hidden" 
-            accept={accept}
-            onChange={(e) => handleMultipleFiles(type, e.target.files)}
-          />
-        </label>
-
-        {files.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {files.map((file, idx) => (
-              <div key={idx} className="flex justify-between items-center bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg text-sm">
-                <span className="truncate max-w-[200px] text-gray-700">{file.name}</span>
-                <button 
-                  onClick={() => removeMultipleFile(type, idx)}
-                  className="p-1 text-gray-400 hover:text-red-500 rounded"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
   }
 
   return (
@@ -178,7 +176,7 @@ export default function Step3LabelUpload() {
           description="Upload the nutrition facts panel from packaging."
           error={errors.nutritionLabel}
         >
-          <SingleDropzone type="nutritionLabel" />
+          <SingleDropzone type="nutritionLabel" assets={assets} handleSingleFile={handleSingleFile} />
         </UploadCard>
 
         <UploadCard 
@@ -188,7 +186,7 @@ export default function Step3LabelUpload() {
           description="Upload ingredient and allergen information."
           error={errors.ingredientLabel}
         >
-          <SingleDropzone type="ingredientLabel" />
+          <SingleDropzone type="ingredientLabel" assets={assets} handleSingleFile={handleSingleFile} />
         </UploadCard>
 
         <UploadCard 
@@ -196,7 +194,7 @@ export default function Step3LabelUpload() {
           badge="Optional" 
           description="Upload front, back and side packaging images."
         >
-          <MultiDropzone type="packagingImages" />
+          <MultiDropzone type="packagingImages" assets={assets} handleMultipleFiles={handleMultipleFiles} removeMultipleFile={removeMultipleFile} />
         </UploadCard>
 
         <UploadCard 
@@ -205,7 +203,7 @@ export default function Step3LabelUpload() {
           description="Upload barcode image or enter barcode manually."
         >
           <div className="space-y-4">
-            <SingleDropzone type="barcodeFile" acceptText="PNG, JPG" />
+            <SingleDropzone type="barcodeFile" acceptText="PNG, JPG" assets={assets} handleSingleFile={handleSingleFile} />
             <div className="flex items-center gap-3">
               <div className="h-[1px] flex-1 bg-gray-200"></div>
               <span className="text-xs text-gray-400 font-bold uppercase">OR</span>

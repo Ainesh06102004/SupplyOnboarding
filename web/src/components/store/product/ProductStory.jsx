@@ -25,10 +25,18 @@ function GrowBar({ pct, color = C.emerald, track = "#0000000f", height = 8, dela
   const ref = useRef(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setOn(true);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const t = setTimeout(() => setOn(true), 0);
+      return () => clearTimeout(t);
+    }
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && (setOn(true), io.disconnect()), { threshold: 0.5 });
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setTimeout(() => setOn(true), 0);
+        io.disconnect();
+      }
+    }, { threshold: 0.5 });
     io.observe(el);
     return () => io.disconnect();
   }, []);

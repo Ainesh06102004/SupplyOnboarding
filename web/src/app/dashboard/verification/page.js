@@ -322,7 +322,7 @@ export default function VerificationPage() {
                     <span className="text-[10px] font-bold uppercase text-gray-900 border border-red-200 px-2 py-0.5 rounded tracking-wider bg-white">High Impact</span>
                   </div>
                   <h5 className="text-sm font-semibold text-gray-900 mb-0.5" style={{ fontFamily: "var(--font-koi-heading)" }}>Claim Unsupported</h5>
-                  <p className="text-[13px] text-gray-500">Mass Gainer Pro: "Zero Sugar" contradicts parsed ingredients.</p>
+                  <p className="text-[13px] text-gray-500">Mass Gainer Pro: &quot;Zero Sugar&quot; contradicts parsed ingredients.</p>
                 </div>
               </div>
               
@@ -348,7 +348,7 @@ export default function VerificationPage() {
               Reviewer Notes
             </h4>
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-              <p className="text-sm text-gray-600 italic">"Please provide clearer images of the back packaging for Hydration Mix. OCR confidence is below 80%."</p>
+              <p className="text-sm text-gray-600 italic">&quot;Please provide clearer images of the back packaging for Hydration Mix. OCR confidence is below 80%.&quot;</p>
               <div className="mt-3 text-xs text-gray-400 font-semibold">— Admin System</div>
             </div>
           </div>

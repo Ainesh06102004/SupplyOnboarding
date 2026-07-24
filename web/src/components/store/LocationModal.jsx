@@ -46,19 +46,24 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
   useEffect(() => {
     if (open) {
       if (initialData && initialData.id) {
-        setFormData(initialData);
-        setView("details");
+        const t = setTimeout(() => {
+          setFormData(initialData);
+          setView("details");
+        }, 0);
+        return () => clearTimeout(t);
       } else {
-        setView("select");
-        setFormData({
-          id: null, label: "Home", full_name: "", phone: "",
-          house_number: "", street: "", landmark: "", city: "",
-          state: "", pincode: "", country: "India", is_default: false,
-          lat: null, lon: null
-        });
-        setSearchQuery("");
-        setSearchResults([]);
-        setError(null);
+        const t = setTimeout(() => {
+          setView("select");
+          setFormData({
+            id: null, label: "Home", full_name: "", phone: "",
+            house_number: "", street: "", landmark: "", city: "",
+            state: "", pincode: "", country: "India", is_default: false,
+            lat: null, lon: null
+          });
+          setSearchQuery("");
+          setSearchResults([]);
+        }, 0);
+        return () => clearTimeout(t);
       }
     }
   }, [open, initialData]);
@@ -242,7 +247,7 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
                     ))
                   ) : (
                     <div className="px-4 py-6 text-center text-[#5A6B5A] text-sm">
-                      No locations found matching "{searchQuery}"
+                      No locations found matching &quot;{searchQuery}&quot;
                     </div>
                   )}
                 </div>

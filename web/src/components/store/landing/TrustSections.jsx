@@ -17,24 +17,26 @@ function Counter({ to, suffix = "", duration = 1500 }) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return setVal(to);
+    if (reduce) {
+      const t = setTimeout(() => setVal(to), 0);
+      return () => clearTimeout(t);
+    }
     const el = ref.current;
     if (!el) return;
     let raf = 0;
     const io = new IntersectionObserver(
       ([e]) => {
-        if (!e.isIntersecting) return;
-        io.disconnect();
-        const start = performance.now();
-        const tick = (now) => {
-          const t = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - t, 3);
-          setVal(Math.round(eased * to));
-          if (t < 1) raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-      },
-      { threshold: 0.5 }
+        if (e.isIntersecting) {
+          const start = performance.now();
+          const step = (now) => {
+            const p = Math.min(1, (now - start) / duration);
+            setVal(Math.floor(p * to));
+            if (p < 1) raf = requestAnimationFrame(step);
+          };
+          raf = requestAnimationFrame(step);
+          io.disconnect();
+        }
+      },{ threshold: 0.5 }
     );
     io.observe(el);
     return () => { io.disconnect(); cancelAnimationFrame(raf); };
@@ -165,10 +167,18 @@ function EvidenceGraph() {
   const [on, setOn] = useState(false);
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return setOn(true);
+    if (reduce) {
+      const t = setTimeout(() => setOn(true), 0);
+      return () => clearTimeout(t);
+    }
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && (setOn(true), io.disconnect()), { threshold: 0.35 });
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setTimeout(() => setOn(true), 0);
+        io.disconnect();
+      }
+    }, { threshold: 0.35 });
     io.observe(el);
     return () => io.disconnect();
   }, []);

@@ -19,6 +19,8 @@ import { C } from "@/components/store/landing/tokens";
 import { FALLBACK_PRODUCTS, GOALS, INGREDIENTS, SORTS } from "@/components/store/shop/shopData";
 import CommandSearch from "@/components/store/shop/CommandSearch";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
+import PersonalShelves from "@/components/store/shop/PersonalShelves";
+import { useGoalStore } from "@/store/goalStore";
 import {
   ShopHero, FeaturedEditorial, Shelf, GoalRail, IngredientStrip,
   FilterBar, FilterDrawer, ProductGrid, MiniCart,
@@ -67,6 +69,19 @@ export default function ShopPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
+
+  // Goal profile drives KRE-personalised shelves (hydrated client-side).
+  const goalProfile = useGoalStore((s) => s.profile);
+  const hydrateGoal = useGoalStore((s) => s.hydrate);
+  const [goalMounted, setGoalMounted] = useState(false);
+  useEffect(() => { 
+    const t = setTimeout(() => {
+      hydrateGoal(); 
+      setGoalMounted(true); 
+    }, 0);
+    return () => clearTimeout(t);
+  }, [hydrateGoal]);
+  const hasGoalProfile = goalMounted && !!goalProfile;
   const [selectedScoreProduct, setSelectedScoreProduct] = useState(null);
   const [selectedCompareProduct, setSelectedCompareProduct] = useState(null);
   const [selectedInsightProduct, setSelectedInsightProduct] = useState(null);
@@ -195,18 +210,26 @@ export default function ShopPage() {
             onSuggest={(text) => applyFromSearch({ query: text })}
             stats={stats}
           />
-          <FeaturedEditorial product={featured} onSelect={selectProduct} />
 
-          <Shelf
-            id="collections-picks"
-            eyebrow="Picked for you"
-            title="Based on your goals"
-            subtitle="A handcrafted shortlist, re-scored every week."
-            products={recommended.length ? recommended : topRated}
-            handlers={cardHandlers}
-          />
-
+          {/* Start the journey: set a goal, KOI tunes to you, then keep scrolling */}
           <GoalRail goals={GOALS} activeGoal={activeGoal} onPick={(g) => { setActiveGoal(g); if (g) scrollToGrid(); }} onOpenGoal={() => setGoalOpen(true)} />
+
+          {/* KRE-personalised shelves (renders only when a goal profile exists) */}
+          <PersonalShelves products={products} />
+
+          {/* Generic shortlist for shoppers who haven't set a goal yet */}
+          {!hasGoalProfile && (
+            <Shelf
+              id="collections-picks"
+              eyebrow="Picked for you"
+              title="Based on your goals"
+              subtitle="A handcrafted shortlist, re-scored every week."
+              products={recommended.length ? recommended : topRated}
+              handlers={cardHandlers}
+            />
+          )}
+
+          <FeaturedEditorial product={featured} onSelect={selectProduct} />
 
           <Shelf
             eyebrow="Top of the standard"

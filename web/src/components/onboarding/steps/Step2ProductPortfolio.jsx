@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Package, LayoutGrid, Box, BarChart3, HeartPulse } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
-import ProgressHeader from '../common/ProgressHeader'
+import OnboardingLayout from '../layout/OnboardingLayout'
 import FormSectionCard from '../common/FormSectionCard'
 import MultiSelectChipInput from '../common/MultiSelectChipInput'
 import FileUploadDropzone from '../common/FileUploadDropzone'
@@ -128,15 +128,7 @@ export default function Step2ProductPortfolio() {
 
   /* ── Render ───────────────────────────── */
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <ProgressHeader
-        step={2}
-        totalSteps={4}
-        title="Product Portfolio"
-        subtitle="Help us understand your product range and quality standards"
-        saveStatus="saved"
-      />
-
+    <OnboardingLayout step={2} title="Product Portfolio" subtitle="Help us understand your product range and quality standards" saveStatus="saved">
       <main className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
         <div className="max-w-[1100px] mx-auto space-y-7">
 
@@ -260,7 +252,7 @@ export default function Step2ProductPortfolio() {
         onSaveDraft={handleSaveDraft}
         onContinue={handleContinue}
       />
-    </div>
+    </OnboardingLayout>
   )
 }
 

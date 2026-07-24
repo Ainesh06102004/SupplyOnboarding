@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils'
 
 /**
  * FormSectionCard
- *
- * Premium white card wrapper for grouping form fields.
+ * Premium floating card that groups form fields. Reskinned for the editorial
+ * onboarding — soft shadow, generous spacing, mint icon chip.
  *
  * @param {string}            title       – section heading
  * @param {string}            description – helper text below heading
@@ -12,43 +12,30 @@ import { cn } from '@/lib/utils'
  * @param {string}            className   – additional class overrides
  * @param {React.ReactNode}   children    – form fields rendered inside
  */
-export default function FormSectionCard({
-  title,
-  description,
-  icon: Icon,
-  className,
-  children,
-}) {
+export default function FormSectionCard({ title, description, icon: Icon, className, children }) {
   return (
     <section
-      className={cn(
-        'bg-white border border-[#E2E8D8] px-7 pt-6 pb-7 md:px-8 md:pt-7 md:pb-8 rounded-[20px]',
-        className,
-      )}
-      style={{ boxShadow: '0 4px 20px rgba(14,64,50,0.03)' }}
+      className={cn('relative rounded-[24px] border border-[#E2E8D8] bg-white p-6 md:p-8', className)}
+      style={{ boxShadow: '0 12px 44px rgba(14,64,50,0.05)' }}
     >
-      {/* Section header */}
       {(title || Icon) && (
-        <div className="flex items-start gap-3.5 mb-5">
+        <div className="mb-6 flex items-start gap-4">
           {Icon && (
-            <div className="w-10 h-10 rounded-xl bg-[#0E4032]/8 text-[#0E4032] flex items-center justify-center shrink-0">
-              <Icon className="w-[18px] h-[18px]" strokeWidth={2} />
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: '#EAF8F0' }}>
+              <Icon className="h-5 w-5" style={{ color: '#0C6B4C' }} strokeWidth={2} />
             </div>
           )}
           <div className="pt-0.5">
-            <h2 className="text-[17px] font-bold text-[#0E4032] tracking-tight leading-tight" style={{ fontFamily: "var(--font-koi-heading)" }}>
+            <h2 className="text-[18px] font-bold tracking-tight text-[#0E4032]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
               {title}
             </h2>
             {description && (
-              <p className="text-[13px] text-[#5A6B5A] mt-0.5 leading-relaxed">
-                {description}
-              </p>
+              <p className="mt-1 text-[13.5px] leading-relaxed text-[#5A6B5A]">{description}</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Form content */}
       {children}
     </section>
   )

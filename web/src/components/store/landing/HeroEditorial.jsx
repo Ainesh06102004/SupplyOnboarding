@@ -7,7 +7,9 @@
 // ============================================================================
 
 import React from "react";
-import { Check, Leaf } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck, Plus, CheckCircle2, FlaskConical, Search, Target, Check, ArrowRight, Leaf } from "lucide-react";
+import Image from "next/image";
 import { C, HEADING, BODY, PRODUCTS } from "./tokens";
 import { Reveal, ScoreRing, ArrowButton, Marquee, Grain } from "./primitives";
 
@@ -75,7 +77,7 @@ export default function HeroEditorial() {
           <Reveal delay={320}>
             <p className="mt-8 max-w-md text-[16px] leading-relaxed text-[#101412]/70" style={BODY}>
               KOI is a curated marketplace of health-first products. We decode every ingredient,
-              nutrition panel and claim - so the only things you'll find here are the ones that
+              nutrition panel and claim - so the only things you&apos;ll find here are the ones that
               genuinely earned their place.
             </p>
           </Reveal>
@@ -85,6 +87,16 @@ export default function HeroEditorial() {
               <ArrowButton href="/store/shop" variant="forest" size="lg">Start shopping</ArrowButton>
               <ArrowButton href="#trust" variant="outline" size="lg">How KOI works</ArrowButton>
             </div>
+          </Reveal>
+
+          <Reveal delay={450}>
+            <Link href="/onboarding" className="group mt-5 inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.14em] text-[#083D2D]/55 transition-colors hover:text-[#083D2D]">
+              <span className="relative">
+                Are you a brand? Partner with KOI
+                <span className="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-[#083D2D] transition-transform duration-300 group-hover:scale-x-100" />
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </Link>
           </Reveal>
 
           <Reveal delay={480}>
@@ -117,13 +129,12 @@ export default function HeroEditorial() {
 
             {/* Product render on a light plate (no multiply on dark bg) */}
             <div className="absolute inset-x-8 top-10 bottom-24 grid place-items-center">
-              <img
+              <Image
                 src={HERO_PRODUCT.image}
                 alt={`${HERO_PRODUCT.brand} - ${HERO_PRODUCT.name}`}
-                width="640"
-                height="640"
-                loading="eager"
-                decoding="async"
+                width={640}
+                height={640}
+                priority
                 draggable="false"
                 className="h-full w-auto max-w-full object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
                 style={{ animation: "koi-float 7s ease-in-out infinite" }}

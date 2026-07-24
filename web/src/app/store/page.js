@@ -13,6 +13,7 @@ import { FeaturedCollection, BestRated } from "@/components/store/landing/Produc
 import { WhyKoi, TrustFramework, ScienceBacked } from "@/components/store/landing/TrustSections";
 import { IngredientExplorer, TrendingCategories } from "@/components/store/landing/DiscoverySections";
 import { CommunityVoices, NewsletterEditorial, FooterEditorial } from "@/components/store/landing/CommunityFooter";
+import ForBrands from "@/components/store/landing/ForBrands";
 
 export default function StoreHomePage() {
   return (
@@ -29,6 +30,7 @@ export default function StoreHomePage() {
         <TrendingCategories />
         <ScienceBacked />
         <CommunityVoices />
+        <ForBrands />
         <NewsletterEditorial />
       </main>
 

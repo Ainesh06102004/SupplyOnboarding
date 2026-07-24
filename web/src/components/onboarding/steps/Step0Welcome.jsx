@@ -62,7 +62,7 @@ export default function Step0Welcome() {
           Join KOI Supplier Network
         </h1>
         <p className="text-lg max-w-[90%] leading-relaxed" style={{ color: C.muted }}>
-          Get your products listed on India's most trusted health-first quick commerce platform.
+          Get your products listed on India&apos;s most trusted health-first quick commerce platform.
         </p>
       </div>
 

@@ -32,7 +32,10 @@ function TopBar() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const items = useCartStore((s) => s.items);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
   const count = mounted ? items.reduce((n, i) => n + i.quantity, 0) : 0;
 
   return (

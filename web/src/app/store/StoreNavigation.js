@@ -16,17 +16,18 @@ function NavigationContent() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    if (searchParams.get("login") === "required") {
-      setIsLoginOpen(true);
-      // Clean up the URL parameter
-      const params = new URLSearchParams(searchParams);
-      params.delete("login");
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }
+    const t = setTimeout(() => {
+      setMounted(true);
+      if (searchParams.get("login") === "required") {
+        setIsLoginOpen(true);
+        // Clean up the URL parameter
+        const params = new URLSearchParams(searchParams);
+        params.delete("login");
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      }
+    }, 0);
+    return () => clearTimeout(t);
   }, [searchParams, pathname, router]);
-
-  useEffect(() => setMounted(true), []);
 
   // Hide global navigation entirely on checkout and product-detail pages
   // (those provide their own bespoke chrome / sticky purchase bar).

@@ -76,7 +76,7 @@ export default function TrustBadge({ trust }) {
             </div>
 
             <div className="relative mt-8 flex items-center gap-2 border-t border-white/10 pt-5 text-[12px] font-medium text-white/50" style={BODY}>
-              Backed by KOI's independent nutrition review - not the brand's marketing.
+              Backed by KOI&apos;s independent nutrition review - not the brand&apos;s marketing.
             </div>
           </div>
         </Reveal>
@@ -90,10 +90,18 @@ function Bar({ value }) {
   const [on, setOn] = React.useState(false);
   React.useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return setOn(true);
+    if (reduce) {
+      const t = setTimeout(() => setOn(true), 0);
+      return () => clearTimeout(t);
+    }
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && (setOn(true), io.disconnect()), { threshold: 0.6 });
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setTimeout(() => setOn(true), 0);
+        io.disconnect();
+      }
+    }, { threshold: 0.6 });
     io.observe(el);
     return () => io.disconnect();
   }, []);

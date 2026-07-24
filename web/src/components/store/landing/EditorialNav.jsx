@@ -18,7 +18,7 @@ const LINKS = [
   { label: "Store", href: "/store/shop" },
   { label: "Editorial", href: "#featured" },
   { label: "Trust", href: "#trust" },
-  { label: "Reviews", href: "#community" },
+  { label: "For Brands", href: "/onboarding" },
 ];
 
 function NavLink({ href, children, onClick }) {
@@ -57,7 +57,10 @@ export default function EditorialNav({ links = LINKS, onSearchClick }) {
   const { location, setLocation } = useLocation();
   const count = mounted ? items.reduce((n, i) => n + i.quantity, 0) : 0;
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     let raf = 0;

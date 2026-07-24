@@ -6,7 +6,7 @@ import { Building2, User, ShieldCheck } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import ProgressHeader from '../common/ProgressHeader'
+import OnboardingLayout from '../layout/OnboardingLayout'
 import FormSectionCard from '../common/FormSectionCard'
 import MultiSelectChipInput from '../common/MultiSelectChipInput'
 import StepActionBar from '../common/StepActionBar'
@@ -105,15 +105,7 @@ export default function Step1BrandSetup() {
 
   /* ── Render ───────────────────────────────── */
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <ProgressHeader
-        step={1}
-        totalSteps={4}
-        title="Brand Setup"
-        subtitle="Tell us about your brand and business"
-        saveStatus="saved"
-      />
-
+    <OnboardingLayout step={1} title="Brand Setup" subtitle="Tell us about your brand and business" saveStatus="saved">
       <main className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
         <div className="max-w-[1100px] mx-auto space-y-7">
 
@@ -293,7 +285,7 @@ export default function Step1BrandSetup() {
         onContinue={handleContinue}
         isFirstStep={false}
       />
-    </div>
+    </OnboardingLayout>
   )
 }
 

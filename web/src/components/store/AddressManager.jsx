@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, MapPin, Check, Trash2, Edit2, AlertCircle, User as UserIcon } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,15 +18,7 @@ export default function AddressManager({ onSelect, selectedAddressId }) {
   const [editData, setEditData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (user?.uid) {
-      loadAddresses();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const loadAddresses = async () => {
+  const loadAddresses = useCallback(async () => {
     setLoading(true);
     try {
       const supabase = getSupabaseClient();
@@ -50,7 +42,17 @@ export default function AddressManager({ onSelect, selectedAddressId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, onSelect, selectedAddressId, setAddresses, setError, setLoading]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      const t = setTimeout(() => loadAddresses(), 0);
+      return () => clearTimeout(t);
+    } else {
+      const t = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(t);
+    }
+  }, [user, loadAddresses, setLoading]);
 
   const handleSaveAddress = async (formData) => {
     if (!user?.uid) return;

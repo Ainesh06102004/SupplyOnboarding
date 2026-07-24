@@ -7,6 +7,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { C, HEADING, scoreColor } from "./tokens";
 
@@ -41,8 +42,8 @@ export function Reveal({
 
   useEffect(() => {
     if (reduced) {
-      setShown(true);
-      return;
+      const t = setTimeout(() => setShown(true), 0);
+      return () => clearTimeout(t);
     }
     const el = ref.current;
     if (!el) return;
@@ -119,11 +120,19 @@ export function ScoreRing({ score = 90, size = 56, stroke = 3, label = "KOI", tr
   const color = scoreColor(score);
 
   useEffect(() => {
-    if (reduced) return setOn(true);
+    if (reduced) {
+      const t = setTimeout(() => setOn(true), 0);
+      return () => clearTimeout(t);
+    }
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([e]) => e.isIntersecting && (setOn(true), io.disconnect()),
+      ([e]) => {
+        if (e.isIntersecting) {
+          setTimeout(() => setOn(true), 0);
+          io.disconnect();
+        }
+      },
       { threshold: 0.4 }
     );
     io.observe(el);
@@ -177,11 +186,19 @@ export function Meter({ label, value, max = 100, suffix = "", color = C.emerald,
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
 
   useEffect(() => {
-    if (reduced) return setOn(true);
+    if (reduced) {
+      const t = setTimeout(() => setOn(true), 0);
+      return () => clearTimeout(t);
+    }
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([e]) => e.isIntersecting && (setOn(true), io.disconnect()),
+      ([e]) => {
+        if (e.isIntersecting) {
+          setTimeout(() => setOn(true), 0);
+          io.disconnect();
+        }
+      },
       { threshold: 0.5 }
     );
     io.observe(el);
@@ -302,12 +319,13 @@ export function Grain({ opacity = 0.05, blend = "overlay" }) {
 // ── ProductImage ─────────────────────────────────────────────────────────────
 // White-bg product render composited onto a colour panel via multiply blend.
 export function ProductImage({ src, alt, blend = true, className = "", style, priority = false }) {
+  if (!src) return null;
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
-      loading={priority ? "eager" : "lazy"}
-      decoding="async"
+      priority={priority}
+      fill
       draggable="false"
       className={`select-none ${className}`}
       style={{ mixBlendMode: blend ? "multiply" : "normal", ...style }}

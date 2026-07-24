@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ShoppingBag, Plus, Minus, Heart, Share2, Truck, Check, ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cartStore";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
@@ -122,7 +123,7 @@ export function StickyBuyBar({ product, sentinelRef }) {
         <div className="flex items-center gap-3 rounded-2xl border border-[#083D2D]/10 bg-white/90 p-2.5 pl-3 shadow-[0_18px_50px_rgba(8,61,45,0.18)] backdrop-blur-xl sm:p-3 sm:pl-4">
           <span className="hidden h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl sm:grid" style={{ background: C.cream }}>
             {product.image?.hero ? (
-              <img src={product.image.hero} alt="" className="h-full w-full object-contain p-1" style={{ mixBlendMode: "multiply" }} />
+              <Image src={product.image.hero} alt="" width={48} height={48} className="object-contain p-1" style={{ mixBlendMode: "multiply" }} />
             ) : null}
           </span>
           <div className="min-w-0 flex-1">

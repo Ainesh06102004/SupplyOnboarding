@@ -134,7 +134,8 @@ export default function MultiSelectChipInput({
 
   /* ── Reset highlight index when query changes ─ */
   useEffect(() => {
-    setHighlightIdx(0)
+    const t = setTimeout(() => setHighlightIdx(0), 0)
+    return () => clearTimeout(t)
   }, [query])
 
   /* ── Resolve value → label ──────────────────── */
@@ -163,6 +164,7 @@ export default function MultiSelectChipInput({
       <div
         role="combobox"
         aria-expanded={isOpen}
+        aria-controls="options-listbox"
         onClick={() => {
           if (!atLimit) {
             setIsOpen(true)
@@ -192,12 +194,16 @@ export default function MultiSelectChipInput({
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value)
-                if (!isOpen) setIsOpen(true)
+                setIsOpen(true)
               }}
               onFocus={() => setIsOpen(true)}
               onKeyDown={handleKeyDown}
-              placeholder={selected.length === 0 ? placeholder : 'Add more…'}
-              className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted"
+              placeholder={selected.length === 0 ? placeholder : ''}
+              className="flex-1 min-w-[120px] outline-none bg-transparent text-sm"
+              disabled={disabled}
+              role="combobox"
+              aria-controls="options-listbox"
+              aria-expanded={isOpen}
             />
           </div>
         )}

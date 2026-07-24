@@ -108,7 +108,7 @@ export function FeaturedCollection() {
             </Reveal>
             <Reveal delay={140}>
               <p className="mt-7 max-w-md text-[16px] leading-relaxed text-[#083D2D]/75" style={BODY}>
-                {FEATURED.brand}'s {FEATURED.name.toLowerCase()} cleared every check on our list —
+                {FEATURED.brand}&apos;s {FEATURED.name.toLowerCase()} cleared every check on our list —
                 real ingredients, honest macros and nothing hiding in the fine print.
               </p>
             </Reveal>

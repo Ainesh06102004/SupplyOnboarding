@@ -16,6 +16,7 @@ import {
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { ScoreRing } from "@/components/store/landing/primitives";
 import { GOALS, INGREDIENTS, EDITORIAL, TRENDING, PLACEHOLDERS } from "./shopData";
+import Image from "next/image";
 
 const GOAL_ICONS = { Dumbbell, ShieldCheck, Sprout, Zap, Activity, Baby, Heart, Flame };
 const RECENT_KEY = "koi_recent_searches";
@@ -34,17 +35,29 @@ function pushRecent(q) {
 export default function CommandSearch({ open, onClose, products = [], onSelectProduct, onQuery }) {
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
+  const [prevQuery, setPrevQuery] = useState("");
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    setSel(0);
+  }
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setQuery("");
+      setSel(0);
+      setRecent(readRecent());
+    }
+  }
+
   const [phIndex, setPhIndex] = useState(0);
   const [recent, setRecent] = useState([]);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // open lifecycle: focus, reset, lock scroll, load recents
+  // open lifecycle: focus, lock scroll
   useEffect(() => {
     if (!open) return;
-    setQuery("");
-    setSel(0);
-    setRecent(readRecent());
     const t = setTimeout(() => inputRef.current?.focus(), 40);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -60,10 +73,10 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
 
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))), [products]);
 
-  const submitQuery = (text) => { pushRecent(text); onQuery?.({ query: text }); onClose?.(); };
-  const goProduct = (p) => { onSelectProduct?.(p); onClose?.(); };
-  const goGoal = (g) => { onQuery?.({ goal: g }); onClose?.(); };
-  const goBrand = (b) => { onQuery?.({ brand: b }); onClose?.(); };
+  const submitQuery = useCallback((text) => { pushRecent(text); onQuery?.({ query: text }); onClose?.(); }, [onQuery, onClose]);
+  const goProduct = useCallback((p) => { onSelectProduct?.(p); onClose?.(); }, [onSelectProduct, onClose]);
+  const goGoal = useCallback((g) => { onQuery?.({ goal: g }); onClose?.(); }, [onQuery, onClose]);
+  const goBrand = useCallback((b) => { onQuery?.({ brand: b }); onClose?.(); }, [onQuery, onClose]);
 
   // Build display sections + a flat, index-addressed nav list.
   const { sections, flat } = useMemo(() => {
@@ -104,9 +117,9 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
     const flatList = [];
     secs.forEach((s) => s.items.forEach((it) => { it._i = flatList.length; flatList.push(it); }));
     return { sections: secs, flat: flatList };
-  }, [query, recent, products, brands]);
+  }, [query, recent, products, brands, submitQuery, goProduct, goGoal, goBrand]);
 
-  useEffect(() => { setSel(0); }, [query]);
+  // derived state handles reset: setSel(0) when query changes
 
   // keyboard nav
   useEffect(() => {
@@ -124,7 +137,7 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, flat, sel, query]);
+  }, [open, flat, sel, query, onClose, submitQuery]);
 
   // keep active row in view
   useEffect(() => {
@@ -237,7 +250,7 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
                         >
                           <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl" style={{ background: C.cream }}>
                             {p.image?.hero ? (
-                              <img src={p.image.hero} alt="" className="h-full w-full object-contain p-1" style={{ mixBlendMode: "multiply" }} loading="lazy" />
+                              <Image src={p.image.hero} alt="" width={48} height={48} className="object-contain p-1" style={{ mixBlendMode: "multiply" }} />
                             ) : (
                               <Leaf className="h-5 w-5 text-[#083D2D]/30" />
                             )}

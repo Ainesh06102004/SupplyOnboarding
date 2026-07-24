@@ -10,16 +10,40 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Target, ArrowRight, ArrowLeft, X, Check, Sparkles, Flame, Dumbbell, Scale,
-  TrendingDown, Pencil, Utensils, Trash2,
+  TrendingDown, Pencil, Utensils, Trash2, Heart, Ban, Clock, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Grain } from "@/components/store/landing/primitives";
 import { useGoalStore, computeTargets, ACTIVITY, GOAL_DEFS } from "@/store/goalStore";
+import { FOODS_LOVE, FOODS_AVOID, DIET_TYPES, MEALS, BUDGETS, COOKING } from "@/lib/recommendation/config";
 
 const GOAL_ICON = { TrendingDown, Dumbbell, Scale, Sparkles };
-const DIET_OPTIONS = ["Vegetarian", "Vegan", "Eggetarian", "Non-veg", "Gluten-free", "Keto", "High-protein", "No added sugar", "Dairy-free"];
+const DIET_TYPE_LABEL = Object.fromEntries(DIET_TYPES.map((d) => [d.key, d.label]));
 const SAMPLE = computeTargets({ sex: "male", age: 28, height: 175, weightNow: 72, activity: "moderate", goal: "maintenance" });
+
+// Selectable pill used across the food-preference steps.
+function PrefChip({ label, emoji, on, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-[13px] font-bold transition-all"
+      style={{ borderColor: on ? C.forest : "rgba(8,61,45,0.12)", background: on ? C.lime : "#fff", color: C.forest }}
+    >
+      {emoji && <span className="text-[14px] leading-none">{emoji}</span>}
+      {label}
+      {on && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+    </button>
+  );
+}
+
+function FieldLabel({ icon: Icon, children }) {
+  return (
+    <span className="mb-3 flex items-center gap-2 text-[13px] font-bold text-[#083D2D]">
+      <Icon className="h-4 w-4" style={{ color: C.emerald }} /> {children}
+    </span>
+  );
+}
 
 // ── Macro donut ─────────────────────────────────────────────────────────────
 function MacroRing({ targets, size = 150, dim = false }) {
@@ -76,7 +100,11 @@ export function GoalCard({ onOpen }) {
   const clearProfile = useGoalStore((s) => s.clearProfile);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { hydrate(); setMounted(true); }, [hydrate]);
+  useEffect(() => {
+    hydrate();
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, [hydrate]);
 
   const active = mounted && profile;
   const t = active ? profile.targets : SAMPLE;
@@ -110,13 +138,23 @@ export function GoalCard({ onOpen }) {
                 <Stat label="Carbs" value={`${t.carbs}`} unit="g" />
                 <Stat label="Fat" value={`${t.fat}`} unit="g" />
               </div>
-              {profile.diet?.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {profile.diet.map((d) => (
-                    <span key={d} className="rounded-full border border-white/15 bg-white/8 px-2.5 py-1 text-[11px] font-bold text-white/80">{d}</span>
-                  ))}
-                </div>
-              )}
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {profile.dietType && (
+                  <span className="rounded-full border border-white/15 bg-white/8 px-2.5 py-1 text-[11px] font-bold text-white/80">
+                    {DIET_TYPE_LABEL[profile.dietType] || profile.dietType}
+                  </span>
+                )}
+                {profile.foodsLove?.length > 0 && (
+                  <span className="rounded-full border border-white/15 bg-white/8 px-2.5 py-1 text-[11px] font-bold text-white/80">
+                    {profile.foodsLove.length} foods you love
+                  </span>
+                )}
+                {profile.foodsAvoid?.length > 0 && (
+                  <span className="rounded-full border border-white/15 bg-white/8 px-2.5 py-1 text-[11px] font-bold text-white/80">
+                    {profile.foodsAvoid.length} avoided
+                  </span>
+                )}
+              </div>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button onClick={onOpen} className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold text-[#083D2D] transition-transform hover:-translate-y-0.5" style={{ background: C.lime }}>
                   <Pencil className="h-3.5 w-3.5" /> Edit goal
@@ -124,7 +162,7 @@ export function GoalCard({ onOpen }) {
                 <button onClick={() => { clearProfile(); toast.success("Goal cleared"); }} className="inline-flex items-center gap-1.5 text-[12px] font-bold text-white/50 transition-colors hover:text-white/80">
                   <Trash2 className="h-3.5 w-3.5" /> Clear
                 </button>
-                <span className="text-[11px] font-medium text-white/40">Soon: KOI's AI will match products to these targets.</span>
+                <span className="text-[11px] font-medium text-white/40">Soon: KOI&apos;s AI will match products to these targets.</span>
               </div>
             </>
           ) : (
@@ -184,7 +222,7 @@ function Legend({ c, label }) {
 }
 
 // ── The modal ───────────────────────────────────────────────────────────────
-const STEPS = ["Your goal", "Your body", "Your diet"];
+const STEPS = ["Your goal", "Your body", "Your diet", "Foods", "How & when"];
 
 function Slider({ label, value, min, max, unit, onChange }) {
   const pct = ((value - min) / (max - min)) * 100;
@@ -214,30 +252,42 @@ export function GoalSetupModal({ open, onClose }) {
   const [form, setForm] = useState(null);
 
   // reset form each time the modal opens
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setStep(0);
+      setForm({
+        goal: profile?.goal || "",
+        sex: profile?.sex || "male",
+        age: profile?.age || 28,
+        height: profile?.height || 172,
+        weightNow: profile?.weightNow || 72,
+        weightTarget: profile?.weightTarget || 68,
+        activity: profile?.activity || "moderate",
+        dietType: profile?.dietType || "vegetarian",
+        foodsLove: profile?.foodsLove || [],
+        foodsAvoid: profile?.foodsAvoid || [],
+        mealPrefs: profile?.mealPrefs || [],
+        budget: profile?.budget || "any",
+        cooking: profile?.cooking || "any",
+      });
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    setStep(0);
-    setForm({
-      goal: profile?.goal || "",
-      sex: profile?.sex || "male",
-      age: profile?.age || 28,
-      height: profile?.height || 172,
-      weightNow: profile?.weightNow || 72,
-      weightTarget: profile?.weightTarget || 68,
-      activity: profile?.activity || "moderate",
-      diet: profile?.diet || [],
-    });
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [open, profile]);
+  }, [open]);
 
   const targets = useMemo(() => (form ? computeTargets(form) : null), [form]);
 
   if (!open || !form) return null;
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
-  const toggleDiet = (d) => set({ diet: form.diet.includes(d) ? form.diet.filter((x) => x !== d) : [...form.diet, d] });
+  const toggle = (field, val) => set({ [field]: form[field].includes(val) ? form[field].filter((x) => x !== val) : [...form[field], val] });
   const canContinue = step !== 0 || !!form.goal;
 
   const save = () => {
@@ -260,7 +310,7 @@ export function GoalSetupModal({ open, onClose }) {
               </span>
               <div>
                 <div className="text-[15px] font-extrabold text-[#083D2D]" style={HEADING}>Set your goal</div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#0C6B4C]">Step {step + 1} of 3 · {STEPS[step]}</div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#0C6B4C]">Step {step + 1} of {STEPS.length} · {STEPS[step]}</div>
               </div>
             </div>
             <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full bg-white/70 text-[#083D2D] hover:bg-white">
@@ -335,12 +385,14 @@ export function GoalSetupModal({ open, onClose }) {
           {step === 2 && (
             <div className="space-y-7">
               <div>
-                <span className="mb-3 flex items-center gap-2 text-[13px] font-bold text-[#083D2D]"><Utensils className="h-4 w-4" style={{ color: C.emerald }} /> Dietary preferences</span>
-                <div className="flex flex-wrap gap-2">
-                  {DIET_OPTIONS.map((d) => {
-                    const on = form.diet.includes(d);
+                <FieldLabel icon={Utensils}>Diet type</FieldLabel>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {DIET_TYPES.map((d) => {
+                    const on = form.dietType === d.key;
                     return (
-                      <button key={d} onClick={() => toggleDiet(d)} className="rounded-full border-2 px-3.5 py-1.5 text-[13px] font-bold transition-all" style={{ borderColor: on ? C.forest : "rgba(8,61,45,0.12)", background: on ? C.lime : "#fff", color: C.forest }}>{d}</button>
+                      <button key={d.key} onClick={() => set({ dietType: d.key })} className="flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left text-[12.5px] font-bold transition-all" style={{ borderColor: on ? C.forest : "rgba(8,61,45,0.1)", background: on ? C.forest : "#fff", color: on ? "#fff" : C.forest }}>
+                        <span className="text-[15px]">{d.emoji}</span> {d.label}
+                      </button>
                     );
                   })}
                 </div>
@@ -367,6 +419,76 @@ export function GoalSetupModal({ open, onClose }) {
               </div>
             </div>
           )}
+
+          {step === 3 && (
+            <div className="space-y-8">
+              <div>
+                <FieldLabel icon={Heart}>Foods you love</FieldLabel>
+                <p className="-mt-2 mb-3 text-[12px] text-[#083D2D]/50" style={BODY}>We&apos;ll prioritise products that feature these.</p>
+                <div className="flex flex-wrap gap-2">
+                  {FOODS_LOVE.map((f) => (
+                    <PrefChip key={f.key} label={f.label} emoji={f.emoji} on={form.foodsLove.includes(f.key)} onClick={() => toggle("foodsLove", f.key)} />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <FieldLabel icon={Ban}>Foods you avoid</FieldLabel>
+                <p className="-mt-2 mb-3 text-[12px] text-[#083D2D]/50" style={BODY}>Allergens are removed entirely; the rest lower a product&apos;s score.</p>
+                <div className="flex flex-wrap gap-2">
+                  {FOODS_AVOID.map((f) => {
+                    const on = form.foodsAvoid.includes(f.key);
+                    return (
+                      <button key={f.key} onClick={() => toggle("foodsAvoid", f.key)} className="inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-[13px] font-bold transition-all" style={{ borderColor: on ? C.orange : "rgba(8,61,45,0.12)", background: on ? "#FDEDE2" : "#fff", color: on ? C.orange : C.forest }}>
+                        <span className="text-[14px] leading-none">{f.emoji}</span>
+                        {f.label}
+                        {on && <X className="h-3.5 w-3.5" strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-8">
+              <div>
+                <FieldLabel icon={Clock}>When do you snack?</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {MEALS.map((m) => (
+                    <PrefChip key={m.key} label={m.label} emoji={m.emoji} on={form.mealPrefs.includes(m.key)} onClick={() => toggle("mealPrefs", m.key)} />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <FieldLabel icon={Wallet}>Budget per product</FieldLabel>
+                <div className="grid grid-cols-4 gap-2">
+                  {BUDGETS.map((bg) => {
+                    const on = form.budget === bg.key;
+                    return (
+                      <button key={bg.key} onClick={() => set({ budget: bg.key })} className="flex flex-col items-center gap-0.5 rounded-xl border-2 py-2.5 transition-all" style={{ borderColor: on ? C.forest : "rgba(8,61,45,0.1)", background: on ? C.forest : "#fff", color: on ? "#fff" : C.forest }}>
+                        <span className="text-[15px] font-extrabold" style={HEADING}>{bg.label}</span>
+                        <span className="text-[9.5px] font-semibold opacity-70">{bg.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <FieldLabel icon={Utensils}>Cooking preference</FieldLabel>
+                <div className="grid grid-cols-2 gap-2">
+                  {COOKING.map((ck) => {
+                    const on = form.cooking === ck.key;
+                    return (
+                      <button key={ck.key} onClick={() => set({ cooking: ck.key })} className="flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-[12.5px] font-bold transition-all" style={{ borderColor: on ? C.forest : "rgba(8,61,45,0.1)", background: on ? C.forest : "#fff", color: on ? "#fff" : C.forest }}>
+                        <span className="text-[14px]">{ck.emoji}</span> {ck.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* footer */}
@@ -376,7 +498,7 @@ export function GoalSetupModal({ open, onClose }) {
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
           )}
-          {step < 2 ? (
+          {step < STEPS.length - 1 ? (
             <button
               onClick={() => canContinue && setStep((s) => s + 1)}
               disabled={!canContinue}

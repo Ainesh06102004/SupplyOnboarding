@@ -197,7 +197,7 @@ export default function OTPLoginModal({ open, onOpenChange, onComplete }) {
               <div className="flex items-start gap-3 p-4 rounded-xl bg-[#EDF2E6] border border-[#E2E8D8]">
                 <ShieldCheck className="w-5 h-5 text-[#2D7A5E] shrink-0" />
                 <p className="text-[12px] text-[#5A6B5A] leading-relaxed font-medium">
-                  By continuing, you agree to our Terms of Service and Privacy Policy. We'll send you a secure OTP.
+                  By continuing, you agree to our Terms of Service and Privacy Policy. We&apos;ll send you a secure OTP.
                 </p>
               </div>
 
