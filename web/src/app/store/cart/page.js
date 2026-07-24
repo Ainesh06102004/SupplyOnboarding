@@ -293,7 +293,7 @@ export default function CartPage() {
 
   // ─── POPULATED CART STATE ───
   return (
-    <div className="min-h-screen pb-32 md:pb-16 bg-[#F2F6EC]">
+    <div className="min-h-screen pb-48 md:pb-16 bg-[#F2F6EC]">
       {/* Main Layout Spacer */}
       <div className="pt-2 md:pt-4" />
 
@@ -323,7 +323,10 @@ export default function CartPage() {
       </main>
 
       {/* ─── MOBILE STICKY BOTTOM CHECKOUT ─── */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-[#E2E8D8] shadow-[0_-8px_30px_rgba(14,64,50,0.06)] p-4 pb-safe animate-in slide-in-from-bottom duration-300 z-40">
+      <div 
+        className="lg:hidden fixed left-4 right-4 bg-white border border-[#E2E8D8] rounded-2xl shadow-[0_8px_30px_rgba(14,64,50,0.12)] p-4 animate-in slide-in-from-bottom duration-300 z-40"
+        style={{ bottom: "calc(88px + env(safe-area-inset-bottom))" }}
+      >
         <div className="flex gap-2 items-center justify-center py-2 bg-[#F2F6EC] rounded-lg border border-[#E2E8D8] mb-3">
           <ShieldCheck className="w-3.5 h-3.5 text-[#0E4032]" />
           <span className="text-[11px] font-bold text-[#0E4032] uppercase tracking-wide">All items meet KOI standards</span>
