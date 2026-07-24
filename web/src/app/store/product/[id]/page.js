@@ -68,7 +68,9 @@ export default function ProductDetailPage({ params }) {
     (async () => {
       try {
         const data = await fetchAllProducts();
-        if (alive && data && data.length) setPool(data);
+        if (alive && data && data.length) {
+          setPool([...FALLBACK_PRODUCTS, ...data]);
+        }
       } catch { /* keep fallback */ }
       finally { if (alive) setLoaded(true); }
     })();
