@@ -47,7 +47,10 @@ export default function ShopPage() {
     (async () => {
       try {
         const data = await fetchAllProducts();
-        if (alive && data && data.length) setProducts(data);
+        if (alive && data && data.length) {
+          // Merge Supabase products with curated mock products so demo items (like Almonds) remain visible
+          setProducts([...FALLBACK_PRODUCTS, ...data]);
+        }
       } catch {
         /* keep curated fallback */
       }
