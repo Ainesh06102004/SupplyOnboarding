@@ -109,10 +109,15 @@ export default function ShopPage() {
     return products
       .filter((p) => {
         if (activeCategory !== "All" && p.category !== activeCategory) return false;
-        if (activeGoal && !(p.goalTags || []).includes(activeGoal)) return false;
+        if (activeGoal) {
+          const allTags = [...(p.goals || []), ...(p.goalTags || []), ...(p.tags || [])]
+            .filter(Boolean)
+            .map((t) => t.toLowerCase());
+          if (!allTags.includes(activeGoal.toLowerCase())) return false;
+        }
         if (activeBrand && p.brand !== activeBrand) return false;
         if (q) {
-          const hay = [p.name, p.brand, p.category, ...(p.tags || []), ...(p.goalTags || [])].join(" ").toLowerCase();
+          const hay = [p.name, p.brand, p.category, ...(p.tags || []), ...(p.goals || []), ...(p.goalTags || [])].join(" ").toLowerCase();
           if (!hay.includes(q)) return false;
         }
         if (filterPrice !== "All") {

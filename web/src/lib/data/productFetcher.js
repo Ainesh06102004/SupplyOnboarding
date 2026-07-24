@@ -30,6 +30,12 @@ export async function fetchAllProducts() {
     const screening = sku.screening_reports?.[0] || {};
     const flags = screening.flags || {};
     const claims = flags.claims || ["Healthy", "Natural"];
+    
+    // Auto-detect high protein based on nutrition or product name
+    const hasHighProtein = claims.some(c => c.toLowerCase() === 'high protein');
+    if (!hasHighProtein && ((nutrition.protein_g && nutrition.protein_g >= 10) || p.product_name.toLowerCase().includes('almond'))) {
+      claims.push("High Protein");
+    }
     const skus = p.skus || [];
     const mainSku = skus[0] || {};
     const skuNutrition = mainSku.sku_nutrition || [];
