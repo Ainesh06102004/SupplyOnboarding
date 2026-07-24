@@ -102,8 +102,8 @@ export default function HeroEditorial() {
           <Reveal delay={480}>
             <div className="mt-11 flex items-center gap-8">
               <div>
-                <div className="text-[28px] font-extrabold leading-none text-[#083D2D]" style={HEADING}>50k+</div>
-                <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#101412]/50">Members trust KOI</div>
+                <div className="text-[28px] font-extrabold leading-none text-[#083D2D]" style={HEADING}>412+</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#101412]/50">Ingredients Flagged</div>
               </div>
               <div className="h-10 w-px bg-[#083D2D]/10" />
               <div>
