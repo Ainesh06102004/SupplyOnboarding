@@ -171,6 +171,20 @@ Stock, price and delivery are claims about the world, and KOI has **no supply so
 - Guard every availability-flavoured string behind `canClaimAvailability(product)`.
 - `candidateGenerator.js` excludes only `unavailable`. `unknown` stays a candidate — it is screened and real, just supply-unverified.
 
+## The marketplace seam
+
+`lib/marketplace/` is the boundary between KOI's screened catalogue and a live supply source. **`import "server-only"`** guards it: route handlers under `app/api/marketplace/` are the only callers; client components use `browser.js`.
+
+- **The contract carries three things — identity, price, availability — and cannot express anything else.** There is no field for nutrition, ingredients or a score. A supply source says what is buyable and for how much; it is not evidence about what is in the food. The type enforces the health-data rule so discipline doesn't have to.
+- **The KRE never imports from here.** The arrow points marketplace → recommendation, one way.
+- **Cache on `(zoneId, shelfId)`, never `(pincode, shelfId)`.** ~19,000 pincodes vs dozens of dark-store catchments per city; `resolveZone` is the many-to-one collapse that makes cost scale with zones × shelves.
+- **A shelf is a stored query string** (`shelves.js`), and the set is closed. Adding one multiplies upstream cost by the number of active zones — it's a capacity decision, not a content one. Those queries are also KOI's merchandising: a provider gives only a search box, so which words KOI sends *is* its curation.
+- **Free-text shopper search must never reach a provider.** Unbounded key space against a shared quota. Search hits KOI's own Postgres; the provider answers only the bounded shelf set and `verifyItem` on SKUs a shopper actually engaged with.
+- **Browse runs on one house credential**, so the provider's per-user limit is the *entire storefront's* budget. The cache is not an optimisation — it's the only reason browse is possible. Out of budget, the layer **degrades** (stale, else `unknown`); it must never queue.
+- **Demand-driven by construction.** There is deliberately no `warm()`, `sweep()`, `refreshAll()` or `prefetch()`. Adding one is a credential-revocation risk, not a performance win: a background sweep across zones is bulk catalogue export whatever it's called.
+- **`NullAdapter` is the default and is correct**, not a stub — it's the honest description of production today. The mock is opt-in via `KOI_MARKETPLACE=mock` precisely so it can never leak into production and invent stock.
+- **`marketplace_sku_map` carries `(scope, scope_ref)` defaulting to `('global','*')`.** If Swiggy's `spinId` turns out to be per-dark-store, that's `INSERT`s with `scope='store'` — no DDL, no resolver change.
+
 ## Known debt — read before you build on it
 
 1. **Checkout is entirely mocked.** `app/store/checkout/page.js` has a hardcoded `MOCK_ADDRESS`, four decorative payment options, and `setTimeout(800)` → `/store/orders`. No payment, no order write. Nothing here is a foundation. Note KOI is not merchant of record, so `orders.payment_status` is a fact it cannot observe — storefront checkout needs its own `fulfilment_intents`, not the brand-side `orders` table.
