@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { 
   User, Edit2, Target, Scale, MapPin, 
   Plus, CreditCard, ChevronRight, HelpCircle, 
@@ -10,29 +10,10 @@ import {
 import { useRouter } from "next/navigation";
 import AddressManager from "@/components/store/AddressManager";
 import { signOutUser } from "@/lib/firebase/auth";
-
-// ─── KOI SCORE RING REUSED FOR PROGRESS ───
-function ProgressRing({ progress, size = 64 }) {
-  const r = (size - 6) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (progress / 100) * circ;
-  return (
-    <div className="relative flex items-center justify-center bg-white rounded-full shadow-sm" style={{ width: size, height: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E2E8D8" strokeWidth="4" />
-        <circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none" stroke="#C8F23E" strokeWidth="4"
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-        />
-      </svg>
-      <span className="text-[12px] font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>
-        {progress}%
-      </span>
-    </div>
-  );
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { useGoalStore, GOAL_DEFS } from "@/store/goalStore";
+import { profileService } from "@/lib/supabase/profileService";
+import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -46,15 +27,45 @@ export default function ProfilePage() {
     }
   };
 
-  // State
-  const [activeGoal, setActiveGoal] = useState("Muscle Gain");
-  const [currentWeight, setCurrentWeight] = useState("65");
-  const [goalWeight, setGoalWeight] = useState("72");
-  
-  const [dietary, setDietary] = useState(["Vegetarian", "Gluten Free"]);
-  const toggleDietary = (item) => {
-    setDietary(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
-  };
+  // ── Real identity and goal profile ──
+  // This page used to display a hardcoded "Anshuman Das", a 65→72 kg goal and
+  // a 42% progress ring for every visitor, none of it connected to the signed-in
+  // user or to goalStore, which already holds exactly this data.
+  const { user } = useAuth();
+  const profile = useGoalStore((s) => s.profile);
+  const hydrateGoal = useGoalStore((s) => s.hydrate);
+  const [account, setAccount] = useState(null);
+
+  useEffect(() => { hydrateGoal(); }, [hydrateGoal]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    let alive = true;
+    profileService
+      .getProfileByFirebaseUid(user.uid)
+      .then((p) => { if (alive) setAccount(p); })
+      .catch((err) => console.error("Could not load profile:", err));
+    return () => { alive = false; };
+  }, [user?.uid]);
+
+  const displayName = account?.display_name || user?.displayName || null;
+  const contact = account?.email || user?.email || account?.phone || user?.phoneNumber || null;
+  const memberSince = account?.created_at
+    ? new Date(account.created_at).getFullYear()
+    : null;
+
+  const activeGoal = profile?.goal ? (GOAL_DEFS[profile.goal]?.label ?? profile.goal) : null;
+  const currentWeight = profile?.weightNow ?? null;
+  const goalWeight = profile?.weightTarget ?? null;
+  // How far there is still to go. A percentage would need a starting weight,
+  // which is not recorded — so the remaining delta is the honest number.
+  const weightDelta =
+    currentWeight !== null && goalWeight !== null
+      ? Math.abs(Number(goalWeight) - Number(currentWeight))
+      : null;
+
+  const dietType = profile?.dietType || null;
+  const avoided = profile?.foodsAvoid || [];
 
   const [toggles, setToggles] = useState({
     orderUpdates: true,
@@ -62,11 +73,6 @@ export default function ProfilePage() {
     newProducts: true
   });
 
-  const GOALS = ["Fat Loss", "Muscle Gain", "Body Recomposition"];
-  const DIETARY_OPTIONS = [
-    "Vegetarian", "Non Vegetarian", "Vegan", "Eggetarian", 
-    "Jain", "Gluten Free", "Lactose Intolerant", "Keto"
-  ];
 
   return (
     <div className="min-h-screen pb-32 md:pb-16 bg-[#F2F6EC]">
@@ -91,9 +97,15 @@ export default function ProfilePage() {
                      <User className="w-7 h-7 text-[#0E4032]" />
                   </div>
                   <div>
-                     <h2 className="text-[18px] md:text-xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Anshuman Das</h2>
-                     <p className="text-[13px] font-medium text-[#5A6B5A] mt-0.5">anshuman@example.com</p>
-                     <p className="text-[11px] font-bold text-[#2D7A5E] uppercase tracking-wider mt-1.5 bg-[#F2F6EC] inline-block px-2 py-0.5 rounded">KOI Member since 2026</p>
+                     <h2 className="text-[18px] md:text-xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>
+                        {displayName || "Your account"}
+                     </h2>
+                     {contact && <p className="text-[13px] font-medium text-[#5A6B5A] mt-0.5">{contact}</p>}
+                     {memberSince && (
+                       <p className="text-[11px] font-bold text-[#2D7A5E] uppercase tracking-wider mt-1.5 bg-[#F2F6EC] inline-block px-2 py-0.5 rounded">
+                          KOI Member since {memberSince}
+                       </p>
+                     )}
                   </div>
                </div>
                <button className="w-10 h-10 rounded-xl bg-[#F2F6EC] hover:bg-[#E2E8D8] flex items-center justify-center transition-colors shrink-0 border border-[#E2E8D8]">
@@ -101,111 +113,122 @@ export default function ProfilePage() {
                </button>
             </section>
 
-            {/* 2. KOI Health Dashboard */}
+            {/* 2. KOI Health Dashboard
+                Read-only. The goal wizard on the shop is the single editor for
+                this data - it collects the same fields, validates them against
+                the engine's catalogs and derives the macro targets. A second
+                editor here previously offered its OWN goal list ("Fat Loss /
+                Muscle Gain / Body Recomposition") that matched neither
+                GOAL_DEFS nor the database CHECK constraint. */}
             <section className="bg-[#0E4032] text-white rounded-2xl p-6 shadow-[0_8px_30px_rgba(14,64,50,0.15)] relative overflow-hidden">
                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none" />
                <div className="flex items-center gap-2.5 mb-6 relative z-10">
                   <Target className="w-5 h-5 text-[#C8F23E]" />
                   <h3 className="text-[18px] font-bold text-white tracking-wide" style={{ fontFamily: "var(--font-koi-heading)" }}>KOI Health Dashboard</h3>
                </div>
-               
-               <div className="flex items-center justify-between relative z-10 bg-white/10 rounded-xl p-4 border border-white/5">
-                  <div className="space-y-4">
-                     <div>
-                        <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Active Goal</span>
-                        <span className="text-[16px] font-bold text-[#C8F23E]">{activeGoal}</span>
-                     </div>
-                     <div className="flex gap-6">
-                        <div>
-                           <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Current</span>
-                           <span className="text-[16px] font-bold text-white">{currentWeight} kg</span>
-                        </div>
-                        <div>
-                           <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Target</span>
-                           <span className="text-[16px] font-bold text-white">{goalWeight} kg</span>
-                        </div>
-                     </div>
-                  </div>
-                  
-                  {/* Subtle Progress Visualization */}
-                  <div className="shrink-0 mr-2">
-                     <ProgressRing progress={42} size={72} />
-                  </div>
-               </div>
+
+               {activeGoal ? (
+                 <div className="flex items-center justify-between relative z-10 bg-white/10 rounded-xl p-4 border border-white/5">
+                    <div className="space-y-4">
+                       <div>
+                          <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Active Goal</span>
+                          <span className="text-[16px] font-bold text-[#C8F23E]">{activeGoal}</span>
+                       </div>
+                       {(currentWeight !== null || goalWeight !== null) && (
+                         <div className="flex gap-6">
+                            {currentWeight !== null && (
+                              <div>
+                                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Current</span>
+                                 <span className="text-[16px] font-bold text-white">{currentWeight} kg</span>
+                              </div>
+                            )}
+                            {goalWeight !== null && (
+                              <div>
+                                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Target</span>
+                                 <span className="text-[16px] font-bold text-white">{goalWeight} kg</span>
+                              </div>
+                            )}
+                         </div>
+                       )}
+                       {profile?.targets?.kcal && (
+                         <div className="flex gap-6">
+                            <div>
+                               <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Daily target</span>
+                               <span className="text-[16px] font-bold text-white">{profile.targets.kcal} kcal</span>
+                            </div>
+                            {profile.targets.protein ? (
+                              <div>
+                                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Protein</span>
+                                 <span className="text-[16px] font-bold text-white">{profile.targets.protein} g</span>
+                              </div>
+                            ) : null}
+                         </div>
+                       )}
+                    </div>
+
+                    {/* No percentage: progress toward a goal weight needs a
+                        starting weight, which is not recorded. The remaining
+                        delta is the number KOI can actually stand behind. */}
+                    {weightDelta !== null && weightDelta > 0 && (
+                      <div className="shrink-0 mr-2 text-right">
+                         <span className="text-[28px] font-bold text-[#C8F23E] leading-none" style={{ fontFamily: "var(--font-koi-heading)" }}>{weightDelta}</span>
+                         <span className="block text-[10px] font-bold text-white/60 uppercase tracking-wider mt-1">kg to go</span>
+                      </div>
+                    )}
+                 </div>
+               ) : (
+                 <div className="relative z-10 bg-white/10 rounded-xl p-5 border border-white/5">
+                    <p className="text-[14px] text-white/80 leading-relaxed">
+                       You haven&apos;t set a goal yet. Tell KOI what you&apos;re optimising for and every shelf re-ranks around it.
+                    </p>
+                    <button
+                      onClick={() => router.push("/store/shop")}
+                      className="mt-4 px-4 py-2.5 rounded-full bg-[#C8F23E] text-[#0E4032] text-[13px] font-bold transition-transform hover:-translate-y-0.5"
+                    >
+                       Set your goal
+                    </button>
+                 </div>
+               )}
             </section>
 
-            {/* 3. Goals & Preferences */}
-            <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)] space-y-8">
-               {/* Health Goal */}
-               <div>
-                  <h3 className="text-[15px] font-bold text-[#0E4032] mb-3" style={{ fontFamily: "var(--font-koi-heading)" }}>Health Goal</h3>
-                  <div className="flex flex-wrap gap-2">
-                     {GOALS.map(goal => (
-                        <button
-                          key={goal}
-                          onClick={() => setActiveGoal(goal)}
-                          className={`px-4 py-2 rounded-full text-[13px] font-bold transition-all border ${
-                            activeGoal === goal 
-                              ? "bg-[#0E4032] text-white border-[#0E4032] shadow-md" 
-                              : "bg-[#F2F6EC] text-[#5A6B5A] border-[#E2E8D8] hover:border-[#0E4032]/30"
-                          }`}
-                        >
-                          {goal}
-                        </button>
-                     ))}
-                  </div>
-               </div>
+            {/* 3. Goals & Preferences - a summary of what the wizard captured */}
+            {profile && (
+              <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)] space-y-6">
+                 <div className="flex items-center justify-between gap-4">
+                    <h3 className="text-[15px] font-bold text-[#0E4032] flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+                       <Scale className="w-4 h-4 text-[#2D7A5E]" /> Your preferences
+                    </h3>
+                    <button
+                      onClick={() => router.push("/store/shop")}
+                      className="text-[12px] font-bold text-[#2D7A5E] hover:text-[#0E4032] transition-colors shrink-0"
+                    >
+                       Edit
+                    </button>
+                 </div>
 
-               {/* Body Metrics */}
-               <div>
-                  <h3 className="text-[15px] font-bold text-[#0E4032] mb-3 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
-                     <Scale className="w-4 h-4 text-[#2D7A5E]" /> Body Metrics
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-[#5A6B5A] uppercase tracking-wider ml-1">Current Weight (kg)</label>
-                        <input 
-                          type="number" 
-                          value={currentWeight}
-                          onChange={(e) => setCurrentWeight(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-[#F2F6EC] border border-[#E2E8D8] rounded-xl text-[14px] font-bold text-[#0E4032] focus:outline-none focus:border-[#0E4032]/40 focus:bg-white transition-colors"
-                        />
-                     </div>
-                     <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-[#5A6B5A] uppercase tracking-wider ml-1">Goal Weight (kg)</label>
-                        <input 
-                          type="number" 
-                          value={goalWeight}
-                          onChange={(e) => setGoalWeight(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-[#F2F6EC] border border-[#E2E8D8] rounded-xl text-[14px] font-bold text-[#0E4032] focus:outline-none focus:border-[#0E4032]/40 focus:bg-white transition-colors"
-                        />
-                     </div>
-                  </div>
-               </div>
+                 {dietType && (
+                   <div>
+                      <span className="text-[11px] font-bold text-[#5A6B5A] uppercase tracking-wider block mb-2">Diet</span>
+                      <span className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[#C8F23E] text-[#0E4032] inline-block">
+                         {DIET_TYPES.find((d) => d.key === dietType)?.label || dietType}
+                      </span>
+                   </div>
+                 )}
 
-               {/* Dietary Preferences */}
-               <div>
-                  <h3 className="text-[15px] font-bold text-[#0E4032] mb-3" style={{ fontFamily: "var(--font-koi-heading)" }}>Dietary Preferences</h3>
-                  <div className="flex flex-wrap gap-2">
-                     {DIETARY_OPTIONS.map(opt => {
-                        const isActive = dietary.includes(opt);
-                        return (
-                          <button
-                            key={opt}
-                            onClick={() => toggleDietary(opt)}
-                            className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all border ${
-                              isActive 
-                                ? "bg-[#C8F23E] text-[#0E4032] border-[#C8F23E] shadow-sm" 
-                                : "bg-white text-[#5A6B5A] border-[#E2E8D8] hover:bg-[#F2F6EC]"
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        );
-                     })}
-                  </div>
-               </div>
-            </section>
+                 {avoided.length > 0 && (
+                   <div>
+                      <span className="text-[11px] font-bold text-[#5A6B5A] uppercase tracking-wider block mb-2">Avoiding</span>
+                      <div className="flex flex-wrap gap-2">
+                         {avoided.map((key) => (
+                           <span key={key} className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[#F2F6EC] text-[#5A6B5A] border border-[#E2E8D8]">
+                              {FOODS_AVOID.find((a) => a.key === key)?.label || key}
+                           </span>
+                         ))}
+                      </div>
+                   </div>
+                 )}
+              </section>
+            )}
           </div>
 
           {/* ── RIGHT COLUMN ── */}

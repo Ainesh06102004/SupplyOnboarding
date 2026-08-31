@@ -14,6 +14,7 @@ const hanken = Hanken_Grotesk({
 
 import StoreNavigation from "./StoreNavigation";
 import CartHydrator from "./CartHydrator";
+import GoalProfileSync from "./GoalProfileSync";
 
 export const metadata = {
   title: "KOI - The Better Choices Store",
@@ -28,6 +29,7 @@ export default function StoreLayout({ children }) {
       style={{ fontFamily: "var(--font-koi-body), sans-serif" }}
     >
       <CartHydrator />
+      <GoalProfileSync />
       <StoreNavigation />
       {children}
     </div>

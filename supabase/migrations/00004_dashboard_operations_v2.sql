@@ -1,4 +1,15 @@
 -- ============================================================================
+-- Supersedes the original 00004_dashboard_operations.sql, which was removed.
+-- Both created order_status, orders and order_items, so running the pair failed
+-- on the second CREATE TYPE. This version is a strict superset: it adds
+-- order_items.brand_id, brand_settlements and settlement_status.
+--
+-- NOT YET APPLIED to the live project. Note KOI is not merchant of record for
+-- storefront orders, so orders.payment_status is a fact it cannot observe -
+-- storefront checkout needs its own fulfilment_intents rather than this table.
+-- ============================================================================
+
+-- ============================================================================
 -- KOI PLATFORM — Dashboard Operations Schema Migration V2 (00004_dashboard_operations_v2.sql)
 -- ============================================================================
 

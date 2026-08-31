@@ -35,7 +35,7 @@ Import alias: `@/*` → `web/src/*`. Always use it; never write `../../..`.
 ## Layout
 
 ```
-supabase/migrations/     schema — source of truth for data shape
+supabase/migrations/     schema — the FILES; the live DB has diverged (see Supabase)
 docs/                    phase write-ups (background, not spec)
 web/src/
   app/                   routes (App Router)
@@ -86,8 +86,8 @@ Rules, in priority order:
 KOI's entire proposition is that a number on a card is trustworthy. This outranks every other concern in this document.
 
 - **Never fabricate, infer, or interpolate a nutrition value.** If protein is unknown, it is unknown. Show the product without the claim, or don't show it.
-- **Never derive a health claim from a proxy.** A KOI score is not evidence of protein content. `checkout/page.js` currently asserts *"extremely clean, high in protein, and low in added sugar"* from an average score alone — that is the anti-pattern, not the template.
-- **`lib/data/productFetcher.js` is the known offender.** It hardcodes `scoreBreakdown` to `{85, 90, 95, 85}` for every product, stamps `dietary: ["Vegetarian"]` on everything, and invents `categoryAverage`, `watchouts` and `verdict.cons`. Treat these as bugs. When you touch a mapping there, replace the constant with a real field or `null` — do not copy the pattern outward.
+- **Never derive a health claim from a proxy.** A KOI score is evidence of screening, not of protein content. Checkout used to assert *"extremely clean, high in protein, and low in added sugar"* from an average score alone, having read no macro at all — that shape is the anti-pattern.
+- **`lib/data/productFetcher.js` maps columns or emits `null`.** It used to hardcode `scoreBreakdown` to `{85, 90, 95, 85}` for every product, stamp `dietary: ["Vegetarian"]` on everything, and award "High Protein" to anything whose name contained "almond". Keep it honest: a missing column is `null`, never a plausible-looking constant.
 - **`components/store/product/productData.js` is the standard to follow.** Its header states the rule plainly: *"no misleading specifics — everything is derived from real fields."* Its `grade()` and `INGREDIENT_DB` degrade honestly when data is thin.
 - A missing value renders as absent. It never renders as a plausible default.
 
@@ -101,8 +101,8 @@ KOI's entire proposition is that a number on a card is trustworthy. This outrank
 - **One pass, not many.** `filteredProducts` runs every predicate in a single `.filter()` then sorts once. Don't chain five `.filter()` calls over the same array.
 - **Build lookup maps outside loops.** The KRE hoists `LOVE_BY_KEY`, `AVOID_BY_KEY`, `MEAL_BY_KEY` to module scope as `Object.fromEntries(...)`, and `productFacts.js` uses a `Set` for `contains`. Never `.find()` inside a loop over the catalogue.
 - **Push `"use client"` down the tree.** 68 of 135 source files are client components — too many. A page does not need to be client just because one child is interactive. Keep data-shaping in server components; make the leaf interactive.
-- **`next/image`, never `<img>`.** Eight lint errors are exactly this.
-- **Fetch once, render immediately.** The shop seeds from `FALLBACK_PRODUCTS` for instant first paint, then swaps in live data. Preserve that shape; don't introduce a spinner where a curated fallback already renders.
+- **`next/image`, never `<img>`.**
+- **Fetch once, render immediately.** The shop seeds from `getSeedCatalogue()` for an instant first paint, then merges live rows via `mergeCatalogue()` (live wins on id). Preserve that shape; don't introduce a spinner where a seed already renders.
 
 ### Purity and structure
 
@@ -132,6 +132,16 @@ KOI's entire proposition is that a number on a card is trustworthy. This outrank
 - The codebase currently mixes tokens with inline hex (`text-[#083D2D]`). When you edit a block, move it onto `C`. Don't add new raw hex.
 - Fonts are bound in `app/store/layout.js` as `--font-koi-heading` (Bricolage Grotesque) and `--font-koi-body` (Hanken Grotesk). Use the CSS vars via `HEADING`/`BODY`.
 - Respect `prefers-reduced-motion` — the shop already does this globally; keep new animation inside that guard.
+
+### Identity
+
+KOI authenticates with **Firebase**; Supabase is configured with Firebase as a third-party auth provider, so a Firebase ID token reaches Postgres and RLS can see who is asking.
+
+- **`auth.uid()` does not work here.** It casts the `sub` claim to `uuid`, and a Firebase UID is a 28-character string. Every policy must use **`public.koi_uid()`**, which returns the UID only when the token's issuer *and* audience match KOI's Firebase project. Without that check any Firebase project's token would satisfy your policies.
+- The project id lives in one row of `koi_settings`, so pointing at a different Firebase project is an `UPDATE`, not a function rewrite.
+- Policies are written **`TO public`**, not `TO authenticated`: a Firebase ID token carries no `role` claim, so Supabase runs the query as `anon`. Gate on the verified claim, never on the Postgres role.
+- `getSupabaseClient()` supplies the token via `accessToken`. That disables `supabase.auth.*` — nothing uses it, and nothing should start.
+- `middleware.js` is a **redirect hint, not a boundary**. It only checks the cookie exists. The boundary is RLS, plus token verification in `/api/auth/session`. Never move an authorisation decision into middleware.
 
 ### Supabase
 
@@ -164,13 +174,15 @@ Stock, price and delivery are claims about the world, and KOI has **no supply so
 ## Known debt — read before you build on it
 
 1. **Checkout is entirely mocked.** `app/store/checkout/page.js` has a hardcoded `MOCK_ADDRESS`, four decorative payment options, and `setTimeout(800)` → `/store/orders`. No payment, no order write. Nothing here is a foundation. Note KOI is not merchant of record, so `orders.payment_status` is a fact it cannot observe — storefront checkout needs its own `fulfilment_intents`, not the brand-side `orders` table.
-2. **RLS is disabled on all 16 live tables** — verified against the project, which flags it `critical`. The browser holds the anon key, so treat every table as publicly readable and writable until fixed. The key was also committed in seven `scripts/*.js` files (now removed from code, still live in git history and unrotated).
-3. **Identity is broken by construction.** The app authenticates with Firebase (28-char string UIDs); the schema assumes Supabase Auth (`uuid REFERENCES auth.users(id)`, RLS via `auth.uid()`), and there is no `supabase.auth` session anywhere. Four of the nine tables the app queries — `customer_profiles`, `delivery_addresses`, `profiles`, `documents` — **do not exist**, so every customer-side write fails at the network layer.
-4. **The landing page still publishes fixture scores.** `tokens.js` `PRODUCTS` renders hand-written KOI scores for real third-party brands on `/store`. The shop is gated to non-production via `getSeedCatalogue()`; the landing page is not, because `HeroEditorial` and `ProductSections` are composed around a guaranteed product and need a designed no-catalogue state.
-5. **`AuthContext.jsx` has unreachable code** — a second `return` after `return () => clearTimeout(t)`. `/api/auth/session` also does not verify the Firebase token: it writes whatever string the client POSTs into the cookie `middleware.js` trusts.
-6. **`middleware` is deprecated in Next 16** — the build warns to migrate to `proxy`.
-7. **`eslint_report.json` is stale.** It records 53 errors; a live `npm run lint` reports **0 errors, 2 warnings**. Trust the command, not the file.
-8. **`PENALTIES.lowStock` is dead** — `extractFacts` never sets `facts.lowStock`, so the penalty in `scoringEngine.js` can't fire.
+2. **Seven tables still have RLS disabled**: `products`, `skus`, `sku_nutrition`, `screening_reports`, `brands`, `uploads`, `onboarding_submissions`. The storefront reads the first five (three as embedded selects) and the brand dashboard writes the rest **from the browser on the anon key**, so enabling RLS needs the Firebase third-party provider live *and* brand identity fixed, or the brand module loses its write path. Everything else is closed.
+3. **Two prerequisites before the customer tier works at all.** `koi_settings.firebase_project_id` still holds the sentinel `REPLACE_ME_FIREBASE_PROJECT_ID`, and the Supabase dashboard needs Authentication → Sign In / Providers → Third Party Auth → Firebase enabled. Until both are done `koi_uid()` returns NULL and every customer policy denies — the safe direction to fail, but nothing will save.
+4. **The anon key is unrotated** and still in git history, though no longer in the working tree.
+5. **Brand identity is still broken.** `brands.owner_id`, `screening_reports.reviewed_by`, `uploads.uploaded_by` and `audit_logs.changed_by` all reference `auth.users(id)`, which has no KOI users. That is why the catalogue tables above cannot get RLS yet.
+6. **The landing page still publishes fixture scores.** `tokens.js` `PRODUCTS` renders hand-written KOI scores for real third-party brands on `/store`. The shop is gated to non-production via `getSeedCatalogue()`; the landing page is not, because `HeroEditorial` and `ProductSections` are composed around a guaranteed product and need a designed no-catalogue state.
+7. **`AuthContext.jsx` has unreachable code** — a second `return` after `return () => clearTimeout(t)`. `/api/auth/session` also does not verify the Firebase token: it writes whatever string the client POSTs into the cookie `middleware.js` trusts.
+8. **`middleware` is deprecated in Next 16** — the build warns to migrate to `proxy`.
+9. **`eslint_report.json` is stale.** It records 53 errors; a live `npm run lint` reports **0 errors, 2 warnings**. Trust the command, not the file.
+10. **`PENALTIES.lowStock` is dead** — `extractFacts` never sets `facts.lowStock`, so the penalty in `scoringEngine.js` can't fire.
 
 ---
 

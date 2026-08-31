@@ -1,4 +1,17 @@
 -- ============================================================================
+-- SUPERSEDED by 00008_identity_firebase.sql. Do not run.
+--
+-- This migration was never applied. It keys customer data on
+-- `uuid REFERENCES auth.users(id)` with RLS via auth.uid(), which assumes
+-- Supabase Auth. KOI authenticates with Firebase: UIDs are 28-character
+-- strings that cannot go in a uuid column, and auth.uid() is always NULL
+-- because no Supabase Auth session is ever created.
+--
+-- 00008 creates the same tables with text keys and policies routed through
+-- public.koi_uid(). Kept for history only.
+-- ============================================================================
+
+-- ============================================================================
 -- KOI — User health + food preferences (normalised)
 -- Backs the KOI Recommendation Engine (KRE). No JSON blobs: every preference is
 -- a first-class row so it can be queried, indexed and joined deterministically.

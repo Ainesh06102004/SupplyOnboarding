@@ -17,6 +17,8 @@ import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Grain } from "@/components/store/landing/primitives";
 import { useGoalStore, computeTargets, ACTIVITY, GOAL_DEFS } from "@/store/goalStore";
 import { FOODS_LOVE, FOODS_AVOID, DIET_TYPES, MEALS, BUDGETS, COOKING } from "@/lib/recommendation/config";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveGoalProfile } from "@/lib/supabase/goalProfileService";
 
 const GOAL_ICON = { TrendingDown, Dumbbell, Scale, Sparkles };
 const DIET_TYPE_LABEL = Object.fromEntries(DIET_TYPES.map((d) => [d.key, d.label]));
@@ -248,6 +250,7 @@ function Slider({ label, value, min, max, unit, onChange }) {
 export function GoalSetupModal({ open, onClose }) {
   const profile = useGoalStore((s) => s.profile);
   const setProfile = useGoalStore((s) => s.setProfile);
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(null);
 
@@ -291,9 +294,21 @@ export function GoalSetupModal({ open, onClose }) {
   const canContinue = step !== 0 || !!form.goal;
 
   const save = () => {
+    // Local first: the profile must survive whether or not the shopper is
+    // signed in, and whether or not the write below succeeds.
     setProfile(form);
     toast.success("Your goal is set — KOI is now tuned to you");
     onClose();
+
+    // Then persist for signed-in shoppers, so the profile follows them across
+    // devices. Fire-and-forget: a failed sync must not block the UI or lose
+    // what was just saved locally.
+    if (user?.uid) {
+      const withTargets = { ...form, targets: computeTargets(form) };
+      saveGoalProfile(user.uid, withTargets).catch((err) =>
+        console.error("Could not sync goal profile:", err)
+      );
+    }
   };
 
   return (
