@@ -16,7 +16,8 @@ import { useRouter } from "next/navigation";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 import EditorialNav from "@/components/store/landing/EditorialNav";
 import { C } from "@/components/store/landing/tokens";
-import { FALLBACK_PRODUCTS, GOALS, INGREDIENTS, SORTS } from "@/components/store/shop/shopData";
+import { getSeedCatalogue, GOALS, INGREDIENTS, SORTS } from "@/components/store/shop/shopData";
+import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
 import CommandSearch from "@/components/store/shop/CommandSearch";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
@@ -38,9 +39,10 @@ export default function ShopPage() {
   const router = useRouter();
 
   // ── Data ──
-  // Seed with the curated catalogue for an instant, populated first paint,
-  // then swap in live products from fetchAllProducts() when they arrive.
-  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  // Start from the seed catalogue for an instant first paint (empty in
+  // production - see getSeedCatalogue), then merge in live products from
+  // fetchAllProducts(). Live rows win on id so nothing renders twice.
+  const [products, setProducts] = useState(getSeedCatalogue);
 
   useEffect(() => {
     let alive = true;
@@ -48,11 +50,10 @@ export default function ShopPage() {
       try {
         const data = await fetchAllProducts();
         if (alive && data && data.length) {
-          // Merge Supabase products with curated mock products so demo items (like Almonds) remain visible
-          setProducts([...FALLBACK_PRODUCTS, ...data]);
+          setProducts(mergeCatalogue(getSeedCatalogue(), data));
         }
       } catch {
-        /* keep curated fallback */
+        /* keep whatever the seed gave us */
       }
     })();
     return () => { alive = false; };
@@ -153,11 +154,18 @@ export default function ShopPage() {
   const recentlyVerified = useMemo(() => [...products].reverse().slice(0, 8), [products]);
   const featured = topRated[0] || products[0] || null;
 
-  const stats = useMemo(() => ({
-    count: products.length,
-    avg: products.length ? Math.round(products.reduce((s, p) => s + (p.score || 0), 0) / products.length) : 0,
-    brands: new Set(products.map((p) => p.brand)).size,
-  }), [products]);
+  const stats = useMemo(() => {
+    // Average only over products that actually carry a score — an unscored
+    // product must not drag the average down as though it scored zero.
+    const scored = products.filter((p) => Number.isFinite(Number(p.score)));
+    return {
+      count: products.length,
+      avg: scored.length
+        ? Math.round(scored.reduce((s, p) => s + Number(p.score), 0) / scored.length)
+        : null,
+      brands: new Set(products.map((p) => p.brand).filter(Boolean)).size,
+    };
+  }, [products]);
 
   const toggleDietary = (item) =>
     setFilterDietary((prev) => (prev.includes(item) ? prev.filter((d) => d !== item) : [...prev, item]));
@@ -272,7 +280,7 @@ export default function ShopPage() {
             context={contextLabel}
             onClearContext={clearContext}
           />
-          <ProductGrid title={gridTitle} products={filteredProducts} handlers={cardHandlers} onClear={clearEverything} />
+          <ProductGrid title={gridTitle} products={filteredProducts} handlers={cardHandlers} onClear={clearEverything} catalogueEmpty={products.length === 0} />
       </main>
 
       {/* Universal command search */}

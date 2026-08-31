@@ -13,6 +13,7 @@ const hanken = Hanken_Grotesk({
 });
 
 import StoreNavigation from "./StoreNavigation";
+import CartHydrator from "./CartHydrator";
 
 export const metadata = {
   title: "KOI - The Better Choices Store",
@@ -26,6 +27,7 @@ export default function StoreLayout({ children }) {
       className={`${bricolage.variable} ${hanken.variable} relative`}
       style={{ fontFamily: "var(--font-koi-body), sans-serif" }}
     >
+      <CartHydrator />
       <StoreNavigation />
       {children}
     </div>

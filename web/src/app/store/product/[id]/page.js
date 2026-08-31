@@ -15,7 +15,8 @@ import React, { useEffect, useMemo, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ShoppingBag, Leaf } from "lucide-react";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
-import { FALLBACK_PRODUCTS } from "@/components/store/shop/shopData";
+import { getSeedCatalogue } from "@/components/store/shop/shopData";
+import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
 import { buildProductVM } from "@/components/store/product/productData";
 import { useCartStore } from "@/store/cartStore";
 import { C, HEADING } from "@/components/store/landing/tokens";
@@ -59,7 +60,7 @@ function TopBar() {
 export default function ProductDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
-  const [pool, setPool] = useState(FALLBACK_PRODUCTS);
+  const [pool, setPool] = useState(getSeedCatalogue);
   const [loaded, setLoaded] = useState(false);
   const sentinel = useRef(null);
 
@@ -69,9 +70,9 @@ export default function ProductDetailPage({ params }) {
       try {
         const data = await fetchAllProducts();
         if (alive && data && data.length) {
-          setPool([...FALLBACK_PRODUCTS, ...data]);
+          setPool(mergeCatalogue(getSeedCatalogue(), data));
         }
-      } catch { /* keep fallback */ }
+      } catch { /* keep whatever the seed gave us */ }
       finally { if (alive) setLoaded(true); }
     })();
     return () => { alive = false; };

@@ -4,17 +4,31 @@
 // `facts` object the engine can reason over. Pure, no side effects.
 // ============================================================================
 
-import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS } from "./config";
+import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./config";
+
+const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
 
 const toNum = (v) => (typeof v === "number" ? v : parseFloat(String(v ?? "").replace(/[^\d.]/g, "")) || 0);
 const anyKeyword = (haystack, list) => list.some((k) => haystack.includes(k));
+
+// Anything absent, malformed or unrecognised is `unknown`. The legacy boolean
+// `inStock` is honoured only when it is explicitly present.
+function readAvailability(product) {
+  const raw = product.availability;
+  const state = typeof raw === "string" ? raw : raw?.state;
+  if (VALID_AVAILABILITY.has(state)) return state;
+  if (product.inStock === true) return AVAILABILITY.AVAILABLE;
+  if (product.inStock === false) return AVAILABILITY.UNAVAILABLE;
+  return AVAILABILITY.UNKNOWN;
+}
 
 /**
  * @returns {{
  *   id, name, brand, category, price, trust, recommended,
  *   macros: { protein, sugar, fat, fibre, kcal, carbs, sodium },
  *   dietary: string[], tags: string[], goalTags: string[],
- *   contains: Set<string>, haystack: string, inStock: boolean, status: string
+ *   contains: Set<string>, haystack: string, status: string,
+ *   availability: 'available'|'unavailable'|'unknown'
  * }}
  */
 export function extractFacts(product) {
@@ -84,7 +98,9 @@ export function extractFacts(product) {
     goalTags: product.goalTags || [],
     contains,
     haystack,
-    inStock: product.inStock !== false, // default available unless explicitly false
+    // Tri-state, never inferred. An unchecked product is `unknown`, not in
+    // stock — defaulting the other way turns absence of evidence into a claim.
+    availability: readAvailability(product),
     status: product.status || "approved",
     product, // keep the original for the DTO / cart
   };

@@ -15,5 +15,5 @@ export { buildShelves, toDTO } from "./shelves";
 // Catalogs + config re-exported so the onboarding UI and engine never drift.
 export {
   FOODS_LOVE, FOODS_AVOID, DIET_TYPES, MEALS, BUDGETS, COOKING,
-  GOAL_PROFILES, WEIGHTS, PENALTIES, THRESHOLDS,
+  GOAL_PROFILES, WEIGHTS, PENALTIES, THRESHOLDS, AVAILABILITY,
 } from "./config";

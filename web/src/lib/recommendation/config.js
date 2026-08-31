@@ -6,6 +6,23 @@
 // onboarding UI so everything lines up deterministically.
 // ============================================================================
 
+// ── Supply availability ──
+// Tri-state, because "we have not checked" is a real and common answer and is
+// NOT the same as "in stock". Treating absence of evidence as evidence of
+// stock is the availability version of inventing a nutrition value.
+//
+// `unknown` is the default and must be CONSTRUCTED, never inferred. It is not
+// a reason to hide a screened product - only a reason to make no claim about
+// its availability, price or delivery.
+//
+// Shared with lib/availability.js (presentation) and, when the supply tier
+// lands, a CHECK constraint in the migration. Change here, change all three.
+export const AVAILABILITY = Object.freeze({
+  AVAILABLE: "available",
+  UNAVAILABLE: "unavailable",
+  UNKNOWN: "unknown",
+});
+
 // ── Scoring weights (max additive = 100) ──
 export const WEIGHTS = Object.freeze({
   goalMatch: 35,

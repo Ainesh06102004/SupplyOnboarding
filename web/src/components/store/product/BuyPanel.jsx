@@ -3,6 +3,11 @@
 // ============================================================================
 // KOI PRODUCT - Purchase panel + always-visible sticky buy bar
 // Wires the real cart (add with quantity), wishlist (local), share.
+//
+// Says nothing about stock or delivery unless a supply source actually told us.
+// Both claims used to be hardcoded here - a static "In stock" and an ETA
+// computed as "two days from now" - which asserted facts KOI had no way to
+// know. See lib/availability.js.
 // ============================================================================
 
 import React, { useEffect, useState } from "react";
@@ -10,6 +15,7 @@ import { ShoppingBag, Plus, Minus, Heart, Share2, Truck, Check, ShieldCheck } fr
 import Image from "next/image";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cartStore";
+import { availabilityOf, canClaimAvailability, AVAILABILITY } from "@/lib/availability";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 
 function useAddToCart(product) {
@@ -23,9 +29,33 @@ function useAddToCart(product) {
   };
 }
 
-function deliveryDate() {
-  const d = new Date(Date.now() + 2 * 86400000);
-  return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+/**
+ * Stock line. Renders only when a supply source has actually answered — an
+ * unchecked product says nothing rather than claiming to be in stock.
+ * Delivery estimates return when a source can provide one.
+ */
+function StockLine({ product }) {
+  if (!canClaimAvailability(product)) return null;
+
+  const state = availabilityOf(product);
+  const outOfStock = state === AVAILABILITY.UNAVAILABLE;
+
+  return (
+    <div className="mb-4 flex items-center gap-1.5 text-[12.5px] font-semibold">
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: outOfStock ? C.orange : C.emerald }}
+      />
+      <span style={{ color: outOfStock ? C.orange : C.green }}>
+        {outOfStock ? "Not available right now" : "In stock"}
+      </span>
+      {product.deliveryEta ? (
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[#083D2D]/55">
+          <Truck className="h-3.5 w-3.5" /> {product.deliveryEta}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 async function shareProduct(name) {
@@ -43,15 +73,7 @@ export default function BuyPanel({ product }) {
 
   return (
     <div className="rounded-[24px] border border-[#083D2D]/10 bg-white/70 p-5 backdrop-blur-md shadow-[0_10px_40px_rgba(8,61,45,0.06)]">
-      {/* stock + delivery */}
-      <div className="mb-4 flex items-center justify-between text-[12.5px] font-semibold">
-        <span className="inline-flex items-center gap-1.5 text-[#0C6B4C]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#16A06E]" /> In stock
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-[#083D2D]/55">
-          <Truck className="h-3.5 w-3.5" /> Free by {deliveryDate()}
-        </span>
-      </div>
+      <StockLine product={product} />
 
       <div className="flex items-center gap-3">
         {/* qty */}

@@ -1,7 +1,20 @@
 // ============================================================================
 // KOI SHOP - Data & facets for the editorial discovery experience.
-// The real catalogue still flows through fetchAllProducts(); this provides the
-// universal-search facets and a full-shape fallback so the shop is never empty.
+//
+// The real catalogue flows through fetchAllProducts(). Everything below the
+// facets is DEVELOPMENT FIXTURE DATA so the UI is buildable before a supply
+// source exists.
+//
+// These fixtures are NOT the catalogue and never will be. Their scores and
+// macros were hand-written and do not agree with the label data in
+// scripts/seed*.js - e.g. the Troovy butter cookies here claim a 92 and 0g
+// sugar where the label records a 78 and 20.9g added sugar. They name real
+// third-party brands, so publishing them asserts a KOI verification verdict
+// that was never made.
+//
+// They are therefore gated to non-production by getSeedCatalogue(). Import
+// that, never DEV_FIXTURE_PRODUCTS directly. In production the shop renders
+// its empty state until real screened products exist.
 // ============================================================================
 
 const clamp = (v) => Math.max(0, Math.min(99, v));
@@ -48,7 +61,7 @@ function mk({ id, brand, name, category, img, price, weight, score, goals, dieta
   };
 }
 
-export const FALLBACK_PRODUCTS = [
+const DEV_FIXTURE_PRODUCTS = [
   mk({ id: "os-dfm", brand: "Open Secret", name: "Un-Junked Daily Dry Fruit Mix", category: "Snacks", img: "os-dfm", price: 649, weight: "250 g", score: 95, goals: ["High Protein", "Weight Loss", "Gut Health"], dietary: ["Vegan", "Gluten Free"], tags: ["High protein", "Zero added sugar", "Full of fibre"], insight: "Six nuts and seeds, nothing else added.", n: { kcal: 168, protein: 21, carbs: 12, sugar: 0, fat: 9, fibre: 9 } }),
   mk({ id: "troovy-butter", brand: "Troovy", name: "The Healthy Butter Cookies", category: "Breakfast", img: "troovy-butter", price: 149, weight: "60 g", score: 92, goals: ["High Protein", "Kids Nutrition"], dietary: ["Vegetarian"], tags: ["No refined sugar", "No palm oil", "No maida"], insight: "Buttery, protein-rich, and honestly good.", n: { kcal: 118, protein: 6, carbs: 14, sugar: 0, fat: 5, fibre: 3 } }),
   mk({ id: "os-ca", brand: "Open Secret", name: "Chocolate Coated Almonds", category: "Snacks", img: "os-ca", price: 299, weight: "150 g", score: 91, goals: ["High Protein", "Post-Workout"], dietary: ["Vegetarian", "Gluten Free"], tags: ["Real chocolate", "No preservatives", "High protein"], insight: "The snack that reads its own label.", n: { kcal: 176, protein: 12, carbs: 15, sugar: 6, fat: 11, fibre: 5 } }),
@@ -60,6 +73,19 @@ export const FALLBACK_PRODUCTS = [
   mk({ id: "thb-crispies", brand: "The Healthy Binge", name: "Protein Crispies", category: "Snacks", img: "thb-crispies", price: 159, weight: "40 g", score: 87, goals: ["Low Sugar", "Weight Loss", "Post-Workout"], dietary: ["Vegan", "Gluten Free"], tags: ["Baked", "High protein", "Low calorie"], insight: "A crunch that counts its macros.", recommended: false, n: { kcal: 96, protein: 10, carbs: 11, sugar: 2, fat: 2, fibre: 3 } }),
   mk({ id: "skc-ragi", brand: "Sweet Karam Coffee", name: "Ragi Chocolate Coffee", category: "Beverages", img: "skc-ragi", price: 249, weight: "200 g", score: 87, goals: ["Better Energy", "Gut Health"], dietary: ["Vegan"], tags: ["Millet based", "No refined sugar", "Instant"], insight: "Ragi + cocoa, an easier morning.", recommended: false, n: { kcal: 110, protein: 4, carbs: 20, sugar: 5, fat: 2, fibre: 4 } }),
 ];
+
+/**
+ * The seed catalogue the shop starts from before live data arrives.
+ *
+ * Empty in production: the fixtures above carry hand-written scores for real
+ * third-party brands and must never be served as verified products. In
+ * development they render so the UI can be built without a supply source.
+ *
+ * @returns {Array} product objects, or [] in production
+ */
+export function getSeedCatalogue() {
+  return process.env.NODE_ENV === "production" ? [] : DEV_FIXTURE_PRODUCTS;
+}
 
 // Rotating placeholders for the command search input.
 export const PLACEHOLDERS = [

@@ -1,4 +1,22 @@
+// ============================================================================
+// KOI - Live catalogue fetch
+// Maps screened Supabase rows into the shape the storefront renders.
+//
+// Rule: every field is either read from the database or omitted. Nothing here
+// may invent a score, a macro, a dietary flag or a comparison. Where a column
+// is absent the value is null and the UI renders no claim - see
+// lib/availability.js for the same principle applied to stock.
+//
+// This file previously stamped every product with an identical scoreBreakdown
+// of {85, 90, 95, 85}, declared them all "Vegetarian", and invented a category
+// average, a watchout and a verdict con. Those were fabrications, not defaults.
+// ============================================================================
+
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { AVAILABILITY } from '@/lib/recommendation/config';
+
+/** Number, or null when the column is absent. Never coerces missing to 0. */
+const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
 
 export async function fetchAllProducts() {
   const supabase = getSupabaseClient();
@@ -29,11 +47,17 @@ export async function fetchAllProducts() {
     const nutrition = sku.sku_nutrition?.[0] || {};
     const screening = sku.screening_reports?.[0] || {};
     const flags = screening.flags || {};
-    const claims = flags.claims || ["Healthy", "Natural"];
-    
-    // Auto-detect high protein based on nutrition or product name
-    const hasHighProtein = claims.some(c => c.toLowerCase() === 'high protein');
-    if (!hasHighProtein && ((nutrition.protein_g && nutrition.protein_g >= 10) || p.product_name.toLowerCase().includes('almond'))) {
+    // Only claims the screening report actually made. This used to default to
+    // ["Healthy", "Natural"] for any product without flags, which invented a
+    // claim for every unscreened row.
+    const claims = Array.isArray(flags.claims) ? [...flags.claims] : [];
+
+    // "High protein" is derived from the declared value, never from the name.
+    // The previous rule also fired on any product whose name contained
+    // "almond", which asserted a macro claim from a substring match.
+    const protein = num(nutrition.protein_g);
+    const hasHighProtein = claims.some(c => String(c).toLowerCase() === 'high protein');
+    if (!hasHighProtein && protein !== null && protein >= 10) {
       claims.push("High Protein");
     }
     const skus = p.skus || [];
@@ -106,50 +130,56 @@ export async function fetchAllProducts() {
       image: image || { hero: '', label: '', lifestyle: '' },
       price: sku.mrp || 0,
       weight: sku.net_weight || "N/A",
-      score: screening.final_score || 80,
+      // null, not a default. An unscored product shows no score.
+      score: num(screening.final_score),
       tags: claims.slice(0, 3),
-      dietary: ["Vegetarian"],
-      insight: screening.review_notes || "Clean ingredients",
+      // Only what the screening report actually declared.
+      dietary: Array.isArray(flags.dietary) ? flags.dietary : [],
+      insight: screening.review_notes || null,
       recommended: true,
-      
-      // Intelligence Overlays
-      scoreBreakdown: { 
-        "Protein Quality": 85, 
-        "Sugar Content": 90, 
-        "Additives": 95, 
-        "Ingredient Quality": 85 
+
+      // No supply source is wired yet, so availability is genuinely unknown.
+      availability: AVAILABILITY.UNKNOWN,
+      deliveryEta: null,
+
+      // Intelligence overlays — the three sub-scores are real columns on
+      // screening_reports. Anything the report did not carry stays null so the
+      // UI can omit it rather than show a plausible-looking constant.
+      scoreBreakdown: {
+        "Ingredient Quality": num(screening.ingredient_score),
+        "Nutrition": num(screening.nutrition_score),
+        "Processing": num(screening.processing_score),
       },
-      betterThanPercentage: screening.final_score ? Math.min(99, screening.final_score + 10) : 90,
-      categoryAverage: { Protein: "10g", Sugar: "10g", Fibre: "2g", Additives: "Medium" },
+      betterThanPercentage: null,
+      categoryAverage: null,
       strengths: claims,
-      watchouts: ["Consume in moderation"],
-      compareInsight: "Better ingredient profile than category average.",
-      
+      watchouts: [],
+      compareInsight: null,
+
       // Details page extra mapping
-      koiStatus: "Approved",
+      koiStatus: screening.verdict || null,
       verdict: {
-        summary: screening.review_notes || "Good option.",
+        summary: screening.review_notes || null,
         pros: claims,
-        cons: ["Slightly calorie dense"]
+        cons: [],
       },
-      labelLens: [
-        { label: "Protein", value: "Good", status: "good" },
-        { label: "Sugar", value: "Checked", status: "neutral" },
-        { label: "Additives", value: "Minimal", status: "good" }
-      ],
+      labelLens: [],
       nutrition: [
-        { label: "Calories", value: nutrition.energy_kcal || 0, unit: "kcal", icon: "Flame" },
-        { label: "Protein", value: nutrition.protein_g || 0, unit: "g", icon: "Dumbbell" },
-        { label: "Carbs", value: nutrition.carbs_g || 0, unit: "g", icon: "Zap" },
-        { label: "Sugar", value: nutrition.sugars_g || 0, unit: "g", icon: "CircleDot" },
-        { label: "Fat", value: nutrition.total_fat_g || 0, unit: "g", icon: "Heart" },
-        { label: "Fibre", value: nutrition.fibre_g || 0, unit: "g", icon: "Leaf" },
-      ],
-      benefits: [
-        { title: "Clean Label", desc: "No harmful additives.", icon: "ShieldCheck" }
-      ],
-      goodIngredients: (flags.ingredients_partial || ["Whole ingredients"]).map(name => ({ name, desc: "Source of nutrition" })),
-      watchOuts: [{ name: "Calorie Density", desc: "Mindful portion sizing" }],
+        { label: "Calories", value: num(nutrition.energy_kcal), unit: "kcal", icon: "Flame" },
+        { label: "Protein", value: num(nutrition.protein_g), unit: "g", icon: "Dumbbell" },
+        { label: "Carbs", value: num(nutrition.carbs_g), unit: "g", icon: "Zap" },
+        { label: "Sugar", value: num(nutrition.sugars_g), unit: "g", icon: "CircleDot" },
+        { label: "Added sugar", value: num(nutrition.added_sugar_g), unit: "g", icon: "CircleDot" },
+        { label: "Fat", value: num(nutrition.total_fat_g), unit: "g", icon: "Heart" },
+        { label: "Saturated fat", value: num(nutrition.saturated_fat_g), unit: "g", icon: "Heart" },
+        { label: "Fibre", value: num(nutrition.fibre_g), unit: "g", icon: "Leaf" },
+        { label: "Sodium", value: num(nutrition.sodium_mg), unit: "mg", icon: "CircleDot" },
+      ].filter((n) => n.value !== null),
+      servingSize: nutrition.serving_size || null,
+      measurementBasis: nutrition.measurement_basis || null,
+      benefits: [],
+      goodIngredients: (flags.ingredients_partial || []).map(name => ({ name, desc: null })),
+      watchOuts: [],
       alternatives: [],
       reviews: [],
       reviewTags: []

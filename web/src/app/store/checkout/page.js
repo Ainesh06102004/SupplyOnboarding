@@ -35,8 +35,7 @@ const PAYMENT_OPTIONS = [
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  
+
   // Local State
   const [hasAddress, setHasAddress] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState("upi");
@@ -44,37 +43,38 @@ export default function CheckoutPage() {
 
   // Cart State
   const items = useCartStore(state => state.items);
+  const hydrated = useCartStore(state => state.hydrated);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+  const subtotal = items.reduce((sum, i) => sum + (Number(i.price) || 0) * i.quantity, 0);
 
-  // Hydration fix
+  // Only redirect once the cart has actually been restored. Redirecting on a
+  // still-hydrating cart bounced shoppers with a full basket back to the shop.
   useEffect(() => {
-    const t = setTimeout(() => {
-      setMounted(true);
-      // If empty cart somehow gets here, redirect back to shop
-      if (items.length === 0) {
-        router.push("/store/shop");
-      }
-    }, 0);
-    return () => clearTimeout(t);
-  }, [items.length, router]);
+    if (hydrated && items.length === 0) router.push("/store/shop");
+  }, [hydrated, items.length, router]);
 
-  if (!mounted || items.length === 0) return null;
+  if (!hydrated || items.length === 0) return null;
 
-  // ─── KOI INTELLIGENCE CALCS ───
-  const averageKoiScore = Math.round(
-    items.reduce((sum, item) => sum + (item.score || 0), 0) / (items.length || 1)
-  );
+  // ─── KOI SCORE SUMMARY ───
+  // Speaks only to what the score means. It previously claimed the basket was
+  // "extremely clean, high in protein, and low in added sugar" purely because
+  // the average score cleared 90 - a nutrition claim inferred from a proxy,
+  // with no macro ever read. A KOI score is evidence of screening, not of
+  // protein content.
+  const scoredItems = items.filter((i) => Number.isFinite(Number(i.score)));
+  const averageKoiScore = scoredItems.length
+    ? Math.round(scoredItems.reduce((sum, i) => sum + Number(i.score), 0) / scoredItems.length)
+    : null;
 
-  let cartQuality = "Good";
-  let intelligenceMessage = "Your basket contains high-quality, verified products.";
+  let cartQuality = "Screened";
+  let intelligenceMessage = "Every product here cleared KOI's ingredient and nutrition review.";
 
-  if (averageKoiScore >= 90) {
+  if (averageKoiScore !== null && averageKoiScore >= 90) {
     cartQuality = "Excellent";
-    intelligenceMessage = "Your basket is extremely clean, high in protein, and low in added sugar.";
-  } else if (averageKoiScore >= 80) {
+    intelligenceMessage = "These products sit near the top of KOI's screening range.";
+  } else if (averageKoiScore !== null && averageKoiScore >= 80) {
     cartQuality = "Great";
-    intelligenceMessage = "A balanced basket passing the strict KOI quality standards.";
+    intelligenceMessage = "A basket scoring well above KOI's minimum standard.";
   }
 
   // ─── HANDLERS ───
@@ -161,18 +161,21 @@ export default function CheckoutPage() {
                 )}
              </section>
 
-             {/* Delivery Details */}
+             {/* Delivery Details
+                 No delivery window is promised here. The previous copy claimed
+                 "Delivered fresh within 2-4 hours", which KOI has no fulfilment
+                 source to back. A real estimate returns when one does. */}
              <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)]">
                 <h2 className="text-lg font-bold text-[#0E4032] mb-5" style={{ fontFamily: "var(--font-koi-heading)" }}>Delivery Details</h2>
-                
+
                 <div className="flex items-start gap-4">
                    <div className="w-10 h-10 rounded-full bg-[#F2F6EC] flex items-center justify-center shrink-0">
                       <Clock className="w-5 h-5 text-[#0E4032]" />
                    </div>
                    <div>
-                      <h4 className="text-[14px] font-bold text-[#0E4032] mb-1">Delivered fresh within 2–4 hours</h4>
+                      <h4 className="text-[14px] font-bold text-[#0E4032] mb-1">Delivery time confirmed at dispatch</h4>
                       <p className="text-[13px] text-[#5A6B5A] leading-relaxed">
-                         We prioritize local makers and rapid, eco-friendly delivery routes to ensure your groceries don&apos;t just arrive fast, but arrive fresh.
+                         We&apos;ll share an estimated arrival window once your order is placed with the delivery partner.
                       </p>
                    </div>
                 </div>
@@ -235,7 +238,7 @@ export default function CheckoutPage() {
                      </div>
                      <div className="w-px h-10 bg-white/10" />
                      <div className="flex flex-col gap-1 text-center">
-                        <span className="text-[28px] font-bold text-[#C8F23E] leading-none" style={{ fontFamily: "var(--font-koi-heading)" }}>{averageKoiScore}</span>
+                        <span className="text-[28px] font-bold text-[#C8F23E] leading-none" style={{ fontFamily: "var(--font-koi-heading)" }}>{averageKoiScore ?? "—"}</span>
                         <span className="text-[10px] font-bold text-[#C8F23E]/80 uppercase tracking-wider">Avg Score</span>
                      </div>
                      <div className="w-px h-10 bg-white/10" />

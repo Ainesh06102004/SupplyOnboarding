@@ -39,7 +39,11 @@ function NavigationContent() {
   const isHome = pathname === "/store" || pathname === "/store/shop";
 
   const totalItems = mounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
-  const hasActiveOrder = true; // Mock logic to display dot
+  // No order state exists yet — nothing in the app writes an order. This was
+  // hardcoded `true`, so the "you have a delivery in progress" dot pulsed for
+  // every visitor, including ones who had never ordered. It comes back when
+  // there is a real order to point at.
+  const hasActiveOrder = false;
 
   const NAV_ITEMS = [
     { label: "Home", href: "/store", icon: Home },

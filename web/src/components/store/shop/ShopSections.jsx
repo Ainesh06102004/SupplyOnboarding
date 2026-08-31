@@ -179,7 +179,8 @@ export function ShopHero({ onOpenSearch, onSuggest, stats }) {
           <div className="mt-11 flex flex-wrap items-center justify-center">
             {[
               [`${stats.count}`, "Verified products"],
-              [`${stats.avg}`, "Avg KOI score"],
+              // An average of nothing is not zero.
+              [stats.avg === null ? "—" : `${stats.avg}`, "Avg KOI score"],
               [`${stats.brands}`, "Curated brands"],
             ].map(([v, l], idx) => (
               <div key={l} className={`px-6 py-1 ${idx > 0 ? "border-l border-white/10" : ""}`}>
@@ -547,7 +548,7 @@ export function FilterDrawer({
 }
 
 // ── Main product grid ───────────────────────────────────────────────────────
-export function ProductGrid({ title, products, handlers, onClear }) {
+export function ProductGrid({ title, products, handlers, onClear, catalogueEmpty = false }) {
   return (
     <section className="relative" style={{ background: C.offwhite }}>
       <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
@@ -569,9 +570,23 @@ export function ProductGrid({ title, products, handlers, onClear }) {
             <span className="grid h-16 w-16 place-items-center rounded-2xl" style={{ background: "#fff", border: `1px solid ${C.forest}14` }}>
               <Search className="h-6 w-6 text-[#083D2D]/40" />
             </span>
-            <h3 className="mt-5 text-[20px] font-extrabold text-[#083D2D]" style={HEADING}>Nothing matches - yet</h3>
-            <p className="mt-1.5 text-[14px] text-[#101412]/55" style={BODY}>Try clearing a filter or widening your search.</p>
-            <ArrowButton onClick={onClear} variant="outline" size="sm" className="mt-6">Clear all filters</ArrowButton>
+            {/* An empty catalogue and an over-tight filter are different problems.
+                Offering "clear all filters" when there is nothing to filter is a
+                dead end for the shopper. */}
+            {catalogueEmpty ? (
+              <>
+                <h3 className="mt-5 text-[20px] font-extrabold text-[#083D2D]" style={HEADING}>Nothing here yet</h3>
+                <p className="mt-1.5 max-w-sm text-[14px] text-[#101412]/55" style={BODY}>
+                  We&apos;re still verifying the first products for this store. Every one has to earn its place.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="mt-5 text-[20px] font-extrabold text-[#083D2D]" style={HEADING}>Nothing matches - yet</h3>
+                <p className="mt-1.5 text-[14px] text-[#101412]/55" style={BODY}>Try clearing a filter or widening your search.</p>
+                <ArrowButton onClick={onClear} variant="outline" size="sm" className="mt-6">Clear all filters</ArrowButton>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -33,7 +33,19 @@ export function scoreColor(score) {
 }
 
 // ----------------------------------------------------------------------------
-// Curated catalogue - mapped to real product renders in /public/media.
+// DEVELOPMENT FIXTURE DATA for the landing page - NOT the catalogue.
+//
+// Same problem as the shop fixtures in components/store/shop/shopData.js: these
+// scores and macros are hand-written, disagree with the label data in
+// scripts/seed*.js, and name real third-party brands. Rendering a score ring
+// over one of these asserts a KOI verification verdict that was never made.
+//
+// The shop is gated to non-production via getSeedCatalogue(). The landing page
+// is NOT yet, because HeroEditorial and ProductSections are composed around a
+// guaranteed product - an empty list needs a designed no-catalogue state, not a
+// null guard. Until that design exists this file still publishes fixture
+// scores on /store. Do not add products here; do not treat these as verified.
+//
 // Shape stays cart-compatible (id, name, brand, price, weight, score, image).
 // ----------------------------------------------------------------------------
 export const PRODUCTS = [
