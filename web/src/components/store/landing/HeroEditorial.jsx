@@ -4,16 +4,21 @@
 // KOI EDITORIAL LANDING - Hero
 // Editorial split: stacked oversized headline + product render on a forest
 // plate, integrated KOI Score, verification chips and a trust ticker.
+//
+// The product plate is now fed by the caller rather than by a module-scope
+// PRODUCTS.find(). That matters beyond tidiness: the fixture it used to read
+// published a score and a claim set KOI never issued, on the first page a
+// visitor sees. With no catalogue the plate renders the shelf-being-built
+// state below — an empty store is a true thing to say and a fine thing to
+// look at, and it is the state production is actually in.
 // ============================================================================
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Plus, CheckCircle2, FlaskConical, Search, Target, Check, ArrowRight, Leaf } from "lucide-react";
+import { Check, ArrowRight, Leaf } from "lucide-react";
 import Image from "next/image";
-import { C, HEADING, BODY, PRODUCTS } from "./tokens";
+import { C, HEADING, BODY } from "./tokens";
 import { Reveal, ScoreRing, ArrowButton, Marquee, Grain } from "./primitives";
-
-const HERO_PRODUCT = PRODUCTS.find((p) => p.id === "os-dfm") || PRODUCTS[0];
 
 function RotatingSeal() {
   return (
@@ -46,7 +51,126 @@ function Chip({ children }) {
   );
 }
 
-export default function HeroEditorial() {
+// A word for the score band. This describes KOI's own number back to the
+// reader — it is not a claim about the food, which is why it is allowed to
+// exist at all. It used to be the literal "Exceptional" on every product.
+function scoreBand(score) {
+  if (score >= 90) return "Exceptional";
+  if (score >= 80) return "Strong";
+  return "Screened";
+}
+
+// ── The plate, with a product ───────────────────────────────────────────────
+function ProductPlate({ product }) {
+  return (
+    <div className="relative mx-auto aspect-[4/5] w-full max-w-[520px] overflow-hidden rounded-[32px]" style={{ background: C.forest }}>
+      <Grain opacity={0.08} blend="soft-light" />
+      <div className="absolute left-1/2 top-[46%] h-[118%] w-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/8" />
+      <div className="absolute left-1/2 top-[46%] h-[86%] w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
+
+      <div className="absolute inset-x-8 top-10 bottom-24 grid place-items-center">
+        <Image
+          src={product.image}
+          alt={`${product.brand ?? ""} - ${product.name}`.trim()}
+          width={640}
+          height={640}
+          preload
+          draggable="false"
+          className="h-full w-auto max-w-full object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
+          style={{ animation: "koi-float 7s ease-in-out infinite" }}
+        />
+      </div>
+
+      <div className="absolute right-4 top-4">
+        <RotatingSeal />
+      </div>
+
+      {/* Score badge — only for a product that actually carries a score. */}
+      {product.score !== null && (
+        <div className="absolute left-5 top-6 flex items-center gap-3 rounded-2xl bg-white/10 p-2.5 pr-4 backdrop-blur-md">
+          <ScoreRing score={product.score} size={52} stroke={3} track="#ffffff22" />
+          <div className="leading-tight">
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">KOI Score</div>
+            <div className="text-[13px] font-bold text-white" style={HEADING}>{scoreBand(product.score)}</div>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute inset-x-4 bottom-4 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            {product.brand && (
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#DDF247]">{product.brand}</div>
+            )}
+            <div className="mt-0.5 truncate text-[16px] font-bold text-white" style={HEADING}>{product.name}</div>
+          </div>
+          {product.price !== null && (
+            <div className="shrink-0 text-right text-[18px] font-extrabold text-white" style={HEADING}>₹{product.price}</div>
+          )}
+        </div>
+        {product.claims.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {product.claims.slice(0, 3).map((c) => (
+              <Chip key={c}>{c}</Chip>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── The plate, with no catalogue ────────────────────────────────────────────
+// Not a spinner and not a shrug. KOI's proposition is that the shelf is short
+// because the screen is strict, so an empty shelf is on-message: it says what
+// is true, and points at the thing that changes it.
+function EmptyPlate({ loading }) {
+  return (
+    <div className="relative mx-auto flex aspect-[4/5] w-full max-w-[520px] flex-col justify-between overflow-hidden rounded-[32px] p-8" style={{ background: C.forest }}>
+      <Grain opacity={0.08} blend="soft-light" />
+      <div className="absolute left-1/2 top-[46%] h-[118%] w-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/8" />
+      <div className="absolute left-1/2 top-[46%] h-[86%] w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
+
+      <div className="relative flex justify-end">
+        <RotatingSeal />
+      </div>
+
+      <div className="relative">
+        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#DDF247]">
+          {loading ? "Loading the shelf" : "Screening in progress"}
+        </div>
+        <h2 className="mt-3 font-extrabold uppercase leading-[0.92] tracking-[-0.02em] text-white" style={{ ...HEADING, fontSize: "clamp(1.9rem, 4vw, 2.6rem)" }}>
+          {loading ? (
+            <>Reading<br />the labels.</>
+          ) : (
+            <>The shelf<br />is being built.</>
+          )}
+        </h2>
+        <p className="mt-4 max-w-[38ch] text-[14px] leading-relaxed text-white/70" style={BODY}>
+          {loading
+            ? "One moment — pulling the products that cleared the screen."
+            : "Nothing goes on this page until it has cleared the ingredient and nutrition review. Nothing has, yet."}
+        </p>
+
+        {!loading && (
+          <Link
+            href="/onboarding"
+            className="group mt-6 inline-flex items-center gap-2 rounded-full bg-[#DDF247] px-5 py-3 text-[12px] font-bold uppercase tracking-[0.12em] transition-transform hover:scale-[1.02]"
+            style={{ color: C.forest }}
+          >
+            Submit a brand for review
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * @param {{ product?: object|null, loading?: boolean }} props
+ */
+export default function HeroEditorial({ product = null, loading = false }) {
   return (
     <section className="relative overflow-hidden" style={{ background: C.offwhite }}>
       <Grain opacity={0.04} />
@@ -99,6 +223,10 @@ export default function HeroEditorial() {
             </Link>
           </Reveal>
 
+          {/* NOTE: these three are marketing figures about KOI's methodology,
+              not claims about any product, and no source in this repo backs
+              them. Wire them to real counts over screening_reports when the
+              catalogue is populated, or retire them. */}
           <Reveal delay={480}>
             <div className="mt-11 flex items-center gap-8">
               <div>
@@ -121,56 +249,7 @@ export default function HeroEditorial() {
 
         {/* ── Right: product plate ── */}
         <Reveal delay={200} y={40} className="relative z-10">
-          <div className="relative mx-auto aspect-[4/5] w-full max-w-[520px] overflow-hidden rounded-[32px]" style={{ background: C.forest }}>
-            <Grain opacity={0.08} blend="soft-light" />
-            {/* concentric guide rings */}
-            <div className="absolute left-1/2 top-[46%] h-[118%] w-[118%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/8" />
-            <div className="absolute left-1/2 top-[46%] h-[86%] w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-
-            {/* Product render on a light plate (no multiply on dark bg) */}
-            <div className="absolute inset-x-8 top-10 bottom-24 grid place-items-center">
-              <Image
-                src={HERO_PRODUCT.image}
-                alt={`${HERO_PRODUCT.brand} - ${HERO_PRODUCT.name}`}
-                width={640}
-                height={640}
-                priority
-                draggable="false"
-                className="h-full w-auto max-w-full object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
-                style={{ animation: "koi-float 7s ease-in-out infinite" }}
-              />
-            </div>
-
-            {/* Verified seal */}
-            <div className="absolute right-4 top-4">
-              <RotatingSeal />
-            </div>
-
-            {/* Score badge */}
-            <div className="absolute left-5 top-6 flex items-center gap-3 rounded-2xl bg-white/10 p-2.5 pr-4 backdrop-blur-md">
-              <ScoreRing score={HERO_PRODUCT.score} size={52} stroke={3} track="#ffffff22" />
-              <div className="leading-tight">
-                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">KOI Score</div>
-                <div className="text-[13px] font-bold text-white" style={HEADING}>Exceptional</div>
-              </div>
-            </div>
-
-            {/* Bottom info bar */}
-            <div className="absolute inset-x-4 bottom-4 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#DDF247]">{HERO_PRODUCT.brand}</div>
-                  <div className="mt-0.5 text-[16px] font-bold text-white" style={HEADING}>{HERO_PRODUCT.name}</div>
-                </div>
-                <div className="text-right text-[18px] font-extrabold text-white" style={HEADING}>₹{HERO_PRODUCT.price}</div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {HERO_PRODUCT.claims.map((c) => (
-                  <Chip key={c}>{c}</Chip>
-                ))}
-              </div>
-            </div>
-          </div>
+          {product ? <ProductPlate product={product} /> : <EmptyPlate loading={loading} />}
         </Reveal>
       </div>
 

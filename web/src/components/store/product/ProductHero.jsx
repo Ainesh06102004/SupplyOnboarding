@@ -41,7 +41,7 @@ function Viewer({ product, active, isPhoto, onExpand }) {
         <Image
           src={src}
           alt={`${product.name} - ${LABELS[active] || active}`}
-          priority
+          preload
           fill
           draggable="false"
           className={isPhoto ? "object-cover" : "object-contain p-10"}

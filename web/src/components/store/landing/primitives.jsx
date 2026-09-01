@@ -111,13 +111,24 @@ export function Marquee({ children, speed = 34, reverse = false, className = "",
 
 // ── ScoreRing ─────────────────────────────────────────────────────────────
 // The KOI Score, rendered as an animated stroke ring.
-export function ScoreRing({ score = 90, size = 56, stroke = 3, label = "KOI", track = "#00000018" }) {
+//
+// `score` used to default to 90. A default parameter is a fine way to fill in a
+// size or a colour; it is not a fine way to fill in a verification verdict. Any
+// product whose screening report had no final_score - which is every product
+// KOI has listed but not yet scored - rendered a confident 90 ring.
+//
+// An unscored product now renders NOTHING here. The caller decides what to show
+// in the gap, which is the only party that knows whether a dash, an "unscored"
+// chip or plain absence reads correctly in that layout.
+export function ScoreRing({ score, size = 56, stroke = 3, label = "KOI", track = "#00000018" }) {
   const ref = useRef(null);
   const reduced = usePrefersReducedMotion();
   const [on, setOn] = useState(false);
+  const value = Number(score);
+  const scored = Number.isFinite(value);
   const r = (size - stroke * 2) / 2;
   const circ = 2 * Math.PI * r;
-  const color = scoreColor(score);
+  const color = scored ? scoreColor(value) : "transparent";
 
   useEffect(() => {
     if (reduced) {
@@ -139,6 +150,9 @@ export function ScoreRing({ score = 90, size = 56, stroke = 3, label = "KOI", tr
     return () => io.disconnect();
   }, [reduced]);
 
+  // After the hooks, never before them.
+  if (!scored) return null;
+
   return (
     <div
       ref={ref}
@@ -156,13 +170,13 @@ export function ScoreRing({ score = 90, size = 56, stroke = 3, label = "KOI", tr
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circ}
-          strokeDashoffset={on ? circ - (score / 100) * circ : circ}
+          strokeDashoffset={on ? circ - (value / 100) * circ : circ}
           style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1)" }}
         />
       </svg>
       <div className="flex flex-col items-center leading-none">
         <span className="font-bold" style={{ ...HEADING, color, fontSize: size * 0.3 }}>
-          {score}
+          {value}
         </span>
         {label && (
           <span
@@ -179,11 +193,18 @@ export function ScoreRing({ score = 90, size = 56, stroke = 3, label = "KOI", tr
 
 // ── Meter ─────────────────────────────────────────────────────────────────
 // Horizontal nutrition bar that fills when scrolled into view.
+//
+// A null value used to arrive here and render as an empty bar, which reads as
+// "0 g" - a macro claim manufactured out of a missing column. An absent value
+// renders nothing at all, so a product with no declared protein simply has no
+// protein meter rather than a meter reading zero.
 export function Meter({ label, value, max = 100, suffix = "", color = C.emerald, track = "#0000000f" }) {
   const ref = useRef(null);
   const reduced = usePrefersReducedMotion();
   const [on, setOn] = useState(false);
-  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  const n = Number(value);
+  const known = Number.isFinite(n);
+  const pct = known ? Math.max(0, Math.min(100, (n / max) * 100)) : 0;
 
   useEffect(() => {
     if (reduced) {
@@ -205,12 +226,15 @@ export function Meter({ label, value, max = 100, suffix = "", color = C.emerald,
     return () => io.disconnect();
   }, [reduced]);
 
+  // After the hooks, never before them.
+  if (!known) return null;
+
   return (
     <div ref={ref}>
       <div className="flex items-baseline justify-between mb-2">
         <span className="text-[11px] uppercase tracking-[0.14em] font-bold opacity-60">{label}</span>
         <span className="text-[13px] font-bold" style={{ ...HEADING, color }}>
-          {value}
+          {n}
           {suffix}
         </span>
       </div>
@@ -318,13 +342,18 @@ export function Grain({ opacity = 0.05, blend = "overlay" }) {
 
 // ── ProductImage ─────────────────────────────────────────────────────────────
 // White-bg product render composited onto a colour panel via multiply blend.
-export function ProductImage({ src, alt, blend = true, className = "", style, priority = false }) {
+//
+// `preload`, not `priority`: next/image deprecated `priority` in v16 in favour
+// of a name that says what it does — inserting a <link rel=preload> in <head>.
+// Reserve it for an actual LCP element; see the image docs bundled in
+// node_modules/next/dist/docs.
+export function ProductImage({ src, alt, blend = true, className = "", style, preload = false }) {
   if (!src) return null;
   return (
     <Image
       src={src}
       alt={alt}
-      priority={priority}
+      preload={preload}
       fill
       draggable="false"
       className={`select-none ${className}`}

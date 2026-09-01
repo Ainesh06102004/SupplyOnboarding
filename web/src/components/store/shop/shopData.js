@@ -5,18 +5,26 @@
 // facets is DEVELOPMENT FIXTURE DATA so the UI is buildable before a supply
 // source exists.
 //
-// These fixtures are NOT the catalogue and never will be. Their scores and
-// macros were hand-written and do not agree with the label data in
-// scripts/seed*.js - e.g. the Troovy butter cookies here claim a 92 and 0g
-// sugar where the label records a 78 and 20.9g added sugar. They name real
-// third-party brands, so publishing them asserts a KOI verification verdict
-// that was never made.
+// THE BRANDS BELOW ARE INVENTED. That is deliberate and load-bearing.
 //
-// They are therefore gated to non-production by getSeedCatalogue(). Import
-// that, never DEV_FIXTURE_PRODUCTS directly. In production the shop renders
-// its empty state until real screened products exist.
+// These fixtures used to name real third-party companies - Troovy, Open
+// Secret, KisaanSay, Sweet Karam Coffee - and attach hand-written scores and
+// claims to them. The Troovy butter cookies carried a 92 and "0 g sugar" where
+// KOI's own label reading (scripts/seedTroovy.js) records a 78 and 20.9 g of
+// added sugar. Publishing that asserts a verification verdict KOI never issued,
+// about someone else's product.
+//
+// getSeedCatalogue() gates them out of production, which stops them RENDERING.
+// It does not stop them SHIPPING: the bundler keeps the array in the client
+// chunk as dead code, so the false claim was still downloadable by anyone who
+// opened the JS. Fictional brands close that gap for good - there is now no
+// arrangement of bundler behaviour, import order or future refactor that can
+// cause KOI to publish a claim about a real company from this file.
+//
+// Product images still point at the real photography so layout, aspect ratios
+// and colour all get exercised. A real pack shot under an invented brand name
+// is unmistakably a fixture, which is the point.
 // ============================================================================
-
 const clamp = (v) => Math.max(0, Math.min(99, v));
 
 // Build a product in the exact shape the shop + overlays expect.
@@ -62,16 +70,16 @@ function mk({ id, brand, name, category, img, price, weight, score, goals, dieta
 }
 
 const DEV_FIXTURE_PRODUCTS = [
-  mk({ id: "os-dfm", brand: "Open Secret", name: "Un-Junked Daily Dry Fruit Mix", category: "Snacks", img: "os-dfm", price: 649, weight: "250 g", score: 95, goals: ["High Protein", "Weight Loss", "Gut Health"], dietary: ["Vegan", "Gluten Free"], tags: ["High protein", "Zero added sugar", "Full of fibre"], insight: "Six nuts and seeds, nothing else added.", n: { kcal: 168, protein: 21, carbs: 12, sugar: 0, fat: 9, fibre: 9 } }),
-  mk({ id: "troovy-butter", brand: "Troovy", name: "The Healthy Butter Cookies", category: "Breakfast", img: "troovy-butter", price: 149, weight: "60 g", score: 92, goals: ["High Protein", "Kids Nutrition"], dietary: ["Vegetarian"], tags: ["No refined sugar", "No palm oil", "No maida"], insight: "Buttery, protein-rich, and honestly good.", n: { kcal: 118, protein: 6, carbs: 14, sugar: 0, fat: 5, fibre: 3 } }),
-  mk({ id: "os-ca", brand: "Open Secret", name: "Chocolate Coated Almonds", category: "Snacks", img: "os-ca", price: 299, weight: "150 g", score: 91, goals: ["High Protein", "Post-Workout"], dietary: ["Vegetarian", "Gluten Free"], tags: ["Real chocolate", "No preservatives", "High protein"], insight: "The snack that reads its own label.", n: { kcal: 176, protein: 12, carbs: 15, sugar: 6, fat: 11, fibre: 5 } }),
-  mk({ id: "kisaansay-saffron", brand: "KisaanSay", name: "Himalayan Mongra Saffron", category: "Pantry", img: "kisaansay-saffron", price: 899, weight: "2 g", score: 93, goals: ["Heart Health"], dietary: ["Vegan"], tags: ["100% pure", "ISO graded", "Lab certified"], insight: "Hand-picked threads, grade A1.", recommended: false, n: { kcal: 6, protein: 0, carbs: 1, sugar: 0, fat: 0, fibre: 0 } }),
-  mk({ id: "kisaansay-honey", brand: "KisaanSay", name: "Wild Forest Raw Honey", category: "Pantry", img: "kisaansay-honey", price: 449, weight: "500 g", score: 90, goals: ["Better Energy", "Heart Health"], dietary: ["Vegetarian"], tags: ["Raw & unprocessed", "Single origin", "Lab tested"], insight: "Unheated, unfiltered, single origin.", n: { kcal: 64, protein: 0, carbs: 17, sugar: 17, fat: 0, fibre: 0 } }),
-  mk({ id: "troovy-chocolate", brand: "Troovy", name: "The Healthy Choco Cookies", category: "Breakfast", img: "troovy-chocolate", price: 179, weight: "60 g", score: 89, goals: ["Kids Nutrition", "Low Sugar"], dietary: ["Vegetarian"], tags: ["No refined sugar", "Real cocoa", "No palm oil"], insight: "Cocoa-rich, guilt-free by design.", n: { kcal: 124, protein: 5, carbs: 15, sugar: 1, fat: 5, fibre: 3 } }),
-  mk({ id: "skc-madras", brand: "Sweet Karam Coffee", name: "Madras Mixture", category: "Snacks", img: "skc-madras", price: 199, weight: "180 g", score: 88, goals: ["Better Energy"], dietary: ["Vegan"], tags: ["Zero trans fat", "No artificial colours", "Source of fibre"], insight: "A symphony of the South, slow-made.", n: { kcal: 142, protein: 8, carbs: 18, sugar: 2, fat: 7, fibre: 4 } }),
-  mk({ id: "mn-chivda", brand: "Mama Nourish", name: "Roasted Millet Chivda", category: "Snacks", img: "mn-chivda", price: 189, weight: "200 g", score: 88, goals: ["Better Energy", "Weight Loss"], dietary: ["Vegan"], tags: ["Roasted not fried", "Millet based", "No maida"], insight: "Air-roasted millets, never deep-fried.", n: { kcal: 132, protein: 7, carbs: 19, sugar: 1, fat: 4, fibre: 5 } }),
-  mk({ id: "thb-crispies", brand: "The Healthy Binge", name: "Protein Crispies", category: "Snacks", img: "thb-crispies", price: 159, weight: "40 g", score: 87, goals: ["Low Sugar", "Weight Loss", "Post-Workout"], dietary: ["Vegan", "Gluten Free"], tags: ["Baked", "High protein", "Low calorie"], insight: "A crunch that counts its macros.", recommended: false, n: { kcal: 96, protein: 10, carbs: 11, sugar: 2, fat: 2, fibre: 3 } }),
-  mk({ id: "skc-ragi", brand: "Sweet Karam Coffee", name: "Ragi Chocolate Coffee", category: "Beverages", img: "skc-ragi", price: 249, weight: "200 g", score: 87, goals: ["Better Energy", "Gut Health"], dietary: ["Vegan"], tags: ["Millet based", "No refined sugar", "Instant"], insight: "Ragi + cocoa, an easier morning.", recommended: false, n: { kcal: 110, protein: 4, carbs: 20, sugar: 5, fat: 2, fibre: 4 } }),
+  mk({ id: "os-dfm", brand: "Northwind Foods", name: "Daily Dry Fruit Mix", category: "Snacks", img: "os-dfm", price: 649, weight: "250 g", score: 95, goals: ["High Protein", "Weight Loss", "Gut Health"], dietary: ["Vegan", "Gluten Free"], tags: ["High protein", "Zero added sugar", "Full of fibre"], insight: "Six nuts and seeds, nothing else added.", n: { kcal: 168, protein: 21, carbs: 12, sugar: 0, fat: 9, fibre: 9 } }),
+  mk({ id: "troovy-butter", brand: "Cedar & Co", name: "Everyday Butter Cookies", category: "Breakfast", img: "troovy-butter", price: 149, weight: "60 g", score: 92, goals: ["High Protein", "Kids Nutrition"], dietary: ["Vegetarian"], tags: ["No refined sugar", "No palm oil", "No maida"], insight: "Buttery, protein-rich, and honestly good.", n: { kcal: 118, protein: 6, carbs: 14, sugar: 0, fat: 5, fibre: 3 } }),
+  mk({ id: "os-ca", brand: "Northwind Foods", name: "Chocolate Coated Almonds", category: "Snacks", img: "os-ca", price: 299, weight: "150 g", score: 91, goals: ["High Protein", "Post-Workout"], dietary: ["Vegetarian", "Gluten Free"], tags: ["Real chocolate", "No preservatives", "High protein"], insight: "A snack that reads its own label.", n: { kcal: 176, protein: 12, carbs: 15, sugar: 6, fat: 11, fibre: 5 } }),
+  mk({ id: "kisaansay-saffron", brand: "Harbour Provisions", name: "Mongra Saffron Threads", category: "Pantry", img: "kisaansay-saffron", price: 899, weight: "2 g", score: 93, goals: ["Heart Health"], dietary: ["Vegan"], tags: ["100% pure", "ISO graded", "Lab certified"], insight: "Hand-picked threads, grade A1.", recommended: false, n: { kcal: 6, protein: 0, carbs: 1, sugar: 0, fat: 0, fibre: 0 } }),
+  mk({ id: "kisaansay-honey", brand: "Harbour Provisions", name: "Wild Forest Raw Honey", category: "Pantry", img: "kisaansay-honey", price: 449, weight: "500 g", score: 90, goals: ["Better Energy", "Heart Health"], dietary: ["Vegetarian"], tags: ["Raw & unprocessed", "Single origin", "Lab tested"], insight: "Unheated, unfiltered, single origin.", n: { kcal: 64, protein: 0, carbs: 17, sugar: 17, fat: 0, fibre: 0 } }),
+  mk({ id: "troovy-chocolate", brand: "Cedar & Co", name: "Everyday Choco Cookies", category: "Breakfast", img: "troovy-chocolate", price: 179, weight: "60 g", score: 89, goals: ["Kids Nutrition", "Low Sugar"], dietary: ["Vegetarian"], tags: ["No refined sugar", "Real cocoa", "No palm oil"], insight: "Cocoa-rich, and it shows its working.", n: { kcal: 124, protein: 5, carbs: 15, sugar: 1, fat: 5, fibre: 3 } }),
+  mk({ id: "skc-madras", brand: "Tamarind Lane", name: "South Coast Mixture", category: "Snacks", img: "skc-madras", price: 199, weight: "180 g", score: 88, goals: ["Better Energy"], dietary: ["Vegan"], tags: ["Zero trans fat", "No artificial colours", "Source of fibre"], insight: "Slow-made, small batch.", n: { kcal: 142, protein: 8, carbs: 18, sugar: 2, fat: 7, fibre: 4 } }),
+  mk({ id: "mn-chivda", brand: "Blue Millet", name: "Roasted Millet Chivda", category: "Snacks", img: "mn-chivda", price: 189, weight: "200 g", score: 88, goals: ["Better Energy", "Weight Loss"], dietary: ["Vegan"], tags: ["Roasted not fried", "Millet based", "No maida"], insight: "Air-roasted millets, never deep-fried.", n: { kcal: 132, protein: 7, carbs: 19, sugar: 1, fat: 4, fibre: 5 } }),
+  mk({ id: "thb-crispies", brand: "Field Notes", name: "Protein Crispies", category: "Snacks", img: "thb-crispies", price: 159, weight: "40 g", score: 87, goals: ["Low Sugar", "Weight Loss", "Post-Workout"], dietary: ["Vegan", "Gluten Free"], tags: ["Baked", "High protein", "Low calorie"], insight: "A crunch that counts its macros.", recommended: false, n: { kcal: 96, protein: 10, carbs: 11, sugar: 2, fat: 2, fibre: 3 } }),
+  mk({ id: "skc-ragi", brand: "Tamarind Lane", name: "Ragi Chocolate Coffee", category: "Beverages", img: "skc-ragi", price: 249, weight: "200 g", score: 87, goals: ["Better Energy", "Gut Health"], dietary: ["Vegan"], tags: ["Millet based", "No refined sugar", "Instant"], insight: "Ragi and cocoa, an easier morning.", recommended: false, n: { kcal: 110, protein: 4, carbs: 20, sugar: 5, fat: 2, fibre: 4 } }),
 ];
 
 /**

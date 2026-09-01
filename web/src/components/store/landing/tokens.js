@@ -35,24 +35,31 @@ export function scoreColor(score) {
 // ----------------------------------------------------------------------------
 // DEVELOPMENT FIXTURE DATA for the landing page - NOT the catalogue.
 //
-// Same problem as the shop fixtures in components/store/shop/shopData.js: these
-// scores and macros are hand-written, disagree with the label data in
+// These scores and macros are hand-written, disagree with the label data in
 // scripts/seed*.js, and name real third-party brands. Rendering a score ring
-// over one of these asserts a KOI verification verdict that was never made.
+// over one of these asserts a KOI verification verdict that was never made -
+// the Troovy entry below claims 0 g sugar and "No refined sugar" where KOI's
+// own label reading records 26.2 g sugars, 20.9 g of it added.
 //
-// The shop is gated to non-production via getSeedCatalogue(). The landing page
-// is NOT yet, because HeroEditorial and ProductSections are composed around a
-// guaranteed product - an empty list needs a designed no-catalogue state, not a
-// null guard. Until that design exists this file still publishes fixture
-// scores on /store. Do not add products here; do not treat these as verified.
+// So this list is gated to non-production via getLandingFixtures(), exactly as
+// the shop's is via getSeedCatalogue(). In production the landing page renders
+// the live catalogue, or its no-catalogue state - never these.
+//
+// THE BRANDS ARE ALSO INVENTED, for the reason spelled out at the top of
+// shopData.js: gating stops these RENDERING but not SHIPPING - the bundler
+// keeps the array in the client chunk as dead code, so a false claim about a
+// real company stayed downloadable from KOI's own JS. Fictional brands remove
+// that possibility rather than relying on the bundler to drop the array.
+//
+// Do not import DEV_FIXTURE_PRODUCTS directly. Do not add products here.
 //
 // Shape stays cart-compatible (id, name, brand, price, weight, score, image).
 // ----------------------------------------------------------------------------
-export const PRODUCTS = [
+const DEV_FIXTURE_PRODUCTS = [
   {
     id: "troovy-butter",
-    brand: "Troovy",
-    name: "The Healthy Butter Cookies",
+    brand: "Cedar & Co",
+    name: "Everyday Butter Cookies",
     category: "Snacks",
     price: 149,
     weight: "60 g",
@@ -64,8 +71,8 @@ export const PRODUCTS = [
   },
   {
     id: "os-dfm",
-    brand: "Open Secret",
-    name: "Un-Junked Daily Dry Fruit Mix",
+    brand: "Northwind Foods",
+    name: "Daily Dry Fruit Mix",
     category: "Snacks",
     price: 649,
     weight: "250 g",
@@ -77,20 +84,20 @@ export const PRODUCTS = [
   },
   {
     id: "skc-madras",
-    brand: "Sweet Karam Coffee",
-    name: "Madras Mixture",
+    brand: "Tamarind Lane",
+    name: "South Coast Mixture",
     category: "Snacks",
     price: 199,
     weight: "180 g",
     score: 88,
     image: "/media/skc-madras-hero.jpg",
-    tagline: "A symphony of the South. Slow-made.",
+    tagline: "Slow-made, small batch.",
     claims: ["Zero trans fat", "No artificial colours", "Source of fibre"],
     nutrition: { protein: 8, sugar: 2, fibre: 4, kcal: 142 },
   },
   {
     id: "kisaansay-honey",
-    brand: "KisaanSay",
+    brand: "Harbour Provisions",
     name: "Wild Forest Raw Honey",
     category: "Pantry",
     price: 449,
@@ -103,7 +110,7 @@ export const PRODUCTS = [
   },
   {
     id: "os-ca",
-    brand: "Open Secret",
+    brand: "Northwind Foods",
     name: "Chocolate Coated Almonds",
     category: "Snacks",
     price: 299,
@@ -116,20 +123,20 @@ export const PRODUCTS = [
   },
   {
     id: "troovy-chocolate",
-    brand: "Troovy",
-    name: "The Healthy Choco Cookies",
+    brand: "Cedar & Co",
+    name: "Everyday Choco Cookies",
     category: "Snacks",
     price: 179,
     weight: "60 g",
     score: 89,
     image: "/media/troovy-chocolate-hero.jpg",
-    tagline: "Cocoa-rich. Guilt-free by design.",
+    tagline: "Cocoa-rich, and it shows its working.",
     claims: ["No refined sugar", "No palm oil", "Real cocoa"],
     nutrition: { protein: 5, sugar: 1, fibre: 3, kcal: 124 },
   },
   {
     id: "skc-mango",
-    brand: "Sweet Karam Coffee",
+    brand: "Tamarind Lane",
     name: "Mango Thokku Preserve",
     category: "Pantry",
     price: 249,
@@ -142,8 +149,8 @@ export const PRODUCTS = [
   },
   {
     id: "kisaansay-saffron",
-    brand: "KisaanSay",
-    name: "Himalayan Mongra Saffron",
+    brand: "Harbour Provisions",
+    name: "Mongra Saffron Threads",
     category: "Pantry",
     price: 899,
     weight: "2 g",
@@ -154,6 +161,20 @@ export const PRODUCTS = [
     nutrition: { protein: 0, sugar: 0, fibre: 0, kcal: 6 },
   },
 ];
+
+
+/**
+ * The landing page's seed products.
+ *
+ * Empty in production, by construction. The landing page treats an empty
+ * catalogue as a real state and renders its no-catalogue design, so there is
+ * no pressure to fall back to something plausible-looking.
+ *
+ * @returns {Array} fixture products in dev, [] in production
+ */
+export function getLandingFixtures() {
+  return process.env.NODE_ENV === "production" ? [] : DEV_FIXTURE_PRODUCTS;
+}
 
 // Editorial hero rotates through a few statement lines.
 export const HERO_LINES = [

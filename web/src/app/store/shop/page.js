@@ -13,11 +13,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchAllProducts } from "@/lib/data/productFetcher";
 import EditorialNav from "@/components/store/landing/EditorialNav";
 import { C } from "@/components/store/landing/tokens";
 import { getSeedCatalogue, GOALS, INGREDIENTS, SORTS } from "@/components/store/shop/shopData";
-import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
+import { useCatalogue } from "@/lib/data/useCatalogue";
+import { averageScore } from "@/lib/score";
 import CommandSearch from "@/components/store/shop/CommandSearch";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
@@ -39,25 +39,11 @@ export default function ShopPage() {
   const router = useRouter();
 
   // ── Data ──
-  // Start from the seed catalogue for an instant first paint (empty in
-  // production - see getSeedCatalogue), then merge in live products from
-  // fetchAllProducts(). Live rows win on id so nothing renders twice.
-  const [products, setProducts] = useState(getSeedCatalogue);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data = await fetchAllProducts();
-        if (alive && data && data.length) {
-          setProducts(mergeCatalogue(getSeedCatalogue(), data));
-        }
-      } catch {
-        /* keep whatever the seed gave us */
-      }
-    })();
-    return () => { alive = false; };
-  }, []);
+  // Seed catalogue for an instant first paint (empty in production - see
+  // getSeedCatalogue), then live products merged in, live winning on id. Same
+  // hook the landing page uses, so both pages agree on what the catalogue is
+  // and on the difference between "still loading" and "genuinely empty".
+  const { products } = useCatalogue(getSeedCatalogue);
 
   // ── Filter / sort state (preserved model + query/brand context) ──
   const [activeCategory, setActiveCategory] = useState("All");
@@ -156,13 +142,12 @@ export default function ShopPage() {
 
   const stats = useMemo(() => {
     // Average only over products that actually carry a score — an unscored
-    // product must not drag the average down as though it scored zero.
-    const scored = products.filter((p) => Number.isFinite(Number(p.score)));
+    // product must not drag the average down as though it scored zero. The
+    // previous guard here said exactly that and then did the opposite, because
+    // Number(null) is 0 and Number.isFinite(0) is true. See lib/score.js.
     return {
       count: products.length,
-      avg: scored.length
-        ? Math.round(scored.reduce((s, p) => s + Number(p.score), 0) / scored.length)
-        : null,
+      avg: averageScore(products),
       brands: new Set(products.map((p) => p.brand).filter(Boolean)).size,
     };
   }, [products]);

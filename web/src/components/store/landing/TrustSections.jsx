@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ShieldCheck, Sparkles, FlaskConical, ScanLine } from "lucide-react";
 import { C, HEADING, BODY, WHY_STATS, TRUST_STEPS } from "./tokens";
 import { Reveal, Eyebrow, ArrowButton, ScoreRing } from "./primitives";
+import { averageScore, scoredOnly } from "@/lib/score";
 
 // Count-up number, animates once in view.
 function Counter({ to, suffix = "", duration = 1500 }) {
@@ -222,7 +223,18 @@ function EvidenceGraph() {
   );
 }
 
-export function ScienceBacked() {
+/**
+ * @param {{ products?: Array }} props  the live catalogue, for the one figure
+ *   on this page that is a statement about it
+ */
+export function ScienceBacked({ products = [] }) {
+  // "Avg evidence score / Across live catalogue" was the literal 94. That is a
+  // claim about the very products this page renders, so it is checkable — and
+  // it was wrong: the live catalogue scores 75-84. Either compute it or do not
+  // say "across live catalogue". Computing it is cheap.
+  const scored = scoredOnly(products);
+  const avgScore = averageScore(products);
+
   return (
     <section className="relative overflow-hidden" style={{ background: C.ink }}>
       <div className="relative mx-auto max-w-[1400px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
@@ -243,17 +255,23 @@ export function ScienceBacked() {
                 quality of everything you see.
               </p>
             </Reveal>
-            <Reveal delay={200}>
-              <div className="mt-9 flex items-center gap-6">
-                <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4">
-                  <ScoreRing score={94} size={68} stroke={4} label="EVID" track="#ffffff1f" />
-                  <div>
-                    <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/50">Avg evidence score</div>
-                    <div className="text-[15px] font-bold text-white" style={HEADING}>Across live catalogue</div>
+            {/* Omitted entirely when nothing is scored: an average over zero
+                products is not 0, and it is not a placeholder either. */}
+            {avgScore !== null && (
+              <Reveal delay={200}>
+                <div className="mt-9 flex items-center gap-6">
+                  <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+                    <ScoreRing score={avgScore} size={68} stroke={4} label="AVG" track="#ffffff1f" />
+                    <div>
+                      <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/50">Average KOI score</div>
+                      <div className="text-[15px] font-bold text-white" style={HEADING}>
+                        Across {scored.length} listed {scored.length === 1 ? "product" : "products"}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Reveal>
+              </Reveal>
+            )}
           </div>
 
           <Reveal delay={120} y={30}>

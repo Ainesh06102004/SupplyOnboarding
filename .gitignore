@@ -8,3 +8,25 @@ node_modules/
 .next/
 out/
 build/
+
+# Agent + assistant files
+# Kept out of the repo deliberately. web/AGENTS.md and web/CLAUDE.md are NOT
+# listed here: they came from the upstream initial commit, and web/AGENTS.md
+# carries the instruction to read node_modules/next/dist/docs before writing
+# Next code — which is load-bearing on Next 16, where several familiar APIs
+# are deprecated. Ignoring those two would only diverge from upstream.
+/CLAUDE.md
+.claude/
+.cursor/
+.aider*
+.github/copilot-instructions.md
+
+# Research and working notes (Personal-research/ lives outside this repo;
+# listed defensively in case it is ever copied in)
+Personal-research/
+*.session-notes.md
+
+# Environment
+.env
+.env.local
+.env.*.local

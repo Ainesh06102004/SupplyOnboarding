@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
+import { averageScore } from "@/lib/score";
 
 // ─── MOCK DATA ───
 const MOCK_ADDRESS = {
@@ -61,10 +62,7 @@ export default function CheckoutPage() {
   // the average score cleared 90 - a nutrition claim inferred from a proxy,
   // with no macro ever read. A KOI score is evidence of screening, not of
   // protein content.
-  const scoredItems = items.filter((i) => Number.isFinite(Number(i.score)));
-  const averageKoiScore = scoredItems.length
-    ? Math.round(scoredItems.reduce((sum, i) => sum + Number(i.score), 0) / scoredItems.length)
-    : null;
+  const averageKoiScore = averageScore(items);
 
   let cartQuality = "Screened";
   let intelligenceMessage = "Every product here cleared KOI's ingredient and nutrition review.";

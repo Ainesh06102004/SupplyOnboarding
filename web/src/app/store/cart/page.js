@@ -15,6 +15,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
+import { averageScore, hasScore } from "@/lib/score";
 import { getSeedCatalogue } from "@/components/store/shop/shopData";
 import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
@@ -136,10 +137,7 @@ function readMacro(item, label) {
 }
 
 function CartInsights({ items }) {
-  const scored = items.filter((i) => Number.isFinite(Number(i.score)));
-  const avgScore = scored.length
-    ? Math.round(scored.reduce((s, i) => s + Number(i.score), 0) / scored.length)
-    : null;
+  const avgScore = averageScore(items);
 
   const proteins = items.map((i) => readMacro(i, "protein")).filter((v) => v !== null);
   const proteinPerServing = proteins.length
@@ -211,7 +209,7 @@ function RecommendedAddons({ items }) {
 
   const inCart = new Set(items.map((i) => String(i.id)));
   const suggestions = pool
-    .filter((p) => !inCart.has(String(p.id)) && Number.isFinite(Number(p.score)))
+    .filter((p) => !inCart.has(String(p.id)) && hasScore(p.score))
     .sort((a, b) => Number(b.score) - Number(a.score))
     .slice(0, 6);
 
