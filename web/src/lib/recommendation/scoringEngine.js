@@ -38,11 +38,38 @@ function goalFit(facts, goal) {
 }
 
 // ── macro fit vs user targets (0..1) ──
+//
+// Two failures lived here, both from treating a missing number as a number.
+//
+// 1. `(targets.protein * 4) / Math.max(targets.kcal, 1)` — a profile carrying
+//    protein but no kcal made Math.max(undefined, 1) NaN, and NaN propagated
+//    through targetShare, proteinMatch, fit and the product's whole raw score.
+//    A NaN score does not throw; it silently sorts as equal to everything,
+//    which quietly reduces ranking to the tie-break.
+//
+// 2. `protein * 4 / Math.max(kcal, 1)` — a product with protein declared but
+//    NO energy declared divided by 1 instead of by its calories, producing a
+//    protein share around 88 where a real one is ~0.25. That clamps to a
+//    PERFECT macro match. Missing nutrition data scored better than complete
+//    nutrition data, which is the strongest possible incentive in the wrong
+//    direction.
+//
+// Both are now explicit: a share needs both numbers, and where energy is not
+// declared the fallback is absolute protein against the same threshold goalFit
+// uses — real information, honestly scaled, rather than an accidental 1.0.
 function macroFit(facts, targets) {
   const { protein, sugar, kcal } = facts.macros;
-  const proteinShare = protein * 4 / Math.max(kcal, 1);
-  const targetShare = targets ? (targets.protein * 4) / Math.max(targets.kcal, 1) : 0.25;
-  const proteinMatch = clamp(proteinShare / Math.max(targetShare, 0.001) / 1.5);
+
+  const targetKcal = Number(targets?.kcal) > 0 ? Number(targets.kcal) : null;
+  const targetProtein = Number(targets?.protein) > 0 ? Number(targets.protein) : null;
+  // 0.25 is the default share used when a shopper has set no targets.
+  const targetShare = targetKcal && targetProtein ? (targetProtein * 4) / targetKcal : 0.25;
+
+  const proteinMatch =
+    kcal > 0
+      ? clamp((protein * 4) / kcal / Math.max(targetShare, 0.001) / 1.5)
+      : clamp(protein / T.proteinHigh);
+
   const sugarFactor = clamp(1 - sugar / T.sugarHigh);
   return { fit: 0.6 * proteinMatch + 0.4 * sugarFactor, proteinMatch, sugarFactor };
 }

@@ -14,11 +14,14 @@
 import React, { useEffect, useMemo, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ShoppingBag, Leaf } from "lucide-react";
-import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { getSeedCatalogue } from "@/components/store/shop/shopData";
-import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
+import { useCatalogue } from "@/lib/data/useCatalogue";
 import { buildProductVM } from "@/components/store/product/productData";
 import { useCartStore } from "@/store/cartStore";
+import { useGoalStore } from "@/store/goalStore";
+import { useLocation } from "@/contexts/LocationContext";
+import { useProductSupply } from "@/lib/marketplace/useProductSupply";
+import SupplyPanel from "@/components/store/product/SupplyPanel";
 import { C, HEADING } from "@/components/store/landing/tokens";
 import ProductHero from "@/components/store/product/ProductHero";
 import TrustBadge from "@/components/store/product/TrustBadge";
@@ -60,25 +63,18 @@ function TopBar() {
 export default function ProductDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
-  const [pool, setPool] = useState(getSeedCatalogue);
-  const [loaded, setLoaded] = useState(false);
   const sentinel = useRef(null);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data = await fetchAllProducts();
-        if (alive && data && data.length) {
-          setPool(mergeCatalogue(getSeedCatalogue(), data));
-        }
-      } catch { /* keep whatever the seed gave us */ }
-      finally { if (alive) setLoaded(true); }
-    })();
-    return () => { alive = false; };
-  }, []);
+  const { products: pool, status } = useCatalogue(getSeedCatalogue);
+  const loaded = status !== "loading";
 
   const base = useMemo(() => pool.find((x) => x.id === id), [pool, id]);
+
+  // Live supply, resolved because the shopper OPENED this product. A verify
+  // costs one provider search per SKU, so nothing above this page may trigger
+  // it — not a grid, not a hover, not a shelf render.
+  const { pincode } = useLocation();
+  const goalProfile = useGoalStore((s) => s.profile);
+  const supply = useProductSupply(base, pincode, pool, goalProfile);
   const vm = useMemo(() => (base ? buildProductVM(base, pool) : null), [base, pool]);
 
   const related = useMemo(() => {
@@ -119,6 +115,13 @@ export default function ProductDetailPage({ params }) {
         <ProductHero product={vm} />
         <div ref={sentinel} aria-hidden="true" className="h-0" />
 
+        {/* Availability sits directly under the hero, above every editorial
+            section: a shopper deciding whether they can buy this should not
+            have to read the ingredient breakdown first. */}
+        <section className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
+          <SupplyPanel supply={supply} pincode={pincode} />
+        </section>
+
         <TrustBadge trust={vm.trust} />
         <WhyEarned reasons={vm.reasons} />
         <Verdict verdict={vm.verdict} />
@@ -133,7 +136,10 @@ export default function ProductDetailPage({ params }) {
         <RelatedShelf products={related} onSelect={selectProduct} />
       </main>
 
-      <StickyBuyBar product={vm} sentinelRef={sentinel} />
+      <StickyBuyBar
+        product={{ ...vm, availability: supply.availability, deliveryEta: supply.deliveryEta }}
+        sentinelRef={sentinel}
+      />
 
       <style jsx global>{`
         @keyframes koi-float {

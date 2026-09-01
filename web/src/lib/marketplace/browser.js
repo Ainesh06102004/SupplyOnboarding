@@ -99,6 +99,31 @@ export async function fetchShelfSupply(zoneId, shelfId, signal) {
 }
 
 /**
+ * Ask the provider about specific KOI SKUs.
+ *
+ * The demand-driven half of the design: this costs one provider search PER
+ * SKU and serves one shopper, so it fires when someone opens a product — never
+ * on render, and never in a loop over a grid.
+ *
+ * Fails soft to an empty map, which resolves every id to `unknown` at the call
+ * site. That is true, and it is a state the UI already renders.
+ *
+ * @param {string} zoneId
+ * @param {string[]} koiSkuIds  at most 5; the route rejects more
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<Record<string, object>>} keyed by KOI SKU id
+ */
+export async function verifySupply(zoneId, koiSkuIds = [], signal) {
+  if (!zoneId || !koiSkuIds.length) return {};
+  try {
+    const data = await post("/api/marketplace/verify", { zoneId, koiSkuIds }, signal);
+    return data.items || {};
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Attach supply signals to KOI products.
  *
  * Pure, one pass, Map lookup — never a `.find()` inside the loop.
