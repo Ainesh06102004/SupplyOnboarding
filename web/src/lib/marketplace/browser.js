@@ -24,6 +24,36 @@ async function post(path, body, signal) {
 }
 
 /**
+ * What the configured supply source can do.
+ *
+ * The storefront branches on capabilities, never on the adapter's name. On
+ * failure this returns the honest floor — a source that can do nothing — so a
+ * network blip can never invite a shopper into a hand-off that cannot happen.
+ *
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{adapter: string, capabilities: object}>}
+ */
+export async function fetchCapabilities(signal) {
+  const floor = {
+    adapter: "null",
+    capabilities: {
+      browse: "search_only",
+      cartModel: "none",
+      merchantOfRecord: false,
+      paymentHandoff: "none",
+      supportsSubstitutes: false,
+    },
+  };
+  try {
+    const res = await fetch("/api/marketplace/capabilities", { signal });
+    if (!res.ok) return floor;
+    return await res.json();
+  } catch {
+    return floor;
+  }
+}
+
+/**
  * Resolve a pincode to an opaque zone id.
  *
  * @param {string} pincode
