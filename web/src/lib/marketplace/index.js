@@ -21,6 +21,7 @@ import { AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE } from "./types";
 import { NotServiceableError } from "./errors";
 import { nullAdapter } from "./adapters/null";
 import { createMockAdapter } from "./adapters/mock";
+import { createSwiggyAdapter } from "./adapters/swiggy";
 import { readThrough, cacheKey, cacheStats } from "./cache/shelfCache";
 
 let cached = null;
@@ -75,10 +76,13 @@ export function getMarketplaceAdapter() {
       cached = createMockAdapter(mockOptionsFromEnv());
       break;
     case ADAPTERS.SWIGGY:
-      // Not implemented: KOI has no Swiggy credentials. Falling back to null
-      // rather than throwing keeps the storefront up and honest.
-      console.warn("KOI_MARKETPLACE=swiggy but no Swiggy adapter is available; using null.");
-      cached = nullAdapter;
+      // Implemented, but UNVERIFIED against the live server — KOI has no
+      // credentials yet, and the transport framing in adapters/swiggy/client.js
+      // is a documented guess. It stays safe to select: with no credential
+      // every method returns `unknown`, which is exactly what the null adapter
+      // would have said, so selecting it early costs nothing and lets the
+      // wiring be exercised.
+      cached = createSwiggyAdapter();
       break;
     default:
       cached = nullAdapter;

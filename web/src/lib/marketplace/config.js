@@ -38,12 +38,31 @@ export const TTL = Object.freeze({
  * queue — a queue turns a quota problem into a latency problem and still
  * breaches the quota.
  *
- * Swiggy's documented ceiling is 70/min per authenticated user; 60 leaves
+ * Swiggy's documented ceilings, per authenticated user PER SERVER
+ * (docs/operate/rate-limits.md): 70 requests/min general, 30 requests/min for
+ * WRITE tools, with a 2x burst allowance over a 10-second window. 60 leaves
  * headroom for item verification and the hand-off.
+ *
+ * The write limit is the tighter constraint in practice, because the hand-off
+ * spends three of them in a row — update_cart, checkout, confirm_order — and
+ * update_cart replaces the whole cart, so a retry is never free.
+ *
+ * ENFORCEMENT IS CONTRADICTORY IN SWIGGY'S OWN DOCS, unresolved as of
+ * 2 September 2026:
+ *   · rate-limits.md          429 Too Many Requests, X-RateLimit-* headers,
+ *                             Retry-After, "stop retrying immediately"
+ *   · ship-to-production.md   "MCP-layer rate limiting is not enforced in
+ *                             v1.0 - you will not see 429", shipping in v1.1
+ * Design for the stricter reading. Being wrong that way costs a little
+ * throughput; being wrong the other way gets a credential revoked.
  */
 export const BUDGET = Object.freeze({
   houseRequestsPerMinute: 60,
   userRequestsPerMinute: 20,
+  // Separate, lower ceiling. Never spend this on anything but a hand-off.
+  writeRequestsPerMinute: 30,
+  burstMultiplier: 2,
+  burstWindowMs: 10_000,
   maxLiveKeys: 60,
 });
 
