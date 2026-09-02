@@ -25,6 +25,7 @@ import Link from "next/link";
 import { Truck, CircleSlash, CircleHelp, Check, ArrowUpRight } from "lucide-react";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { AVAILABILITY } from "@/lib/recommendation/config";
+import { hasScore } from "@/lib/score";
 
 function Row({ icon: Icon, tone, children }) {
   return (
@@ -111,8 +112,12 @@ export default function SupplyPanel({ supply, pincode }) {
 
                     {/* Only where a score exists. An unscored alternative is
                         still a legitimate suggestion — it is screened — but it
-                        does not get a number it never earned. */}
-                    {Number.isFinite(Number(s.score)) && (
+                        does not get a number it never earned.
+                        hasScore, NOT Number.isFinite(Number(s.score)): the
+                        latter is true for null, because Number(null) is 0, and
+                        it rendered a confident "0" badge on every unscored
+                        product. See lib/score.js. */}
+                    {hasScore(s.score) && (
                       <span
                         className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold"
                         style={{ background: C.mint, color: C.forest }}

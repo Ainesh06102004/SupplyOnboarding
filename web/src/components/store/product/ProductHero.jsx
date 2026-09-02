@@ -59,11 +59,13 @@ function Viewer({ product, active, isPhoto, onExpand }) {
         </div>
       )}
 
-      {/* KOI verified chip */}
-      <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-[#083D2D]/8 bg-white/85 py-1 pl-1 pr-3 backdrop-blur-sm">
-        <ScoreRing score={product.score} size={34} stroke={3} label={null} />
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#083D2D]">KOI {product.koiStatus}</span>
-      </div>
+      {/* Screening chip — only when there is a verdict to report. */}
+      {product.koiStatus && (
+        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-[#083D2D]/8 bg-white/85 py-1 pl-1 pr-3 backdrop-blur-sm">
+          <ScoreRing score={product.score} size={34} stroke={3} label={null} />
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#083D2D]">KOI {product.koiStatus}</span>
+        </div>
+      )}
 
       {/* expand */}
       {src && (
@@ -136,10 +138,24 @@ export default function ProductHero({ product }) {
               </p>
             </Reveal>
 
+            {/* The verification chip belongs to a product that has actually
+                been scored. It used to render "KOI Verified · Grade {…}"
+                unconditionally, reading .g off a grade that is null for the
+                11 of 18 listed products with no screening report. */}
             <Reveal delay={140}>
               <div className="mt-6 inline-flex items-center gap-2.5 self-start rounded-full border border-[#083D2D]/10 bg-white/60 py-1.5 pl-1.5 pr-4">
-                <ScoreRing score={product.score} size={34} stroke={3} label={null} />
-                <span className="text-[12px] font-bold text-[#083D2D]">KOI Verified · Grade {product.grade.g}</span>
+                {product.grade ? (
+                  <>
+                    <ScoreRing score={product.score} size={34} stroke={3} label={null} />
+                    <span className="text-[12px] font-bold text-[#083D2D]">
+                      KOI Verified · Grade {product.grade.g}
+                    </span>
+                  </>
+                ) : (
+                  <span className="px-2 text-[12px] font-bold text-[#083D2D]/60">
+                    Listed · label review in progress
+                  </span>
+                )}
               </div>
             </Reveal>
 

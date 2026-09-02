@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { C, HEADING, scoreColor } from "./tokens";
+import { hasScore } from "@/lib/score";
 
 // Respect the user's reduced-motion preference.
 function usePrefersReducedMotion() {
@@ -124,8 +125,12 @@ export function ScoreRing({ score, size = 56, stroke = 3, label = "KOI", track =
   const ref = useRef(null);
   const reduced = usePrefersReducedMotion();
   const [on, setOn] = useState(false);
+  // hasScore, not Number.isFinite(Number(score)). Removing the `= 90` default
+  // was only half the fix: Number(null) is 0 and Number.isFinite(0) is true,
+  // so a null score still rendered — as a confident "0" ring in KOI's accent
+  // colour. Third time this exact coercion has bitten; see lib/score.js.
+  const scored = hasScore(score);
   const value = Number(score);
-  const scored = Number.isFinite(value);
   const r = (size - stroke * 2) / 2;
   const circ = 2 * Math.PI * r;
   const color = scored ? scoreColor(value) : "transparent";
@@ -202,8 +207,10 @@ export function Meter({ label, value, max = 100, suffix = "", color = C.emerald,
   const ref = useRef(null);
   const reduced = usePrefersReducedMotion();
   const [on, setOn] = useState(false);
+  // Same coercion trap as ScoreRing above: Number(null) is 0, so a null macro
+  // rendered "0 g" rather than disappearing.
+  const known = hasScore(value);
   const n = Number(value);
-  const known = Number.isFinite(n);
   const pct = known ? Math.max(0, Math.min(100, (n / max) * 100)) : 0;
 
   useEffect(() => {

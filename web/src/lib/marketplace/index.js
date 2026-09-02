@@ -26,6 +26,38 @@ import { readThrough, cacheKey, cacheStats } from "./cache/shelfCache";
 let cached = null;
 
 /**
+ * Dev-only knobs for the mock.
+ *
+ * The mock decides availability from a hash of (zone, item, TTL window), which
+ * is exactly right — deterministic, no Math.random, and cached vs live is
+ * observable. But it means the adversarial states are only reachable by
+ * waiting for the right 30-second window, so the unavailable-with-substitutes
+ * path is nearly impossible to demo or test on purpose.
+ *
+ * These let a developer pin them:
+ *   KOI_MOCK_OUT_OF_STOCK_RATE=1   every item unavailable
+ *   KOI_MOCK_UNKNOWN_RATE=1        every item unknown
+ *   KOI_MOCK_ERROR_RATE=1          every call fails
+ *
+ * Only ever read when KOI_MARKETPLACE=mock, which production never sets.
+ * Unset variables are omitted entirely rather than passed as undefined, which
+ * would clobber the mock's own defaults through the spread.
+ */
+function mockOptionsFromEnv() {
+  const opts = {};
+  const rate = (name, key) => {
+    const raw = process.env[name];
+    if (raw === undefined || raw === "") return;
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0 && n <= 1) opts[key] = n;
+  };
+  rate("KOI_MOCK_OUT_OF_STOCK_RATE", "outOfStockRate");
+  rate("KOI_MOCK_UNKNOWN_RATE", "unknownRate");
+  rate("KOI_MOCK_ERROR_RATE", "errorRate");
+  return opts;
+}
+
+/**
  * The configured supply source.
  *
  * Defaults to NullAdapter when KOI_MARKETPLACE is unset or unrecognised — the
@@ -40,7 +72,7 @@ export function getMarketplaceAdapter() {
 
   switch (process.env.KOI_MARKETPLACE) {
     case ADAPTERS.MOCK:
-      cached = createMockAdapter();
+      cached = createMockAdapter(mockOptionsFromEnv());
       break;
     case ADAPTERS.SWIGGY:
       // Not implemented: KOI has no Swiggy credentials. Falling back to null

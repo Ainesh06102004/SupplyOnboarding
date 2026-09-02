@@ -45,6 +45,13 @@ const IDLE = Object.freeze({
 export function useProductSupply(product, pincode, catalogue = [], goalProfile = null) {
   const [supply, setSupply] = useState(IDLE);
 
+  // Verify on the SKU, not the product. marketplace_sku_map references
+  // skus(id), and availability is a property of a pack: a 60 g tub can be in
+  // stock while the 200 g one is not. A product carrying no skuId cannot be
+  // asked about at all, which resolves to `unknown` — correctly.
+  const skuId = product?.skuId ? String(product.skuId) : null;
+  // Still keyed on the product id for the effect, so navigating between two
+  // packs of the same product re-runs.
   const productId = product?.id ? String(product.id) : null;
 
   useEffect(() => {
@@ -57,7 +64,7 @@ export function useProductSupply(product, pincode, catalogue = [], goalProfile =
       // No product or no pincode means no question to ask. A pincode is not
       // guessable: availability is decided per delivery zone, and inventing
       // one would claim stock for an area the shopper never named.
-      if (!productId || !pincode) {
+      if (!skuId || !pincode) {
         setSupply(IDLE);
         return;
       }
@@ -79,10 +86,10 @@ export function useProductSupply(product, pincode, catalogue = [], goalProfile =
         return;
       }
 
-      const signals = await verifySupply(zoneId, [productId], controller.signal);
+      const signals = await verifySupply(zoneId, [skuId], controller.signal);
       if (!alive) return;
 
-      const signal = signals[productId];
+      const signal = signals[skuId];
       const availability = signal?.availability ?? AVAILABILITY.UNKNOWN;
 
       const base = {
@@ -113,14 +120,25 @@ export function useProductSupply(product, pincode, catalogue = [], goalProfile =
         return;
       }
 
+      // Only candidates KOI can actually ask about. One with no SKU id would
+      // burn a slot in the 5-per-request budget to learn nothing.
+      const askable = candidates.filter((c) => c.skuId);
+      if (!askable.length) {
+        setSupply(base);
+        return;
+      }
+
       const candidateSignals = await verifySupply(
         zoneId,
-        candidates.map((c) => String(c.id)),
+        askable.map((c) => String(c.skuId)),
         controller.signal
       );
       if (!alive) return;
 
-      setSupply({ ...base, substitutes: keepAvailable(candidates, candidateSignals) });
+      setSupply({
+        ...base,
+        substitutes: keepAvailable(askable, candidateSignals, (c) => String(c.skuId)),
+      });
     }, 0);
 
     return () => {
@@ -133,7 +151,7 @@ export function useProductSupply(product, pincode, catalogue = [], goalProfile =
     // re-verify — and re-spend quota — every time an unrelated array identity
     // changed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, pincode]);
+  }, [productId, skuId, pincode]);
 
   return supply;
 }

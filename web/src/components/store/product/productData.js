@@ -8,7 +8,15 @@
 const num = (v) => (typeof v === "number" ? v : parseFloat(String(v ?? "").replace(/[^\d.]/g, "")) || 0);
 const has = (tags, kw) => (tags || []).some((t) => t.toLowerCase().includes(kw));
 
+/**
+ * Letter grade for a KOI score, or null when there is no score.
+ *
+ * It used to be called as grade(p.score || 0), which handed an unscored
+ * product a confident "C / Mixed" — a verdict manufactured from the absence of
+ * one. There is no grade for a product nobody has scored.
+ */
 export function grade(score) {
+  if (score === null || score === undefined || score === "" || !Number.isFinite(Number(score))) return null;
   if (score >= 92) return { g: "A+", label: "Exceptional" };
   if (score >= 87) return { g: "A", label: "Excellent" };
   if (score >= 82) return { g: "A-", label: "Very good" };
@@ -64,7 +72,7 @@ export function buildProductVM(p, all = []) {
   if (!p) return null;
   const tags = p.tags || [];
   const category = p.category || "Snacks";
-  const g = grade(p.score || 0);
+  const g = grade(p.score);
 
   // nutrition map
   const nm = {};
@@ -99,20 +107,23 @@ export function buildProductVM(p, all = []) {
   if (has(tags, "trans")) attributes.push({ label: "Zero trans fat", ok: true });
   if (has(tags, "colour") || has(tags, "color")) attributes.push({ label: "No artificial colours", ok: true });
   if (has(tags, "lab")) attributes.push({ label: "Lab tested", ok: true });
-  while (attributes.length < 4) {
-    const fillers = [{ label: "Minimal additives", ok: true }, { label: "Clean label", ok: true }, { label: "Recognisable ingredients", ok: true }, { label: "Reviewed by KOI", ok: true }];
-    attributes.push(fillers[attributes.length % fillers.length]);
-  }
+  // No padding. This list sits under the heading "What we confirmed", and it
+  // used to be topped up to four with hardcoded entries — "Minimal additives",
+  // "Clean label", "Reviewed by KOI" — so every product claimed at least four
+  // confirmations, including products KOI has confirmed nothing about. An
+  // empty list is the correct output for a product with no screened claims.
 
+  // Only sub-scores the screening report actually carried.
+  //
+  // num() coerces null to 0, so mapping the breakdown through it rendered
+  // "Ingredient Quality 0 / Nutrition 0 / Processing 0" for every unscored
+  // product — three zeroes presented as measurements. And the fallback branch
+  // invented all four values outright (p.score || 80, cleanLabel ? 94 : 70),
+  // which is a scorecard assembled from nothing.
   const sb = p.scoreBreakdown || {};
-  const subs = Object.keys(sb).length
-    ? Object.entries(sb).map(([label, value]) => ({ label, value: Math.round(num(value)) }))
-    : [
-        { label: "Ingredient profile", value: Math.min(99, (p.score || 80) + 2) },
-        { label: "Nutrition", value: p.score || 80 },
-        { label: "Additives", value: cleanLabel ? 94 : 70 },
-        { label: "Processing", value: Math.min(99, (p.score || 80) - 3) },
-      ];
+  const subs = Object.entries(sb)
+    .filter(([, value]) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)))
+    .map(([label, value]) => ({ label, value: Math.round(Number(value)) }));
 
   // ── Reasons (why it earned its place) ──
   const reasonDetail = (t) => {
@@ -249,16 +260,26 @@ export function buildProductVM(p, all = []) {
     weight: p.weight,
     score: p.score,
     image: p.image || {},
-    koiStatus: p.koiStatus || "Verified",
+    // NOT `|| "Verified"`. That defaulted every product with no screening
+    // verdict — 11 of the 18 currently listed — to "KOI Verified", printed
+    // over the product image. A missing verdict is not a positive one.
+    koiStatus: p.koiStatus || null,
     philosophy,
     tags,
     dietary: p.dietary || [],
     goalTags: goals,
     grade: g,
     raw: p,
-    trust: { score: p.score, grade: g.g, gradeLabel: g.label, attributes: attributes.slice(0, 5), subs },
+    trust: {
+      score: p.score,
+      scored: g !== null,
+      grade: g?.g ?? null,
+      gradeLabel: g?.label ?? null,
+      attributes: attributes.slice(0, 5),
+      subs,
+    },
     reasons: [...pros, ...cons],
-    verdict: { quote: verdictQuote, confidence: p.score || 80, refs: ["KOI Nutrition Review", "FSSAI label decode", "Ingredient risk index"] },
+    verdict: { quote: verdictQuote, confidence: Number.isFinite(Number(p.score)) && p.score !== null ? p.score : null, refs: ["KOI Nutrition Review", "FSSAI label decode", "Ingredient risk index"] },
     ingredients,
     ingredientTimeline,
     nutrition: { meters, calories: kcal, carbs, fat, serving: p.weight },

@@ -123,6 +123,10 @@ export async function fetchAllProducts() {
     
     return {
       id: p.id,
+      // The SKU, not the product, is what a supply source can answer about: a
+      // 60 g pack can be in stock while the 200 g pack is not. Availability
+      // lookups key on this, and marketplace_sku_map references skus(id).
+      skuId: sku.id ?? null,
       brand: p.brands?.brand_name || "Unknown",
       name: p.product_name,
       category: p.category_l1,

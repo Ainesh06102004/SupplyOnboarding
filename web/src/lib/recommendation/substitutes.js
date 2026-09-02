@@ -27,6 +27,7 @@
 import { extractFacts } from "./productFacts";
 import { scoreProduct } from "./scoringEngine";
 import { AVAILABILITY } from "./config";
+import { hasScore } from "@/lib/score";
 
 /** How many KOI alternatives to ask the provider about. See the cost note. */
 export const MAX_CANDIDATES = 4;
@@ -82,7 +83,11 @@ export function pickSubstituteCandidates(target, catalogue = [], profile = {}, l
       product: p,
       sameCategory: targetCategory && p.category === targetCategory ? 1 : 0,
       fit,
-      koiScore: Number.isFinite(Number(p.score)) ? Number(p.score) : -1,
+      // hasScore, not Number.isFinite(Number(...)): Number(null) is 0, so the
+      // intended "unscored sorts last" sentinel of -1 was never reached — an
+      // unscored product sorted as though it had scored zero. Same outcome
+      // against today's 75-95 range, wrong the moment anything scores 0.
+      koiScore: hasScore(p.score) ? Number(p.score) : -1,
     });
   }
 
@@ -110,12 +115,16 @@ export function pickSubstituteCandidates(target, catalogue = [], profile = {}, l
  *
  * @param {Array} candidates
  * @param {Record<string, {availability: string, price: number|null, deliveryEta: string|null}>} signals
+ * @param {(p: object) => string|null} [keyOf]  how a product maps to a signal
+ *   key. Defaults to the product id, but supply signals are keyed on SKU id —
+ *   availability is a property of a pack, not of a product.
  * @returns {Array} products with the confirmed live signal attached
  */
-export function keepAvailable(candidates = [], signals = {}) {
+export function keepAvailable(candidates = [], signals = {}, keyOf = (p) => String(p.id)) {
   const out = [];
   for (const p of candidates) {
-    const signal = signals[String(p.id)];
+    const key = keyOf(p);
+    const signal = key ? signals[key] : null;
     if (!signal || signal.availability !== AVAILABILITY.AVAILABLE) continue;
     out.push({
       ...p,

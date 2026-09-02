@@ -20,29 +20,51 @@ export default function TrustBadge({ trust }) {
             <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full" style={{ background: C.emerald, opacity: 0.3, filter: "blur(80px)" }} />
 
             <div className="relative grid grid-cols-1 gap-8 lg:grid-cols-[auto_1fr] lg:gap-12">
-              {/* score */}
+              {/* score
+                  An unscored product says so. It used to render "KOI Verified"
+                  above a grade of "C / Mixed" derived from grade(score || 0) —
+                  a verdict manufactured out of a missing score, on the module
+                  whose whole job is to say the number can be trusted. */}
               <div className="flex items-center gap-5">
-                <div className="rounded-full bg-white/8 p-2">
-                  <ScoreRing score={trust.score} size={92} stroke={5} label={null} track="#ffffff22" />
-                </div>
+                {trust.scored && (
+                  <div className="rounded-full bg-white/8 p-2">
+                    <ScoreRing score={trust.score} size={92} stroke={5} label={null} track="#ffffff22" />
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4" style={{ color: C.lime }} />
-                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#DDF247]">KOI Verified</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#DDF247]">
+                      {trust.scored ? "KOI Verified" : "In review"}
+                    </span>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-[44px] font-extrabold leading-none text-white" style={HEADING}>{trust.grade}</span>
-                    <span className="text-[14px] font-semibold text-white/60">{trust.gradeLabel}</span>
-                  </div>
-                  <p className="mt-2 max-w-[220px] text-[12.5px] leading-snug text-white/50" style={BODY}>
-                    Scored across ingredients, nutrition, additives and processing.
-                  </p>
+                  {trust.scored ? (
+                    <>
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-[44px] font-extrabold leading-none text-white" style={HEADING}>{trust.grade}</span>
+                        <span className="text-[14px] font-semibold text-white/60">{trust.gradeLabel}</span>
+                      </div>
+                      <p className="mt-2 max-w-[220px] text-[12.5px] leading-snug text-white/50" style={BODY}>
+                        Scored across ingredients, nutrition, additives and processing.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mt-2 text-[24px] font-extrabold leading-tight text-white" style={HEADING}>
+                        Not yet scored
+                      </div>
+                      <p className="mt-2 max-w-[260px] text-[12.5px] leading-snug text-white/50" style={BODY}>
+                        This product is listed but its label review isn&apos;t finished, so KOI has no
+                        score to show you yet.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* attributes + subscores */}
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                <div>
+                <div className={trust.attributes.length ? "" : "hidden"}>
                   <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.16em] text-white/40">What we confirmed</div>
                   <ul className="space-y-2.5">
                     {trust.attributes.map((a, i) => (
@@ -56,7 +78,7 @@ export default function TrustBadge({ trust }) {
                   </ul>
                 </div>
 
-                <div>
+                <div className={trust.subs.length ? "" : "hidden"}>
                   <div className="mb-4 text-[11px] font-bold uppercase tracking-[0.16em] text-white/40">The breakdown</div>
                   <div className="space-y-3.5">
                     {trust.subs.map((s) => (
