@@ -124,6 +124,50 @@ export async function verifySupply(zoneId, koiSkuIds = [], signal) {
 }
 
 /**
+ * Ask what the delivery partner would accept for this basket.
+ *
+ * READ-ONLY and repeatable — nothing is reserved, nothing is bought, and the
+ * shopper's provider cart is untouched. Safe to call again whenever they change
+ * something.
+ *
+ * @param {string} zoneId
+ * @param {Array<{koiSkuId: string, quantity: number}>} lines
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{ok: boolean, plan: object|null, code: string|null}>}
+ */
+export async function prepareHandoff(zoneId, lines, signal) {
+  try {
+    const plan = await post("/api/marketplace/handoff/prepare", { zoneId, lines }, signal);
+    return { ok: true, plan, code: null };
+  } catch (err) {
+    // The distinction matters to the UI: "nothing is connected" is a normal
+    // state to explain, while a transport failure is worth retrying.
+    const code = /503/.test(String(err?.message)) ? "NOT_CONFIGURED" : "ERROR";
+    return { ok: false, plan: null, code };
+  }
+}
+
+/**
+ * Commit the plan. THE DESTRUCTIVE ONE.
+ *
+ * The provider's cart is singular and gets REPLACED, so this must be reachable
+ * only from an explicit confirmation — never on mount, never on a retry timer.
+ *
+ * @param {string} planId
+ * @param {AbortSignal} [signal]
+ */
+export async function commitHandoff(planId, signal) {
+  try {
+    const result = await post("/api/marketplace/handoff/commit", { planId }, signal);
+    return { ok: result.status === "committed", result, code: null };
+  } catch (err) {
+    const m = String(err?.message);
+    const code = /401/.test(m) ? "REAUTH" : /429/.test(m) ? "RATE_LIMITED" : /503/.test(m) ? "NOT_CONFIGURED" : "ERROR";
+    return { ok: false, result: null, code };
+  }
+}
+
+/**
  * Attach supply signals to KOI products.
  *
  * Pure, one pass, Map lookup — never a `.find()` inside the loop.

@@ -30,8 +30,15 @@ import { AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE } from "../../types";
 import { NotConfiguredError, NotServiceableError } from "../../errors";
 import { callTool } from "./client";
 import { fromSearchProducts, fromCartUpdate, toMarketplaceItem } from "./mapping";
+
 import { addressRefForZone, resolveZoneByPincode } from "../../zoneRepo";
 import { getHouseCredential, getCredential } from "../../credentials";
+
+/** A non-empty trimmed string, or null. */
+const str = (v) => {
+  const t = v === null || v === undefined ? "" : String(v).trim();
+  return t === "" ? null : t;
+};
 
 const MARKETPLACE = "swiggy";
 
@@ -245,14 +252,37 @@ export function createSwiggyAdapter(options = {}) {
         }
       }
 
+      // A total is shown only when every line is priced. A subtotal that
+      // silently omits an unresolved line is a number KOI cannot stand behind.
+      const complete = rejected.length === 0;
+      const subtotal = complete
+        ? accepted.reduce((sum, a) => sum + (a.unitPrice || 0) * a.quantity, 0)
+        : null;
+
+      const warnings = [{
+        // Stated every time, because it drives a confirmation the shopper must
+        // see: committing REPLACES whatever is in their Swiggy cart.
+        code: "CART_REPLACED",
+        message: "Continuing replaces whatever is currently in your Swiggy cart.",
+      }];
+      if (rejected.length) {
+        warnings.push({
+          code: "PARTIAL_FULFILMENT",
+          message: `${rejected.length} item(s) can't be fulfilled from this basket.`,
+        });
+      }
+
       return {
         planId: `swiggy_${zoneId}_${Date.now()}`,
+        mode: "replace_cart",
         addressId,
         accepted,
         rejected,
-        // Stated every time, because it drives a confirmation the shopper must
-        // see: committing REPLACES whatever is in their Swiggy cart.
-        warnings: accepted.length ? ["CART_REPLACED"] : [],
+        totals: { subtotal, currency: "INR", complete },
+        warnings,
+        // Short, because prices and stock move. Past this the plan is re-run
+        // rather than trusted — prepare is read-only, so re-running is cheap
+        // in every sense except provider quota.
         expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
       };
     },
@@ -292,11 +322,14 @@ export function createSwiggyAdapter(options = {}) {
       const outcomes = fromCartUpdate(data ?? {}, accepted);
 
       return {
-        committedAt: new Date().toISOString(),
+        status: "committed",
+        // Where the shopper finishes. KOI is not merchant of record, so this
+        // is the end of KOI's involvement, not a step within it.
+        handoffUrl: "https://www.swiggy.com/instamart/checkout",
+        externalCartRef: str(data?.cartId) ?? null,
+        // Per-line results, so the intent records what Swiggy DID rather than
+        // what KOI asked for.
         outcomes,
-        // No order id: nothing has been ordered. The shopper checks out on
-        // Swiggy, and KOI learns nothing further unless they tell us.
-        externalOrderRef: null,
       };
     },
   };

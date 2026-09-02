@@ -23,7 +23,9 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { averageScore } from "@/lib/score";
-import { fetchCapabilities } from "@/lib/marketplace/browser";
+import { fetchCapabilities, fetchZone, prepareHandoff, commitHandoff } from "@/lib/marketplace/browser";
+import { useLocation } from "@/contexts/LocationContext";
+import HandoffReview from "@/components/store/checkout/HandoffReview";
 import { fulfilmentService } from "@/lib/supabase/fulfilmentService";
 import AddressManager from "@/components/store/AddressManager";
 
@@ -35,6 +37,14 @@ export default function CheckoutPage() {
   const [caps, setCaps] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [handoffError, setHandoffError] = useState(null);
+  // The reconciliation step. Null until the shopper asks what Swiggy would
+  // take; rendering it replaces the basket view rather than sitting under it,
+  // because it is a decision point, not extra detail.
+  const [plan, setPlan] = useState(null);
+  const [committing, setCommitting] = useState(false);
+  const [intentId, setIntentId] = useState(null);
+  const [zoneId, setZoneId] = useState(null);
+  const { pincode } = useLocation();
 
   const items = useCartStore((state) => state.items);
   const hydrated = useCartStore((state) => state.hydrated);
@@ -54,6 +64,17 @@ export default function CheckoutPage() {
   }, []);
 
   const onSelectAddress = useCallback((a) => setAddress(a), []);
+
+  // The plan speaks in KOI SKU ids; the screen needs names, brands and scores.
+  // Built from the cart, which already holds resolved catalogue products.
+  const productsBySkuId = React.useMemo(() => {
+    const map = {};
+    for (const i of items) {
+      const key = i.skuId ?? i.id;
+      if (key) map[String(key)] = i;
+    }
+    return map;
+  }, [items]);
 
   // ─── KOI SCORE SUMMARY ───
   // Speaks only to what the score means. It previously claimed the basket was
@@ -79,7 +100,9 @@ export default function CheckoutPage() {
   const canHandOff = caps?.capabilities?.paymentHandoff === "external_redirect";
   const capsLoading = caps === null;
 
-  const handleHandoff = async () => {
+  // STEP 1 — record the basket, then ask what the partner would accept.
+  // Read-only at the provider: nothing is reserved and no cart is touched.
+  const handleReview = async () => {
     if (!user?.uid || !address) return;
     setIsProcessing(true);
     setHandoffError(null);
@@ -92,26 +115,79 @@ export default function CheckoutPage() {
           state: address.state, pincode: address.pincode, phone: address.phone,
         },
       });
-
       if (!intent) {
         setHandoffError("Could not save your basket. Please try again.");
         return;
       }
+      setIntentId(intent.id);
 
-      // The basket is recorded either way. Whether it can be SENT depends on a
-      // connected supply source — and with none, it stays an open basket
-      // rather than being marked handed off to nobody.
-      if (canHandOff) {
-        await fulfilmentService.markHandedOff(intent.id, {
-          marketplace: caps.adapter,
-        });
+      if (!canHandOff) {
+        // Nowhere to send it. The basket is saved as a draft rather than
+        // marked handed off to nobody.
+        router.push("/store/orders");
+        return;
       }
-      router.push("/store/orders");
+
+      const zone = await fetchZone(address.pincode || pincode);
+      if (!zone.zoneId) {
+        setHandoffError("We couldn't work out which store serves your address yet.");
+        return;
+      }
+      setZoneId(zone.zoneId);
+
+      // Availability is a property of a pack, so the hand-off asks about SKUs.
+      const lines = items
+        .map((i) => ({ koiSkuId: i.skuId ?? i.id, quantity: i.quantity }))
+        .filter((l) => l.koiSkuId);
+
+      const { ok, plan: prepared, code } = await prepareHandoff(zone.zoneId, lines);
+      if (!ok) {
+        setHandoffError(
+          code === "NOT_CONFIGURED"
+            ? "No delivery partner is connected yet, so we can't send this basket."
+            : "We couldn't check availability just now. Please try again."
+        );
+        return;
+      }
+      setPlan(prepared);
     } catch (err) {
-      console.error("handoff:", err);
+      console.error("review:", err);
       setHandoffError("Something went wrong. Your basket has not been sent.");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // STEP 2 — the destructive one. Reachable only from the reconciliation
+  // screen's explicit confirmation, never on mount and never on a retry timer.
+  const handleCommit = async (planId) => {
+    setCommitting(true);
+    setHandoffError(null);
+    try {
+      const { ok, result, code } = await commitHandoff(planId);
+      if (!ok) {
+        setHandoffError(
+          code === "REAUTH" ? "Your Swiggy connection expired. Please reconnect and try again."
+          : code === "RATE_LIMITED" ? "Swiggy is rate-limiting us. Give it a moment and try again."
+          : "We couldn't hand this basket over. Nothing has been ordered."
+        );
+        return;
+      }
+      if (intentId) {
+        await fulfilmentService.markHandedOff(intentId, {
+          marketplace: caps.adapter,
+          planId,
+          externalOrderRef: result?.externalCartRef ?? null,
+        });
+      }
+      // Swiggy is where the shopper finishes: they confirm and pay there.
+      if (result?.handoffUrl) window.open(result.handoffUrl, "_blank", "noopener");
+      router.push("/store/orders");
+    } catch (err) {
+      console.error("commit:", err);
+      setHandoffError("We couldn't hand this basket over. Nothing has been ordered.");
+    } finally {
+      setCommitting(false);
     }
   };
 
@@ -124,7 +200,7 @@ export default function CheckoutPage() {
     : capsLoading
       ? "Checking availability…"
       : canHandOff
-        ? "Continue to Swiggy"
+        ? "Review what Swiggy has"
         : "Save this basket";
 
   return (
@@ -157,9 +233,24 @@ export default function CheckoutPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* LEFT: the flow */}
+          {/* LEFT: the flow.
+              Once a plan exists the reconciliation screen REPLACES this rather
+              than appearing beneath it: it is a decision point, and leaving the
+              address picker and the explainer above it invites a shopper to
+              scroll past the one thing they need to read. */}
           <div className="lg:col-span-7 space-y-6">
 
+            {plan ? (
+              <HandoffReview
+                plan={plan}
+                byId={productsBySkuId}
+                onCommit={handleCommit}
+                onBack={() => { setPlan(null); setHandoffError(null); }}
+                committing={committing}
+                error={handoffError}
+              />
+            ) : (
+              <>
             {/* Delivery address — the shopper's real saved addresses. */}
             <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)]">
               <h2 className="text-lg font-bold text-[#0E4032] mb-5" style={{ fontFamily: "var(--font-koi-heading)" }}>Deliver To</h2>
@@ -230,6 +321,8 @@ export default function CheckoutPage() {
                 {handoffError}
               </div>
             )}
+              </>
+            )}
           </div>
 
           {/* RIGHT: summary */}
@@ -285,7 +378,7 @@ export default function CheckoutPage() {
 
                 <div className="hidden lg:block">
                   <button
-                    onClick={handleHandoff}
+                    onClick={handleReview}
                     disabled={blocked}
                     className="w-full py-4 rounded-xl bg-[#0E4032] disabled:bg-[#5A6B5A]/40 text-white font-bold text-[15px] shadow-[0_4px_12px_rgba(14,64,50,0.2)] hover:bg-[#0E4032]/90 disabled:hover:shadow-none transition-all flex items-center justify-center gap-2"
                   >
@@ -315,8 +408,11 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {/* ─── MOBILE STICKY BAR ─── */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-[#E2E8D8] shadow-[0_-8px_30px_rgba(14,64,50,0.06)] p-4 pb-safe z-40">
+      {/* ─── MOBILE STICKY BAR ───
+          Hidden during reconciliation: that screen owns its own actions, and a
+          second "review" button that silently re-prepares would spend provider
+          quota every time a thumb landed near it. */}
+      <div className={`lg:hidden ${plan ? "hidden" : ""} fixed bottom-0 inset-x-0 bg-white border-t border-[#E2E8D8] shadow-[0_-8px_30px_rgba(14,64,50,0.06)] p-4 pb-safe z-40`}>
         <div className="flex items-center justify-between gap-4 mb-3">
           <div className="flex flex-col">
             <span className="text-[11px] font-bold text-[#5A6B5A] uppercase tracking-wider">Basket value</span>
@@ -324,7 +420,7 @@ export default function CheckoutPage() {
           </div>
 
           <button
-            onClick={handleHandoff}
+            onClick={handleReview}
             disabled={blocked}
             className="flex-1 py-3.5 rounded-xl bg-[#0E4032] disabled:bg-[#5A6B5A]/40 text-white font-bold text-[14px] hover:bg-[#0E4032]/90 shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
           >
