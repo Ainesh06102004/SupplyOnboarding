@@ -2,8 +2,8 @@
 // KOI — Email and password, for the supplier dashboard
 //
 // This is the supplier-side sign-in behind /login. Shoppers do not use it:
-// the storefront signs in with Google through AuthContext, and browses signed
-// out until checkout.
+// the storefront signs in with phone and OTP (lib/auth/phoneAuth.js), browsing
+// signed out until checkout.
 //
 // It replaces lib/firebase/auth.js one call at a time — same function names,
 // same thrown-error contract — so LoginForm changes its import and little else.

@@ -49,7 +49,7 @@ export default function ProfilePage() {
   }, [user?.uid]);
 
   const displayName = account?.display_name || user?.displayName || null;
-  const contact = account?.email || user?.email || account?.phone || user?.phoneNumber || null;
+  const contact = account?.email || user?.email || account?.phone || user?.phone || null;
   const memberSince = account?.created_at
     ? new Date(account.created_at).getFullYear()
     : null;
