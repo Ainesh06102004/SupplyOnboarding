@@ -93,7 +93,7 @@ export const fulfilmentService = {
    * The shopper's open basket, if one exists. At most one per shopper —
    * enforced by a partial unique index, not by hoping.
    *
-   * @param {string} uid Firebase UID
+   * @param {string} uid the shopper's Supabase Auth user id
    */
   async getOpenDraft(uid) {
     if (!uid) return null;

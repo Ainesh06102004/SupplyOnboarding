@@ -1,64 +1,82 @@
 // ============================================================================
-// KOI — Supabase client (singleton)
+// KOI — Supabase client (browser + anonymous server)
 //
-// Carries the caller's Firebase ID token so Row Level Security can see who is
-// asking. Supabase is configured with Firebase as a third-party auth provider,
-// which makes `auth.jwt() ->> 'sub'` the Firebase UID inside a policy — that is
-// what public.koi_uid() reads.
+// Identity is Supabase Auth. The session lives in cookies rather than
+// localStorage, which is the whole reason this file uses @supabase/ssr instead
+// of plain supabase-js: proxy.js and every server route have to be able to
+// read the same session the browser holds. A localStorage session is invisible
+// to the server, and this app gates routes server-side.
 //
-// Note `auth.uid()` is NOT usable here: it casts the claim to uuid, and a
-// Firebase UID is a 28-character string. Policies must use koi_uid().
+// WHAT REPLACED WHAT:
+// This used to pass an `accessToken` callback that handed supabase-js a
+// Firebase ID token, with Supabase configured to trust Firebase as a
+// third-party provider. That indirection is gone — supabase-js now owns the
+// session, so supabase.auth.* works normally and signInWithOAuth is available.
 //
-// Passing `accessToken` disables supabase-js's own auth methods
-// (supabase.auth.*). Nothing in this codebase uses them — Firebase is the only
-// identity provider — but do not add them without removing this first.
+// THE COOKIE IS NOT httpOnly, AND THAT IS THE DOCUMENTED TRADE-OFF:
+// The old koi-auth-token cookie was httpOnly, written by /api/auth/session.
+// A browser client that manages its own session must be able to read and
+// rotate it, so @supabase/ssr writes a JS-readable cookie. What that costs is
+// narrow: an XSS on this origin can now lift the session, where before it could
+// only ride along on requests. What it does not cost is the authorisation
+// model — RLS still re-derives the caller from a signature-checked JWT inside
+// Postgres on every query, and public.koi_uid() still returns NULL for anyone
+// it cannot verify. Nothing was moved from the database into the browser.
 //
-// Without a signed-in user the token is null, the request is anonymous, and
-// koi_uid() returns NULL, so every customer-tier policy denies. That is the
-// correct direction to fail.
+// SERVER CALLERS GET AN ANONYMOUS CLIENT:
+// getSupabaseClient() is imported by 16 modules, some of which run during
+// server rendering (lib/data/*, lib/dashboard/*). Those previously got an
+// anonymous client too, because the old accessToken callback returned null when
+// `window` was undefined — so this preserves behaviour exactly rather than
+// changing it. Server code that needs to act AS the signed-in shopper must use
+// lib/supabase/server.js, which reads the request's cookies. Reaching for this
+// one there would silently query as a guest and return nothing, which is the
+// failure the split is designed to make obvious.
 // ============================================================================
 
+import { createBrowserClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 
-let client = null
+let browserClient = null
+let anonServerClient = null
 
-/**
- * The caller's current Firebase ID token, or null when signed out.
- *
- * Never forces a refresh: the Firebase SDK already refreshes tokens shortly
- * before expiry, and forcing one on every query would add a network round trip
- * to each request. Returns null rather than throwing so an auth failure
- * degrades to an anonymous request instead of breaking the page.
- *
- * @returns {Promise<string|null>}
- */
-async function firebaseAccessToken() {
-  if (typeof window === 'undefined') return null
-  try {
-    // Imported lazily so server-side callers and the seed scripts never pull
-    // the Firebase SDK into their bundle.
-    const { getFirebaseAuth } = await import('@/lib/firebase/client')
-    const user = getFirebaseAuth()?.currentUser
-    return user ? await user.getIdToken(false) : null
-  } catch {
-    return null
-  }
+function credentials() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!url || !key) {
+        throw new Error(
+            'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (see web/.env.example).'
+        )
+    }
+    return { url, key }
 }
 
+/**
+ * The shared Supabase client for the current environment.
+ *
+ * In the browser: carries the signed-in shopper's session and refreshes it.
+ * On the server: anonymous — see the header note before using it there.
+ *
+ * @returns {import('@supabase/supabase-js').SupabaseClient}
+ */
 export function getSupabaseClient() {
-    if (!client) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const { url, key } = credentials()
 
-        if (!url || !key) {
-            throw new Error(
-                'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (see web/.env.example).'
-            )
+    if (typeof window === 'undefined') {
+        // No cookies to read and no session to keep, so persistence and refresh
+        // are switched off: a background timer on the server would refresh a
+        // token nobody is holding.
+        if (!anonServerClient) {
+            anonServerClient = createClient(url, key, {
+                auth: { persistSession: false, autoRefreshToken: false },
+            })
         }
-
-        client = createClient(url, key, {
-            accessToken: firebaseAccessToken,
-        })
+        return anonServerClient
     }
-    return client
+
+    if (!browserClient) {
+        browserClient = createBrowserClient(url, key)
+    }
+    return browserClient
 }

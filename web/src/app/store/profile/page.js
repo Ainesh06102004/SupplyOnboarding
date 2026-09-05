@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AddressManager from "@/components/store/AddressManager";
-import { signOutUser } from "@/lib/firebase/auth";
+import { signOutUser } from "@/lib/auth/supabaseAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoalStore, GOAL_DEFS } from "@/store/goalStore";
 import { profileService } from "@/lib/supabase/profileService";
@@ -42,7 +42,7 @@ export default function ProfilePage() {
     if (!user?.uid) return;
     let alive = true;
     profileService
-      .getProfileByFirebaseUid(user.uid)
+      .getProfile(user.uid)
       .then((p) => { if (alive) setAccount(p); })
       .catch((err) => console.error("Could not load profile:", err));
     return () => { alive = false; };

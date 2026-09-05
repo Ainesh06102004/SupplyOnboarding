@@ -1,81 +1,78 @@
 // ============================================================================
 // KOI — Who is calling this route?
 //
-// SERVER ONLY. Verifies a Firebase ID token from the session cookie against
-// Google's published signing keys, checking signature, issuer, audience and
-// expiry.
+// SERVER ONLY. Resolves the signed-in shopper from the request's Supabase
+// session cookies, or null.
 //
-// This exists because middleware.js is a REDIRECT HINT, not a boundary: it
-// gates /store/{checkout,orders,profile} on the cookie merely EXISTING, and it
-// does not run for API routes at all. Any route that acts on a specific
+// This exists because proxy.js is a REDIRECT HINT, not a boundary: it decides
+// where to send a browser, it runs only on the three /store paths it matches,
+// and it does not run for API routes at all. Any route that acts on a specific
 // shopper — spending their provider quota, replacing their cart — has to
 // establish who they are for itself.
 //
-// The extraction is the point. This logic previously lived only inside
-// /api/auth/session, so a second privileged route either duplicated it or, far
-// more likely, skipped it.
+// WHAT CHANGED WITH THE MOVE OFF FIREBASE:
+// This used to verify a Firebase ID token against Google's published JWKS by
+// hand, checking signature, issuer, audience and expiry. supabase.auth.getUser()
+// does the equivalent and more: it does not trust the cookie's contents at all,
+// it asks the Auth server whether this token is currently valid. That closes a
+// gap the old code could not — a token revoked mid-life still passed a local
+// signature check until it expired.
+//
+// It costs a network round trip per call. That is the right trade for the two
+// routes using it, which already make provider calls; do not reach for it in a
+// hot read path. getSession() is the cheap alternative and is NOT a substitute:
+// it decodes the cookie without validating it, so it answers "what does this
+// cookie claim" rather than "who is this".
 //
 // Two independent checks guard shopper data, and neither trusts the other:
 // this one (KOI's own routes) and public.koi_uid() inside Postgres (RLS).
 // ============================================================================
 
-import "server-only";
+import 'server-only'
 
-import { createRemoteJWKSet, jwtVerify } from "jose";
-
-const COOKIE_NAME = "koi-auth-token";
-
-// Google's public keys for Firebase ID tokens. jose caches and refreshes them,
-// so the module-level instance is deliberate — a per-request one would refetch
-// on every call.
-const JWKS = createRemoteJWKSet(
-  new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
-);
-
-/**
- * @param {string} token
- * @returns {Promise<{ uid: string }>} resolves only for a valid token
- */
-export async function verifyFirebaseIdToken(token) {
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  // Fail closed. An unconfigured project must never mean "accept anything".
-  if (!projectId) throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set");
-
-  const { payload } = await jwtVerify(token, JWKS, {
-    issuer: `https://securetoken.google.com/${projectId}`,
-    audience: projectId,
-    algorithms: ["RS256"],
-  });
-
-  if (!payload.sub) throw new Error("Token has no subject");
-  if (typeof payload.auth_time === "number" && payload.auth_time > Date.now() / 1000 + 60) {
-    throw new Error("Token auth_time is in the future");
-  }
-  return { uid: payload.sub };
-}
+import { createServerClient } from '@supabase/ssr'
 
 /**
  * The verified shopper behind a request, or null.
  *
- * Reads the httpOnly session cookie — never a uid from the request body, which
- * would let any caller name whoever they liked.
+ * Reads the session cookies off the request — never a uid from the request
+ * body, which would let any caller name whoever they liked.
  *
- * @param {Request} request
- * @returns {Promise<{ uid: string }|null>}
+ * `uid` is the Supabase Auth user id and is what every customer-tier table
+ * keys on (see migration 00013). The field keeps its name because it is KOI's
+ * customer key, not because it is still a Firebase UID.
+ *
+ * @param {import('next/server').NextRequest} request
+ * @returns {Promise<{ uid: string, email: string|null }|null>}
  */
 export async function getVerifiedUser(request) {
-  const cookie = request.cookies?.get?.(COOKIE_NAME);
-  const token = cookie?.value;
-  if (!token) return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // Fail closed. An unconfigured project must never mean "accept anything".
+  if (!url || !key) {
+    console.error('Rejected request: Supabase is not configured')
+    return null
+  }
+
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      // Verification only — this must not rotate the caller's session as a
+      // side effect. proxy.js owns refresh.
+      setAll() {},
+    },
+  })
 
   try {
-    return await verifyFirebaseIdToken(token);
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data?.user) return null
+    return { uid: data.user.id, email: data.user.email ?? null }
   } catch (error) {
     // The reason stays in the log: telling a caller which check failed tells
     // an attacker which check to work on.
-    console.error("Rejected request token:", error?.message);
-    return null;
+    console.error('Rejected request token:', error?.message)
+    return null
   }
 }
-
-export const SESSION_COOKIE = COOKIE_NAME;

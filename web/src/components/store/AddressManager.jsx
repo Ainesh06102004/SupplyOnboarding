@@ -5,7 +5,7 @@ import { Plus, MapPin, Check, Trash2, Edit2, AlertCircle, User as UserIcon } fro
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import LocationModal from "@/components/store/LocationModal";
-import OTPLoginModal from "@/components/auth/OTPLoginModal";
+import LoginSheet from "@/components/auth/LoginSheet";
 
 export default function AddressManager({ onSelect, selectedAddressId }) {
   const { user } = useAuth();
@@ -140,7 +140,7 @@ export default function AddressManager({ onSelect, selectedAddressId }) {
             Login or Signup
           </button>
         </div>
-        <OTPLoginModal open={isLoginOpen} onOpenChange={setIsLoginOpen} />
+        <LoginSheet open={isLoginOpen} onOpenChange={setIsLoginOpen} next="/store/checkout" />
       </>
     );
   }

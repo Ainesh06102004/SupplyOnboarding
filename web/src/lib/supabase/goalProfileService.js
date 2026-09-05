@@ -47,7 +47,7 @@ const num = (v) => (v === null || v === undefined || v === "" ? null : Number(v)
  * part-way leaves the profile inconsistent, which is why localStorage remains
  * the source the UI reads. Moving this to an RPC would fix it.
  *
- * @param {string} uid Firebase UID
+ * @param {string} uid the shopper's Supabase Auth user id
  * @param {object} profile from goalStore
  */
 export async function saveGoalProfile(uid, profile) {
@@ -103,7 +103,7 @@ export async function saveGoalProfile(uid, profile) {
 /**
  * Read the profile back into the flat client shape.
  *
- * @param {string} uid Firebase UID
+ * @param {string} uid the shopper's Supabase Auth user id
  * @returns {Promise<object|null>} null when this shopper has no stored profile
  */
 export async function loadGoalProfile(uid) {

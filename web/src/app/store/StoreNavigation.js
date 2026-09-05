@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Home, Store, ShoppingCart, Package, User } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
-import OTPLoginModal from "@/components/auth/OTPLoginModal";
+import LoginSheet from "@/components/auth/LoginSheet";
 
 function NavigationContent() {
   const pathname = usePathname();
@@ -14,16 +14,26 @@ function NavigationContent() {
   const [mounted, setMounted] = useState(false);
   const items = useCartStore(state => state.items);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  // Where the shopper was heading when the gate stopped them. Held in state
+  // because the URL params it came from are wiped immediately below.
+  const [loginNext, setLoginNext] = useState(null);
+  const [loginRequired, setLoginRequired] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
       setMounted(true);
-      if (searchParams.get("login") === "required") {
+      const reason = searchParams.get("login");
+      if (reason === "required" || reason === "failed") {
         setIsLoginOpen(true);
-        // Clean up the URL parameter
+        setLoginRequired(reason === "required");
+        setLoginNext(searchParams.get("next"));
+        // Clean up the URL parameters so a refresh or a shared link does not
+        // reopen the sheet.
         const params = new URLSearchParams(searchParams);
         params.delete("login");
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        params.delete("next");
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
       }
     }, 0);
     return () => clearTimeout(t);
@@ -126,12 +136,11 @@ function NavigationContent() {
         }
       `}</style>
       
-      <OTPLoginModal 
-        open={isLoginOpen} 
+      <LoginSheet
+        open={isLoginOpen}
         onOpenChange={setIsLoginOpen}
-        onComplete={() => {
-          // If they wanted to go to profile, let them, or just stay here
-        }}
+        next={loginNext}
+        required={loginRequired}
       />
     </>
   );

@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { signOutUser } from '@/lib/firebase/auth'
+import { signOutUser } from '@/lib/auth/supabaseAuth'
 import { 
   LayoutDashboard, 
   Package, 
