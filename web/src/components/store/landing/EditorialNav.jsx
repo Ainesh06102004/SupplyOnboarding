@@ -12,6 +12,7 @@ import { Search, MapPin, ShoppingBag, X, ArrowRight, Menu } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useLocation } from "@/contexts/LocationContext";
 import LocationModal from "@/components/store/LocationModal";
+import AccountButton from "@/components/auth/AccountButton";
 import { C, HEADING } from "./tokens";
 
 const LINKS = [
@@ -132,6 +133,11 @@ export default function EditorialNav({ links = LINKS, onSearchClick }) {
                 {location?.city || "Location"}
               </span>
             </button>
+
+            {/* Sits before the cart deliberately: signing in is the step that
+                makes a cart survive, and on mobile the bottom tab bar carries
+                the same entry point, so this hides rather than crowds. */}
+            <AccountButton variant="editorial" className="hidden sm:flex" />
 
             <Link
               href="/store/cart"

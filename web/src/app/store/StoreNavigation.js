@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Home, Store, ShoppingCart, Package, User } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useAuth } from "@/contexts/AuthContext";
 import LoginSheet from "@/components/auth/LoginSheet";
+import AccountButton from "@/components/auth/AccountButton";
 
 function NavigationContent() {
   const pathname = usePathname();
@@ -13,6 +15,7 @@ function NavigationContent() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const items = useCartStore(state => state.items);
+  const { user } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   // Where the shopper was heading when the gate stopped them. Held in state
   // because the URL params it came from are wiped immediately below.
@@ -83,10 +86,14 @@ function NavigationContent() {
              </div>
           </div>
           
-          <Link href="/store/cart" className="flex items-center gap-2.5 px-5 py-2.5 bg-white border border-[#E2E8D8] rounded-full shadow-[0_2px_10px_rgba(14,64,50,0.02)] hover:border-[#0E4032]/30 hover:bg-[#F2F6EC] transition-all relative">
-             <ShoppingCart className="w-4 h-4 text-[#0E4032]" />
-             <span className="text-[13px] font-bold text-[#0E4032] uppercase tracking-wider">{totalItems > 0 ? `${totalItems} items` : "Cart"}</span>
-          </Link>
+          <div className="flex items-center gap-3">
+             <AccountButton variant="store" />
+
+             <Link href="/store/cart" className="flex items-center gap-2.5 px-5 py-2.5 bg-white border border-[#E2E8D8] rounded-full shadow-[0_2px_10px_rgba(14,64,50,0.02)] hover:border-[#0E4032]/30 hover:bg-[#F2F6EC] transition-all relative">
+                <ShoppingCart className="w-4 h-4 text-[#0E4032]" />
+                <span className="text-[13px] font-bold text-[#0E4032] uppercase tracking-wider">{totalItems > 0 ? `${totalItems} items` : "Cart"}</span>
+             </Link>
+          </div>
         </div>
       </nav>
       )}
@@ -97,16 +104,20 @@ function NavigationContent() {
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (pathname === "/store" && item.href === "/store/shop");
-            
-            return (
-              <Link 
-                key={item.label}
-                href={item.href}
-                className="relative flex-1 flex flex-col items-center justify-center py-2 group"
-              >
+
+            // Profile is the only tab behind the route gate. Signed out,
+            // tapping it navigates to /store/profile, gets turned away by
+            // proxy.js and bounces back with ?login=required — a full server
+            // round trip to arrive at a sheet that can be opened right here.
+            // Same destination, no redirect, and it works offline-ish on a bad
+            // connection. Signed in, it stays an ordinary link.
+            const opensLogin = item.label === "Profile" && !user;
+
+            const inner = (
+              <>
                 <div className={`relative flex items-center justify-center transition-all duration-300 ${isActive ? "text-[#0E4032]" : "text-[#5A6B5A]/50 group-hover:text-[#5A6B5A]"}`}>
                   <Icon className={`w-[22px] h-[22px] transition-transform duration-300 ${isActive ? "scale-110" : "scale-100"}`} />
-                  
+
                   {/* Badge for Cart */}
                   {item.label === "Cart" && totalItems > 0 && (
                     <span className="absolute -top-1.5 -right-2 bg-[#C8F23E] text-[#0E4032] text-[10px] font-bold px-1.5 min-w-[16px] h-[16px] rounded-full flex items-center justify-center shadow-sm">
@@ -124,8 +135,37 @@ function NavigationContent() {
                     {item.label}
                   </span>
                 )}
+              </>
+            );
+
+            const tabClass =
+              "relative flex-1 flex flex-col items-center justify-center py-2 group";
+
+            if (opensLogin) {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  aria-label="Sign in to KOI"
+                  onClick={() => {
+                    // Chosen, not forced — so the sheet keeps its guest option
+                    // and has nowhere it needs to send them afterwards.
+                    setLoginRequired(false);
+                    setLoginNext(null);
+                    setIsLoginOpen(true);
+                  }}
+                  className={tabClass}
+                >
+                  {inner}
+                </button>
+              );
+            }
+
+            return (
+              <Link key={item.label} href={item.href} className={tabClass}>
+                {inner}
               </Link>
-            )
+            );
           })}
         </div>
       </nav>
