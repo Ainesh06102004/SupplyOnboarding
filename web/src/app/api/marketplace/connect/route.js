@@ -18,20 +18,30 @@ import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
 import { getCredential, deleteCredential, credentialStoreReady } from "@/lib/marketplace/credentials";
 import { oauthReady } from "@/lib/marketplace/adapters/swiggy/oauth";
+import { getMarketplaceAdapter } from "@/lib/marketplace";
 
-const MARKETPLACE = "swiggy";
 
 export async function GET(request) {
   const user = await getVerifiedUser(request);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  // Two different reasons connecting cannot work, and the UI should not offer
-  // a button for either: no OAuth client, or no key to encrypt the token with.
-  const available = oauthReady() && credentialStoreReady();
+  // Whichever supply source is configured owns the credential — the mock
+  // stores one too, so that development exercises the same connected /
+  // not-connected states production will have.
+  const adapter = getMarketplaceAdapter();
+  const marketplace = adapter.id;
 
-  const cred = await getCredential(user.uid, MARKETPLACE);
+  // Reasons connecting cannot work, and the UI must not offer a button for any
+  // of them: nothing to connect to, no OAuth client, or no key to encrypt the
+  // token with.
+  const available =
+    marketplace !== "null" &&
+    credentialStoreReady() &&
+    (marketplace === "mock" || oauthReady());
+
+  const cred = await getCredential(user.uid, marketplace);
   return NextResponse.json({
-    marketplace: MARKETPLACE,
+    marketplace,
     available,
     connected: Boolean(cred),
     // Whether KOI knows which address to query for them. Connected without one
@@ -45,6 +55,6 @@ export async function DELETE(request) {
   const user = await getVerifiedUser(request);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const ok = await deleteCredential(user.uid, MARKETPLACE);
+  const ok = await deleteCredential(user.uid, getMarketplaceAdapter().id);
   return NextResponse.json({ disconnected: ok }, { status: ok ? 200 : 500 });
 }

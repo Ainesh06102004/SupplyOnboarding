@@ -68,26 +68,35 @@ function mockOptionsFromEnv() {
  *
  * @returns {import('./types').MarketplaceAdapter}
  */
-export function getMarketplaceAdapter() {
+export function getMarketplaceAdapter({ profileId = null } = {}) {
+  // A per-shopper adapter is NOT cached. The cached instance is the anonymous
+  // one — house credential or none — and it exists to avoid re-reading env, not
+  // to avoid construction, which is a closure and a few properties.
+  //
+  // Without this argument the singleton was built once with profileId null, so
+  // createSwiggyAdapter() could never reach getCredential() and a shopper's
+  // connected account was stored and never read. Any caller acting FOR someone
+  // must say who.
+  if (profileId) return buildAdapter({ profileId });
   if (cached) return cached;
+  cached = buildAdapter({ profileId: null });
+  return cached;
+}
 
+function buildAdapter({ profileId }) {
   switch (process.env.KOI_MARKETPLACE) {
     case ADAPTERS.MOCK:
-      cached = createMockAdapter(mockOptionsFromEnv());
-      break;
+      return createMockAdapter({ ...mockOptionsFromEnv(), profileId });
     case ADAPTERS.SWIGGY:
-      // Implemented, but UNVERIFIED against the live server — KOI has no
-      // credentials yet, and the transport framing in adapters/swiggy/client.js
-      // is a documented guess. It stays safe to select: with no credential
-      // every method returns `unknown`, which is exactly what the null adapter
-      // would have said, so selecting it early costs nothing and lets the
-      // wiring be exercised.
-      cached = createSwiggyAdapter();
-      break;
+      // Implemented, but UNVERIFIED against the live server — the transport
+      // framing in adapters/swiggy/client.js is a documented guess. It stays
+      // safe to select: with no credential every method returns `unknown`,
+      // which is exactly what the null adapter would have said, so selecting it
+      // early costs nothing and lets the wiring be exercised.
+      return createSwiggyAdapter({ profileId });
     default:
-      cached = nullAdapter;
+      return nullAdapter;
   }
-  return cached;
 }
 
 /**
@@ -165,8 +174,17 @@ export async function runShelfQuery({ zoneId, shelfId, query, limit }) {
  * @param {{ zoneId: string, items: Array<{koiSkuId: string, externalId?: string|null, matchQuery?: string|null}>, withSubstitutes?: boolean }} params
  * @returns {Promise<Record<string, import('./types').ItemResult>>} keyed by koiSkuId
  */
-export async function verifyItems({ zoneId, items = [], withSubstitutes = false }) {
-  const adapter = getMarketplaceAdapter();
+export async function verifyItems({ zoneId, items = [], withSubstitutes = false, profileId = null }) {
+  const adapter = getMarketplaceAdapter({ profileId });
+
+  // WHOSE answer this is. A connected shopper is asked about at THEIR address,
+  // so their result is not interchangeable with anyone else's — see the note on
+  // cacheKey. Adapters that cannot vary by shopper report "house" and share one
+  // cache entry per zone, which is the behaviour this had before and the reason
+  // house-credential browse is affordable at all.
+  const audience = typeof adapter.audienceKey === "function"
+    ? await adapter.audienceKey({ zoneId })
+    : "house";
 
   const results = await Promise.all(
     items.map(async (it) => {
@@ -181,7 +199,7 @@ export async function verifyItems({ zoneId, items = [], withSubstitutes = false 
 
       try {
         const { value } = await readThrough(
-          cacheKey(zoneId, `item:${it.koiSkuId}`),
+          cacheKey(zoneId, `item:${it.koiSkuId}`, audience),
           () =>
             adapter.verifyItem({
               zoneId,

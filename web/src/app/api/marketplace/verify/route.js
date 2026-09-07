@@ -19,6 +19,7 @@
 
 import { NextResponse } from "next/server";
 import { verifyItems, getMarketplaceAdapter } from "@/lib/marketplace";
+import { getVerifiedUser } from "@/lib/auth/verifyRequest";
 import { resolveSkuMappings } from "@/lib/marketplace/skuMapRepo";
 
 // A hard ceiling on how much provider quota one browser request can spend.
@@ -65,11 +66,20 @@ export async function POST(request) {
   // never established which provider product is the one it screened, and
   // guessing would risk reporting stock for different food under a similar
   // name.
-  const adapter = getMarketplaceAdapter();
+  // OPTIONAL identity, and the optionality is the design. A signed-in shopper
+  // who has connected Swiggy is asked about THEIR address, on THEIR account. A
+  // signed-out visitor is not turned away — they fall through to the house
+  // credential, or to `unknown` when there is none, which is the honest answer
+  // and exactly what a logged-out visitor should see.
+  const user = await getVerifiedUser(request);
+  const profileId = user?.uid ?? null;
+
+  const adapter = getMarketplaceAdapter({ profileId });
   const mappings = await resolveSkuMappings(adapter.id, ids, { zoneId });
 
   const results = await verifyItems({
     zoneId,
+    profileId,
     items: ids.map((koiSkuId) => ({
       koiSkuId,
       externalId: mappings[koiSkuId]?.externalId ?? null,

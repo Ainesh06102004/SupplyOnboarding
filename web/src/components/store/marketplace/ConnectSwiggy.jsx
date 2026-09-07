@@ -74,7 +74,21 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false })
   if (!status) return null;
   if (status.signedOut || !status.available) return null;
 
+  // The mock has no consent screen to send anyone to, so connecting is a POST
+  // rather than a navigation. Same credential store, same adapter path, same
+  // states — see /api/marketplace/connect/mock.
+  const isMock = status.marketplace === "mock";
   const href = `/api/marketplace/connect/swiggy?next=${encodeURIComponent(next)}`;
+
+  const connectMock = async () => {
+    setBusy(true);
+    try {
+      await fetch("/api/marketplace/connect/mock", { method: "POST" });
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (status.connected) {
     return (
@@ -122,13 +136,24 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false })
             to you right now. Connecting lets us check stock and prices at your address, and put a
             basket into your Swiggy cart when you ask. You still confirm and pay on Swiggy.
           </p>
-          <a
-            href={href}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#0E4032]/90"
-          >
-            <Link2 className="h-3.5 w-3.5 text-[#C8F23E]" />
-            Connect Swiggy
-          </a>
+          {isMock ? (
+            <button
+              onClick={connectMock}
+              disabled={busy}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#0E4032]/90 disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5 text-[#C8F23E]" />}
+              Connect mock provider
+            </button>
+          ) : (
+            <a
+              href={href}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#0E4032]/90"
+            >
+              <Link2 className="h-3.5 w-3.5 text-[#C8F23E]" />
+              Connect Swiggy
+            </a>
+          )}
         </div>
       </div>
     </div>

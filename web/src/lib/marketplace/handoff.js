@@ -86,7 +86,7 @@ const MAX_SUBSTITUTE_LOOKUPS = 6;
  * poorer screen; a hand-off that fell over because the suggestion engine had a
  * bad day is a broken one.
  */
-async function attachSubstitutes({ zoneId, rejected, basketSkuIds }) {
+async function attachSubstitutes({ zoneId, rejected, basketSkuIds, profileId = null }) {
   if (!rejected.length || !zoneId) return rejected;
 
   try {
@@ -123,10 +123,13 @@ async function attachSubstitutes({ zoneId, rejected, basketSkuIds }) {
     }
     if (!ids.length) return rejected;
 
-    const adapter = getMarketplaceAdapter();
+    const adapter = getMarketplaceAdapter({ profileId });
     const mappings = await resolveSkuMappings(adapter.id, ids, { zoneId });
     const results = await verifyItems({
       zoneId,
+      // Same account as the basket lookups. A substitute confirmed in stock for
+      // someone else's address is not confirmed for this shopper.
+      profileId,
       items: ids.map((id) => ({
         koiSkuId: id,
         externalId: mappings[id]?.externalId ?? null,
@@ -178,7 +181,9 @@ async function attachSubstitutes({ zoneId, rejected, basketSkuIds }) {
  * @returns {Promise<import('./types').HandoffPlan & {persisted: boolean}>}
  */
 export async function prepareHandoff({ profileId, zoneId, lines = [] }) {
-  const adapter = getMarketplaceAdapter();
+  // FOR this shopper: a connected Swiggy account is only reachable when the
+  // adapter is told whose it is.
+  const adapter = getMarketplaceAdapter({ profileId });
 
   if (typeof adapter.prepareHandoff !== "function") {
     // The null adapter has no cart. Not an error — there is simply no provider
@@ -213,6 +218,7 @@ export async function prepareHandoff({ profileId, zoneId, lines = [] }) {
     zoneId,
     rejected: foldedRejections,
     basketSkuIds: ids,
+    profileId,
   });
   const complete = rejected.length === 0;
 
@@ -283,7 +289,7 @@ export async function commitHandoff({ profileId, planId }) {
   const supabase = getServiceClient();
   if (!supabase) throw new NotConfiguredError("Credential store unavailable");
 
-  const adapter = getMarketplaceAdapter();
+  const adapter = getMarketplaceAdapter({ profileId });
   if (typeof adapter.commitHandoff !== "function") {
     throw new NotConfiguredError("No supply source is configured for hand-off");
   }

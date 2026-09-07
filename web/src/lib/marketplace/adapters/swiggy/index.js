@@ -26,6 +26,8 @@
 
 import "server-only";
 
+import { createHash } from "crypto";
+
 import { AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE } from "../../types";
 import { TTL } from "../../config";
 import { NotConfiguredError, NotServiceableError } from "../../errors";
@@ -34,6 +36,9 @@ import { fromSearchProducts, fromCartUpdate, toMarketplaceItem } from "./mapping
 
 import { addressRefForZone, resolveZoneByPincode } from "../../zoneRepo";
 import { getHouseCredential, getCredential } from "../../credentials";
+
+/** Short, stable, one-way. Enough to separate cache entries, useless if leaked. */
+const sha8 = (v) => createHash("sha256").update(String(v)).digest("hex").slice(0, 16);
 
 /** A non-empty trimmed string, or null. */
 const str = (v) => {
@@ -111,6 +116,28 @@ export function createSwiggyAdapter(options = {}) {
   return {
     id: MARKETPLACE,
     capabilities,
+
+    /**
+     * Whose answer a cached lookup belongs to.
+     *
+     * A house credential asks about one address per zone, so every visitor in
+     * that zone shares an answer and one cache entry — which is the only reason
+     * house-credential browse fits inside one account's rate budget.
+     *
+     * A connected shopper is asked about THEIR address, so their answer is not
+     * interchangeable with anyone else's. Returning a distinct key here is what
+     * stops one shopper's stock and prices being served to another.
+     *
+     * HASHED, never the raw addressId: cache keys reach logs and metrics, and a
+     * provider address id is a handle on somebody's home.
+     */
+    async audienceKey({ zoneId }) {
+      const cred = await token();
+      if (cred?.scope !== "user") return "house";
+      const addressId = await addressFor(zoneId, cred);
+      if (!addressId) return `user:${sha8(profileId ?? "anon")}`;
+      return `user:${sha8(addressId)}`;
+    },
 
     /**
      * Pincode → zone. Resolved entirely from KOI's own tables: Swiggy has no

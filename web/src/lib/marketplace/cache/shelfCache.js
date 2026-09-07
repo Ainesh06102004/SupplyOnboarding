@@ -39,7 +39,25 @@ const store = new Map();
 /** Rolling per-minute call ledger: minute bucket → count. */
 const ledger = new Map();
 
-export const cacheKey = (zoneId, shelfId) => `${zoneId}::${shelfId}`;
+/**
+ * @param {string} zoneId
+ * @param {string} shelfId
+ * @param {string} [audience] WHOSE view this answer is. See below.
+ *
+ * The audience segment is a correctness and privacy boundary, not a tuning
+ * knob. Keying on (zone, shelf) alone is right while every lookup runs on one
+ * house credential, because one address then serves the whole zone. It is
+ * WRONG the moment shoppers connect their own Swiggy accounts: each one queries
+ * their OWN address, so two shoppers in the same zone can legitimately get
+ * different stock and different prices — and a zone-keyed cache would serve one
+ * shopper's answer to the other.
+ *
+ * Callers pass a HASH of the address, never the address itself: cache keys end
+ * up in logs and metrics, and a provider address id is a handle on somebody's
+ * home.
+ */
+export const cacheKey = (zoneId, shelfId, audience = "house") =>
+  `${zoneId}::${shelfId}::${audience}`;
 
 function spend(now, limit) {
   const bucket = Math.floor(now / 60_000);

@@ -25,6 +25,7 @@ import { TTL } from "../../config";
 import { NotServiceableError, RateLimitError, UpstreamError } from "../../errors";
 import { hash32, hashFloat, hashInt } from "./seededHash";
 import { FIXTURE_POOL, NOT_SERVICEABLE_PINCODES } from "./fixtures";
+import { getCredential } from "../../credentials";
 
 /** @type {import('../../types').MarketplaceCapabilities} */
 const capabilities = Object.freeze({
@@ -59,8 +60,32 @@ function zoneIdFor(pincode) {
 
 export function createMockAdapter(options = {}) {
   const cfg = { ...DEFAULTS, ...options };
+  const profileId = options.profileId ?? null;
   const now = () => (cfg.clock ? cfg.clock() : Date.now());
   let callCount = 0;
+
+  /**
+   * Has this shopper connected their (mock) marketplace account?
+   *
+   * The mock models this because the REAL provider does. search_products needs
+   * an addressId and addresses belong to an authenticated user, so an
+   * unconnected visitor cannot be told anything about stock. A mock that
+   * answered anyway would make development disagree with production in exactly
+   * the dimension the product is built around, and the disagreement would only
+   * surface on the day credentials arrived.
+   *
+   * `unknown` for the unconnected is not a degraded mode. It is the storefront
+   * working correctly: KOI's screened catalogue is shown to everyone, and
+   * availability is shown to whoever has given KOI a way to ask.
+   */
+  async function connected() {
+    if (!profileId) return false;
+    try {
+      return Boolean(await getCredential(profileId, "mock"));
+    } catch {
+      return false;
+    }
+  }
 
   async function simulateCall(seed) {
     callCount += 1;
@@ -103,6 +128,16 @@ export function createMockAdapter(options = {}) {
 
   return {
     id: "mock",
+
+    /**
+     * Whose answer this is. The mock varies by shopper exactly as the real
+     * adapter does, so that a cache bug which would leak one shopper's
+     * availability to another shows up in development rather than in
+     * production. See the note on cacheKey.
+     */
+    async audienceKey() {
+      return (await connected()) ? `user:${hash32(String(profileId))}` : "house";
+    },
     capabilities,
 
     async resolveZone({ pincode }) {
@@ -153,16 +188,21 @@ export function createMockAdapter(options = {}) {
     },
 
     async verifyItem({ zoneId, koiSkuId, externalId, matchQuery, withSubstitutes = false }) {
-      if (!externalId) {
-        // Unmapped: we cannot even ask. Not the same as out of stock.
-        return {
-          item: null,
-          availability: AVAILABILITY.UNKNOWN,
-          substitutes: [],
-          checkedAt: new Date(now()).toISOString(),
-          source: SIGNAL_SOURCE.NONE,
-        };
-      }
+      const nothingKnown = {
+        item: null,
+        availability: AVAILABILITY.UNKNOWN,
+        substitutes: [],
+        checkedAt: new Date(now()).toISOString(),
+        source: SIGNAL_SOURCE.NONE,
+      };
+
+      // Unmapped: we cannot even ask. Not the same as out of stock.
+      if (!externalId) return nothingKnown;
+
+      // Nobody has given KOI a way to ask on this shopper's behalf. Same shape
+      // as unmapped and for the same reason — an absent answer, not a negative
+      // one. See connected() above.
+      if (!(await connected())) return nothingKnown;
 
       const seed = `${zoneId}:${externalId}:${windowOf(now(), TTL.itemMs)}`;
       await simulateCall(seed);
