@@ -28,6 +28,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import HandoffReview from "@/components/store/checkout/HandoffReview";
 import { fulfilmentService } from "@/lib/supabase/fulfilmentService";
 import AddressManager from "@/components/store/AddressManager";
+import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -273,6 +274,14 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-bold text-[#0E4032] mb-5" style={{ fontFamily: "var(--font-koi-heading)" }}>Deliver To</h2>
               <AddressManager onSelect={onSelectAddress} selectedAddressId={address?.id} />
             </section>
+
+            {/* The hand-off writes to the shopper's OWN Swiggy cart, so it
+                cannot happen on a KOI house account. This is where that
+                requirement becomes visible, rather than surfacing as a failure
+                after they press the button. Renders nothing when KOI has no
+                Swiggy client credentials, or when they are already connected
+                and the connection is healthy. */}
+            <ConnectSwiggy next="/store/checkout" />
 
             {/* How this actually works.
                 Replaces the payment-method picker entirely. KOI is not

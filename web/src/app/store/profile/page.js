@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AddressManager from "@/components/store/AddressManager";
+import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
 import { signOutUser } from "@/lib/auth/supabaseAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoalStore, GOAL_DEFS } from "@/store/goalStore";
@@ -239,7 +240,11 @@ export default function ProfilePage() {
                <AddressManager />
             </section>
 
-            {/* 5. Payment Methods */}
+            {/* 5. Connected accounts — the Swiggy link that makes availability
+                 answerable and the hand-off possible at all. */}
+            <ConnectSwiggy next="/store/profile" />
+
+            {/* 6. Payment Methods */}
             <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)]">
                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-[16px] font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Payment Methods</h3>

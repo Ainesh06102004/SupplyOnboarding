@@ -81,16 +81,30 @@ export function createSwiggyAdapter(options = {}) {
   async function token() {
     if (profileId) {
       const own = await getCredential(profileId, MARKETPLACE);
-      if (own) return own;
+      // `scope` matters downstream: whose address the call should run against
+      // is decided by whose account it runs on.
+      if (own) return { ...own, scope: "user" };
     }
-    return getHouseCredential(MARKETPLACE);
+    const house = await getHouseCredential(MARKETPLACE);
+    return house ? { ...house, scope: "house" } : null;
   }
 
-  /** The provider address a zone is queried against. */
+  /**
+   * The provider address a call is made against.
+   *
+   * A USER credential uses the shopper's OWN address, always. This used to
+   * prefer the zone's address whenever one existed, which is backwards and
+   * quietly dangerous: the zone address belongs to KOI's house account, and
+   * `update_cart` takes it as `selectedAddressId` — so a shopper's cart would
+   * have been set to deliver to KOI's address rather than theirs. Availability
+   * would also have been answered for the wrong doorstep.
+   *
+   * A HOUSE credential has no shopper to speak for, so it uses the zone's
+   * address, which is exactly what marketplace_zone.address_ref is for.
+   */
   async function addressFor(zoneId, cred) {
+    if (cred?.scope === "user") return cred.externalAccountRef ?? null;
     const fromZone = await addressRefForZone(MARKETPLACE, zoneId);
-    // A user-scoped credential carries its own selected address; a house
-    // credential's comes from the zone table.
     return fromZone ?? cred?.externalAccountRef ?? null;
   }
 
