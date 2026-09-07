@@ -11,10 +11,20 @@
 // order — so a per-shopper credential is not a fallback for the house one, it
 // is the only path that reaches a purchase.
 //
-// UNVERIFIED AGAINST THE LIVE SERVER, like the rest of this adapter. Swiggy's
-// authorize and token endpoints are derived from the documented MCP origin and
-// overridable by environment, because guessing a URL and hardcoding it are
-// different sizes of mistake.
+// ENDPOINTS CONFIRMED against the published docs (start/authenticate.md,
+// checked 7 Sep 2026): authorize is https://mcp.swiggy.com/auth/authorize and
+// token is https://mcp.swiggy.com/auth/token, which is what the origin-derived
+// defaults below produce. Still overridable by environment, because staging
+// lives on a different host (mcp-staging.swiggy.com).
+//
+// DYNAMIC CLIENT REGISTRATION IS NOT A ROUTE IN FOR KOI. The docs describe
+// POST /auth/register as something recognised MCP clients — Claude Desktop,
+// Cursor, ChatGPT, mcp-remote — call transparently. A custom application with
+// its own redirect URI is told, in as many words, to email builders@swiggy.in.
+// So SWIGGY_CLIENT_ID has to be issued; it cannot be self-served.
+//
+// The FLOW remains unverified against a live server even though the URLs are
+// not: nobody has completed a round trip yet.
 //
 // TOKEN LIFETIME: 5 days, and v1.0 issues NO refresh token. Reconnection is a
 // normal part of the lifecycle rather than an error — see AuthExpiredError and
