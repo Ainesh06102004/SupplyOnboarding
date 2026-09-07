@@ -22,6 +22,26 @@ function shelf(id, title, subtitle, items, { min = 3, limit = 8 } = {}) {
   return picked.length >= min ? { id, title, subtitle, items: picked } : null;
 }
 
+// A shelf title is a claim about every product on it. "Lower sugar
+// alternatives" says these products are lower in sugar, so a product whose
+// sugar KOI has never been told does not belong there — and `null <= T.sugarLow`
+// is TRUE, which is exactly how it used to get on. Membership needs a declared
+// figure, not merely one that fails to exceed the threshold.
+const macro = (s, key) => {
+  const v = s?.facts?.macros?.[key];
+  return v !== null && v !== undefined && Number.isFinite(Number(v)) ? Number(v) : null;
+};
+
+/** Sort by a macro, with undeclared values last in either direction. */
+const byMacro = (key, dir) => (a, b) => {
+  const x = macro(a, key);
+  const y = macro(b, key);
+  if (x === null && y === null) return b.raw - a.raw;
+  if (x === null) return 1;
+  if (y === null) return -1;
+  return (dir === "desc" ? y - x : x - y) || b.raw - a.raw;
+};
+
 const matchMeal = (s, mealKey) => {
   const m = MEAL_MATCH[mealKey];
   return m && (m.categories.includes(s.category) || m.keywords.some((kw) => s.facts.haystack.includes(kw)));
@@ -51,8 +71,8 @@ export function buildShelves(ranked, included, profile = {}) {
     shelf("picked", "Picked for you", `Because you're aiming for ${goalLabel}`, ranked),
 
     shelf("protein", "Today's protein picks", "High-protein products, ranked for you",
-      by((a, b) => b.facts.macros.protein - a.facts.macros.protein || b.raw - a.raw)
-        .filter((s) => s.facts.macros.protein >= T.proteinHigh)),
+      by(byMacro("protein", "desc"))
+        .filter((s) => macro(s, "protein") !== null && macro(s, "protein") >= T.proteinHigh)),
 
     shelf("breakfast", "Great breakfast choices", "Ways to start the day right",
       by((a, b) => b.raw - a.raw).filter((s) => matchMeal(s, "breakfast"))),
@@ -69,12 +89,13 @@ export function buildShelves(ranked, included, profile = {}) {
       : null,
 
     shelf("lowsugar", "Lower sugar alternatives", "Sweetness without the spike",
-      by((a, b) => a.facts.macros.sugar - b.facts.macros.sugar || b.raw - a.raw)
-        .filter((s) => s.facts.macros.sugar <= T.sugarLow)),
+      by(byMacro("sugar", "asc"))
+        .filter((s) => macro(s, "sugar") !== null && macro(s, "sugar") <= T.sugarLow)),
 
     shelf("complete", "Complete your daily protein",
       profile.targets?.protein ? `Toward your ${profile.targets.protein}g / day` : "Protein-forward picks",
-      by((a, b) => b.facts.macros.protein - a.facts.macros.protein).filter((s) => s.facts.macros.protein >= T.proteinMin)),
+      by(byMacro("protein", "desc"))
+        .filter((s) => macro(s, "protein") !== null && macro(s, "protein") >= T.proteinMin)),
 
     shelf("different", "Try something different", "A little outside your usual", diverseSample(included)),
   ];

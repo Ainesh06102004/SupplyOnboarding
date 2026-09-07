@@ -43,6 +43,16 @@ export const PENALTIES = Object.freeze({
   highSodium: -10,
 });
 
+// The value a scoring component takes where KOI holds no evidence either way.
+//
+// Not 0 — that punishes a screened product for a gap in KOI's own data. Not 1 —
+// that lets a missing nutrition panel outrank a good one, which is how this
+// engine used to behave when an undeclared macro was read as zero. Components
+// shrink toward this in proportion to how much of their input is undeclared,
+// so a fully declared good product always outranks a half-declared one, and
+// uncertainty pulls a score toward the middle from whichever side it started.
+export const UNKNOWN_FIT = 0.5;
+
 // ── Nutrition thresholds (per serving, grams unless noted) ──
 export const THRESHOLDS = Object.freeze({
   proteinHigh: 12,

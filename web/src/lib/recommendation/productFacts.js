@@ -9,6 +9,20 @@ import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./confi
 const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
 
 const toNum = (v) => (typeof v === "number" ? v : parseFloat(String(v ?? "").replace(/[^\d.]/g, "")) || 0);
+
+// A declared macro, or null when there is no figure. Deliberately NOT toNum:
+// `parseFloat("") || 0` is exactly how an undeclared macro became a confident
+// zero, and because a genuine declared 0 is itself falsy, no `||` can appear
+// anywhere in here.
+const toMacro = (v) => {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const cleaned = String(v).replace(/[^\d.]/g, "");
+  if (cleaned === "") return null;
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : null;
+};
+
 const anyKeyword = (haystack, list) => list.some((k) => haystack.includes(k));
 
 // Anything absent, malformed or unrecognised is `unknown`. The legacy boolean
@@ -39,17 +53,38 @@ export function extractFacts(product) {
     .join(" ")
     .toLowerCase();
 
-  // macros from the nutrition array
+  // ── Macros: declared, or unknown ─ never assumed ────────────────────────
+  // `null` means KOI has no figure for this macro. It is NOT zero, and the
+  // difference is not pedantic. Every one of these read `?? 0`, so a product
+  // with no sugar figure was scored as a sugar-free product — the best possible
+  // sugar result. It won the `sugar: "low"` metric in five of the nine goal
+  // profiles, collected the whole 40% sugar half of macroFit, kept a clean
+  // `refined_sugar` flag, and was told to the shopper in as many words:
+  // "Lower sugar". Missing data outranked declared data, and the storefront
+  // published a health claim about a number nobody had ever given it.
+  //
+  // The same default cut the other way on protein: `null` became 0, which is
+  // below proteinMin, so an undeclared protein figure was actively PENALISED
+  // on protein-focused goals. Absence was rewarded on one macro and punished
+  // on another, and neither was a claim the data supported.
+  //
+  // `sodium` was already null-safe. It is now the pattern rather than the
+  // exception, and every consumer must handle null explicitly — including the
+  // ones that look safe, because `null < 6` is `true`.
   const nm = {};
-  (product.nutrition || []).forEach((n) => { nm[String(n.label).toLowerCase()] = toNum(n.value); });
+  (product.nutrition || []).forEach((n) => {
+    const v = toMacro(n?.value);
+    // An entry that carries no readable number is the same as no entry at all.
+    if (v !== null) nm[String(n?.label).toLowerCase()] = v;
+  });
   const macros = {
-    protein: nm.protein ?? 0,
-    sugar: nm.sugar ?? 0,
-    fat: nm.fat ?? 0,
-    fibre: nm.fibre ?? nm.fiber ?? 0,
-    kcal: nm.calories ?? nm.energy ?? 0,
-    carbs: nm.carbs ?? 0,
-    sodium: nm.sodium ?? null, // often unknown → stays null (no penalty)
+    protein: nm.protein ?? null,
+    sugar: nm.sugar ?? null,
+    fat: nm.fat ?? null,
+    fibre: nm.fibre ?? nm.fiber ?? null,
+    kcal: nm.calories ?? nm.energy ?? null,
+    carbs: nm.carbs ?? null,
+    sodium: nm.sodium ?? null,
   };
 
   const hasTag = (list) => (list || []).some((t) => tags.some((tag) => tag.includes(t)));
@@ -71,14 +106,21 @@ export function extractFacts(product) {
     if (hasTag(clears)) contains.delete(flag);
   }
 
-  // refined sugar: present when there is measurable sugar and it isn't declared clean
+  // Refined sugar: decided only where the sugar figure is known. An unknown
+  // figure is not a clean one — `null > 0` is false, so the old `else` branch
+  // cleared the flag and handed a shopper who avoids refined sugar a clean bill
+  // of health on a product whose sugar KOI had never been told.
   const cleanSugar = hasTag(CLEAR_TAGS.refined_sugar) || anyKeyword(haystack, ["jaggery", "dates", "honey", "natural"]);
-  if (macros.sugar > 0 && !cleanSugar) contains.add("refined_sugar");
-  else contains.delete("refined_sugar");
+  if (macros.sugar !== null) {
+    if (macros.sugar > 0 && !cleanSugar) contains.add("refined_sugar");
+    else contains.delete("refined_sugar");
+  }
 
-  // high sodium only when we actually know the value
-  if (macros.sodium != null && macros.sodium >= THRESHOLDS.sodiumHighMg) contains.add("high_sodium");
-  else contains.delete("high_sodium");
+  // High sodium only where the value is known — the rule the rest now follow.
+  if (macros.sodium !== null) {
+    if (macros.sodium >= THRESHOLDS.sodiumHighMg) contains.add("high_sodium");
+    else contains.delete("high_sodium");
+  }
 
   // peanut/tree_nut split (tree_nut isn't an avoid flag but keep peanut precise)
   if (haystack.includes("peanut") || haystack.includes("groundnut")) contains.add("peanut");
