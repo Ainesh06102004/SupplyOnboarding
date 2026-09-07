@@ -37,6 +37,21 @@ export const WEIGHTS = Object.freeze({
 // ── Penalties (documented, deterministic) ──
 export const PENALTIES = Object.freeze({
   avoidedIngredient: -100, // a soft-avoided attribute is present → effectively excluded
+  // The shopper avoids something KOI cannot check on this product.
+  //
+  // Two avoid flags are derived from macros rather than ingredient keywords —
+  // refined_sugar from sugars_g, high_sodium from sodium_mg — so where that
+  // figure is undeclared, the ABSENCE of the flag proves nothing. Scoring such
+  // a product as clean is how a missing number became a clean bill of health;
+  // scoring it as -100 would assert the flag is present, which is the same
+  // error pointed the other way.
+  //
+  // So it sits between: enough that a product declaring a clean figure
+  // outranks an identical one that declares nothing, never enough to exclude a
+  // screened product over a gap in KOI's own data. Sized against
+  // proteinBelowThreshold (-15), a comparable "this is a real mark against it"
+  // signal, rather than against the exclusion.
+  unverifiableAvoid: -15,
   lowStock: -10,
   highSugarForFatLoss: -20,
   proteinBelowThreshold: -15,

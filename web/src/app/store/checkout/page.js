@@ -176,6 +176,11 @@ export default function CheckoutPage() {
         setHandoffError(
           code === "REAUTH" ? "Your Swiggy connection expired. Please reconnect and try again."
           : code === "RATE_LIMITED" ? "Swiggy is rate-limiting us. Give it a moment and try again."
+          // "Nothing has been ordered" is a claim, and for an unconfirmed
+          // hand-off it is one KOI cannot make: the request went out and the
+          // cart may already hold this basket. Sending them to look is the only
+          // honest instruction, and trying again is exactly the wrong move.
+          : code === "UNCONFIRMED" ? "We sent this to Swiggy but couldn't confirm it arrived. Check your Swiggy cart before trying again — it may already be there."
           : "We couldn't hand this basket over. Nothing has been ordered."
         );
         return;
@@ -185,6 +190,11 @@ export default function CheckoutPage() {
           marketplace: caps.adapter,
           planId,
           externalOrderRef: result?.externalCartRef ?? null,
+          zoneId,
+          // Only when the plan considered itself complete. A subtotal that
+          // omits an unresolved line is a number KOI cannot stand behind, and
+          // recording it here would give it a second life in the order history.
+          providerSubtotal: plan?.totals?.complete ? plan.totals.subtotal ?? null : null,
         });
       }
       // Swiggy is where the shopper finishes: they confirm and pay there.

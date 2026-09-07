@@ -13,7 +13,9 @@
 import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
 import { commitHandoff } from "@/lib/marketplace/handoff";
-import { NotConfiguredError, RateLimitError, AuthExpiredError } from "@/lib/marketplace/errors";
+import {
+  NotConfiguredError, RateLimitError, AuthExpiredError, HandoffUnconfirmedError,
+} from "@/lib/marketplace/errors";
 
 export async function POST(request) {
   const user = await getVerifiedUser(request);
@@ -41,6 +43,15 @@ export async function POST(request) {
     }
     if (err instanceof NotConfiguredError) {
       return NextResponse.json({ error: "No delivery partner is connected", code: "NOT_CONFIGURED" }, { status: 503 });
+    }
+    if (err instanceof HandoffUnconfirmedError) {
+      // NOT a failure. The request went out and its outcome is unknown, so the
+      // plan stays claimed and the caller must be told to go and look rather
+      // than told nothing happened or invited to try again.
+      return NextResponse.json(
+        { error: "Sent, but we could not confirm it", code: "UNCONFIRMED" },
+        { status: 202 }
+      );
     }
     console.error("commit handoff:", err?.message);
     return NextResponse.json({ error: "Could not complete the hand-off" }, { status: 502 });

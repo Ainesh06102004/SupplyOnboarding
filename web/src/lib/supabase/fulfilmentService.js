@@ -228,7 +228,10 @@ export const fulfilmentService = {
    * @param {string} intentId
    * @param {{ marketplace: string, planId?: string|null, externalOrderRef?: string|null }} details
    */
-  async markHandedOff(intentId, { marketplace, planId = null, externalOrderRef = null }) {
+  async markHandedOff(
+    intentId,
+    { marketplace, planId = null, externalOrderRef = null, zoneId = null, providerSubtotal = null }
+  ) {
     if (!intentId || !marketplace) return null;
     const supabase = getSupabaseClient();
 
@@ -239,6 +242,14 @@ export const fulfilmentService = {
         marketplace,
         plan_id: planId,
         external_order_ref: externalOrderRef,
+        // Both are known only now. The zone is resolved during checkout, after
+        // the draft was opened, and the provider's price is not known until it
+        // has been asked — which is why the draft carries neither.
+        zone_id: zoneId,
+        // What the provider quoted, distinct from subtotal_at_handoff, which is
+        // KOI's own MRP. Null for a partially-fulfillable basket, because the
+        // plan withholds its subtotal rather than quote an incomplete one.
+        provider_subtotal_at_handoff: numOrNull(providerSubtotal),
         handed_off_at: new Date().toISOString(),
       })
       .eq("id", intentId)

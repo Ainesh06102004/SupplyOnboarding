@@ -191,10 +191,21 @@ export function scoreProduct(facts, profile = {}) {
 
   // ── penalties ──
   b.penalties = 0;
-  const softAvoidHits = (profile.foodsAvoid || [])
-    .map((k) => AVOID_BY_KEY[k])
-    .filter((a) => a && a.mode === "soft" && facts.contains.has(a.flag));
+  const avoided = (profile.foodsAvoid || []).map((k) => AVOID_BY_KEY[k]).filter(Boolean);
+  const softAvoidHits = avoided.filter((a) => a.mode === "soft" && facts.contains.has(a.flag));
   if (softAvoidHits.length) b.penalties += PENALTIES.avoidedIngredient;
+
+  // The shopper avoids something this product's data cannot answer for.
+  // refined_sugar and high_sodium are the two macro-derived avoid flags, so an
+  // undeclared sugar or sodium figure means the flag's absence is silence, not
+  // a clean result. Charged only when nothing was actually detected —
+  // otherwise the -100 above already covers it.
+  const unprovable = avoided.some(
+    (a) =>
+      (a.flag === "refined_sugar" && !isNum(facts.macros.sugar)) ||
+      (a.flag === "high_sodium" && !isNum(facts.macros.sodium))
+  );
+  if (unprovable && !softAvoidHits.length) b.penalties += PENALTIES.unverifiableAvoid;
   if ((goal === "fatloss" || goal === "low_sugar") && isNum(facts.macros.sugar) && facts.macros.sugar > T.sugarHigh) b.penalties += PENALTIES.highSugarForFatLoss;
   // `null < T.proteinMin` is TRUE. Without the guard this penalised every
   // product whose protein was merely undeclared — a verdict about a gap in
@@ -216,12 +227,6 @@ export function scoreProduct(facts, profile = {}) {
   // have been detected. Two avoid flags are derived from macros rather than
   // from ingredient keywords, so where that macro is undeclared the absence of
   // the flag proves nothing and the reassurance is withheld.
-  const avoided = (profile.foodsAvoid || []).map((k) => AVOID_BY_KEY[k]).filter(Boolean);
-  const unprovable = avoided.some(
-    (a) =>
-      (a.flag === "refined_sugar" && !isNum(facts.macros.sugar)) ||
-      (a.flag === "high_sodium" && !isNum(facts.macros.sodium))
-  );
   if (avoided.length && !softAvoidHits.length && !unprovable) reasons.push(REASONS.noAvoid());
 
   const raw = b.goalMatch + b.macroMatch + b.preferredFood + b.mealMatch + b.budgetMatch + b.popularity + b.trust + b.penalties;

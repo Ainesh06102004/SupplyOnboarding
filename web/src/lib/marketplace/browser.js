@@ -159,6 +159,13 @@ export async function prepareHandoff(zoneId, lines, signal) {
 export async function commitHandoff(planId, signal) {
   try {
     const result = await post("/api/marketplace/handoff/commit", { planId }, signal);
+    // 202 UNCONFIRMED arrives here, not in the catch, because it is a 2xx: the
+    // request WAS sent and only its outcome is unknown. It must never be
+    // reported as a failure — the cart may have been replaced — and it must
+    // never be retried, because the plan stays claimed on purpose.
+    if (result?.code === "UNCONFIRMED") {
+      return { ok: false, result: null, code: "UNCONFIRMED" };
+    }
     return { ok: result.status === "committed", result, code: null };
   } catch (err) {
     const m = String(err?.message);

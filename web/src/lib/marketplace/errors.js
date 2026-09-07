@@ -65,6 +65,26 @@ export class UpstreamError extends MarketplaceError {
 }
 
 /**
+ * The destructive call was sent and its outcome is unknown.
+ *
+ * NOT a failure, and the difference is the whole point. `update_cart` replaces
+ * the provider's cart; if the request times out or the connection drops, the
+ * cart may well have been replaced and KOI simply was not told. Reporting that
+ * as "nothing was ordered" is a false statement about someone's shopping, and
+ * retrying it would replace the cart a second time from a plan already acted
+ * on — the exact thing the exactly-once claim exists to prevent.
+ *
+ * So the plan STAYS claimed and this is raised instead. `retryable` is false
+ * deliberately: the answer is not to try again, it is to go and look.
+ */
+export class HandoffUnconfirmedError extends MarketplaceError {
+  constructor(message = "Hand-off sent but not confirmed", cause) {
+    super(message, { code: "HANDOFF_UNCONFIRMED", retryable: false, cause });
+    this.name = "HandoffUnconfirmedError";
+  }
+}
+
+/**
  * The caller's session with the provider is gone.
  *
  * Expected, not exceptional: Swiggy's tokens last five days and v1.0 issues no

@@ -28,12 +28,39 @@ import "server-only";
 import { getServiceClient } from "@/lib/supabase/admin";
 import { getMarketplaceAdapter, verifyItems } from "./index";
 import { resolveSkuMappings } from "./skuMapRepo";
-import { NotConfiguredError } from "./errors";
+import {
+  NotConfiguredError, AuthExpiredError, NotServiceableError,
+  RateLimitError, HandoffUnconfirmedError,
+} from "./errors";
 import { AVAILABILITY } from "./types";
 import { pickSubstituteCandidates, keepAvailable } from "@/lib/recommendation/substitutes";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 
 const PLANS = "marketplace_handoff_plan";
+
+/**
+ * Is it CERTAIN the provider changed nothing?
+ *
+ * Only a refusal counts. Each of these is the provider (or KOI) declining the
+ * request before a cart could be touched: nothing configured to call, a
+ * credential rejected, an area not served, a quota refusing the request at the
+ * door. Anything else — a timeout, a 5xx, a socket closing, an unrecognised
+ * error — is ambiguous, and ambiguity must not be read as failure.
+ *
+ * `checkout` is not idempotent and KOI never calls it; the only non-idempotent
+ * call KOI does make is `update_cart`, which is what this protects.
+ *
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+function definitelyNoEffect(err) {
+  return (
+    err instanceof NotConfiguredError ||
+    err instanceof AuthExpiredError ||
+    err instanceof NotServiceableError ||
+    err instanceof RateLimitError
+  );
+}
 
 // Each substitute costs a provider search, and prepare is repeatable, so this
 // is a spending limit rather than a display preference. Two per rejected line
@@ -327,13 +354,42 @@ export async function commitHandoff({ profileId, planId }) {
 
     return result;
   } catch (err) {
-    // The claim is released ONLY because the provider call failed before
-    // changing anything we can observe. If it had partially succeeded, leaving
-    // the claim in place would be safer than allowing a second cart replace —
-    // which is why this catch is narrow and deliberate rather than a
-    // catch-all rollback.
-    await supabase.from(PLANS).update({ committed_at: null }).eq("plan_id", planId);
-    throw err;
+    // ── Releasing the claim is itself a claim ────────────────────────────────
+    // Releasing means "this plan may be committed again", which is only true if
+    // the provider definitely did nothing. This used to release on ANY error —
+    // including a timeout, which is precisely the case where update_cart is
+    // most likely to have replaced the cart and simply not told us. A second
+    // attempt would then replace it AGAIN, from a plan already acted on, which
+    // is the exact outcome the Postgres claim exists to prevent.
+    //
+    // So the question is not "did it fail" but "is it certain nothing
+    // happened". Only rejections certain to have been refused before the cart
+    // was touched qualify.
+    if (definitelyNoEffect(err)) {
+      await supabase.from(PLANS).update({ committed_at: null }).eq("plan_id", planId);
+      throw err;
+    }
+
+    // Ambiguous. The claim STAYS, so nothing can replace the cart a second
+    // time, and the uncertainty is recorded rather than smoothed over — a
+    // support question about this hand-off deserves an answer, and "we do not
+    // know" is one.
+    await supabase
+      .from(PLANS)
+      .update({
+        payload: {
+          ...plan,
+          status: "unconfirmed",
+          committedAt: claimedAt,
+          unconfirmedReason: err?.code || err?.name || "UNKNOWN",
+        },
+      })
+      .eq("plan_id", planId);
+
+    throw new HandoffUnconfirmedError(
+      "The hand-off was sent but not confirmed. The cart may or may not have been replaced.",
+      err
+    );
   }
 }
 
