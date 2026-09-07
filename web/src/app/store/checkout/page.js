@@ -15,12 +15,12 @@
 // never a hardcoded provider name.
 // ============================================================================
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ArrowLeft, ShieldCheck, ChevronRight, Sparkles, Lock, ArrowUpRight, Info,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCartStore } from "@/store/cartStore";
+import { useCartStore, isDescribable } from "@/store/cartStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { averageScore } from "@/lib/score";
 import { fetchCapabilities, fetchZone, prepareHandoff, commitHandoff } from "@/lib/marketplace/browser";
@@ -46,16 +46,23 @@ export default function CheckoutPage() {
   const [zoneId, setZoneId] = useState(null);
   const { pincode } = useLocation();
 
-  const items = useCartStore((state) => state.items);
+  const lines = useCartStore((state) => state.items);
   const hydrated = useCartStore((state) => state.hydrated);
+  const resolved = useCartStore((state) => state.resolved);
+
+  // Hand-off lines must carry a real SKU and price, so an unresolved reference
+  // cannot be checked out — but it must not be mistaken for an empty basket
+  // either. See isDescribable in cartStore.
+  const items = useMemo(() => lines.filter(isDescribable), [lines]);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price) || 0) * i.quantity, 0);
 
-  // Only redirect once the cart has actually been restored. Redirecting on a
-  // still-hydrating cart bounced shoppers with a full basket back to the shop.
+  // Only redirect once the cart has been restored AND described. Redirecting on
+  // a still-hydrating cart bounced shoppers with a full basket back to the shop;
+  // redirecting on a hydrated-but-unresolved one does the same thing later.
   useEffect(() => {
-    if (hydrated && items.length === 0) router.push("/store/shop");
-  }, [hydrated, items.length, router]);
+    if (hydrated && resolved && items.length === 0) router.push("/store/shop");
+  }, [hydrated, resolved, items.length, router]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -136,11 +143,11 @@ export default function CheckoutPage() {
       setZoneId(zone.zoneId);
 
       // Availability is a property of a pack, so the hand-off asks about SKUs.
-      const lines = items
+      const handoffLines = items
         .map((i) => ({ koiSkuId: i.skuId ?? i.id, quantity: i.quantity }))
         .filter((l) => l.koiSkuId);
 
-      const { ok, plan: prepared, code } = await prepareHandoff(zone.zoneId, lines);
+      const { ok, plan: prepared, code } = await prepareHandoff(zone.zoneId, handoffLines);
       if (!ok) {
         setHandoffError(
           code === "NOT_CONFIGURED"
@@ -191,7 +198,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!hydrated || items.length === 0) return null;
+  if (!hydrated || !resolved || items.length === 0) return null;
 
   const blocked = !user?.uid || !address || isProcessing;
 

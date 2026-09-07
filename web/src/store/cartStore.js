@@ -22,6 +22,15 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 const KEY = 'koi_cart';
 
 /** Persisted line. Deliberately carries no price and no availability. */
+/**
+ * Can the storefront describe this line yet?
+ *
+ * A hydrated-but-unresolved line is a real basket entry carrying only an id and
+ * a quantity. It must be kept (it is the shopper's) and must not be rendered
+ * (KOI would be showing a product it cannot name or price).
+ */
+export const isDescribable = (line) => Boolean(line && line.name);
+
 const toRef = (item) => ({
   id: item.id,
   quantity: item.quantity,
@@ -35,6 +44,13 @@ export const useCartStore = create(
       items: [],
       /** True once hydration has run — distinguishes empty from not-yet-loaded. */
       hydrated: false,
+      /**
+       * True once the authoritative catalogue has been applied. Between
+       * hydration and this, lines are bare `{id, quantity, addedAt}` refs with
+       * no name or price — real basket contents that cannot be described yet.
+       * The UI must not render them and must not call the basket empty.
+       */
+      resolved: false,
 
       /**
        * Marked from onRehydrateStorage, never from module scope. The persist
@@ -89,19 +105,24 @@ export const useCartStore = create(
        *
        * @param {Array} catalogue products currently known to the storefront
        */
-      resolveFromCatalogue: (catalogue = []) => set((state) => {
-        if (!catalogue.length) return {};
+      resolveFromCatalogue: (catalogue = [], { authoritative = false } = {}) => set((state) => {
+        if (!catalogue.length) return authoritative ? { resolved: true } : {};
+        if (!state.items.length) return authoritative ? { resolved: true } : {};
         const byId = new Map(catalogue.map((p) => [String(p.id), p]));
         return {
           items: state.items
             .map((line) => {
               const product = byId.get(String(line.id));
               // Product data wins; the reference contributes only quantity.
-              return product
-                ? { ...product, quantity: line.quantity, addedAt: line.addedAt }
-                : null;
+              if (product) return { ...product, quantity: line.quantity, addedAt: line.addedAt };
+              // Unmatched. Dropping is only correct against a catalogue that
+              // claims to be complete — the dev seed is a handful of fixtures
+              // and matches almost nothing real, so dropping there emptied a
+              // basket of genuine products on the way to the cart page.
+              return authoritative ? null : line;
             })
             .filter(Boolean),
+          ...(authoritative ? { resolved: true } : {}),
         };
       }),
 
@@ -128,9 +149,15 @@ export const useCartStore = create(
  * resolveFromCatalogue() once the catalogue loads.
  */
 export function hydrateCart() {
-  if (typeof window === 'undefined') return;
-  if (useCartStore.getState().hydrated) return;
-  Promise.resolve(useCartStore.persist.rehydrate()).finally(() => {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (useCartStore.getState().hydrated) return Promise.resolve();
+  // RETURNS the promise, and callers must await it. `persist` writes on every
+  // state change, so ANY set() that lands before rehydration finishes flushes
+  // the empty initial `items` over the saved basket — the shopper's cart is
+  // destroyed by the act of opening the page that displays it. This used to be
+  // fire-and-forget with a synchronous resolveFromCatalogue() right behind it,
+  // which is exactly that race.
+  return Promise.resolve(useCartStore.persist.rehydrate()).finally(() => {
     // onRehydrateStorage does not fire when storage is unavailable (private
     // browsing, blocked site data). Without this the UI waits forever.
     if (!useCartStore.getState().hydrated) useCartStore.getState().setHydrated();

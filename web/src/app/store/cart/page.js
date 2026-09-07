@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   ArrowLeft, 
   ShoppingBag, 
@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCartStore } from "@/store/cartStore";
-import { averageScore, hasScore } from "@/lib/score";
+import { useCartStore, isDescribable } from "@/store/cartStore";
+import { averageScore, hasScore, scoredOnly } from "@/lib/score";
 import { getSeedCatalogue } from "@/components/store/shop/shopData";
 import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
@@ -137,6 +137,10 @@ function readMacro(item, label) {
 }
 
 function CartInsights({ items }) {
+  // The average and the count it is "across" must come from the SAME set, or
+  // the caption misdescribes the number sitting above it. averageScore() drops
+  // unscored items internally, so the count has to drop them the same way.
+  const scored = scoredOnly(items);
   const avgScore = averageScore(items);
 
   const proteins = items.map((i) => readMacro(i, "protein")).filter((v) => v !== null);
@@ -300,12 +304,20 @@ export default function CartPage() {
   // The cart is restored by CartHydrator in the store layout. Waiting on
   // `hydrated` avoids flashing "your cart is empty" at someone whose basket
   // is still being read back from storage.
-  const items = useCartStore(state => state.items);
+  const lines = useCartStore(state => state.items);
   const hydrated = useCartStore(state => state.hydrated);
+  const resolved = useCartStore(state => state.resolved);
+
+  // Only lines the storefront can name and price. An unresolved line is real
+  // and stays in the basket; it just cannot be drawn yet.
+  const items = useMemo(() => lines.filter(isDescribable), [lines]);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price) || 0) * i.quantity, 0);
 
   if (!hydrated) return null;
+  // The basket has contents the catalogue has not described yet. Showing
+  // "your cart is empty" here would be a lie the shopper might act on.
+  if (!resolved && lines.length > 0) return null;
 
   // ─── EMPTY STATE ───
   if (totalItems === 0) {
