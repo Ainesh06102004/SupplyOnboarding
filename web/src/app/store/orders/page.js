@@ -152,6 +152,19 @@ export default function OrdersPage() {
     setBusyId(null);
   };
 
+  // Discarding a DRAFT is the only cancellation KOI can actually perform.
+  // Nothing has been sent anywhere, so this is KOI's own record and KOI's to
+  // close. A handed-off intent gets no such button: the cart is on Swiggy's
+  // side and there is no cancellation tool, which is why that path is a phone
+  // number rather than a control that would quietly do nothing.
+  const handleDiscard = async (intent) => {
+    setBusyId(intent.id);
+    await fulfilmentService.abandon(intent.id);
+    await load();
+    setSelected(null);
+    setBusyId(null);
+  };
+
   const handleReorder = (intent) => {
     clearCart();
     // Rebuild from the snapshot. Prices and scores are as they were on the day
@@ -287,12 +300,21 @@ export default function OrdersPage() {
                           {busyId === intent.id ? "Saving…" : "This arrived"}
                         </button>
                       ) : intent.state === FULFILMENT.DRAFT ? (
-                        <button
-                          onClick={() => router.push("/store/checkout")}
-                          className="flex-1 py-3 rounded-xl bg-[#0E4032] text-white font-bold text-[14px] shadow-md hover:bg-[#0E4032]/90 transition-all flex items-center justify-center gap-2"
-                        >
-                          <ShoppingBag className="w-4 h-4 text-[#C8F23E]" /> Finish this basket
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleDiscard(intent)}
+                            disabled={busyId === intent.id}
+                            className="flex-1 py-3 rounded-xl bg-white text-[#5A6B5A] font-bold text-[14px] border border-[#E2E8D8] hover:bg-[#F2F6EC] hover:text-[#0E4032] transition-colors disabled:opacity-50"
+                          >
+                            {busyId === intent.id ? "Discarding…" : "Discard"}
+                          </button>
+                          <button
+                            onClick={() => router.push("/store/checkout")}
+                            className="flex-1 py-3 rounded-xl bg-[#0E4032] text-white font-bold text-[14px] shadow-md hover:bg-[#0E4032]/90 transition-all flex items-center justify-center gap-2"
+                          >
+                            <ShoppingBag className="w-4 h-4 text-[#C8F23E]" /> Finish this basket
+                          </button>
+                        </>
                       ) : (
                         <button
                           onClick={() => handleReorder(intent)}
