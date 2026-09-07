@@ -24,6 +24,9 @@ import "server-only";
 import { getServiceClient } from "@/lib/supabase/admin";
 import { buildSkuIndex, resolveMapping, isTrustedMapping } from "./skuMap";
 
+/** Postgres uuid form. See the note in resolveSkuMappings before relaxing it. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Resolve provider lookup details for a set of KOI SKUs.
  *
@@ -44,12 +47,25 @@ export async function resolveSkuMappings(marketplace, koiSkuIds = [], ctx = {}) 
   // provider anything. Every SKU stays unmapped and resolves to `unknown`.
   if (!supabase) return out;
 
+  // `marketplace_sku_map.koi_sku_id` is a uuid column, and Postgres rejects the
+  // WHOLE `IN` list if any element will not parse as one (22P02). The error was
+  // caught below and every id returned unmapped — so ONE malformed id in a
+  // basket silently converted every other line, correctly mapped or not, into
+  // "KOI hasn't confirmed which product this is". A basket containing a dev
+  // fixture (id "os-dfm") did exactly that to two real, verified SKUs.
+  //
+  // A non-uuid can never match a uuid column, so dropping it here loses nothing
+  // and it keeps its unmapped default from the loop above. Failing honestly for
+  // one line must not mean failing honestly for all of them.
+  const queryable = koiSkuIds.filter((id) => UUID.test(String(id)));
+  if (!queryable.length) return out;
+
   const { data, error } = await supabase
     .from("marketplace_sku_map")
     .select("koi_sku_id, external_id, variant_ref, scope, scope_ref, match_query, confidence, verified_at")
     .eq("marketplace", marketplace)
     .eq("is_active", true)
-    .in("koi_sku_id", koiSkuIds);
+    .in("koi_sku_id", queryable);
 
   if (error) {
     console.error("resolveSkuMappings:", error.message);

@@ -23,6 +23,9 @@ const ITEMS = "fulfilment_intent_items";
 
 const NO_ROWS = "PGRST116";
 
+/** Postgres uuid form — strict, because a near-miss becomes an FK violation. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** The states KOI can actually observe. Mirrors the fulfilment_state enum. */
 export const FULFILMENT = Object.freeze({
   DRAFT: "draft",
@@ -73,10 +76,13 @@ const numOrNull = (v) => (v === null || v === undefined || v === "" || Number.is
 function toIntentItem(intentId, line) {
   return {
     intent_id: intentId,
-    // Cart ids are product ids, which are not always SKU ids. Send it only
-    // when it is a uuid; otherwise the line still records what was handed off,
-    // just without the foreign key.
-    koi_sku_id: /^[0-9a-f-]{36}$/i.test(String(line.id ?? "")) ? String(line.id) : null,
+    // `koi_sku_id` REFERENCES skus(id), so it must be the SKU id — `line.id` is
+    // the PRODUCT id. Both are uuids, so the old shape passed its own regex and
+    // then violated the foreign key, which failed the whole insert: a basket
+    // was handed off and recorded no line items at all. A dev fixture id fails
+    // the uuid test and lands as null, which is why the failure only showed up
+    // once real products were used.
+    koi_sku_id: UUID.test(String(line.skuId ?? "")) ? String(line.skuId) : null,
     product_name: line.name || "Unnamed product",
     brand_name: line.brand || null,
     quantity: Math.max(1, Number(line.quantity) || 1),
@@ -177,12 +183,36 @@ export const fulfilmentService = {
 
     // Replace the lines wholesale: the basket is the cart's current contents,
     // not an append-only log.
-    await supabase.from(ITEMS).delete().eq("intent_id", data.id);
+    //
+    // The delete is CHECKED. There was no DELETE policy on this table until
+    // 00016, and RLS refusing a delete is not an error — it is zero rows
+    // affected. So this silently became an append, and every trip through
+    // checkout added another copy of the basket while item_count above kept
+    // reporting the truth. The two disagreed and nothing said so.
+    const { error: clearError } = await supabase
+      .from(ITEMS)
+      .delete()
+      .eq("intent_id", data.id)
+      .select("id");
+
+    if (clearError) {
+      // Better to fail the draft than to hand off a line list that is the union
+      // of every attempt the shopper has made.
+      console.error("openDraft could not clear previous lines:", clearError);
+      return null;
+    }
+
     if (items.length) {
       const { error: itemError } = await supabase
         .from(ITEMS)
         .insert(items.map((line) => toIntentItem(data.id, line)));
-      if (itemError) console.error("openDraft items:", itemError);
+      if (itemError) {
+        // A hand-off whose line items did not save records that something was
+        // sent without recording what. `koi_sku_id` pointing at a product id
+        // instead of a SKU id used to fail the whole insert on the foreign key.
+        console.error("openDraft items:", itemError);
+        return null;
+      }
     }
 
     return data;
