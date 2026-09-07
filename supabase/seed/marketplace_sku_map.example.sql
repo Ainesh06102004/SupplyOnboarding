@@ -39,7 +39,13 @@ SELECT
   s.id,
   'SPN' || (10000 + row_number() OVER (ORDER BY s.id))::text,
   p.product_name,
-  'manual',
+  -- 'seed', NOT 'manual'. Per the taxonomy below, 'manual' means a person
+  -- confirmed this mapping, and nobody confirmed these — they are generated so
+  -- the mock has something to resolve. Writing 'manual' here would be a
+  -- fabricated verification claim sitting in the same table that decides
+  -- whether KOI is confident enough to report a product's stock, and it is the
+  -- line someone copies when they write the Swiggy rows.
+  'seed',
   1.00,
   now()
 FROM skus s
