@@ -26,11 +26,120 @@
 import "server-only";
 
 import { getServiceClient } from "@/lib/supabase/admin";
-import { getMarketplaceAdapter } from "./index";
+import { getMarketplaceAdapter, verifyItems } from "./index";
 import { resolveSkuMappings } from "./skuMapRepo";
 import { NotConfiguredError } from "./errors";
+import { AVAILABILITY } from "./types";
+import { pickSubstituteCandidates, keepAvailable } from "@/lib/recommendation/substitutes";
+import { fetchAllProducts } from "@/lib/data/productFetcher";
 
 const PLANS = "marketplace_handoff_plan";
+
+// Each substitute costs a provider search, and prepare is repeatable, so this
+// is a spending limit rather than a display preference. Two per rejected line
+// is enough to be a choice without becoming a second shop.
+const SUBSTITUTES_PER_LINE = 2;
+const MAX_SUBSTITUTE_LOOKUPS = 6;
+
+/**
+ * Offer KOI-screened alternatives for the lines that cannot be sent.
+ *
+ * The reconciliation screen has always rendered these; nothing ever filled
+ * them in, so the "Screened alternatives in stock" block could not appear. The
+ * picker existed for the product page and was simply never wired to the
+ * hand-off.
+ *
+ * Candidates come from KOI's OWN catalogue, never the provider's
+ * `similarProducts` — see the banner in lib/recommendation/substitutes.js. The
+ * provider is asked exactly one question about them, "can this be bought right
+ * now", and only confirmed-available ones are shown: the heading says in
+ * stock, so anything less than a definite yes would make the screen lie.
+ *
+ * Failure here is never fatal. A rejected line with no alternatives is a
+ * poorer screen; a hand-off that fell over because the suggestion engine had a
+ * bad day is a broken one.
+ */
+async function attachSubstitutes({ zoneId, rejected, basketSkuIds }) {
+  if (!rejected.length || !zoneId) return rejected;
+
+  try {
+    const catalogue = await fetchAllProducts();
+    if (!catalogue?.length) return rejected;
+
+    const bySkuId = new Map();
+    for (const p of catalogue) if (p?.skuId) bySkuId.set(String(p.skuId), p);
+
+    // Never suggest something already in the basket, and never suggest a line
+    // this same plan has just rejected.
+    const excluded = new Set([...basketSkuIds, ...rejected.map((r) => String(r.koiSkuId))]);
+
+    // Rank first, spend second: choose every candidate before asking the
+    // provider anything, so the budget is applied to a considered list rather
+    // than to whatever the first line happened to want.
+    const wanted = [];
+    for (const r of rejected) {
+      const target = bySkuId.get(String(r.koiSkuId)) ?? null;
+      // No profile is loaded here: this runs on the service role, which is not
+      // the shopper, and reading their goals would need a second identity.
+      // Ranking still uses category and KOI score, which is honest if generic.
+      const picked = pickSubstituteCandidates(target, catalogue, {}, SUBSTITUTES_PER_LINE + 2)
+        .filter((p) => p?.skuId && !excluded.has(String(p.skuId)));
+      wanted.push({ koiSkuId: String(r.koiSkuId), candidates: picked });
+    }
+
+    const ids = [];
+    for (const w of wanted) {
+      for (const c of w.candidates) {
+        const id = String(c.skuId);
+        if (!ids.includes(id) && ids.length < MAX_SUBSTITUTE_LOOKUPS) ids.push(id);
+      }
+    }
+    if (!ids.length) return rejected;
+
+    const adapter = getMarketplaceAdapter();
+    const mappings = await resolveSkuMappings(adapter.id, ids, { zoneId });
+    const results = await verifyItems({
+      zoneId,
+      items: ids.map((id) => ({
+        koiSkuId: id,
+        externalId: mappings[id]?.externalId ?? null,
+        matchQuery: mappings[id]?.matchQuery ?? null,
+      })),
+    });
+
+    // keepAvailable() wants {availability, price, deliveryEta} per key.
+    const signals = {};
+    for (const [id, r] of Object.entries(results)) {
+      signals[id] = {
+        availability: r?.availability ?? AVAILABILITY.UNKNOWN,
+        price: r?.item?.price ?? null,
+        deliveryEta: r?.item?.deliveryEta ?? null,
+      };
+    }
+
+    return rejected.map((r) => {
+      const w = wanted.find((x) => x.koiSkuId === String(r.koiSkuId));
+      if (!w) return r;
+      const live = keepAvailable(w.candidates, signals, (p) => String(p.skuId));
+      return {
+        ...r,
+        // Projected deliberately. The whole catalogue product would carry
+        // nutrition, screening and ingredient detail into a payload the
+        // browser reads, none of which this screen needs.
+        substitutes: live.slice(0, SUBSTITUTES_PER_LINE).map((p) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand ?? null,
+          score: p.score ?? null,
+          price: p.price ?? null,
+        })),
+      };
+    });
+  } catch (err) {
+    console.error("attachSubstitutes:", err?.message);
+    return rejected;
+  }
+}
 
 /**
  * Ask the provider what it would accept for this basket.
@@ -72,7 +181,12 @@ export async function prepareHandoff({ profileId, zoneId, lines = [] }) {
 
   // Fold unmapped lines into the plan's own rejections so the screen has one
   // list to render and one number to trust.
-  const rejected = [...(plan.rejected ?? []), ...unmapped];
+  const foldedRejections = [...(plan.rejected ?? []), ...unmapped];
+  const rejected = await attachSubstitutes({
+    zoneId,
+    rejected: foldedRejections,
+    basketSkuIds: ids,
+  });
   const complete = rejected.length === 0;
 
   // The adapter computed its warnings from ITS OWN rejections, before unmapped

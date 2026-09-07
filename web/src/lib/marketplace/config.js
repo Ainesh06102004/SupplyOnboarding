@@ -22,6 +22,12 @@ export const TTL = Object.freeze({
   itemMs: 30_000,
   zoneMs: 86_400_000,
   staleMaxMs: 900_000,
+  // How long a hand-off plan stays committable. This is NOT a cache lifetime
+  // and must not be tied to one: it is how long a person has to read the
+  // reconciliation screen, think about the substitutions, tick the
+  // cart-replacement confirmation and press the button. The mock reused
+  // `itemMs` and expired plans in thirty seconds, which no human beats.
+  planMs: 600_000,
 });
 
 /**

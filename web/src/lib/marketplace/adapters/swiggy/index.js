@@ -27,6 +27,7 @@
 import "server-only";
 
 import { AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE } from "../../types";
+import { TTL } from "../../config";
 import { NotConfiguredError, NotServiceableError } from "../../errors";
 import { callTool } from "./client";
 import { fromSearchProducts, fromCartUpdate, toMarketplaceItem } from "./mapping";
@@ -283,7 +284,7 @@ export function createSwiggyAdapter(options = {}) {
         // Short, because prices and stock move. Past this the plan is re-run
         // rather than trusted — prepare is read-only, so re-running is cheap
         // in every sense except provider quota.
-        expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+        expiresAt: new Date(Date.now() + TTL.planMs).toISOString(),
       };
     },
 

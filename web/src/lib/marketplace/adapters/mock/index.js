@@ -251,7 +251,9 @@ export function createMockAdapter(options = {}) {
         rejected,
         totals: { subtotal, currency: "INR", complete },
         warnings,
-        expiresAt: new Date(now() + TTL.itemMs).toISOString(),
+        // TTL.planMs, not itemMs: a plan is how long a person has to decide,
+        // not how long an availability answer stays fresh.
+        expiresAt: new Date(now() + TTL.planMs).toISOString(),
       };
     },
 
