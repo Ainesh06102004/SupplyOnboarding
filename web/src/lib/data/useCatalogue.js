@@ -4,7 +4,20 @@
 // KOI — Catalogue hook
 //
 // One way for a page to get the catalogue: seed for an instant first paint,
-// live rows merged in when they arrive, live winning on id.
+// then the live rows REPLACE it when they arrive.
+//
+// The seed has exactly two jobs — paint something before the fetch lands, and
+// stand in when the fetch finds nothing. Neither survives live rows arriving,
+// so they replace rather than merge. Merging looked harmless because
+// mergeCatalogue dedupes on id, but a fixture id ("os-dfm") can never collide
+// with a Supabase uuid, so the merge was a concatenation: dev fixtures sat in
+// the shop permanently, next to real products, at 10 of 28 entries. They carry
+// no skuId, so they can never be asked about — every one of them showed no
+// stock chip and an "availability unknown" panel forever, which reads as a
+// broken supply integration rather than as a fixture.
+//
+// This also makes development agree with production, where getSeedCatalogue()
+// returns [] and mergeCatalogue([], live) was already just `live`.
 //
 // `status` is the point of this file. A page cannot render honestly from
 // `products.length === 0` alone, because that single condition covers two
@@ -15,7 +28,6 @@
 
 import { useEffect, useState } from "react";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
-import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
 
 /** @typedef {'loading'|'ready'|'empty'} CatalogueStatus */
 
@@ -35,7 +47,7 @@ export function useCatalogue(seedFn) {
         const data = await fetchAllProducts();
         if (!alive) return;
         if (data && data.length) {
-          setProducts(mergeCatalogue(seedFn(), data));
+          setProducts(data);
           setLive(true);
         }
       } catch {
@@ -47,8 +59,8 @@ export function useCatalogue(seedFn) {
       }
     })();
     return () => { alive = false; };
-    // seedFn is a stable module-scope function in every call site.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Genuinely dependency-free now: the effect fetches and replaces, and no
+    // longer reads seedFn. The seed is consumed once, as useState's initialiser.
   }, []);
 
   const status = !settled && products.length === 0 ? "loading" : products.length === 0 ? "empty" : "ready";
