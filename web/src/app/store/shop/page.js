@@ -21,6 +21,7 @@ import { averageScore } from "@/lib/score";
 import CommandSearch from "@/components/store/shop/CommandSearch";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
+import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
 import { useGoalStore } from "@/store/goalStore";
 import {
   ShopHero, FeaturedEditorial, Shelf, GoalRail, IngredientStrip,
@@ -214,6 +215,13 @@ export default function ShopPage() {
 
           {/* Start the journey: set a goal, KOI tunes to you, then keep scrolling */}
           <GoalRail goals={GOALS} activeGoal={activeGoal} onPick={(g) => { setActiveGoal(g); if (g) scrollToGrid(); }} onOpenGoal={() => setGoalOpen(true)} />
+
+          {/* Whether KOI can answer "can I get this" at all. Renders nothing
+              when signed out or when no supply source is configured, so the
+              honest default state of the shop is unchanged. */}
+          <div className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
+            <ConnectSwiggy next="/store/shop" compact />
+          </div>
 
           {/* KRE-personalised shelves (renders only when a goal profile exists) */}
           <PersonalShelves products={products} />
