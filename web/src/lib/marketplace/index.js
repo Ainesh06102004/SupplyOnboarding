@@ -23,6 +23,8 @@ import { nullAdapter } from "./adapters/null";
 import { createMockAdapter } from "./adapters/mock";
 import { createSwiggyAdapter } from "./adapters/swiggy";
 import { readThrough, cacheKey, cacheStats } from "./cache/shelfCache";
+import { resolveKoiSkusByExternalId } from "./skuMapRepo";
+import { SHELVES } from "./shelves";
 
 let cached = null;
 
@@ -127,14 +129,32 @@ export async function resolveZone(pincode) {
 }
 
 /**
+ * WHOSE answer a cached entry is.
+ *
+ * A connected shopper is asked about at THEIR address, so their result is not
+ * interchangeable with anyone else's and must not share a cache entry with
+ * them. Adapters that cannot vary by shopper report "house" and share one
+ * entry per zone, which is what makes house-credential browse affordable.
+ *
+ * @param {object} adapter
+ * @param {string} zoneId
+ * @returns {Promise<string>}
+ */
+async function audienceFor(adapter, zoneId) {
+  return typeof adapter.audienceKey === "function"
+    ? await adapter.audienceKey({ zoneId })
+    : "house";
+}
+
+/**
  * Render a shelf: ONE provider call returning many products, shared by every
  * shopper looking at the same shelf in the same zone within the TTL window.
  *
  * @param {{ zoneId: string, shelfId: string, query: string, limit?: number }} params
  * @returns {Promise<import('./types').ShelfResult>}
  */
-export async function runShelfQuery({ zoneId, shelfId, query, limit }) {
-  const adapter = getMarketplaceAdapter();
+export async function runShelfQuery({ zoneId, shelfId, query, limit, profileId = null }) {
+  const adapter = getMarketplaceAdapter({ profileId });
   const empty = {
     items: [],
     cursor: null,
@@ -146,9 +166,15 @@ export async function runShelfQuery({ zoneId, shelfId, query, limit }) {
 
   if (!zoneId || !query) return empty;
 
+  // Audience-scoped for the same reason verifyItems is: once shoppers connect
+  // their own accounts a shelf is answered at THEIR address, and an unscoped
+  // key would serve one shopper's stock states to another. This was latent
+  // rather than harmless — nothing had ever called a shelf from the UI.
+  const audience = await audienceFor(adapter, zoneId);
+
   try {
     const { value, source, degraded } = await readThrough(
-      cacheKey(zoneId, shelfId),
+      cacheKey(zoneId, shelfId, audience),
       () => adapter.runShelfQuery({ zoneId, shelfId, query, limit }),
       { ttlMs: TTL.shelfMs }
     );
@@ -182,9 +208,7 @@ export async function verifyItems({ zoneId, items = [], withSubstitutes = false,
   // cacheKey. Adapters that cannot vary by shopper report "house" and share one
   // cache entry per zone, which is the behaviour this had before and the reason
   // house-credential browse is affordable at all.
-  const audience = typeof adapter.audienceKey === "function"
-    ? await adapter.audienceKey({ zoneId })
-    : "house";
+  const audience = await audienceFor(adapter, zoneId);
 
   const results = await Promise.all(
     items.map(async (it) => {
@@ -218,6 +242,105 @@ export async function verifyItems({ zoneId, items = [], withSubstitutes = false,
   );
 
   return Object.fromEntries(results);
+}
+
+/**
+ * Availability for KOI's catalogue in one zone, for a grid.
+ *
+ * WHY THIS IS NOT verifyItems OVER THE VISIBLE PRODUCTS. A verify costs one
+ * provider search PER SKU, because there is no lookup by id. Running that
+ * across a grid is the single most expensive thing this layer could do, and it
+ * scales with how many products a shopper scrolls past — which is why
+ * useProductSupply is documented as never running from a grid.
+ *
+ * So the grid rides the shelf path instead. The shelf set is closed and
+ * already priced in: N queries per zone per TTL window, ONE provider call
+ * each, coalesced across every shopper looking at that zone. Scrolling costs
+ * nothing extra, and adding a product to KOI's catalogue costs nothing extra.
+ *
+ * WHAT IT CANNOT DO, honestly: a shelf answers with the provider's catalogue,
+ * so a KOI product no shelf query surfaced gets no signal and stays `unknown`.
+ * That is a real limit, not a bug — the alternative is a search per card. The
+ * product page still verifies precisely, on engagement, where one call is
+ * warranted.
+ *
+ * @param {{ zoneId: string, profileId?: string|null }} params
+ * @returns {Promise<{items: Record<string, object>, degraded: boolean, source: string}>}
+ *   items keyed by KOI SKU id
+ */
+export async function catalogueSupply({ zoneId, profileId = null }) {
+  const empty = { items: {}, degraded: false, source: SIGNAL_SOURCE.NONE };
+  if (!zoneId) return empty;
+
+  const results = await Promise.all(
+    SHELVES.map((shelf) =>
+      runShelfQuery({
+        zoneId,
+        shelfId: shelf.id,
+        query: shelf.query,
+        limit: shelf.limit,
+        profileId,
+      })
+    )
+  );
+
+  // Collapse the shelves into one view of each provider product. The same item
+  // legitimately appears on several shelves, and the states can disagree —
+  // they were fetched at different moments.
+  const byExternalId = new Map();
+  let degraded = false;
+  let answered = false;
+
+  for (const r of results) {
+    if (r.degraded) degraded = true;
+    if (r.source !== SIGNAL_SOURCE.NONE) answered = true;
+
+    for (const item of r.items ?? []) {
+      if (!item?.externalId) continue;
+      const prev = byExternalId.get(item.externalId);
+      if (!prev || preferSignal(item, prev) === item) byExternalId.set(item.externalId, item);
+    }
+  }
+
+  const mapped = await resolveKoiSkusByExternalId(getMarketplaceAdapter().id, [...byExternalId.keys()]);
+
+  const items = {};
+  for (const [externalId, koiSkuId] of Object.entries(mapped)) {
+    const signal = byExternalId.get(externalId);
+    if (!signal) continue;
+    items[koiSkuId] = {
+      availability: signal.availability ?? AVAILABILITY.UNKNOWN,
+      price: signal.price ?? null,
+      mrp: signal.mrp ?? null,
+      deliveryEta: signal.deliveryEta ?? null,
+      observedAt: signal.observedAt ?? null,
+    };
+  }
+
+  return {
+    items,
+    degraded,
+    // `none` has to survive an adapter that asked nobody. Reporting a source
+    // when the NullAdapter answered would imply a provider was consulted.
+    source: answered ? SIGNAL_SOURCE.CACHE : SIGNAL_SOURCE.NONE,
+  };
+}
+
+/**
+ * Which of two signals for the same provider product to keep.
+ *
+ * A definite answer beats `unknown` — one shelf not covering an item is not
+ * evidence against another shelf that did. Between two definite answers the
+ * more recent observation wins, because both were true when observed and only
+ * one still is.
+ *
+ * @returns {object} whichever argument to keep
+ */
+function preferSignal(a, b) {
+  const defA = a?.availability && a.availability !== AVAILABILITY.UNKNOWN;
+  const defB = b?.availability && b.availability !== AVAILABILITY.UNKNOWN;
+  if (defA !== defB) return defA ? a : b;
+  return String(a?.observedAt ?? "") >= String(b?.observedAt ?? "") ? a : b;
 }
 
 export { cacheStats, AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE, TTL, BUDGET };

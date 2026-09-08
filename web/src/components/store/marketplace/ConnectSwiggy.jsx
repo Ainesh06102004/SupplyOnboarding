@@ -29,8 +29,12 @@ import { C, HEADING, BODY } from "@/components/store/landing/tokens";
  * @param {object} props
  * @param {string} [props.next] where to return after the round trip
  * @param {boolean} [props.compact] inline variant for the checkout column
+ * @param {() => void} [props.onChange] fired after a connection is made or
+ *   dropped. The real OAuth flow is a full navigation and remounts everything,
+ *   but the mock connect is a POST that leaves the page standing — so without
+ *   this a grid would keep showing pre-connection answers until a reload.
  */
-export default function ConnectSwiggy({ next = "/store/shop", compact = false }) {
+export default function ConnectSwiggy({ next = "/store/shop", compact = false, onChange }) {
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -65,6 +69,7 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false })
     try {
       await fetch("/api/marketplace/connect", { method: "DELETE" });
       await load();
+      onChange?.();
     } finally {
       setBusy(false);
     }
@@ -85,6 +90,7 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false })
     try {
       await fetch("/api/marketplace/connect/mock", { method: "POST" });
       await load();
+      onChange?.();
     } finally {
       setBusy(false);
     }

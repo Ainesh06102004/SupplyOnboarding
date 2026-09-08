@@ -22,6 +22,9 @@ import CommandSearch from "@/components/store/shop/CommandSearch";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
 import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
+import { useLocation } from "@/contexts/LocationContext";
+import { useCatalogueSupply } from "@/lib/marketplace/useCatalogueSupply";
+import { attachSupply } from "@/lib/marketplace/browser";
 import { useGoalStore } from "@/store/goalStore";
 import {
   ShopHero, FeaturedEditorial, Shelf, GoalRail, IngredientStrip,
@@ -44,7 +47,23 @@ export default function ShopPage() {
   // getSeedCatalogue), then live products merged in, live winning on id. Same
   // hook the landing page uses, so both pages agree on what the catalogue is
   // and on the difference between "still loading" and "genuinely empty".
-  const { products } = useCatalogue(getSeedCatalogue);
+  const { products: screened } = useCatalogue(getSeedCatalogue);
+
+  // Supply for the whole grid: ONE request for the zone, not one per card.
+  // Bumping supplyKey re-asks after a connection changes, because the same
+  // zone is then answered at the shopper's own address rather than KOI's.
+  const { pincode } = useLocation();
+  const [supplyKey, setSupplyKey] = useState(0);
+  const supply = useCatalogueSupply(pincode, supplyKey);
+
+  // Availability rides on top of the screened catalogue; it never filters it.
+  // A product KOI screened is still a product KOI screened when nobody can say
+  // whether it is in stock — see candidateGenerator, which excludes only
+  // `unavailable` and keeps `unknown`.
+  const products = useMemo(
+    () => attachSupply(screened, supply.items),
+    [screened, supply.items]
+  );
 
   // ── Filter / sort state (preserved model + query/brand context) ──
   const [activeCategory, setActiveCategory] = useState("All");
@@ -220,7 +239,16 @@ export default function ShopPage() {
               when signed out or when no supply source is configured, so the
               honest default state of the shop is unchanged. */}
           <div className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
-            <ConnectSwiggy next="/store/shop" compact />
+            <ConnectSwiggy next="/store/shop" compact onChange={() => setSupplyKey((k) => k + 1)} />
+            {/* A provider declining the area is a real answer and worth saying.
+                Everything still renders — KOI screened these products either
+                way, and not delivering here is not a fact about the food. */}
+            {supply.serviceability === "not_serviceable" && (
+              <p className="mt-3 text-[12px] font-semibold" style={{ color: "#9B3A25" }}>
+                Swiggy doesn&apos;t deliver to {pincode} yet, so we can&apos;t show what&apos;s in
+                stock near you. Everything below is still screened by KOI.
+              </p>
+            )}
           </div>
 
           {/* KRE-personalised shelves (renders only when a goal profile exists) */}

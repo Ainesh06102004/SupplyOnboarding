@@ -74,31 +74,6 @@ export async function fetchZone(pincode, signal) {
 }
 
 /**
- * Availability and price for one shelf, keyed by the provider's opaque id.
- *
- * Returns an empty map on failure rather than throwing, so a caller merging
- * this into products gets `unknown` everywhere — which is true, and which the
- * UI already handles.
- *
- * @param {string} zoneId
- * @param {string} shelfId
- * @param {AbortSignal} [signal]
- * @returns {Promise<{ items: Record<string, object>, degraded: boolean, source: string }>}
- */
-export async function fetchShelfSupply(zoneId, shelfId, signal) {
-  if (!zoneId || !shelfId) return { items: {}, degraded: false, source: "none" };
-
-  try {
-    const data = await post("/api/marketplace/shelf", { zoneId, shelfId }, signal);
-    const items = {};
-    for (const i of data.items || []) items[i.externalId] = i;
-    return { items, degraded: !!data.degraded, source: data.source };
-  } catch {
-    return { items: {}, degraded: true, source: "none" };
-  }
-}
-
-/**
  * Ask the provider about specific KOI SKUs.
  *
  * The demand-driven half of the design: this costs one provider search PER
@@ -175,23 +150,68 @@ export async function commitHandoff(planId, signal) {
 }
 
 /**
+ * Availability for KOI's catalogue in a zone, for a grid.
+ *
+ * ONE request regardless of how many products are on screen. The server runs
+ * the closed shelf set and returns only what maps to a KOI SKU, so browsing
+ * does not scale provider cost with scrolling — see catalogueSupply() for why
+ * a grid must never go through verifySupply.
+ *
+ * Fails soft to an empty map, which leaves every product `unknown`.
+ *
+ * The zone is resolved server-side from the pincode. The browser never names
+ * a zone: a client-chosen cache key is an unbounded key space against a scarce
+ * shared quota.
+ *
+ * @param {string} pincode
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{items: Record<string, object>, degraded: boolean,
+ *   source: string, serviceability: string}>}
+ */
+export async function fetchCatalogueSupply(pincode, signal) {
+  const floor = { items: {}, degraded: false, source: "none", serviceability: "unknown" };
+  if (!pincode) return floor;
+  try {
+    const data = await post("/api/marketplace/catalogue", { pincode }, signal);
+    return {
+      items: data.items || {},
+      degraded: !!data.degraded,
+      source: data.source,
+      serviceability: data.serviceability ?? "unknown",
+    };
+  } catch {
+    // A failure is not a refusal. Serviceability stays unknown so the grid
+    // cannot tell a shopper KOI does not deliver to them because a fetch died.
+    return { ...floor, degraded: true };
+  }
+}
+
+/**
  * Attach supply signals to KOI products.
  *
  * Pure, one pass, Map lookup — never a `.find()` inside the loop.
+ *
+ * KEYED ON THE KOI SKU ID, not the provider's. The reverse mapping happens
+ * server-side in skuMapRepo, so provider ids never reach the browser — the
+ * client cannot correlate KOI's catalogue with a provider's, which is the
+ * whole reason the seam refuses to hand out raw payloads.
+ *
+ * Availability is a property of a PACK, not a product: a 60 g tub can be in
+ * stock while the 200 g one is not, and skus(id) is what the map references.
  *
  * A product with no matching signal keeps `unknown`: absence of a signal is
  * absence of knowledge, never evidence of stock.
  *
  * @param {Array} products
- * @param {Record<string, object>} supplyByExternalId
+ * @param {Record<string, object>} supplyByKoiSkuId
  * @returns {Array} products with availability, price and deliveryEta attached
  */
-export function attachSupply(products = [], supplyByExternalId = {}) {
-  const supply = new Map(Object.entries(supplyByExternalId));
+export function attachSupply(products = [], supplyByKoiSkuId = {}) {
+  const supply = new Map(Object.entries(supplyByKoiSkuId));
   if (!supply.size) return products;
 
   return products.map((p) => {
-    const signal = p.externalId ? supply.get(p.externalId) : null;
+    const signal = p.skuId ? supply.get(String(p.skuId)) : null;
     if (!signal) return p;
     return {
       ...p,

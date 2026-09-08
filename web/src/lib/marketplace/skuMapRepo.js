@@ -102,3 +102,67 @@ export async function resolveSkuMappings(marketplace, koiSkuIds = [], ctx = {}) 
 
   return out;
 }
+
+/**
+ * The reverse direction: which KOI SKUs do these provider ids correspond to?
+ *
+ * A shelf query returns the provider's catalogue, most of which KOI has never
+ * screened. This is how the few that ARE KOI products are recognised, so a
+ * grid can show real availability without spending a search per card.
+ *
+ * TRUST IS ENFORCED IN THIS DIRECTION TOO, and it matters more here. Forward,
+ * an untrusted mapping means KOI asks about the wrong product. Backward, it
+ * means a provider's stock line is pinned onto a KOI product card — a claim
+ * about a specific screened food, made from a match nobody confirmed. Rows
+ * that are neither verified nor confident enough are dropped, and those SKUs
+ * simply stay `unknown`.
+ *
+ * `scope` is deliberately not consulted. A store-scoped row still names the
+ * same provider product; which zone it was recorded for does not change what
+ * `external_id` identifies. Forward resolution needs scope to pick BETWEEN
+ * candidate rows; here there is nothing to pick between.
+ *
+ * @param {string} marketplace  adapter id, e.g. 'mock' or 'swiggy'
+ * @param {string[]} externalIds  provider ids, typically from a shelf result
+ * @returns {Promise<Record<string, string>>} externalId → koiSkuId, trusted only
+ */
+export async function resolveKoiSkusByExternalId(marketplace, externalIds = []) {
+  const out = {};
+  if (!marketplace || !externalIds.length) return out;
+
+  const supabase = getServiceClient();
+  if (!supabase) return out;
+
+  // `external_id` is text, so there is no 22P02 hazard in this direction — but
+  // the list is still deduped and bounded, because it is built from whatever a
+  // provider chose to return.
+  const ids = [...new Set(externalIds.map(String).filter(Boolean))];
+  if (!ids.length) return out;
+
+  const { data, error } = await supabase
+    .from("marketplace_sku_map")
+    .select("koi_sku_id, external_id, confidence, verified_at")
+    .eq("marketplace", marketplace)
+    .eq("is_active", true)
+    .in("external_id", ids);
+
+  if (error) {
+    console.error("resolveKoiSkusByExternalId:", error.message);
+    return out;
+  }
+
+  for (const r of data ?? []) {
+    const trusted = isTrustedMapping({
+      externalId: r.external_id,
+      confidence: r.confidence,
+      verifiedAt: r.verified_at,
+    });
+    if (!trusted) continue;
+    // First trusted row wins. Two KOI SKUs claiming one provider id is a data
+    // fault, not something to resolve by guessing which pack was meant.
+    if (out[r.external_id]) continue;
+    out[r.external_id] = r.koi_sku_id;
+  }
+
+  return out;
+}

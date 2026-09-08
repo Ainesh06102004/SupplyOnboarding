@@ -168,6 +168,25 @@ export function createMockAdapter(options = {}) {
     },
 
     async runShelfQuery({ zoneId, shelfId, query, limit = 20 }) {
+      const nothingKnown = {
+        items: [],
+        cursor: null,
+        fetchedAt: new Date(now()).toISOString(),
+        source: SIGNAL_SOURCE.NONE,
+        degraded: false,
+        zoneId,
+        shelfId,
+      };
+
+      // Same gate as verifyItem, and it was missing here. `connected()` was
+      // consulted only for the cache key, so the mock answered shelf queries
+      // for visitors it had no way to ask on behalf of — while the real
+      // adapter needs an addressId, and an addressId belongs to an
+      // authenticated user. Harmless while nothing called shelves; the moment
+      // a grid did, it made connected and disconnected look identical there
+      // and would have gone on doing so until credentials arrived.
+      if (!(await connected())) return nothingKnown;
+
       // Seeded on the TTL window so results are stable within it and change at
       // the boundary — the cache becomes observable rather than invisible.
       const seed = `${zoneId}:${query}:${windowOf(now(), TTL.shelfMs)}`;

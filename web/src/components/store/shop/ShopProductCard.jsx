@@ -11,6 +11,28 @@ import { Plus, Minus, Heart, Scale, Info, Check } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { ScoreRing, ProductImage } from "@/components/store/landing/primitives";
+import { availabilityOf, canClaimAvailability, AVAILABILITY } from "@/lib/availability";
+
+/**
+ * Stock chip. Renders ONLY when a supply source actually answered.
+ *
+ * `unknown` deliberately renders nothing rather than a grey "stock unknown"
+ * chip on every card: with no source connected that is every product in the
+ * store, and a wall of hedges reads as broken rather than as honest. The
+ * connect card above the grid carries that message once, where it belongs.
+ */
+function StockChip({ product }) {
+  if (!canClaimAvailability(product)) return null;
+  const out = availabilityOf(product) === AVAILABILITY.UNAVAILABLE;
+  return (
+    <span
+      className="rounded-md px-2 py-0.5 text-[10.5px] font-bold"
+      style={out ? { background: "#FBEDEA", color: "#9B3A25" } : { background: "#EAF8F0", color: "#0C6B4C" }}
+    >
+      {out ? "Not available nearby" : "In stock nearby"}
+    </span>
+  );
+}
 
 function nutrientValue(product, label) {
   const n = (product.nutrition || []).find((x) => x.label === label);
@@ -102,6 +124,7 @@ export default function ShopProductCard({
 
         {/* trust chips */}
         <div className="mt-3 flex flex-wrap gap-1.5">
+          <StockChip product={product} />
           {protein && (
             <span className="rounded-md bg-[#EAF8F0] px-2 py-0.5 text-[10.5px] font-bold text-[#0C6B4C]">{protein} protein</span>
           )}
