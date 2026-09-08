@@ -23,7 +23,7 @@
 
 import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
-import { exchangeCode, fetchDefaultAddressId } from "@/lib/marketplace/adapters/swiggy/oauth";
+import { exchangeCode, fetchDefaultAddressId, callbackUri } from "@/lib/marketplace/adapters/swiggy/oauth";
 import { saveCredential } from "@/lib/marketplace/credentials";
 import { PKCE_COOKIE } from "../route";
 
@@ -69,7 +69,9 @@ export async function GET(request) {
     const token = await exchangeCode({
       code,
       verifier: stash.verifier,
-      redirectUri: `${origin}/api/marketplace/connect/swiggy/callback`,
+      // Must be byte-identical to the one sent to /authorize, or the
+      // exchange fails after the shopper has already consented.
+      redirectUri: callbackUri(origin),
     });
 
     // The shopper's own default address. Best-effort: a token with no address

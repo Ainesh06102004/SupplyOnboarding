@@ -20,7 +20,7 @@
 
 import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
-import { createPkce, buildAuthorizeUrl, oauthReady } from "@/lib/marketplace/adapters/swiggy/oauth";
+import { createPkce, buildAuthorizeUrl, oauthReady, callbackUri } from "@/lib/marketplace/adapters/swiggy/oauth";
 
 export const PKCE_COOKIE = "koi-swiggy-pkce";
 const TEN_MINUTES = 600;
@@ -50,7 +50,9 @@ export async function GET(request) {
   }
 
   const { verifier, challenge, state } = createPkce();
-  const redirectUri = `${origin}/api/marketplace/connect/swiggy/callback`;
+  // NOT derived from `origin` — Swiggy matches this string exactly, and a
+  // per-build deployment hostname would never match what is registered.
+  const redirectUri = callbackUri(origin);
 
   const response = NextResponse.redirect(
     buildAuthorizeUrl({ challenge, state, redirectUri })

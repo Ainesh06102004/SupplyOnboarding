@@ -60,6 +60,34 @@ export const tokenEndpoint = () =>
 export const oauthReady = () => Boolean(process.env.SWIGGY_CLIENT_ID);
 
 /**
+ * The redirect URI to register with Swiggy, and to send on BOTH legs of the
+ * exchange.
+ *
+ * Swiggy matches redirect URIs EXACTLY, so the string cannot vary. Deriving it
+ * from the request origin is right in development — localhost, whatever port —
+ * but wrong the moment the app is deployed anywhere that hands out a URL per
+ * build: a Vercel preview is a fresh hostname on every push, so a derived URI
+ * would never match the one on file and every connection attempt would be
+ * rejected at the consent screen.
+ *
+ * KOI_PUBLIC_ORIGIN pins it. Unset, the request origin is used, which is what
+ * dev wants. This is derivation, not a hardcoded fallback: there is no default
+ * domain baked in anywhere.
+ *
+ * Both the authorize call and the token exchange MUST pass the same string, or
+ * the exchange fails after the shopper has already consented — the worst place
+ * to fail, because it looks like they did something wrong.
+ *
+ * @param {string} requestOrigin origin of the incoming request
+ * @returns {string}
+ */
+export function callbackUri(requestOrigin) {
+  const pinned = process.env.KOI_PUBLIC_ORIGIN;
+  const base = pinned ? pinned.replace(/\/+$/, "") : requestOrigin;
+  return `${base}/api/marketplace/connect/swiggy/callback`;
+}
+
+/**
  * A fresh PKCE pair plus CSRF state.
  *
  * The verifier is the secret: it never leaves the server, and only the
