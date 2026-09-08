@@ -103,8 +103,28 @@ export function createMockAdapter(options = {}) {
     }
   }
 
-  function itemFor(fixture, seed) {
-    const roll = hashFloat(`${seed}:${fixture.externalId}:stock`);
+  /**
+   * One fixture as the provider would report it, in one zone, right now.
+   *
+   * THE STOCK ROLL IS KEYED ON (zone, product, time) AND NOTHING ELSE. It used
+   * to be keyed on the caller's seed, which differed per path: a shelf seeded
+   * on (zone, query, shelfWindow), a verify on (zone, externalId, itemWindow),
+   * substitutes on the verify seed plus ":sub". Those are independent hashes,
+   * so one product had several unrelated stock states at the same instant —
+   * the grid could say available while the reconciliation screen said no, at
+   * roughly the out-of-stock rate, as an artefact of which code asked. A
+   * product sitting on eight shelves even got eight rolls.
+   *
+   * A real provider has ONE stock state per product per zone per moment, and
+   * a search and a lookup at the same instant agree. Now so does this.
+   *
+   * Drift between paths is still reachable, and should be: the stock window is
+   * TTL.shelfMs, so a shelf answer cached across a boundary can be staler than
+   * a fresh verify. That is genuine cache staleness — exactly what the
+   * reconciliation screen exists to catch — rather than two random processes.
+   */
+  function itemFor(fixture, zoneId) {
+    const roll = hashFloat(`${zoneId}:${fixture.externalId}:${windowOf(now(), TTL.shelfMs)}:stock`);
     let availability = AVAILABILITY.AVAILABLE;
     if (roll < cfg.outOfStockRate) availability = AVAILABILITY.UNAVAILABLE;
     else if (roll < cfg.outOfStockRate + cfg.unknownRate) availability = AVAILABILITY.UNKNOWN;
@@ -196,7 +216,7 @@ export function createMockAdapter(options = {}) {
       const picked = FIXTURE_POOL.slice(start, start + Math.min(limit, capabilities.maxResultsPerQuery));
 
       return {
-        items: picked.map((f) => itemFor(f, seed)),
+        items: picked.map((f) => itemFor(f, zoneId)),
         cursor: null,
         fetchedAt: new Date(now()).toISOString(),
         source: SIGNAL_SOURCE.LIVE,
@@ -230,14 +250,14 @@ export function createMockAdapter(options = {}) {
         FIXTURE_POOL.find((f) => f.externalId === externalId) ||
         FIXTURE_POOL[hashInt(`${koiSkuId}:${matchQuery}`, FIXTURE_POOL.length)];
 
-      const item = itemFor(fixture, seed);
+      const item = itemFor(fixture, zoneId);
 
       // Substitutes only matter when the thing asked for cannot be bought.
       const substitutes =
         withSubstitutes && item.availability !== AVAILABILITY.AVAILABLE
           ? FIXTURE_POOL.filter((f) => f.externalId !== fixture.externalId)
               .slice(0, 3)
-              .map((f) => itemFor(f, `${seed}:sub`))
+              .map((f) => itemFor(f, zoneId))
               .filter((s) => s.availability === AVAILABILITY.AVAILABLE)
           : [];
 
