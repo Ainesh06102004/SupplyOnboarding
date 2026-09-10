@@ -16,6 +16,7 @@ import {
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { ScoreRing } from "@/components/store/landing/primitives";
 import { GOALS, INGREDIENTS, EDITORIAL, TRENDING, PLACEHOLDERS } from "./shopData";
+import { interpret, describeIntent } from "@/lib/ai/intent";
 import Image from "next/image";
 
 const GOAL_ICONS = { Dumbbell, ShieldCheck, Sprout, Zap, Activity, Baby, Heart, Flame };
@@ -74,7 +75,14 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
 
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))), [products]);
 
-  const submitQuery = useCallback((text) => { pushRecent(text); onQuery?.({ query: text }); onClose?.(); }, [onQuery, onClose]);
+  // A typed query leaves here as an interpreted intent, not as a raw string.
+  // The shop still receives the text for the fallback path, but a sentence is
+  // no longer handed over to be used as a substring.
+  const submitQuery = useCallback((text) => {
+    pushRecent(text);
+    onQuery?.({ query: text, intent: interpret(text) });
+    onClose?.();
+  }, [onQuery, onClose]);
   const goProduct = useCallback((p) => { onSelectProduct?.(p); onClose?.(); }, [onSelectProduct, onClose]);
   const goGoal = useCallback((g) => { onQuery?.({ goal: g }); onClose?.(); }, [onQuery, onClose]);
   const goBrand = useCallback((b) => { onQuery?.({ brand: b }); onClose?.(); }, [onQuery, onClose]);
@@ -93,8 +101,23 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
       const picks = [...products].sort((a, b) => b.score - a.score).slice(0, 4);
       if (picks.length) secs.push({ id: "picks", title: "Verified picks", kind: "products", items: picks.map((p) => ({ product: p, run: () => goProduct(p) })) });
     } else {
-      // top synthetic action: search the grid for the text
-      secs.push({ id: "action", title: null, kind: "action", items: [{ label: `Search for “${query.trim()}”`, sub: "See every match in the shop", icon: Search, run: () => submitQuery(query) }] });
+      // Top synthetic action: run the query against the grid. Its subtitle
+      // previews the reading, so the shopper sees what will be applied before
+      // committing to it rather than inferring it from a changed result count.
+      const reading = describeIntent(interpret(query)).filter((c) => c.field !== "text");
+      secs.push({
+        id: "action",
+        title: null,
+        kind: "action",
+        items: [{
+          label: `Search for “${query.trim()}”`,
+          sub: reading.length
+            ? `Reads as ${reading.map((c) => c.label).join(" · ")}`
+            : "See every match in the shop",
+          icon: Search,
+          run: () => submitQuery(query),
+        }],
+      });
 
       const prod = products
         .filter((p) => [p.name, p.brand, p.category, ...(p.tags || []), ...(p.goalTags || [])].join(" ").toLowerCase().includes(q))

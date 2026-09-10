@@ -42,10 +42,27 @@ const byMacro = (key, dir) => (a, b) => {
   return (dir === "desc" ? y - x : x - y) || b.raw - a.raw;
 };
 
-const matchMeal = (s, mealKey) => {
+/**
+ * Does a product's category or label text belong to a meal occasion?
+ *
+ * Exported because search narrows by meal as well as shelves do (see
+ * `lib/ai/intent/resolveIntent.js`), and both callers must agree on what
+ * "breakfast" means. A second definition of that would drift.
+ *
+ * @param {string} category product category
+ * @param {string} haystack lowercased name + brand + tags + ingredients
+ * @param {string} mealKey a MEALS key
+ * @returns {boolean}
+ */
+export const mealMatches = (category, haystack, mealKey) => {
   const m = MEAL_MATCH[mealKey];
-  return m && (m.categories.includes(s.category) || m.keywords.some((kw) => s.facts.haystack.includes(kw)));
+  return Boolean(m && (
+    m.categories.includes(category) ||
+    m.keywords.some((kw) => String(haystack || "").includes(kw))
+  ));
 };
+
+const matchMeal = (s, mealKey) => mealMatches(s.category, s.facts.haystack, mealKey);
 
 // Interleave categories so "try something different" feels varied.
 function diverseSample(list) {

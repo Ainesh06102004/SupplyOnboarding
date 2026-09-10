@@ -21,7 +21,9 @@ const clamp = (n, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, n));
 // because `null` compares as 0 against a number: `null < 6` is true and
 // `null <= 4` is true, so an undeclared macro silently passes any "is it low?"
 // test written the obvious way.
-const isNum = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
+// Exported so every consumer that compares a macro uses this one guard rather
+// than writing the obvious-and-wrong version again. Search filters need it too.
+export const isNum = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
 const LOVE_BY_KEY = Object.fromEntries(FOODS_LOVE.map((f) => [f.key, f]));
 const AVOID_BY_KEY = Object.fromEntries(FOODS_AVOID.map((a) => [a.key, a]));
 const MEAL_BY_KEY = Object.fromEntries(MEALS.map((m) => [m.key, m]));

@@ -21,6 +21,10 @@ import { averageScore } from "@/lib/score";
 import CommandSearch from "@/components/store/shop/CommandSearch";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
+import IntentChips from "@/components/store/shop/IntentChips";
+import {
+  interpret, resolveIntent, describeIntent, removeFromIntent, suggestRelaxations, isEmptyIntent,
+} from "@/lib/ai/intent";
 import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
 import { useLocation } from "@/contexts/LocationContext";
 import { useCatalogueSupply } from "@/lib/marketplace/useCatalogueSupply";
@@ -75,6 +79,11 @@ export default function ShopPage() {
   const [filterScore, setFilterScore] = useState("All");
   const [filterDietary, setFilterDietary] = useState([]);
 
+  // What KOI understood the last typed query to mean. Null when the shopper has
+  // not searched, or when nothing structured could be read out of the text — in
+  // which case `searchQuery` carries the raw string and behaves as it always has.
+  const [intent, setIntent] = useState(null);
+
   // ── UI state ──
   const [searchOpen, setSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -113,11 +122,24 @@ export default function ShopPage() {
     return ["All", ...set];
   }, [products]);
 
-  // Preserved filter + sort logic (extended with query + brand)
+  // An interpreted query, resolved against the catalogue by the KRE's own
+  // eligibility stage. `ids` is null when the intent constrains nothing, which
+  // leaves the grid exactly as it was. Hard constraints — allergens, diet type —
+  // are eliminated in there, never ranked down here.
+  const resolved = useMemo(
+    () => resolveIntent(products, intent, goalProfile),
+    [products, intent, goalProfile]
+  );
+
+  const intentChips = useMemo(() => describeIntent(intent), [intent]);
+
+  // Preserved filter + sort logic (extended with query + brand + interpreted intent)
   const filteredProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const allowed = resolved.ids;
     return products
       .filter((p) => {
+        if (allowed && !allowed.has(p.id)) return false;
         if (activeCategory !== "All" && p.category !== activeCategory) return false;
         if (activeGoal) {
           const allTags = [...(p.goals || []), ...(p.goalTags || []), ...(p.tags || [])]
@@ -152,7 +174,7 @@ export default function ShopPage() {
         if (activeSort === "Recommended") return (b.recommended ? 1 : 0) - (a.recommended ? 1 : 0);
         return 0;
       });
-  }, [products, activeCategory, activeGoal, activeBrand, searchQuery, filterPrice, filterScore, filterDietary, activeSort]);
+  }, [products, resolved, activeCategory, activeGoal, activeBrand, searchQuery, filterPrice, filterScore, filterDietary, activeSort]);
 
   // Editorial shelves
   const recommended = useMemo(() => products.filter((p) => p.recommended), [products]);
@@ -189,24 +211,72 @@ export default function ShopPage() {
     setActiveGoal(null);
     setActiveBrand(null);
     setSearchQuery("");
+    setIntent(null);
     clearDrawerFilters();
   };
 
   const contextLabel = activeGoal || activeBrand || (searchQuery ? `“${searchQuery}”` : null);
-  const clearContext = () => { setActiveGoal(null); setActiveBrand(null); setSearchQuery(""); };
+  const clearContext = () => { setActiveGoal(null); setActiveBrand(null); setSearchQuery(""); setIntent(null); };
 
   const selectProduct = (p) => router.push(`/store/product/${p.id}`);
 
-  const scrollToGrid = () =>
-    requestAnimationFrame(() => document.getElementById("grid")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  // Two frames, because an interpreted query scrolls to a row that does not
+  // exist until React has committed the new intent.
+  const scrollToId = (id) =>
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+      )
+    );
 
-  const applyFromSearch = ({ query, goal, brand }) => {
-    if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); }
-    else if (brand !== undefined) { setActiveBrand(brand); setActiveGoal(null); setSearchQuery(""); }
-    else if (query !== undefined) { setSearchQuery(query); setActiveGoal(null); setActiveBrand(null); }
-    setActiveCategory("All");
-    scrollToGrid();
+  const scrollToGrid = () => scrollToId("grid");
+
+  // One utterance can carry several constraints ("post workout, no dairy, under
+  // ₹200"), so an interpreted query replaces the old single-slot handoff rather
+  // than competing with it. `goal` and `brand` remain single-slot because a tile
+  // tap really is one thing.
+  const applyIntent = (next) => {
+    const narrowing = next && !isEmptyIntent(next);
+    // An intent that narrows nothing is still worth keeping if it recorded a
+    // restriction KOI could not apply — that warning must reach the shopper.
+    const meaningful = Boolean(next && (narrowing || next.unresolved.length));
+
+    setIntent(meaningful ? next : null);
+    // A sentence must never be used as a substring again — that is the bug this
+    // replaces. When the intent narrows, resolveIntent has already applied any
+    // residual word; otherwise that word is all there is to search on.
+    setSearchQuery(narrowing ? "" : (next?.text || ""));
+    if (narrowing && next.view.sort) setActiveSort(next.view.sort);
+    setActiveGoal(null);
+    setActiveBrand(null);
+    return meaningful;
   };
+
+  const applyFromSearch = ({ query, goal, brand, intent: incoming }) => {
+    let readBack = false;
+    if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); setIntent(null); }
+    else if (brand !== undefined) { setActiveBrand(brand); setActiveGoal(null); setSearchQuery(""); setIntent(null); }
+    else if (incoming !== undefined) readBack = applyIntent(incoming);
+    else if (query !== undefined) readBack = applyIntent(interpret(query));
+    setActiveCategory("All");
+    // Land on the chip row when there is one to read: it explains why the grid
+    // below it changed. Otherwise the grid itself is the answer.
+    scrollToId(readBack ? "intent" : "grid");
+  };
+
+  const removeChip = (chip) => {
+    const next = removeFromIntent(intent, chip);
+    setIntent(!isEmptyIntent(next) || next.unresolved.length ? next : null);
+  };
+
+  // Only computed when the grid came back empty, so the extra passes never run
+  // on the normal path.
+  const relaxations = useMemo(
+    () => (intent && resolved.ids && resolved.ids.size === 0
+      ? suggestRelaxations(products, intent, goalProfile, intentChips, removeFromIntent)
+      : []),
+    [intent, resolved, products, goalProfile, intentChips]
+  );
 
   const cardHandlers = {
     onSelect: selectProduct,
@@ -217,6 +287,8 @@ export default function ShopPage() {
 
   const gridTitle = contextLabel
     ? (activeGoal ? activeGoal : activeBrand ? activeBrand : "Search results")
+    : intent
+    ? "Search results"
     : activeCategory === "All"
     ? "All products"
     : activeCategory;
@@ -285,6 +357,16 @@ export default function ShopPage() {
             subtitle="The latest to clear every KOI check."
             products={recentlyVerified}
             handlers={cardHandlers}
+          />
+
+          {/* What KOI understood, as chips the shopper can take back off.
+              Renders nothing until someone actually searches. */}
+          <IntentChips
+            chips={intentChips}
+            onRemove={removeChip}
+            onClearAll={clearContext}
+            matchCount={resolved.ids ? filteredProducts.length : null}
+            relaxations={relaxations}
           />
 
           {/* Sticky filters + full catalogue */}
