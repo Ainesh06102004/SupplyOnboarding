@@ -13,7 +13,9 @@
 // ============================================================================
 
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { AVAILABILITY } from '@/lib/recommendation/config';
+import { AVAILABILITY, THRESHOLDS } from '@/lib/recommendation/config';
+import { isNum } from '@/lib/recommendation/scoringEngine';
+import { toPer100, toPerServing } from '@/lib/nutrition/basis';
 
 /** Number, or null when the column is absent. Never coerces missing to 0. */
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -55,9 +57,26 @@ export async function fetchAllProducts() {
     // "High protein" is derived from the declared value, never from the name.
     // The previous rule also fired on any product whose name contained
     // "almond", which asserted a macro claim from a substring match.
-    const protein = num(nutrition.protein_g);
+    //
+    // It then read `protein_g` raw, which carried two faults. It ignored
+    // `measurement_basis`, so a per-serving row and a per-100g row were judged
+    // by one number that meant different things. And density alone cannot carry
+    // a claim: Premium Pampore Saffron declares 11.4 g per 100 g and a 0.1 g
+    // serving, so it wore this badge on about 0.01 g of protein per pinch.
+    //
+    // Both gates now have to pass - dense enough per 100, and enough in the
+    // serving a shopper actually eats. The threshold is the published
+    // proteinHigh (12) rather than a local 10, which also settles a live
+    // disagreement: at 10 a product got the badge on its card while shelves.js
+    // and search, both reading 12, left it out.
+    const per100 = toPer100(nutrition);
+    const perServing = toPerServing(nutrition);
     const hasHighProtein = claims.some(c => String(c).toLowerCase() === 'high protein');
-    if (!hasHighProtein && protein !== null && protein >= 10) {
+    if (
+      !hasHighProtein &&
+      isNum(per100.protein_g) && per100.protein_g >= THRESHOLDS.proteinHigh &&
+      isNum(perServing.protein_g) && perServing.protein_g >= THRESHOLDS.proteinPerServingFloor
+    ) {
       claims.push("High Protein");
     }
     const skus = p.skus || [];

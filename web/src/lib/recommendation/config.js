@@ -68,10 +68,23 @@ export const PENALTIES = Object.freeze({
 // uncertainty pulls a score toward the middle from whichever side it started.
 export const UNKNOWN_FIT = 0.5;
 
-// ── Nutrition thresholds (per serving, grams unless noted) ──
+// ── Nutrition thresholds (grams unless noted) ──
+//
+// These are compared against PER-100 figures, not per-serving ones - this
+// comment used to say the opposite and it misled every reader of it.
+// `sku_nutrition` declares `per_100g` for almost every live row, resolveIntent
+// pins numeric search to LIMIT_BASIS = 'per_100g', and shelves.js and the KRE
+// all read that same column. `proteinPerServingFloor` is the sole exception and
+// says so in its name.
 export const THRESHOLDS = Object.freeze({
-  proteinHigh: 12,
+  proteinHigh: 12, // per 100 g/ml: dense enough for the claim to mean something
   proteinMin: 6, // below this, protein-focused goals penalise
+  // Density alone is not a claim. A per-100 g figure says nothing about what a
+  // shopper actually eats, which is how "High Protein" reached a 0.1 g serving
+  // of saffron - 11.4 g per 100 g, about 0.01 g per pinch. A claim has to
+  // survive contact with the declared serving too. 5 g is the FDA "good source
+  // of protein" bar (10% DV), applied per serving rather than per 100 g.
+  proteinPerServingFloor: 5,
   sugarLow: 4,
   sugarHigh: 10,
   fibreHigh: 5,
