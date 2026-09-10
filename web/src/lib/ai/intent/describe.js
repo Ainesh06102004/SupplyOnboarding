@@ -111,5 +111,9 @@ export function removeFromIntent(intent, chip) {
     if (Array.isArray(bag[field])) bag[field] = bag[field].filter((k) => k !== chip.key);
     else bag[field] = null;
   }
+  // `proteinClaim` is a modifier on `minProtein`, not a chip of its own. Lifting
+  // the protein limit has to lift its serving gate too, or a removed chip would
+  // go on narrowing the grid invisibly.
+  if (scope === "view" && field === "minProtein") next.view.proteinClaim = false;
   return next;
 }

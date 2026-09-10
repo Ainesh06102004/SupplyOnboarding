@@ -298,7 +298,10 @@ export function extractLimits(text) {
 const EMPTY_ACC = () => ({
   goal: null, dietType: null, budget: null,
   mealPrefs: [], foodsAvoid: [], foodsLove: [],
-  view: { sort: null, minScore: null, maxKcal: null, minProtein: null, maxSugar: null, maxPrice: null },
+  view: {
+    sort: null, minScore: null, maxKcal: null, minProtein: null, maxSugar: null, maxPrice: null,
+    proteinClaim: false,
+  },
   unresolved: [], residual: [],
 });
 
@@ -419,7 +422,15 @@ export function interpretDeterministic(input) {
 
   // Qualitative macro words inherit KOI's own published thresholds so search and
   // shelves make the same claim. An explicit number the shopper gave always wins.
-  if (acc.goal === "high_protein" && acc.view.minProtein === null) acc.view.minProtein = THRESHOLDS.proteinHigh;
+  //
+  // `proteinClaim` records which of the two happened. "High protein" is KOI
+  // asserting a claim, so the resolver holds it to the same serving gate the
+  // badge uses; "at least 25g protein" is the shopper's own density question and
+  // is answered literally.
+  if (acc.goal === "high_protein" && acc.view.minProtein === null) {
+    acc.view.minProtein = THRESHOLDS.proteinHigh;
+    acc.view.proteinClaim = true;
+  }
   if (acc.goal === "low_sugar" && acc.view.maxSugar === null) acc.view.maxSugar = THRESHOLDS.sugarLow;
 
   const confidence = signals === 0 ? 0 : Math.min(1, 0.55 + 0.15 * signals);

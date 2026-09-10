@@ -62,6 +62,12 @@ export function adoptRefinement(local, raw, text) {
       foodsLove: union(local.profile.foodsLove, refined.profile.foodsLove),
       dietType: isAtLeastAsStrict(refinedDiet, localDiet) ? refinedDiet : localDiet,
     },
+    view: {
+      ...refined.view,
+      // The serving gate only ever narrows, so a refinement may switch it on
+      // but never off — the same tighten-only rule the restrictions follow.
+      proteinClaim: Boolean(local.view?.proteinClaim || refined.view?.proteinClaim),
+    },
     unresolved: union(local.unresolved, refined.unresolved),
   };
 }

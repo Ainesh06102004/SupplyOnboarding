@@ -13,16 +13,27 @@
 //      from missing data — the fault shelves.js documents for shelf membership.
 //      Same rule, same reason, one guard: `isNum` from the KRE.
 //
-//   2. A figure is only comparable within one measurement basis. `sku_nutrition`
-//      holds `per_100g` for most rows and `per_serving` for a few, every
-//      normalized `*_per_100g` column is NULL, and `servings_per_pack` is unset
-//      — so a per-serving row cannot be converted, only excluded. Comparing the
-//      two silently is how "under 200 calories" would rank a 200-per-serving
-//      product alongside a 200-per-100g one as though they were the same food.
+//   2. A figure is only comparable within one measurement basis, so every
+//      figure is converted to one before it is compared. `sku_nutrition` holds
+//      `per_100g` for most rows and `per_serving` for a few; comparing the two
+//      silently is how "under 200 calories" would treat a 200-per-serving
+//      product and a 200-per-100g one as the same food. This used to exclude
+//      any row not declared `per_100g`, because the normalized columns were all
+//      NULL and a serving could not be converted. `lib/nutrition/basis.js` now
+//      does that conversion, so a per-serving row is converted rather than
+//      dropped — and one whose serving size KOI cannot read still fails, since
+//      an unconvertible figure is no better than a missing one.
 //      A product with NO stated basis is compared as-is and counted in
 //      diagnostics: live rows all declare one, so that case is the dev fixtures,
 //      and excluding them would make search look broken in development while
 //      changing nothing about production.
+//
+//   4. A claim KOI publishes must mean the same thing everywhere. "High protein"
+//      is KOI's own words, so it carries the same two gates as the storefront
+//      badge — dense enough per 100 AND enough in a real serving. Without the
+//      second gate, search would return a 5 g spoonful of Golden Milk Mix as a
+//      high-protein result while its own product card, having applied that
+//      gate, declines to make the claim.
 //
 //   3. A residual word that matches nothing is dropped, not applied. Filler the
 //      phrase table did not recognise would otherwise be used as a substring
@@ -33,7 +44,8 @@
 // came from a sentence or from the onboarding form.
 // ============================================================================
 
-import { FOODS_AVOID, FOODS_LOVE } from "@/lib/recommendation/config";
+import { FOODS_AVOID, FOODS_LOVE, THRESHOLDS } from "@/lib/recommendation/config";
+import { toPer100, toPerServing } from "@/lib/nutrition/basis";
 import { generateCandidates } from "@/lib/recommendation/candidateGenerator";
 import { filterEligible } from "@/lib/recommendation/eligibilityFilter";
 import { isNum } from "@/lib/recommendation/scoringEngine";
@@ -44,8 +56,7 @@ import { isEmptyIntent } from "./schema";
 const AVOID_BY_KEY = Object.freeze(Object.fromEntries(FOODS_AVOID.map((a) => [a.key, a])));
 const LOVE_BY_KEY = Object.freeze(Object.fromEntries(FOODS_LOVE.map((f) => [f.key, f])));
 
-// The basis a numeric macro limit is read against. Matches the majority of
-// live rows; anything else declared is incomparable rather than convertible.
+// The basis every numeric macro limit is compared on, after conversion.
 const LIMIT_BASIS = "per_100g";
 
 // Flags productFacts.js INFERS from a declared macro rather than reading from
@@ -112,7 +123,13 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
     .map((f) => f.keywords || []);
 
   const meals = wanted.mealPrefs || [];
-  const counters = { eligible: eligible.length, byAvoid: 0, byMeal: 0, byLove: 0, byLimit: 0, basisUnknown: 0 };
+  const counters = {
+    eligible: eligible.length,
+    byAvoid: 0, byMeal: 0, byLove: 0, byLimit: 0,
+    basisUnknown: 0,    // no declared basis, compared as-is (dev fixtures)
+    basisConverted: 0,  // declared on another basis and scaled to per-100
+    byClaimGate: 0,     // dense enough per 100, but not per realistic serving
+  };
 
   const survivors = eligible.filter((f) => {
     for (const flag of statedFlags) {
@@ -163,10 +180,31 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
 }
 
 /**
- * Every shopper-stated numeric limit, checked against declared, comparable
- * values only. A product missing the figure a limit names — or stating it on a
- * different measurement basis — fails that limit. It is not given the benefit
- * of the doubt.
+ * The `sku_nutrition` row shape `lib/nutrition/basis.js` reads, rebuilt from the
+ * client-side product. Going through that module rather than scaling here is
+ * the point: the storefront badge, the backfill script and this filter then
+ * share one converter and cannot drift apart.
+ *
+ * @param {object} facts extractFacts output
+ * @returns {object} a partial `sku_nutrition` row
+ */
+function nutritionRow(facts) {
+  const m = facts.macros || {};
+  const p = facts.product || {};
+  return {
+    measurement_basis: p.measurementBasis ?? null,
+    serving_size: p.servingSize ?? null,
+    energy_kcal: m.kcal,
+    protein_g: m.protein,
+    sugars_g: m.sugar,
+  };
+}
+
+/**
+ * Every shopper-stated numeric limit, checked against declared figures
+ * converted to one basis. A product missing the figure a limit names — or
+ * declaring it on a basis KOI cannot convert, because the serving size is
+ * unreadable — fails that limit. It is not given the benefit of the doubt.
  *
  * @param {object} facts extractFacts output
  * @param {object} view intent.view
@@ -175,17 +213,43 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
  */
 function withinLimits(facts, view, counters = null) {
   const m = facts.macros || {};
-  const macroLimited = view.maxKcal != null || view.minProtein != null || view.maxSugar != null;
+  const macroLimited =
+    view.maxKcal != null || view.minProtein != null || view.maxSugar != null || view.proteinClaim;
+
+  let per100 = null;
+  let perServing = null;
 
   if (macroLimited) {
     const basis = facts.product?.measurementBasis ?? null;
-    if (basis !== null && basis !== LIMIT_BASIS) return false;
-    if (basis === null && counters) counters.basisUnknown += 1;
+    if (basis === null) {
+      // No declared basis. Live rows all declare one, so this is the dev
+      // fixtures: read the figures as they stand rather than making search look
+      // broken locally, and record that the comparison was ungrounded.
+      per100 = { energy_kcal: m.kcal, protein_g: m.protein, sugars_g: m.sugar };
+      if (counters) counters.basisUnknown += 1;
+    } else {
+      const row = nutritionRow(facts);
+      per100 = toPer100(row);
+      perServing = toPerServing(row);
+      if (basis !== LIMIT_BASIS && counters) counters.basisConverted += 1;
+    }
   }
 
-  if (view.maxKcal != null && !(isNum(m.kcal) && Number(m.kcal) <= view.maxKcal)) return false;
-  if (view.minProtein != null && !(isNum(m.protein) && Number(m.protein) >= view.minProtein)) return false;
-  if (view.maxSugar != null && !(isNum(m.sugar) && Number(m.sugar) <= view.maxSugar)) return false;
+  if (view.maxKcal != null && !(isNum(per100.energy_kcal) && Number(per100.energy_kcal) <= view.maxKcal)) return false;
+  if (view.minProtein != null && !(isNum(per100.protein_g) && Number(per100.protein_g) >= view.minProtein)) return false;
+  if (view.maxSugar != null && !(isNum(per100.sugars_g) && Number(per100.sugars_g) <= view.maxSugar)) return false;
+
+  // "High protein" in KOI's voice carries KOI's claim gate, not just a density
+  // test — the same second gate productFetcher applies to the badge. Density
+  // alone is what let a 5 g dose of Golden Milk Mix read as high protein. A
+  // product whose serving KOI cannot measure fails: unverifiable is not clean.
+  if (view.proteinClaim) {
+    const inServing = perServing ? perServing.protein_g : null;
+    if (!(isNum(inServing) && Number(inServing) >= THRESHOLDS.proteinPerServingFloor)) {
+      if (counters) counters.byClaimGate += 1;
+      return false;
+    }
+  }
 
   // Price and KOI score are not basis-dependent, but the same rule applies:
   // no figure, no claim, no pass.

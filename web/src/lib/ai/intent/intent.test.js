@@ -201,12 +201,31 @@ test("an undeclared macro fails a limit on that macro", () => {
   assert.ok(!ids.has("undeclared"), "null must not pass as a low calorie figure");
 });
 
-test("a figure on a different measurement basis is excluded, not compared", () => {
-  const per100g = product({ id: "per100g", measurementBasis: "per_100g" });
-  const perServing = product({ id: "perServing", measurementBasis: "per_serving" });
-  const { ids } = resolveIntent([per100g, perServing], interpret("under 300 calories"), null);
-  assert.ok(ids.has("per100g"));
-  assert.ok(!ids.has("perServing"), "per-serving cannot be compared against a per-100g limit");
+test("a figure on another basis is converted before it is compared", () => {
+  // This row used to be dropped outright: the normalized columns were all NULL
+  // and a serving could not be scaled, so per-serving meant incomparable. With
+  // lib/nutrition/basis.js it converts — 100 kcal in a 50 g serving is 200 per
+  // 100 g, inside the limit — and two live products stop being invisible.
+  const perServing = product({
+    id: "perServing",
+    measurementBasis: "per_serving",
+    servingSize: "50g",
+    nutrition: [macro("Calories", 100, "kcal"), macro("Protein", 5)],
+  });
+  const { ids, diagnostics } = resolveIntent([perServing], interpret("under 300 calories"), null);
+  assert.ok(ids.has("perServing"), "a convertible figure must be compared, not dropped");
+  assert.equal(diagnostics.basisConverted, 1);
+});
+
+test("a serving size KOI cannot read is still a figure KOI cannot compare", () => {
+  const unreadable = product({
+    id: "unreadable",
+    measurementBasis: "per_serving",
+    servingSize: "1 pack",
+    nutrition: [macro("Calories", 100, "kcal")],
+  });
+  const { ids } = resolveIntent([unreadable], interpret("under 300 calories"), null);
+  assert.ok(!ids.has("unreadable"), "unconvertible is no better than undeclared");
 });
 
 test("a product with no stated basis is still comparable", () => {
@@ -221,6 +240,66 @@ test("a product with no stated basis is still comparable", () => {
 test("high protein reuses KOI's own published threshold", () => {
   assert.equal(interpret("high protein").view.minProtein, THRESHOLDS.proteinHigh);
   assert.equal(interpret("low sugar").view.maxSugar, THRESHOLDS.sugarLow);
+});
+
+// ── The claim gate: search and the product card must agree ──────────────────
+
+test("KOI's own \"high protein\" carries KOI's claim gate, not just density", () => {
+  // Golden Milk Mix, live: 19.9 g per 100 g against a 5 g dose — about 1 g in
+  // the spoonful. productFetcher declines the badge on exactly this test, so
+  // search returning it would make the grid and the card contradict each other.
+  const dose = product({
+    id: "dose", measurementBasis: "per_100g", servingSize: "5g",
+    nutrition: [macro("Protein", 19.9)],
+  });
+  const { ids, diagnostics } = resolveIntent([dose], interpret("high protein"), null);
+  assert.ok(!ids.has("dose"), "density alone must not carry a claim");
+  assert.equal(diagnostics.byClaimGate, 1);
+});
+
+test("a serving that really delivers protein passes the gate", () => {
+  const real = product({
+    id: "real", measurementBasis: "per_100g", servingSize: "40g",
+    nutrition: [macro("Protein", 13)],
+  });
+  assert.ok(resolveIntent([real], interpret("high protein"), null).ids.has("real"));
+});
+
+test("a serving KOI cannot measure cannot support the claim", () => {
+  const noServing = product({
+    id: "noServing", measurementBasis: "per_100g", servingSize: null,
+    nutrition: [macro("Protein", 30)],
+  });
+  const { ids } = resolveIntent([noServing], interpret("high protein"), null);
+  assert.ok(!ids.has("noServing"), "unverifiable is not clean");
+});
+
+test("a figure the shopper named is answered literally, not gated", () => {
+  const dose = product({
+    id: "dose", measurementBasis: "per_100g", servingSize: "5g",
+    nutrition: [macro("Protein", 19.9)],
+  });
+  const asked = interpret("at least 12g protein");
+  assert.equal(asked.view.proteinClaim, false, "an explicit number is a density question");
+  assert.ok(resolveIntent([dose], asked, null).ids.has("dose"));
+});
+
+test("the gate is on for KOI's phrasing and reuses the published floor", () => {
+  assert.equal(interpret("high protein").view.proteinClaim, true);
+  assert.equal(THRESHOLDS.proteinPerServingFloor, 5);
+});
+
+test("removing the protein chip lifts its serving gate too", () => {
+  const intent = interpret("high protein");
+  const chip = describeIntent(intent).find((c) => c.id === "minProtein");
+  assert.ok(chip, "a protein limit should be shown as a chip");
+  assert.equal(removeFromIntent(intent, chip).view.proteinClaim, false);
+});
+
+test("a refinement may switch the gate on but never off", () => {
+  const local = interpret("high protein");
+  const hostile = { profile: {}, view: { minProtein: 12, proteinClaim: false }, text: "", unresolved: [] };
+  assert.equal(adoptRefinement(local, hostile, "high protein").view.proteinClaim, true);
 });
 
 test("an explicit number beats the qualitative default", () => {

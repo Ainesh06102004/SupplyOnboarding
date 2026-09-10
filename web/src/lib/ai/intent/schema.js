@@ -95,6 +95,14 @@ export const IntentSchema = z.object({
     minProtein: limit("minProtein"),
     maxSugar: limit("maxSugar"),
     maxPrice: limit("maxPrice"),
+
+    // True when `minProtein` came from KOI's own claim vocabulary ("high
+    // protein") rather than a figure the shopper named. Only then does the
+    // resolver also require the serving gate the "High Protein" badge uses, so
+    // that search and the product card cannot disagree about who is high
+    // protein. A shopper who asks for "at least 25g protein" is asking a
+    // density question and gets a literal answer.
+    proteinClaim: z.boolean().default(false),
   }).prefault({}),
 
   // Residual free text, kept ONLY when it names something the catalogue might
