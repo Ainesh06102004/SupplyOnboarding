@@ -42,9 +42,11 @@
 -- "flavour enhancer (621)", all of which are the same substance.
 --
 -- Idempotent: re-running updates in place and never duplicates.
+--
+-- The table lives in the `food` schema since migration 00019, not `public`.
 -- ============================================================================
 
-INSERT INTO ingredients_master
+INSERT INTO food.ingredients_master
   (canonical_name, aliases, ingredient_category, risk_level, is_blocked, notes)
 VALUES
 

@@ -17,6 +17,12 @@
 // Upsert is on `canonical_name`, matching the ON CONFLICT clause in the file,
 // so re-running updates in place and never duplicates.
 //
+// The table is `food.ingredients_master` since migration 00019, so every
+// request names the schema: PostgREST reads `Content-Profile` for writes. That
+// only works once `food` is in the project's Exposed schemas (Dashboard ->
+// Project Settings -> Data API); until then the write fails with PGRST106,
+// which is the error to expect rather than a bug in this script.
+//
 // Usage, from web/:
 //   node --env-file=.env.local scripts/applyIngredientsSeed.mjs --dry-run
 //   node --env-file=.env.local scripts/applyIngredientsSeed.mjs
@@ -172,6 +178,7 @@ async function main() {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`,
         "Content-Type": "application/json",
+        "Content-Profile": "food",
         Prefer: "resolution=merge-duplicates,return=minimal",
       },
       body: JSON.stringify(rows),
@@ -183,7 +190,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\nUpserted ${rows.length} rows into ingredients_master.`);
+  console.log(`\nUpserted ${rows.length} rows into food.ingredients_master.`);
 }
 
 main().catch((err) => {

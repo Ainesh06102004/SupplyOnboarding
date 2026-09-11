@@ -103,7 +103,7 @@ erDiagram
 
 1. **SKU as the Atomic Unit of Health & Commerce**
    * *Why:* Nutrition values, ingredient ratios, and allergens vary drastically by variant. (e.g., Epigamia Greek Yogurt Strawberry contains fruit preparation and sugar, while Epigamia Greek Yogurt Natural has zero added sugar). Committing calculations to the SKU level prevents faulty claims.
-2. **Normalized Master Ingredients Catalog (`ingredients_master`)**
+2. **Normalized Master Ingredients Catalog (`ingredients_master`)** — lives in the `food` schema since migration 00019, alongside `sku_ingredients`; pipeline tables such as `ai_extraction_jobs` live in `engine`
    * *Why:* Additives hide behind different names. INS322, E322, and Soy Lecithin are the exact same ingredient. We normalize all inputs to canonical ingredients to ensure accurate risk profiling.
 3. **State Persistence (`onboarding_drafts`)**
    * *Why:* Onboarding requires legal and scientific data. It is a high-friction process. Autosaving the draft state prevents session timeout data loss, increasing overall conversion.
