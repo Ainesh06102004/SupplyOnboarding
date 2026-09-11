@@ -19,6 +19,8 @@ import { averageScore, hasScore, scoredOnly } from "@/lib/score";
 import { getSeedCatalogue } from "@/components/store/shop/shopData";
 import { mergeCatalogue } from "@/lib/data/mergeCatalogue";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
+import { toPer100, toPerServing } from "@/lib/nutrition/basis";
+import { isLowSugar, rowFromProduct } from "@/lib/nutrition/claims";
 
 // ─── KOI SCORE RING ───
 function KoiScore({ score, size = 32 }) {
@@ -125,16 +127,20 @@ function CartItemCard({ item }) {
 // at all. A health brand cannot afford invented numbers, so anything the data
 // does not support is simply not shown.
 //
-// Note macros are declared per serving, so they are reported per serving. They
-// are deliberately NOT multiplied by quantity: a basket total would need pack
-// sizes and servings-per-pack, which the cart item shape does not carry.
-function readMacro(item, label) {
-  const row = (item.nutrition || []).find(
-    (n) => String(n.label).toLowerCase() === label
-  );
-  const v = Number(row?.value);
-  return Number.isFinite(v) ? v : null;
-}
+// Macros are declared on the product's own basis — per 100 g for almost every
+// live row — so they are converted before anything is added up. This used to
+// sum the raw figures under a "Protein / serving" heading, which reported per
+// 100 g numbers as servings, and count "low sugar" at 5 g on whatever basis an
+// item declared, drinks included. Nothing is multiplied by quantity: a basket
+// total would need servings-per-pack, which the cart item shape does not carry.
+const proteinInServing = (item) => {
+  const v = toPerServing(rowFromProduct(item)).protein_g;
+  return Number.isFinite(Number(v)) && v !== null ? Number(v) : null;
+};
+const sugarDeclared = (item) => {
+  const v = toPer100(rowFromProduct(item)).sugars_g;
+  return v !== null && Number.isFinite(Number(v));
+};
 
 function CartInsights({ items }) {
   // The average and the count it is "across" must come from the SAME set, or
@@ -143,13 +149,15 @@ function CartInsights({ items }) {
   const scored = scoredOnly(items);
   const avgScore = averageScore(items);
 
-  const proteins = items.map((i) => readMacro(i, "protein")).filter((v) => v !== null);
+  const proteins = items.map(proteinInServing).filter((v) => v !== null);
   const proteinPerServing = proteins.length
     ? Math.round(proteins.reduce((s, v) => s + v, 0))
     : null;
 
-  const sugars = items.map((i) => readMacro(i, "sugar")).filter((v) => v !== null);
-  const lowSugarCount = sugars.filter((v) => v <= 5).length;
+  // Counted over items whose sugar KOI can place on a basis, and judged by the
+  // regulated low-sugar rule rather than a flat 5.
+  const sugars = items.filter(sugarDeclared);
+  const lowSugarCount = sugars.filter((i) => isLowSugar(rowFromProduct(i))).length;
 
   // Nothing measurable in the basket - say nothing rather than fill the space.
   if (avgScore === null && proteinPerServing === null && !sugars.length) return null;
@@ -166,16 +174,16 @@ function CartInsights({ items }) {
       <div className="grid grid-cols-2 gap-3 relative z-10">
          {proteinPerServing !== null && (
            <div className="flex flex-col bg-white/10 rounded-xl p-3 border border-white/5">
-              <span className="text-[12px] font-medium text-white/70 uppercase tracking-wider mb-1">Protein / serving</span>
+              <span className="text-[12px] font-medium text-white/70 uppercase tracking-wider mb-1">Protein</span>
               <span className="text-[16px] font-bold text-[#C8F23E]">{proteinPerServing}g</span>
-              <span className="text-[10px] text-white/50 mt-0.5">across {proteins.length} item{proteins.length === 1 ? "" : "s"}</span>
+              <span className="text-[10px] text-white/50 mt-0.5">one serving each of {proteins.length} item{proteins.length === 1 ? "" : "s"}</span>
            </div>
          )}
          {sugars.length > 0 && (
            <div className="flex flex-col bg-white/10 rounded-xl p-3 border border-white/5">
               <span className="text-[12px] font-medium text-white/70 uppercase tracking-wider mb-1">Low sugar</span>
               <span className="text-[16px] font-bold text-[#C8F23E]">{lowSugarCount} of {sugars.length}</span>
-              <span className="text-[10px] text-white/50 mt-0.5">5g or less per serving</span>
+              <span className="text-[10px] text-white/50 mt-0.5">5g or less per 100g · 2.5g per 100ml</span>
            </div>
          )}
          {avgScore !== null && (

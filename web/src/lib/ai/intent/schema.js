@@ -103,6 +103,10 @@ export const IntentSchema = z.object({
     // protein. A shopper who asks for "at least 25g protein" is asking a
     // density question and gets a literal answer.
     proteinClaim: z.boolean().default(false),
+    // The same for "low sugar": true only when maxSugar came from KOI's own
+    // vocabulary, which makes it the regulated claim — 5 g per 100 g for a
+    // solid but 2.5 g per 100 ml for a drink — rather than a flat number.
+    sugarClaim: z.boolean().default(false),
   }).prefault({}),
 
   // Residual free text, kept ONLY when it names something the catalogue might

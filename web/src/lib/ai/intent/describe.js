@@ -56,7 +56,11 @@ export function describeIntent(intent) {
   if (v.maxPrice != null) add("maxPrice", `Under ₹${v.maxPrice}`, "view.maxPrice", null, "constraint");
   if (v.maxKcal != null) add("maxKcal", `Under ${v.maxKcal} kcal`, "view.maxKcal", null, "constraint");
   if (v.minProtein != null) add("minProtein", `${v.minProtein}g+ protein`, "view.minProtein", null, "constraint");
-  if (v.maxSugar != null) add("maxSugar", `Under ${v.maxSugar}g sugar`, "view.maxSugar", null, "constraint");
+  // "Low sugar" is a rule, not a number: 5 g per 100 g, 2.5 g per 100 ml.
+  // Printing "Under 5g sugar" would misdescribe what a drink is held to.
+  if (v.maxSugar != null) {
+    add("maxSugar", v.sugarClaim ? "Low sugar" : `Under ${v.maxSugar}g sugar`, "view.maxSugar", null, "constraint");
+  }
   if (v.minScore != null) add("minScore", `KOI score ${v.minScore}+`, "view.minScore", null, "constraint");
 
   if (p.goal) add(`goal:${p.goal}`, (GOAL_PROFILES[p.goal] || {}).label || p.goal, "profile.goal", p.goal);
@@ -115,5 +119,6 @@ export function removeFromIntent(intent, chip) {
   // the protein limit has to lift its serving gate too, or a removed chip would
   // go on narrowing the grid invisibly.
   if (scope === "view" && field === "minProtein") next.view.proteinClaim = false;
+  if (scope === "view" && field === "maxSugar") next.view.sugarClaim = false;
   return next;
 }

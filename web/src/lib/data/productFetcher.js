@@ -13,9 +13,8 @@
 // ============================================================================
 
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { AVAILABILITY, THRESHOLDS } from '@/lib/recommendation/config';
-import { isNum } from '@/lib/recommendation/scoringEngine';
-import { toPer100, toPerServing } from '@/lib/nutrition/basis';
+import { AVAILABILITY } from '@/lib/recommendation/config';
+import { guardClaims, isClaimSafeText, isHighProtein } from '@/lib/nutrition/claims';
 
 /** Number, or null when the column is absent. Never coerces missing to 0. */
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -62,7 +61,12 @@ export async function fetchAllProducts() {
     // Only claims the screening report actually made. This used to default to
     // ["Healthy", "Natural"] for any product without flags, which invented a
     // claim for every unscreened row.
-    const claims = Array.isArray(flags.claims) ? [...flags.claims] : [];
+    //
+    // And only the ones KOI may repeat. The storefront is a marketer under the
+    // claims regulations, so "Immunity Booster" is dropped as a physiological
+    // claim, and a brand's "High protein" survives only if its own declared
+    // figures pass the test KOI's badge applies (lib/nutrition/claims.js).
+    const claims = guardClaims(flags.claims, nutrition);
 
     // "High protein" is derived from the declared value, never from the name.
     // The previous rule also fired on any product whose name contained
@@ -79,16 +83,12 @@ export async function fetchAllProducts() {
     // proteinHigh (12) rather than a local 10, which also settles a live
     // disagreement: at 10 a product got the badge on its card while shelves.js
     // and search, both reading 12, left it out.
-    const per100 = toPer100(nutrition);
-    const perServing = toPerServing(nutrition);
     const hasHighProtein = claims.some(c => String(c).toLowerCase() === 'high protein');
-    if (
-      !hasHighProtein &&
-      isNum(per100.protein_g) && per100.protein_g >= THRESHOLDS.proteinHigh &&
-      isNum(perServing.protein_g) && perServing.protein_g >= THRESHOLDS.proteinPerServingFloor
-    ) {
-      claims.push("High Protein");
-    }
+    if (!hasHighProtein && isHighProtein(nutrition)) claims.push("High Protein");
+    // A reviewer's note is KOI's own voice, so it answers to the same rule as
+    // a brand claim. "Potent anti-inflammatory mix" is a physiological claim
+    // no pack could print; KOI showing it is KOI making it.
+    const reviewNotes = isClaimSafeText(screening.review_notes) ? (screening.review_notes || null) : null;
     const skus = p.skus || [];
     const mainSku = skus[0] || {};
     const skuNutrition = mainSku.sku_nutrition || [];
@@ -168,7 +168,7 @@ export async function fetchAllProducts() {
       tags: claims.slice(0, 3),
       // Only what the screening report actually declared.
       dietary: Array.isArray(flags.dietary) ? flags.dietary : [],
-      insight: screening.review_notes || null,
+      insight: reviewNotes,
       recommended: true,
 
       // No supply source is wired yet, so availability is genuinely unknown.
@@ -192,7 +192,7 @@ export async function fetchAllProducts() {
       // Details page extra mapping
       koiStatus: screening.verdict || null,
       verdict: {
-        summary: screening.review_notes || null,
+        summary: reviewNotes,
         pros: claims,
         cons: [],
       },

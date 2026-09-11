@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { GOAL_PROFILES, THRESHOLDS as T, BUDGET_RANGES, MEAL_MATCH } from "./config";
+import { isHighProtein, isLowSugar, rowFromFacts } from "@/lib/nutrition/claims";
 
 /** Recommendation DTO — the only shape the frontend consumes. */
 export const toDTO = (s) => ({
@@ -90,7 +91,7 @@ export function buildShelves(ranked, included, profile = {}) {
 
     shelf("protein", "Today's protein picks", "High-protein products, ranked for you",
       by(byMacro("protein", "desc"))
-        .filter((s) => macro(s, "protein") !== null && macro(s, "protein") >= T.proteinHigh)),
+        .filter((s) => isHighProtein(rowFromFacts(s.facts)))),
 
     shelf("breakfast", "Great breakfast choices", "Ways to start the day right",
       by((a, b) => b.raw - a.raw).filter((s) => matchMeal(s, "breakfast"))),
@@ -106,9 +107,12 @@ export function buildShelves(ranked, included, profile = {}) {
           }))
       : null,
 
-    shelf("lowsugar", "Lower sugar alternatives", "Sweetness without the spike",
+    // "Lower sugar alternatives" was a comparative claim with no reference
+    // food, and "without the spike" a physiological one. The title now states
+    // the rule the shelf applies.
+    shelf("lowsugar", "Low sugar picks", "5 g of sugar or less per 100 g (2.5 g per 100 ml)",
       by(byMacro("sugar", "asc"))
-        .filter((s) => macro(s, "sugar") !== null && macro(s, "sugar") <= T.sugarLow)),
+        .filter((s) => isLowSugar(rowFromFacts(s.facts)))),
 
     shelf("complete", "Complete your daily protein",
       profile.targets?.protein ? `Toward your ${profile.targets.protein}g / day` : "Protein-forward picks",

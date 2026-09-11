@@ -15,6 +15,7 @@ import {
 } from "./config";
 import { REASONS, CAUTIONS } from "./reasons";
 import { unverifiedFor } from "./verification";
+import { isHighProtein, isHighFibre, isLowSugar, rowFromFacts } from "@/lib/nutrition/claims";
 
 const clamp = (n, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, n));
 
@@ -155,12 +156,11 @@ export function scoreProduct(facts, profile = {}) {
   // `proteinMatch` is null when protein was never declared, and `null >= 0.7`
   // is false — so an undeclared product claims neither reason. Stated rather
   // than relied on.
+  // "High protein" is KOI's claim and carries the badge's two gates; a product
+  // that merely fits the shopper's protein target says only that.
+  const row = rowFromFacts(facts);
   if (proteinMatch !== null && proteinMatch >= 0.7) {
-    reasons.push(
-      isNum(facts.macros.protein) && facts.macros.protein >= T.proteinHigh
-        ? REASONS.highProtein()
-        : REASONS.proteinGoal()
-    );
+    reasons.push(isHighProtein(row) ? REASONS.highProtein() : REASONS.proteinGoal());
   }
   else if (mFit >= 0.6) reasons.push(REASONS.calorieTarget());
 
@@ -232,8 +232,10 @@ export function scoreProduct(facts, profile = {}) {
   // guard every product with no declared sugar was labelled "Lower sugar" on
   // the shelf — a published health claim derived from the absence of data,
   // which is the one thing KOI must never do.
-  if (isNum(facts.macros.sugar) && facts.macros.sugar <= T.sugarLow) reasons.push(REASONS.lowSugar());
-  if (isNum(facts.macros.fibre) && facts.macros.fibre >= T.fibreHigh) reasons.push(REASONS.highFibre());
+  // Both are regulated claims, decided by claims.js on the declared basis —
+  // which also refuses a product whose basis it does not know.
+  if (isLowSugar(row)) reasons.push(REASONS.lowSugar());
+  if (isHighFibre(row)) reasons.push(REASONS.highFibre());
 
   // "No ingredients you avoid" is only sayable when the things they avoid could
   // have been detected. Two avoid flags are derived from macros rather than

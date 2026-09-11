@@ -85,9 +85,13 @@ export const THRESHOLDS = Object.freeze({
   // survive contact with the declared serving too. 5 g is the FDA "good source
   // of protein" bar (10% DV), applied per serving rather than per 100 g.
   proteinPerServingFloor: 5,
-  sugarLow: 4,
+  // sugarLow and fibreHigh are FSSAI Schedule I's figures for solids, and they
+  // double as scoring scales. Whether a product may be CALLED low in sugar or
+  // high in fibre is decided only by lib/nutrition/claims.js, which also knows
+  // a drink's low-sugar limit is 2.5 g per 100 ml and fibre's per-100-kcal route.
+  sugarLow: 5,
   sugarHigh: 10,
-  fibreHigh: 5,
+  fibreHigh: 6,
   kcalLow: 120,
   kcalHigh: 170,
   sodiumHighMg: 400,

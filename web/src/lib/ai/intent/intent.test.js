@@ -387,3 +387,27 @@ test("removing every chip empties the intent", () => {
   for (const chip of describeIntent(intent)) intent = removeFromIntent(intent, chip);
   assert.equal(isEmptyIntent(intent), true);
 });
+
+// ── "Low sugar" is the regulated claim ─────────────────────────────────────
+
+test("'low sugar' carries the claim rule, and its chip names the rule rather than a number", () => {
+  const i = interpret("low sugar drinks");
+  assert.equal(i.view.sugarClaim, true);
+  assert.equal(i.view.maxSugar, THRESHOLDS.sugarLow);
+  assert.ok(describeIntent(i).some((c) => c.id === "maxSugar" && c.label === "Low sugar"));
+  assert.equal(interpret("under 5g sugar").view.sugarClaim, false, "a stated number is answered literally");
+});
+
+test("a drink under 5 g but over 2.5 g per 100 ml is not low in sugar", () => {
+  const drink = product({ measurementBasis: "per_100ml", nutrition: [macro("Sugar", 4)] });
+  const { ids, diagnostics } = resolveIntent([drink], interpret("low sugar"), null);
+  assert.equal(ids.size, 0);
+  assert.equal(diagnostics.byClaimGate, 1);
+  assert.equal(resolveIntent([drink], interpret("under 5g sugar"), null).ids.size, 1);
+});
+
+test("removing the low-sugar chip lifts its claim gate too", () => {
+  const intent = interpret("low sugar");
+  const chip = describeIntent(intent).find((c) => c.id === "maxSugar");
+  assert.equal(removeFromIntent(intent, chip).view.sugarClaim, false);
+});

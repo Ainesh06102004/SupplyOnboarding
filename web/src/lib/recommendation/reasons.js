@@ -11,7 +11,9 @@ export const REASONS = {
   noAvoid: () => "No ingredients you avoid",
   meal: (label) => `Great ${String(label).toLowerCase()} option`,
   likes: (label) => `You like ${label}`,
-  lowSugar: () => "Lower sugar",
+  // "Low", not "Lower": "lower" is a comparative claim and needs a named
+  // reference food. Only ever pushed when claims.js#isLowSugar passes.
+  lowSugar: () => "Low sugar",
   highFibre: () => "High in fibre",
   highProtein: () => "High protein",
   trust: () => "High KOI trust score",

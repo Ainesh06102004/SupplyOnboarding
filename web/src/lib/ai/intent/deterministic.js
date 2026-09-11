@@ -27,11 +27,10 @@
 //
 // Where the numbers come from:
 //   Qualitative macro words reuse KOI's OWN published thresholds — "high
-//   protein" is THRESHOLDS.proteinHigh, the same figure shelves.js uses to
-//   title a shelf "Today's protein picks", and "low sugar" is
-//   THRESHOLDS.sugarLow, behind "Lower sugar alternatives". Reusing them keeps
-//   one definition of each claim across search and shelves. No threshold is
-//   invented here, and no magic number is inlined.
+//   protein" is THRESHOLDS.proteinHigh and "low sugar" is THRESHOLDS.sugarLow,
+//   and each sets a claim flag so the resolver applies the full rule from
+//   lib/nutrition/claims.js — the same one behind the shelves and badges. No
+//   threshold is invented here, and no magic number is inlined.
 // ============================================================================
 
 import { FOODS_LOVE, THRESHOLDS } from "@/lib/recommendation/config";
@@ -309,7 +308,7 @@ const EMPTY_ACC = () => ({
   mealPrefs: [], foodsAvoid: [], foodsLove: [],
   view: {
     sort: null, minScore: null, maxKcal: null, minProtein: null, maxSugar: null, maxPrice: null,
-    proteinClaim: false,
+    proteinClaim: false, sugarClaim: false,
   },
   unresolved: [], residual: [],
 });
@@ -440,7 +439,10 @@ export function interpretDeterministic(input) {
     acc.view.minProtein = THRESHOLDS.proteinHigh;
     acc.view.proteinClaim = true;
   }
-  if (acc.goal === "low_sugar" && acc.view.maxSugar === null) acc.view.maxSugar = THRESHOLDS.sugarLow;
+  if (acc.goal === "low_sugar" && acc.view.maxSugar === null) {
+    acc.view.maxSugar = THRESHOLDS.sugarLow;
+    acc.view.sugarClaim = true;
+  }
 
   const confidence = signals === 0 ? 0 : Math.min(1, 0.55 + 0.15 * signals);
   return { ...toIntent(acc), source: "deterministic", confidence: Number(confidence.toFixed(2)) };

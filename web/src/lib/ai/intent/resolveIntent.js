@@ -33,7 +33,8 @@
 //      badge — dense enough per 100 AND enough in a real serving. Without the
 //      second gate, search would return a 5 g spoonful of Golden Milk Mix as a
 //      high-protein result while its own product card, having applied that
-//      gate, declines to make the claim.
+//      gate, declines to make the claim. "Low sugar" likewise carries the
+//      solid/liquid rule from lib/nutrition/claims.js.
 //
 //   3. A residual word that matches nothing is dropped, not applied. Filler the
 //      phrase table did not recognise would otherwise be used as a substring
@@ -50,6 +51,7 @@ import { generateCandidates } from "@/lib/recommendation/candidateGenerator";
 import { filterEligible } from "@/lib/recommendation/eligibilityFilter";
 import { isNum } from "@/lib/recommendation/scoringEngine";
 import { unverifiedFor } from "@/lib/recommendation/verification";
+import { isLowSugar, rowFromFacts } from "@/lib/nutrition/claims";
 import { mealMatches } from "@/lib/recommendation/shelves";
 import { mergeProfile } from "./merge";
 import { isEmptyIntent } from "./schema";
@@ -200,27 +202,6 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
 }
 
 /**
- * The `sku_nutrition` row shape `lib/nutrition/basis.js` reads, rebuilt from the
- * client-side product. Going through that module rather than scaling here is
- * the point: the storefront badge, the backfill script and this filter then
- * share one converter and cannot drift apart.
- *
- * @param {object} facts extractFacts output
- * @returns {object} a partial `sku_nutrition` row
- */
-function nutritionRow(facts) {
-  const m = facts.macros || {};
-  const p = facts.product || {};
-  return {
-    measurement_basis: p.measurementBasis ?? null,
-    serving_size: p.servingSize ?? null,
-    energy_kcal: m.kcal,
-    protein_g: m.protein,
-    sugars_g: m.sugar,
-  };
-}
-
-/**
  * Every shopper-stated numeric limit, checked against declared figures
  * converted to one basis. A product missing the figure a limit names — or
  * declaring it on a basis KOI cannot convert, because the serving size is
@@ -234,7 +215,7 @@ function nutritionRow(facts) {
 function withinLimits(facts, view, counters = null) {
   const m = facts.macros || {};
   const macroLimited =
-    view.maxKcal != null || view.minProtein != null || view.maxSugar != null || view.proteinClaim;
+    view.maxKcal != null || view.minProtein != null || view.maxSugar != null || view.proteinClaim || view.sugarClaim;
 
   let per100 = null;
   let perServing = null;
@@ -248,7 +229,9 @@ function withinLimits(facts, view, counters = null) {
       per100 = { energy_kcal: m.kcal, protein_g: m.protein, sugars_g: m.sugar };
       if (counters) counters.basisUnknown += 1;
     } else {
-      const row = nutritionRow(facts);
+      // The same row builder the shelves and badges use (claims.js), so one
+      // converter serves all three and they cannot drift apart.
+      const row = rowFromFacts(facts);
       per100 = toPer100(row);
       perServing = toPerServing(row);
       if (basis !== LIMIT_BASIS && counters) counters.basisConverted += 1;
@@ -269,6 +252,14 @@ function withinLimits(facts, view, counters = null) {
       if (counters) counters.byClaimGate += 1;
       return false;
     }
+  }
+
+  // "Low sugar" in KOI's voice is the regulated claim, not the number on the
+  // chip: a drink at 4 g per 100 ml is under 5 g and still not low in sugar,
+  // because a liquid's limit is 2.5 g.
+  if (view.sugarClaim && !isLowSugar(rowFromFacts(facts))) {
+    if (counters) counters.byClaimGate += 1;
+    return false;
   }
 
   // Price and KOI score are not basis-dependent, but the same rule applies:

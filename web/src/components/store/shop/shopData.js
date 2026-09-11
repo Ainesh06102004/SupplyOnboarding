@@ -109,7 +109,7 @@ export const SORTS = ["Recommended", "Highest KOI Score", "Price Low to High", "
 
 export const GOALS = [
   { name: "High Protein", icon: "Dumbbell", blurb: "20g+ per serving" },
-  { name: "Low Sugar", icon: "ShieldCheck", blurb: "Under 5g added" },
+  { name: "Low Sugar", icon: "ShieldCheck", blurb: "5g sugar or less per 100g" },
   { name: "Gut Health", icon: "Sprout", blurb: "Fibre & ferments" },
   { name: "Better Energy", icon: "Zap", blurb: "Slow-release fuel" },
   { name: "Weight Loss", icon: "Activity", blurb: "Smart calories" },

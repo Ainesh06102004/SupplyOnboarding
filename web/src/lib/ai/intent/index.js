@@ -67,6 +67,7 @@ export function adoptRefinement(local, raw, text) {
       // The serving gate only ever narrows, so a refinement may switch it on
       // but never off — the same tighten-only rule the restrictions follow.
       proteinClaim: Boolean(local.view?.proteinClaim || refined.view?.proteinClaim),
+      sugarClaim: Boolean(local.view?.sugarClaim || refined.view?.sugarClaim),
     },
     unresolved: union(local.unresolved, refined.unresolved),
   };
