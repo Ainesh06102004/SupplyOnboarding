@@ -37,7 +37,7 @@
 // sku_nutrition from anon and authenticated.
 // ============================================================================
 
-import { toPer100, toPerServing, servingsPerPack } from "@/lib/nutrition/basis.js";
+import { normalizedColumns } from "@/lib/nutrition/basis.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -76,34 +76,9 @@ async function patchRow(table, id, body) {
   return res.ok ? null : `${res.status} ${await res.text()}`;
 }
 
-// Module field name -> the pair of columns it fills.
-const COLUMN_MAP = [
-  ["energy_kcal", "kcal_per_100g", "kcal_per_serving"],
-  ["protein_g", "protein_per_100g", "protein_per_serving"],
-  ["carbs_g", "carbs_per_100g", "carbs_per_serving"],
-  ["sugars_g", "sugars_per_100g", "sugars_per_serving"],
-  ["fibre_g", "fibre_per_100g", "fibre_per_serving"],
-  ["total_fat_g", "fat_per_100g", "fat_per_serving"],
-];
-
-/** The columns are NUMERIC(8,2); round here so stored and compared agree. */
-const round2 = (v) => (v === null || v === undefined ? null : Math.round(v * 100) / 100);
-/** servings_per_pack is NUMERIC(6,1). */
-const round1 = (v) => (v === null || v === undefined ? null : Math.round(v * 10) / 10);
-
-/** What this row's normalized columns should hold, given what it declares. */
-function computeUpdate(row) {
-  const per100 = toPer100(row);
-  const perServing = toPerServing(row);
-
-  const update = {};
-  for (const [field, col100, colServing] of COLUMN_MAP) {
-    update[col100] = round2(per100[field]);
-    update[colServing] = round2(perServing[field]);
-  }
-  update.servings_per_pack = round1(servingsPerPack(row.skus?.net_weight, row.serving_size));
-  return update;
-}
+// The mapping and rounding live in basis.js now, shared with the label
+// engine's publish step, so the two writers of these columns cannot disagree.
+const computeUpdate = (row) => normalizedColumns(row, row.skus?.net_weight);
 
 /** Columns whose stored value differs from what we just computed. */
 function changedColumns(row, update) {

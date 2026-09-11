@@ -33,7 +33,7 @@ export async function fetchAllProducts() {
         id, variant_name, mrp, net_weight,
         sku_nutrition (*),
         screening_reports (*),
-        sku_label_facts (raw_ingredient_text, allergens, manually_verified)
+        sku_label_facts (raw_ingredient_text, allergens, may_contain, manually_verified)
       )
     `)
     .eq('status', 'approved');
@@ -56,7 +56,7 @@ export async function fetchAllProducts() {
     // from silently dropping every label.
     const labelRow = Array.isArray(sku.sku_label_facts) ? sku.sku_label_facts[0] : sku.sku_label_facts;
     const label = labelRow?.manually_verified
-      ? { verified: true, ingredientsText: labelRow.raw_ingredient_text || '', allergens: labelRow.allergens || [] }
+      ? { verified: true, ingredientsText: labelRow.raw_ingredient_text || '', allergens: labelRow.allergens || [], mayContain: labelRow.may_contain || [] }
       : null;
     // Only claims the screening report actually made. This used to default to
     // ["Healthy", "Natural"] for any product without flags, which invented a

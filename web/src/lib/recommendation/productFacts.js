@@ -129,7 +129,13 @@ export function extractFacts(product) {
     for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
       if (anyKeyword(labelText, kws)) contains.add(flag);
     }
-    for (const declared of Array.isArray(label.allergens) ? label.allergens : []) {
+    // "May contain" counts as present. It is the brand saying it cannot rule
+    // the allergen out, and a shopper avoiding it has asked KOI to rule it out.
+    const declaredFlags = [
+      ...(Array.isArray(label.allergens) ? label.allergens : []),
+      ...(Array.isArray(label.mayContain) ? label.mayContain : []),
+    ];
+    for (const declared of declaredFlags) {
       if (typeof declared === "string" && declared in CONTAINS_KEYWORDS) contains.add(declared);
     }
   }

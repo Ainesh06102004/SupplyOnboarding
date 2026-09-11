@@ -151,3 +151,40 @@ export function servingsPerPack(netWeight, servingSize) {
   if (pack.unit !== serving.unit) return null;
   return pack.value / serving.value;
 }
+
+// Label field -> the pair of normalized `sku_nutrition` columns it fills.
+export const NORMALIZED_COLUMN_MAP = Object.freeze([
+  ["energy_kcal", "kcal_per_100g", "kcal_per_serving"],
+  ["protein_g", "protein_per_100g", "protein_per_serving"],
+  ["carbs_g", "carbs_per_100g", "carbs_per_serving"],
+  ["sugars_g", "sugars_per_100g", "sugars_per_serving"],
+  ["fibre_g", "fibre_per_100g", "fibre_per_serving"],
+  ["total_fat_g", "fat_per_100g", "fat_per_serving"],
+]);
+
+/** The columns are NUMERIC(8,2); round here so stored and compared agree. */
+const round2 = (v) => (v === null || v === undefined ? null : Math.round(v * 100) / 100);
+/** servings_per_pack is NUMERIC(6,1). */
+const round1 = (v) => (v === null || v === undefined ? null : Math.round(v * 10) / 10);
+
+/**
+ * What a row's normalized columns should hold, given what it declares. The one
+ * definition both writers use — the backfill script and the label engine's
+ * publish step — so a stored per-100 figure always equals what this module
+ * computes at read time.
+ *
+ * @param {object} row a `sku_nutrition`-shaped row
+ * @param {string|null} [netWeight] the SKU's net weight, for servings_per_pack
+ * @returns {object} the twelve normalized columns plus servings_per_pack
+ */
+export function normalizedColumns(row, netWeight = null) {
+  const per100 = toPer100(row);
+  const perServing = toPerServing(row);
+  const out = {};
+  for (const [field, col100, colServing] of NORMALIZED_COLUMN_MAP) {
+    out[col100] = round2(per100[field]);
+    out[colServing] = round2(perServing[field]);
+  }
+  out.servings_per_pack = round1(servingsPerPack(netWeight, row?.serving_size));
+  return out;
+}

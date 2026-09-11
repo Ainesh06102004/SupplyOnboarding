@@ -1,179 +1,91 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle, AlertTriangle, FileEdit, Send, Activity, Info } from 'lucide-react'
+import { CheckCircle, FileEdit, Send, ShieldCheck, ScanText, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { triggerAIPipeline, submitProductForReview } from '@/lib/dashboard/productCreation'
+import { queueLabelReading, submitProductForReview } from '@/lib/dashboard/productCreation'
 
-export default function Step5AIReview({ productId, aiReviewResults, setAiReviewResults, onBack, onComplete }) {
-  const [processing, setProcessing] = useState(!aiReviewResults)
+// This step used to "run AI extraction": it waited three seconds, showed a
+// hardcoded result — 25 g protein, whey protein isolate, "Score: 85/100",
+// "All Clear! No banned substances detected" — for every product, and wrote
+// that score into screening_reports as if KOI had read the label. Nothing had
+// read anything. The brand saw an approval KOI never gave, and the storefront
+// got a trust score nobody computed.
+//
+// What really happens now: the labels are queued for KOI's label engine, a
+// model transcribes them, and a KOI reviewer checks every ingredient list and
+// every allergen before anything reaches the storefront. So this step says
+// that, and asks for nothing it cannot deliver.
+const STEPS = [
+  { icon: ScanText, title: 'KOI reads your labels', body: 'Each photo is transcribed exactly as printed — ingredients, allergen statement and nutrition table.' },
+  { icon: UserCheck, title: 'A person checks it', body: 'A KOI reviewer confirms every ingredient list and every allergen against your photo. Nothing is published from the model alone.' },
+  { icon: ShieldCheck, title: 'Then it is screened', body: 'Claims are tested against FSSAI’s conditions using your declared figures before the product is listed.' },
+]
+
+export default function Step5AIReview({ productId, onBack, onComplete }) {
+  const [queued, setQueued] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function runExtraction() {
-      if (aiReviewResults) return
-      
-      try {
-        setProcessing(true)
-        const results = await triggerAIPipeline(productId)
-        setAiReviewResults(results)
-      } catch (err) {
-        console.error('Failed AI Extraction:', err)
-        alert('There was an issue parsing your labels. Please try again.')
-        onBack()
-      } finally {
-        setProcessing(false)
-      }
-    }
-
-    if (productId && !aiReviewResults) {
-      runExtraction()
-    }
-  }, [productId, aiReviewResults, setAiReviewResults, onBack])
+    if (!productId || queued) return
+    queueLabelReading(productId)
+      .then(() => setQueued(true))
+      .catch((err) => {
+        console.error('Failed to queue labels', err)
+        setError('Your labels were uploaded, but we could not queue them for reading. Try again in a moment.')
+      })
+  }, [productId, queued])
 
   const handleSubmit = async () => {
     try {
       setSubmitting(true)
+      setError(null)
       await submitProductForReview(productId)
       onComplete()
     } catch (err) {
       console.error('Failed to submit for review', err)
-      alert('Failed to submit product. Please try again.')
+      setError('We could not submit the product. Please try again.')
       setSubmitting(false)
     }
   }
 
-  if (processing) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
-        <div className="relative mb-8">
-          <div className="absolute inset-0 bg-[#0E4032] rounded-full blur-xl opacity-20 animate-pulse" />
-          <div className="w-20 h-20 bg-white rounded-full border border-gray-100 shadow-xl flex items-center justify-center relative z-10">
-            <Activity className="w-10 h-10 text-[#0E4032] animate-bounce" />
-          </div>
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-3" style={{ fontFamily: "var(--font-koi-heading)" }}>AI Label Extraction in Progress</h3>
-        <p className="text-gray-500 text-center max-w-md">
-          KOI is scanning your nutrition panels and ingredient lists to verify claims and check for banned substances. This takes a few seconds...
-        </p>
-      </div>
-    )
-  }
-
-  if (!aiReviewResults) return null
-
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>AI Review Complete</h3>
+      <div className="border-b border-gray-100 pb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <h3 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>Your labels are with KOI</h3>
+          {queued && (
             <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" />
-              Score: {aiReviewResults.healthScore}/100
+              <CheckCircle className="w-3 h-3" /> Queued for reading
             </span>
-          </div>
-          <p className="text-gray-500">Please review the extracted data before final submission.</p>
+          )}
         </div>
+        <p className="text-gray-500">There is no instant result here on purpose. This is what happens next.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Nutrition & Ingredients */}
-        <div className="space-y-6">
-          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
-              <Info className="w-4 h-4 text-gray-400" />
-              Extracted Nutrition (per 100g)
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(aiReviewResults.nutrition).map(([key, value]) => (
-                <div key={key} className="bg-white p-3 rounded-lg border border-gray-100 flex justify-between items-center">
-                  <span className="text-xs text-gray-500 font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <span className="text-sm font-bold text-gray-900">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <ol className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {STEPS.map(({ icon: Icon, title, body }) => (
+          <li key={title} className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+            <Icon className="w-5 h-5 text-[#0E4032] mb-3" />
+            <h4 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
+            <p className="text-sm text-gray-600 leading-relaxed">{body}</p>
+          </li>
+        ))}
+      </ol>
 
-          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
-              <Info className="w-4 h-4 text-gray-400" />
-              Detected Ingredients
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {aiReviewResults.ingredients.map((ing, idx) => (
-                <span key={idx} className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-sm text-gray-700">
-                  {ing}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Flags & Actions */}
-        <div className="space-y-6">
-          {aiReviewResults.flags.length > 0 ? (
-            <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
-              <h4 className="font-semibold text-amber-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                Attention Required ({aiReviewResults.flags.length})
-              </h4>
-              <div className="space-y-3">
-                {aiReviewResults.flags.map((flag, idx) => (
-                  <div key={idx} className="bg-white/60 p-4 rounded-xl border border-amber-200/50">
-                    <p className="text-sm text-amber-800 font-medium leading-relaxed">
-                      {flag.message}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-amber-700 mt-4">
-                You can still submit, but these flags will be reviewed manually by the KOI team.
-              </p>
-            </div>
-          ) : (
-            <div className="bg-green-50 rounded-2xl p-6 border border-green-100 flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              <div>
-                <h4 className="font-semibold text-green-900" style={{ fontFamily: "var(--font-koi-heading)" }}>All Clear!</h4>
-                <p className="text-sm text-green-700">No discrepancies or banned substances detected.</p>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <h4 className="font-semibold text-gray-900 mb-4" style={{ fontFamily: "var(--font-koi-heading)" }}>Next Steps</h4>
-            <p className="text-sm text-gray-600 mb-6">
-              If the extracted information looks incorrect, you can go back and upload clearer label images. Otherwise, submit for final approval.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                variant="outline" 
-                onClick={onBack}
-                disabled={submitting}
-                className="flex-1 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-50 h-12 font-semibold"
-              >
-                <FileEdit className="w-4 h-4 mr-2" />
-                Edit Labels
-              </Button>
-              <Button 
-                onClick={handleSubmit} 
-                disabled={submitting}
-                className="flex-1 bg-[#0E4032] hover:bg-[#0a2e24] text-white rounded-xl h-12 font-semibold shadow-md"
-              >
-                {submitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Submitting...
-                  </div>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Submit for Approval
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-600 mb-6">
+          The clearest results come from a photo of the back of the pack showing the full ingredient list, the allergen
+          statement and the nutrition table. If yours were cropped or blurred, go back and replace them.
+        </p>
+        {error && <p className="text-sm text-red-700 mb-4" role="alert">{error}</p>}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button variant="outline" onClick={onBack} disabled={submitting} className="flex-1 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-50 h-12 font-semibold">
+            <FileEdit className="w-4 h-4 mr-2" />
+            Replace labels
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting || !queued} className="flex-1 bg-[#0E4032] hover:bg-[#0a2e24] text-white rounded-xl h-12 font-semibold shadow-md">
+            {submitting ? 'Submitting…' : (<><Send className="w-4 h-4 mr-2" />Submit for approval</>)}
+          </Button>
         </div>
       </div>
     </div>

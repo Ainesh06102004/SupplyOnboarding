@@ -101,6 +101,12 @@ test("allergens declared on a verified label are read as flags", () => {
   assert.equal(eligible(p, { foodsAvoid: ["peanuts"] }), true);
 });
 
+test("a 'may contain' on a verified label rules the product out for that allergen", () => {
+  const p = product({ label: { verified: true, ingredientsText: "oats, jaggery", allergens: [], mayContain: ["tree_nut"] } });
+  assert.equal(eligible(p, { foodsAvoid: ["tree_nuts"] }), false);
+  assert.equal(eligible(p, { foodsAvoid: ["peanuts"] }), true);
+});
+
 // ── Tree nuts ──────────────────────────────────────────────────────────────
 
 test("tree nuts on a partial list remove the product", () => {

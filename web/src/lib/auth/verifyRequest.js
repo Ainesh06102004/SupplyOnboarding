@@ -43,7 +43,7 @@ import { createServerClient } from '@supabase/ssr'
  * customer key, not because it is still a Firebase UID.
  *
  * @param {import('next/server').NextRequest} request
- * @returns {Promise<{ uid: string, email: string|null }|null>}
+ * @returns {Promise<{ uid: string, email: string|null, role: string|null }|null>}
  */
 export async function getVerifiedUser(request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -68,7 +68,9 @@ export async function getVerifiedUser(request) {
   try {
     const { data, error } = await supabase.auth.getUser()
     if (error || !data?.user) return null
-    return { uid: data.user.id, email: data.user.email ?? null }
+    // `role` comes from app_metadata, which only the service role can write —
+    // a user cannot grant it to themselves (see lib/auth/reviewer.js).
+    return { uid: data.user.id, email: data.user.email ?? null, role: data.user.app_metadata?.koi_role ?? null }
   } catch (error) {
     // The reason stays in the log: telling a caller which check failed tells
     // an attacker which check to work on.
