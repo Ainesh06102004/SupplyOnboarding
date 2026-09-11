@@ -34,6 +34,7 @@
 // ============================================================================
 
 import { FOODS_LOVE, THRESHOLDS } from "@/lib/recommendation/config";
+import { SCHEDULE_I } from "@/lib/nutrition/claims";
 import {
   GOAL_KEYS, DIET_KEYS, MEAL_KEYS, AVOID_KEYS, LOVE_KEYS, BUDGET_KEYS,
   SORTS, LIMIT_BOUNDS,
@@ -50,8 +51,12 @@ const GOAL_PHRASES = {
   maintenance: ["maintenance", "maintain", "stay the same"],
   wellness: ["general wellness", "wellness", "eat cleaner", "clean eating", "general health", "feel better", "healthy", "healthier"],
   high_protein: ["high protein", "more protein", "protein rich", "rich in protein", "protein"],
-  low_sugar: ["low sugar", "lower sugar", "less sugar", "diabetic", "diabetes"],
-  heart_health: ["heart health", "heart healthy", "cholesterol", "blood pressure"],
+  // No disease words here. "diabetic" used to mean low_sugar plus a sugar cap,
+  // and "cholesterol" heart_health — so KOI answered a medical condition with
+  // a shelf, which is a suitability claim for that condition. They are
+  // MEDICAL_TERMS below instead.
+  low_sugar: ["low sugar", "lower sugar", "less sugar"],
+  heart_health: ["heart health", "heart healthy"],
   gut_health: ["gut health", "digestion", "digestive", "bloating", "fibre rich", "fiber rich", "high fibre", "high fiber"],
 };
 
@@ -114,6 +119,21 @@ const UNRESOLVABLE_RESTRICTIONS = [
   "coconut", "maize", "jaggery",
 ];
 
+// Medical conditions. Recognised so KOI can say it does not filter by them —
+// never mapped to a goal or a limit. The claims regulations prohibit implying a
+// food suits a disease or physiological condition, and a filtered shelf in
+// answer to "diabetes friendly" implies exactly that. Echoed back through
+// `unresolved`, where describe.js labels them.
+export const MEDICAL_TERMS = Object.freeze([
+  "diabetes friendly", "diabetic friendly", "diabetes", "diabetic", "sugar patient",
+  "blood sugar", "cholesterol", "blood pressure", "hypertension", "pcos", "pcod", "thyroid",
+]);
+
+// "Sugar free" is a regulated claim with its own figure, not "avoid refined
+// sugar": FSSAI allows it at 0.5 g per 100 g or 100 ml. "no added sugar" is a
+// different claim and stays an ingredient avoid.
+const SUGAR_FREE = /\s(?:sugar\s?free|zero\s+sugar|no\s+sugar)(?=\s)/;
+
 const BUDGET_PHRASES = {
   low: ["cheap", "budget", "affordable", "inexpensive", "low cost", "pocket friendly"],
   medium: ["mid range", "midrange", "moderately priced"],
@@ -175,6 +195,7 @@ const PHRASE_INDEX = (() => {
     }
   }
   for (const phrase of UNRESOLVABLE_RESTRICTIONS) add(phrase, "unresolvable", phrase);
+  for (const phrase of MEDICAL_TERMS) add(phrase, "medical", phrase);
   return index;
 })();
 
@@ -393,6 +414,15 @@ export function interpretDeterministic(input) {
   for (const clause of splitClauses(text)) {
     let working = ` ${clause} `;
 
+    // Sugar free before suffix negation, which would otherwise read "sugar
+    // free" as "avoid refined sugar".
+    const sugarFree = working.match(SUGAR_FREE);
+    if (sugarFree) {
+      if (acc.view.maxSugar === null || acc.view.maxSugar > SCHEDULE_I.sugarFree) acc.view.maxSugar = SCHEDULE_I.sugarFree;
+      signals += 1;
+      working = working.replace(sugarFree[0], " ");
+    }
+
     // Suffix negation first: it names its target BEFORE the cue, so it has to
     // be consumed before positional negation looks at what follows a cue.
     for (const re of SUFFIX_CUES) {
@@ -417,7 +447,9 @@ export function interpretDeterministic(input) {
       const hit = longestMatch(padded);
       if (!hit) break;
       const entry = PHRASE_INDEX.get(hit.phrase);
-      if (hit.at >= negFrom) applyNegated(acc, entry, hit.variant);
+      // A medical condition is reported, whichever side of a negation it sits.
+      if (entry?.medical !== undefined) push(acc.unresolved, hit.variant);
+      else if (hit.at >= negFrom) applyNegated(acc, entry, hit.variant);
       else applyPositive(acc, entry);
       signals += 1;
       padded = blank(padded, hit.at, hit.length);

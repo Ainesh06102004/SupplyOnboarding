@@ -14,6 +14,8 @@
 import {
   GOAL_PROFILES, DIET_TYPES, MEALS, FOODS_AVOID, FOODS_LOVE, BUDGETS,
 } from "@/lib/recommendation/config";
+import { SCHEDULE_I } from "@/lib/nutrition/claims";
+import { MEDICAL_TERMS } from "./deterministic";
 
 const labelOf = (list, key) => (list.find((x) => x.key === key) || {}).label || key;
 
@@ -59,7 +61,8 @@ export function describeIntent(intent) {
   // "Low sugar" is a rule, not a number: 5 g per 100 g, 2.5 g per 100 ml.
   // Printing "Under 5g sugar" would misdescribe what a drink is held to.
   if (v.maxSugar != null) {
-    add("maxSugar", v.sugarClaim ? "Low sugar" : `Under ${v.maxSugar}g sugar`, "view.maxSugar", null, "constraint");
+    const label = v.sugarClaim ? "Low sugar" : v.maxSugar === SCHEDULE_I.sugarFree ? "Sugar free" : `Under ${v.maxSugar}g sugar`;
+    add("maxSugar", label, "view.maxSugar", null, "constraint");
   }
   if (v.minScore != null) add("minScore", `KOI score ${v.minScore}+`, "view.minScore", null, "constraint");
 
@@ -79,7 +82,10 @@ export function describeIntent(intent) {
   // has no way to enforce. Shown so the shopper is never left believing a limit
   // was applied when it was not.
   for (const word of intent.unresolved || []) {
-    add(`unresolved:${word}`, `Couldn't apply "${word}"`, "unresolved", word, "unapplied");
+    // A medical condition was not "couldn't apply" — KOI declines to, because
+    // filtering for one would imply the results suit it.
+    const medical = MEDICAL_TERMS.some((t) => String(word).toLowerCase().startsWith(t));
+    add(`unresolved:${word}`, medical ? "KOI doesn't filter by medical condition" : `Couldn't apply "${word}"`, "unresolved", word, "unapplied");
   }
 
   return chips;

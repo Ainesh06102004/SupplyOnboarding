@@ -122,17 +122,23 @@ export default function ProductDetailPage({ params }) {
           <SupplyPanel supply={supply} pincode={pincode} />
         </section>
 
+        {/* A section renders only when the product has something true to put
+            in it. These used to render for every product, filled with
+            category defaults, invented reviews and stamped copy — see
+            productData.js. An absent section is the honest version. */}
         <TrustBadge trust={vm.trust} />
-        <WhyEarned reasons={vm.reasons} />
-        <Verdict verdict={vm.verdict} />
-        <IngredientIntelligence ingredients={vm.ingredients} timeline={vm.ingredientTimeline} />
+        {vm.reasons.length > 0 && <WhyEarned reasons={vm.reasons} />}
+        {vm.verdict.quote && <Verdict verdict={vm.verdict} />}
+        {vm.ingredients.length > 0 && (
+          <IngredientIntelligence ingredients={vm.ingredients} timeline={vm.ingredientTimeline} verified={vm.ingredientsVerified} />
+        )}
         <NutritionExplained nutrition={vm.nutrition} />
-        <HealthComparison comparison={vm.comparison} name={vm.name} />
-        <Personas personas={vm.personas} />
-        <UsageTimeline usage={vm.usage} pairings={vm.pairings} />
-        <ScientificInsights science={vm.science} />
+        {vm.comparison.length > 0 && <HealthComparison comparison={vm.comparison} name={vm.name} />}
+        {(vm.personas.for.length > 0 || vm.personas.not.length > 0) && <Personas personas={vm.personas} />}
+        {vm.usage.length > 0 && <UsageTimeline usage={vm.usage} pairings={vm.pairings} />}
+        {vm.science.length > 0 && <ScientificInsights science={vm.science} />}
         <Transparency items={vm.transparency} />
-        <Community community={vm.community} />
+        {vm.community.notes.length > 0 && <Community community={vm.community} />}
         <RelatedShelf products={related} onSelect={selectProduct} />
       </main>
 

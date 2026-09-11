@@ -263,7 +263,7 @@ export function GoalSetupModal({ open, onClose }) {
       setForm({
         goal: profile?.goal || "",
         sex: profile?.sex || "male",
-        age: profile?.age || 28,
+        age: Math.max(18, profile?.age || 28),
         height: profile?.height || 172,
         weightNow: profile?.weightNow || 72,
         weightTarget: profile?.weightTarget || 68,
@@ -379,7 +379,13 @@ export function GoalSetupModal({ open, onClose }) {
                   ))}
                 </div>
               </div>
-              <Slider label="Age" value={form.age} min={14} max={90} unit=" yrs" onChange={(v) => set({ age: v })} />
+              {/* 18+ only. A health profile is personal data about the person it
+                  describes, and India's DPDP Act bars KOI from profiling anyone
+                  under 18 (s.9) — the database refuses it too (00022). */}
+              <div>
+                <Slider label="Age" value={Math.max(18, form.age)} min={18} max={90} unit=" yrs" onChange={(v) => set({ age: v })} />
+                <p className="mt-1.5 text-[11.5px] font-medium text-[#083D2D]/50">KOI&apos;s health profile is for adults, 18 and over.</p>
+              </div>
               <Slider label="Height" value={form.height} min={130} max={215} unit=" cm" onChange={(v) => set({ height: v })} />
               <Slider label="Current weight" value={form.weightNow} min={35} max={160} unit=" kg" onChange={(v) => set({ weightNow: v })} />
               <Slider label="Goal weight" value={form.weightTarget} min={35} max={160} unit=" kg" onChange={(v) => set({ weightTarget: v })} />

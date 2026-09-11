@@ -52,6 +52,12 @@ const num = (v) => (v === null || v === undefined || v === "" ? null : Number(v)
  */
 export async function saveGoalProfile(uid, profile) {
   if (!uid || !profile) return;
+  // Nothing is stored for someone under 18. The form no longer offers those
+  // ages, but a profile saved in this browser before it changed still can, and
+  // DPDP s.9 bars profiling a child — so the save declines rather than trying
+  // and failing against user_health_profile's 18+ constraint (00022).
+  const age = num(profile.age);
+  if (age !== null && age < 18) return;
   const supabase = getSupabaseClient();
   const t = profile.targets || {};
 
@@ -59,7 +65,7 @@ export async function saveGoalProfile(uid, profile) {
     {
       profile_id: uid,
       gender: profile.sex || null,
-      age: num(profile.age),
+      age,
       height_cm: num(profile.height),
       weight_kg: num(profile.weightNow),
       goal_weight_kg: num(profile.weightTarget),

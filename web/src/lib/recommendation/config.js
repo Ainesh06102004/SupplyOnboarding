@@ -146,7 +146,9 @@ export const FOODS_LOVE = [
   { key: "muesli", label: "Muesli", emoji: "🥣", keywords: ["muesli"] },
   { key: "honey", label: "Honey", emoji: "🍯", keywords: ["honey"] },
   { key: "smoothies", label: "Smoothies", emoji: "🥤", keywords: ["smoothie", "shake"] },
-  { key: "healthy_desserts", label: "Healthy Desserts", emoji: "🍮", keywords: ["dessert", "laddu", "halwa"] },
+  // Key unchanged (food_item has it); the label was KOI calling a category
+  // "healthy", which the claims regulations do not allow.
+  { key: "healthy_desserts", label: "Desserts", emoji: "🍮", keywords: ["dessert", "laddu", "halwa"] },
 ];
 
 // avoid key → { flag, mode, kind, label }. hard = eligibility removal, soft = penalty.

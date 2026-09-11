@@ -134,11 +134,16 @@ export function Verdict({ verdict }) {
 }
 
 // ── 3. Ingredient Intelligence ──────────────────────────────────────────────
-export function IngredientIntelligence({ ingredients, timeline }) {
+export function IngredientIntelligence({ ingredients, timeline = [], verified = false }) {
   const [sel, setSel] = useState(0);
   const active = ingredients[sel] || ingredients[0];
+  // A partial list must say so. Shown as "What's actually inside" it reads as
+  // the whole pack — which is exactly how an allergen goes unnoticed.
+  const subtitle = verified
+    ? "The full ingredient list, checked against the pack. Tap one for what it is."
+    : "A partial list from the brand's submission — not the full pack. Check the label for allergens.";
   return (
-    <Section id="ingredients" index="03" eyebrow="Ingredient intelligence" title="What's actually inside" subtitle="Tap an ingredient to see why it's here and what it does.">
+    <Section id="ingredients" index="03" eyebrow="Ingredient intelligence" title={verified ? "What's inside" : "Some of what's inside"} subtitle={subtitle}>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_0.9fr] lg:gap-12">
         <div className="flex flex-wrap gap-2.5 self-start">
           {ingredients.map((ing, i) => {
@@ -163,14 +168,14 @@ export function IngredientIntelligence({ ingredients, timeline }) {
                 <Leaf className="h-3.5 w-3.5" /> {active.role}
               </span>
               <h3 className="mt-4 text-[24px] font-extrabold text-[#083D2D]" style={HEADING}>{active.name}</h3>
-              <p className="mt-3 text-[15px] leading-relaxed text-[#101412]/65" style={BODY}>{active.detail}</p>
+              {active.detail && <p className="mt-3 text-[15px] leading-relaxed text-[#101412]/65" style={BODY}>{active.detail}</p>}
             </div>
           </Reveal>
         )}
       </div>
 
       {/* quality timeline */}
-      <div className="mt-12">
+      {timeline.length > 0 && <div className="mt-12">
         <div className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#083D2D]/40">Ingredient quality, step by step</div>
         <div className="hide-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           {timeline.map((step, i) => (
@@ -184,7 +189,7 @@ export function IngredientIntelligence({ ingredients, timeline }) {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
     </Section>
   );
 }
@@ -223,9 +228,11 @@ export function NutritionExplained({ nutrition }) {
           </Reveal>
         ))}
       </div>
-      {nutrition.calories > 0 && (
+      {/* The figure is per 100 of the product's own unit. This line used to
+          call it "per serving", which it almost never was. */}
+      {nutrition.calories != null && nutrition.basisLabel && (
         <p className="mt-6 text-[13px] font-medium text-[#083D2D]/50" style={BODY}>
-          Around <span className="font-bold text-[#083D2D]">{nutrition.calories} kcal</span> per serving - a context number, not the headline. What&apos;s in those calories matters more than the count.
+          <span className="font-bold text-[#083D2D]">{nutrition.calories} kcal</span> {nutrition.basisLabel}.
         </p>
       )}
     </Section>
@@ -375,7 +382,7 @@ const STATUS = {
 export function Transparency({ items }) {
   const [open, setOpen] = useState(-1);
   return (
-    <Section id="transparency" index="09" eyebrow="Full transparency" title="Everything we checked" subtitle="The exact checklist KOI runs on every product - tap any line for the detail.">
+    <Section id="transparency" index="09" eyebrow="Full transparency" title="Who said what" subtitle="What the brand declares, and what KOI has checked so far — tap any line for the detail.">
       <div className="overflow-hidden rounded-[24px] border border-[#083D2D]/8 bg-white">
         {items.map((it, i) => {
           const s = STATUS[it.status] || STATUS.limited;

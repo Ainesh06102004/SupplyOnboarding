@@ -1,12 +1,38 @@
 // ============================================================================
 // KOI PRODUCT - View-model normaliser
-// Turns whatever product object we have (live DB or curated fallback) into a
-// rich, always-populated editorial view model for the product story.
-// Pure data; no misleading specifics - everything is derived from real fields.
+// Turns a product (live DB or curated fallback) into the view model the product
+// story renders.
+//
+// Rule: every line on the page is either read from the product's data or not
+// shown. This file used to fill every gap with copy that read as fact:
+//   - a default ingredient list per category, which put almonds and milk
+//     solids on products KOI holds no ingredient data for — an allergen
+//     statement invented from a category name;
+//   - a "category average" computed as half or double the product's own
+//     figures, presented as the market;
+//   - a usage timeline, a "science" section and an ingredient-quality timeline
+//     stamped identically on every product ("without the sugar crash", on
+//     honey);
+//   - three community reviews signed with invented names, and a quote
+//     attributed to a nutritionist nobody consulted;
+//   - an undeclared sugar figure coerced to 0 and rated "Minimal".
+// KOI is a marketer under the food claims regulations, so each of those was a
+// claim KOI made — the review and the nutritionist quote were prohibited ones
+// (implied endorsement), and "Diabetes - watch portions" a disease reference.
+// A section with nothing true to say now comes back empty, and the page omits
+// it rather than filling it.
 // ============================================================================
 
-const num = (v) => (typeof v === "number" ? v : parseFloat(String(v ?? "").replace(/[^\d.]/g, "")) || 0);
-const has = (tags, kw) => (tags || []).some((t) => t.toLowerCase().includes(kw));
+import { THRESHOLDS } from "@/lib/recommendation/config";
+import { toPer100 } from "@/lib/nutrition/basis";
+import {
+  isHighProtein, isHighFibre, isLowSugar, isSugarFree, rowFromProduct,
+} from "@/lib/nutrition/claims";
+
+const has = (tags, kw) => (tags || []).some((t) => String(t).toLowerCase().includes(kw));
+
+/** A declared figure, rounded for display, or null. Never 0 for missing. */
+const fig = (v) => (v === null || v === undefined || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 10) / 10);
 
 /**
  * Letter grade for a KOI score, or null when there is no score.
@@ -25,231 +51,183 @@ export function grade(score) {
   return { g: "C", label: "Mixed" };
 }
 
-// ── Ingredient knowledge base (for the intelligence chips) ──────────────────
+// ── What an ingredient is ───────────────────────────────────────────────────
+// Descriptions say what the ingredient IS, and flag the allergen it carries.
+// They no longer say what it does for a body: "heart-friendly fat", "low
+// glycaemic load" and "supports fullness" are health and function claims about
+// a product KOI has not tested, and the same sentence appeared on every product
+// whose list contained the word.
+const TREE_NUT = "A tree nut — relevant if you avoid tree nuts.";
 const INGREDIENT_DB = {
-  "whole wheat": { role: "Whole grain", tone: "good", detail: "Retains bran and germ, so it keeps fibre and a slower energy release than refined flour." },
-  oats: { role: "Whole grain", tone: "good", detail: "A source of beta-glucan fibre that supports fullness and steadier energy." },
-  millet: { role: "Whole grain", tone: "good", detail: "Naturally gluten-free grains with a low glycaemic load and good mineral content." },
-  millets: { role: "Whole grain", tone: "good", detail: "Naturally gluten-free grains with a low glycaemic load and good mineral content." },
-  ragi: { role: "Whole grain", tone: "good", detail: "Finger millet - rich in calcium and slow-digesting carbohydrates." },
-  jaggery: { role: "Natural sweetener", tone: "good", detail: "Unrefined cane sugar that carries trace minerals. Still sugar, but less processed than white sugar." },
-  dates: { role: "Natural sweetener", tone: "good", detail: "Whole-fruit sweetness with fibre and potassium - a cleaner way to add sweetness." },
-  honey: { role: "Natural sweetener", tone: "good", detail: "Raw honey brings enzymes and antioxidants. Best enjoyed in moderation." },
-  cocoa: { role: "Flavour", tone: "good", detail: "Real cocoa carries flavanol antioxidants - the source of genuine chocolate flavour." },
-  cacao: { role: "Flavour", tone: "good", detail: "Minimally processed cocoa, higher in antioxidants than compound chocolate." },
-  almond: { role: "Protein & fat", tone: "good", detail: "Adds plant protein, vitamin E and heart-friendly monounsaturated fat." },
-  almonds: { role: "Protein & fat", tone: "good", detail: "Adds plant protein, vitamin E and heart-friendly monounsaturated fat." },
-  cashew: { role: "Protein & fat", tone: "good", detail: "Creamy texture with plant protein and good fats." },
-  peanut: { role: "Protein & fat", tone: "good", detail: "An affordable, high-protein legume with healthy fats." },
-  "milk solids": { role: "Protein & dairy", tone: "good", detail: "Contributes protein and calcium and a rich, familiar taste." },
-  "a2 ghee": { role: "Healthy fat", tone: "good", detail: "Clarified butter used for flavour and cooking stability instead of palm oil." },
-  ghee: { role: "Healthy fat", tone: "good", detail: "Clarified butter used for flavour and cooking stability instead of palm oil." },
-  saffron: { role: "Flavour", tone: "good", detail: "Prized spice threads adding aroma and colour, no additives needed." },
-  seeds: { role: "Fibre & fat", tone: "good", detail: "Seeds add fibre, omega fats and a satisfying crunch." },
-  "white butter": { role: "Healthy fat", tone: "good", detail: "Churned butter used instead of hydrogenated or palm fats." },
-};
-
-const DEFAULT_INGREDIENTS = {
-  Snacks: ["Whole grains", "Jaggery", "Almonds", "Cocoa"],
-  Breakfast: ["Whole wheat", "Milk solids", "Jaggery", "Cocoa"],
-  Pantry: ["Single-origin sourcing", "No additives"],
-  Beverages: ["Millets", "Cocoa", "Jaggery"],
+  "whole wheat": { role: "Whole grain", detail: "Wheat milled with its bran and germ. Contains gluten." },
+  oats: { role: "Whole grain", detail: "Rolled or cut oat grains." },
+  millet: { role: "Whole grain", detail: "Small-seeded grains such as ragi, jowar or bajra." },
+  ragi: { role: "Whole grain", detail: "Finger millet." },
+  jaggery: { role: "Sweetener", detail: "Unrefined cane sugar. It counts as sugar on the nutrition panel." },
+  dates: { role: "Sweetener", detail: "Dried fruit used for sweetness. It counts toward total sugar." },
+  honey: { role: "Sweetener", detail: "It counts toward total sugar." },
+  cocoa: { role: "Flavour", detail: "Ground cocoa solids." },
+  cacao: { role: "Flavour", detail: "Cocoa processed at lower temperatures." },
+  almond: { role: "Nut", detail: TREE_NUT },
+  cashew: { role: "Nut", detail: TREE_NUT },
+  walnut: { role: "Nut", detail: TREE_NUT },
+  pistachio: { role: "Nut", detail: TREE_NUT },
+  peanut: { role: "Legume", detail: "A legume, not a tree nut — relevant if you avoid peanuts." },
+  "milk solids": { role: "Dairy", detail: "Concentrated milk — relevant if you avoid milk or lactose." },
+  ghee: { role: "Fat", detail: "Clarified butter; a dairy fat." },
+  "white butter": { role: "Fat", detail: "Unsalted churned butter; a dairy fat." },
+  saffron: { role: "Spice", detail: "Dried crocus stigmas, used for aroma and colour." },
+  seeds: { role: "Seeds", detail: "Edible seeds." },
 };
 
 function ingredientEntry(name) {
-  const key = name.toLowerCase().trim();
+  const key = String(name).toLowerCase().trim();
   const hit = Object.keys(INGREDIENT_DB).find((k) => key.includes(k));
-  if (hit) return { name, ...INGREDIENT_DB[hit] };
-  return { name, role: "Whole ingredient", tone: "good", detail: "A recognisable, minimally processed ingredient - no synthetic fillers here." };
+  return hit ? { name, tone: "mid", ...INGREDIENT_DB[hit] } : { name, tone: "mid", role: "Ingredient", detail: null };
 }
 
-// ── Nutrition ratings (qualitative meters) ──────────────────────────────────
-function proteinRating(v) { return v >= 15 ? ["Excellent", 0.92, "good"] : v >= 8 ? ["Good", 0.66, "good"] : v >= 4 ? ["Moderate", 0.42, "mid"] : ["Light", 0.2, "mid"]; }
-function sugarRating(v) { return v <= 2 ? ["Minimal", 0.14, "good"] : v <= 6 ? ["Low", 0.32, "good"] : v <= 12 ? ["Moderate", 0.56, "mid"] : ["High", 0.85, "warn"]; }
-function fibreRating(v) { return v >= 5 ? ["Good", 0.72, "good"] : v >= 3 ? ["Moderate", 0.46, "mid"] : ["Low", 0.22, "mid"]; }
+/** A printed ingredient list split on top-level commas, keeping "(...)" together. */
+const splitIngredients = (text) =>
+  String(text || "").split(/,(?![^()]*\))/).map((s) => s.replace(/\.$/, "").trim()).filter(Boolean);
+
+const NOT_DECLARED = Object.freeze(["Not declared", 0, "mid"]);
 
 export function buildProductVM(p, all = []) {
   if (!p) return null;
   const tags = p.tags || [];
   const category = p.category || "Snacks";
+  const brand = p.brand || "the brand";
   const g = grade(p.score);
 
-  // nutrition map
-  const nm = {};
-  (p.nutrition || []).forEach((n) => { nm[n.label] = num(n.value); });
-  const protein = nm["Protein"] ?? 0;
-  const sugar = nm["Sugar"] ?? 0;
-  const fibre = nm["Fibre"] ?? 0;
-  const kcal = nm["Calories"] ?? 0;
-  const carbs = nm["Carbs"] ?? 0;
-  const fat = nm["Fat"] ?? 0;
+  // ── Figures, per 100 on the product's own basis ──
+  // Converted once, so every figure on the page is comparable with every other
+  // and with the claim rules, which are per 100.
+  const row = rowFromProduct(p);
+  const per100 = toPer100(row);
+  const per = per100.unit ? `per 100 ${per100.unit}` : null;
+  const protein = fig(per100.protein_g);
+  const sugar = fig(per100.sugars_g);
+  const fibre = fig(per100.fibre_g);
+  const kcal = fig(per100.energy_kcal);
+  const carbs = fig(per100.carbs_g);
+  const fat = fig(per100.total_fat_g);
 
-  const cleanLabel = has(tags, "no preserv") || has(tags, "no artificial") || has(tags, "clean") || has(tags, "no maida") || has(tags, "no refined");
-  const additivesFill = cleanLabel ? 0.12 : 0.42;
-  const additivesRating = cleanLabel ? "Minimal" : "Some";
+  const high = { protein: isHighProtein(row), fibre: isHighFibre(row), lowSugar: isLowSugar(row), sugarFree: isSugarFree(row) };
 
-  const [pR, pF, pT] = proteinRating(protein);
-  const [sR, sF, sT] = sugarRating(sugar);
-  const [fR, fF, fT] = fibreRating(fibre);
+  // ── Ingredients: the verified label, else the partial list, else nothing ──
+  const labelList = p.label?.verified ? splitIngredients(p.label.ingredientsText) : null;
+  const rawIngredients = labelList || (p.goodIngredients || []).map((x) => x?.name || x).filter(Boolean);
+  const ingredients = rawIngredients.slice(0, labelList ? 16 : 8).map(ingredientEntry);
+  const ingredientsVerified = Boolean(labelList && labelList.length);
 
-  // philosophy line
-  const philosophy = p.insight
-    ? p.insight
-    : `A better ${category.toLowerCase().replace(/s$/, "")} made with ingredients your body actually understands.`;
-
-  // ── Trust module ──
-  const attributes = [];
-  if (has(tags, "protein")) attributes.push({ label: "High protein", ok: true });
-  if (has(tags, "palm")) attributes.push({ label: "No palm oil", ok: true });
-  if (has(tags, "refined") || has(tags, "no maida")) attributes.push({ label: "No refined flour", ok: true });
-  if (has(tags, "sugar")) attributes.push({ label: "Sugar-conscious", ok: true });
-  if (has(tags, "preserv")) attributes.push({ label: "No preservatives", ok: true });
-  if (has(tags, "trans")) attributes.push({ label: "Zero trans fat", ok: true });
-  if (has(tags, "colour") || has(tags, "color")) attributes.push({ label: "No artificial colours", ok: true });
-  if (has(tags, "lab")) attributes.push({ label: "Lab tested", ok: true });
-  // No padding. This list sits under the heading "What we confirmed", and it
-  // used to be topped up to four with hardcoded entries — "Minimal additives",
-  // "Clean label", "Reviewed by KOI" — so every product claimed at least four
-  // confirmations, including products KOI has confirmed nothing about. An
-  // empty list is the correct output for a product with no screened claims.
+  // ── Trust module: "What we confirmed" ──
+  // Only what KOI established itself — a claim rule passed on the declared
+  // figures, or a label a person checked. Brand statements are not KOI's
+  // confirmations and are shown as the brand's, in Transparency.
+  const attributes = [
+    high.protein && { label: "High protein", ok: true },
+    high.fibre && { label: "High fibre", ok: true },
+    high.sugarFree ? { label: "Sugar free", ok: true } : high.lowSugar && { label: "Low sugar", ok: true },
+    ingredientsVerified && { label: "Ingredient list verified", ok: true },
+  ].filter(Boolean);
 
   // Only sub-scores the screening report actually carried.
-  //
-  // num() coerces null to 0, so mapping the breakdown through it rendered
-  // "Ingredient Quality 0 / Nutrition 0 / Processing 0" for every unscored
-  // product — three zeroes presented as measurements. And the fallback branch
-  // invented all four values outright (p.score || 80, cleanLabel ? 94 : 70),
-  // which is a scorecard assembled from nothing.
   const sb = p.scoreBreakdown || {};
   const subs = Object.entries(sb)
     .filter(([, value]) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)))
     .map(([label, value]) => ({ label, value: Math.round(Number(value)) }));
 
-  // ── Reasons (why it earned its place) ──
-  const reasonDetail = (t) => {
-    const s = t.toLowerCase();
-    if (s.includes("palm")) return "Palm oil is common in mass-market snacks for cost and shelf life. Avoiding it means a better fat profile.";
-    if (s.includes("refined") || s.includes("maida")) return "Skips refined white flour in favour of whole grains, keeping fibre intact.";
-    if (s.includes("sugar")) return "Uses natural sweetness or keeps added sugar low, unlike many commercial equivalents.";
-    if (s.includes("protein")) return "Delivers a meaningful protein amount per serving - helping you stay full for longer.";
-    if (s.includes("preserv")) return "No synthetic preservatives; freshness comes from the recipe, not chemistry.";
-    if (s.includes("trans")) return "Zero trans fat - the fat type most strongly linked to heart risk.";
-    if (s.includes("colour") || s.includes("color")) return "Colour comes from real ingredients, not synthetic dyes.";
-    if (s.includes("fibre") || s.includes("fiber")) return "A genuine source of dietary fibre, which supports digestion and satiety.";
-    if (s.includes("lab")) return "Backed by third-party lab testing for authenticity and safety.";
-    return "A deliberate ingredient choice that raised this product above the category average.";
-  };
-  const pros = (tags.length ? tags : (p.strengths || ["Clean ingredients"])).slice(0, 5).map((t) => ({ type: "pro", title: t, detail: reasonDetail(t) }));
-  const consSource = (p.watchouts && p.watchouts.length ? p.watchouts : (p.watchOuts || []).map((w) => w.name || w));
-  const cons = (consSource.length ? consSource : (sugar > 8 ? ["Contributes to daily sugar"] : kcal > 150 ? ["Calorie dense"] : ["Best enjoyed in moderation"]))
-    .slice(0, 2)
-    .map((t) => ({ type: "con", title: typeof t === "string" ? t : t.name, detail: sugar > 8 ? "Naturally sweet, so it still adds to your daily sugar total - portion mindfully." : "Nutrient-dense and satisfying, so a small serving goes a long way." }));
+  // ── Why it earned its place ──
+  // The claims the brand made and KOI allowed through (see
+  // lib/nutrition/claims.js#guardClaims), each attributed to whoever made it.
+  const pros = tags.slice(0, 5).map((t) => ({
+    type: "pro",
+    title: t,
+    detail: String(t).toLowerCase() === "high protein" && high.protein
+      ? `Meets KOI's high-protein rule on the declared figures: ${THRESHOLDS.proteinHigh} g per 100 g and ${THRESHOLDS.proteinPerServingFloor} g in a serving.`
+      : `Declared by ${brand}.`,
+  }));
+  const consSource = p.watchouts && p.watchouts.length ? p.watchouts : (p.watchOuts || []).map((w) => w.name || w);
+  const cons = consSource.length
+    ? consSource.slice(0, 2).map((t) => ({ type: "con", title: typeof t === "string" ? t : t.name, detail: `Noted in KOI's screening of ${brand}'s submission.` }))
+    : sugar !== null && !high.lowSugar && sugar > THRESHOLDS.sugarHigh
+      ? [{ type: "con", title: `${sugar} g sugar ${per}`, detail: "Above FSSAI's low-sugar condition. It counts toward your daily sugar." }]
+      : [];
 
-  // ── Verdict ──
-  const verdictQuote = p.verdict?.summary
-    ? p.verdict.summary
-    : `Among ${category.toLowerCase()} available in India, this is one of the cleaner options${sugar > 8 ? " when enjoyed in moderation" : ""}.`;
+  // ── Nutrition meters ──
+  const proteinRating = protein === null ? NOT_DECLARED
+    : high.protein ? ["High", 0.9, "good"]
+    : protein >= THRESHOLDS.proteinMin ? ["Moderate", 0.5, "mid"] : ["Light", 0.2, "mid"];
+  const sugarRating = sugar === null ? NOT_DECLARED
+    : high.sugarFree ? ["Sugar free", 0.05, "good"]
+    : high.lowSugar ? ["Low", 0.25, "good"]
+    : sugar <= THRESHOLDS.sugarHigh ? ["Moderate", 0.55, "mid"] : ["High", 0.85, "warn"];
+  const fibreRating = fibre === null ? NOT_DECLARED
+    : high.fibre ? ["High", 0.8, "good"]
+    : fibre >= 3 ? ["Moderate", 0.45, "mid"] : ["Low", 0.2, "mid"];
 
-  // ── Ingredients ──
-  const rawIngredients = (p.goodIngredients && p.goodIngredients.length)
-    ? p.goodIngredients.map((x) => x.name)
-    : (DEFAULT_INGREDIENTS[category] || DEFAULT_INGREDIENTS.Snacks);
-  const ingredients = rawIngredients.slice(0, 6).map(ingredientEntry);
+  const noFigure = "Not on the nutrition panel KOI holds for this product.";
+  const cleanDeclared = has(tags, "no preserv") || has(tags, "no artificial");
+  const meter = (key, label, [rating, fill, tone], value, context) =>
+    ({ key, label, rating, fill, tone, value, unit: value === null ? "" : ` g ${per}`, context });
 
-  const ingredientTimeline = [
-    { label: "Minimal processing", sub: cleanLabel ? "Recognisable ingredients" : "Standard prep" },
-    { label: "Natural sweetener", sub: has(tags, "sugar") || has(tags, "refined") ? "No refined sugar" : "Balanced sweetness" },
-    { label: "Protein source", sub: protein >= 8 ? `${protein}g per serving` : "Present" },
-    { label: "Better fats", sub: has(tags, "palm") ? "No palm oil" : "Recognisable fats" },
-    { label: "Real flavour", sub: "From ingredients, not additives" },
-  ];
-
-  // ── Nutrition meters + explanations ──
   const meters = [
-    { key: "protein", label: "Protein", rating: pR, fill: pF, tone: pT, value: protein, unit: "g", context: protein >= 8 ? "A meaningful protein source - it helps you stay full and supports recovery." : "A light amount of protein; pair it with a protein-rich food for balance." },
-    { key: "sugar", label: "Sugar", rating: sR, fill: sF, tone: sT, value: sugar, unit: "g", context: sugar <= 2 ? "Very low sugar - easy to fit into a balanced day." : sugar <= 8 ? "Lower than many commercial equivalents, but still counts toward your daily sugar." : "Naturally sweet - enjoyable in moderation rather than by the handful." },
-    { key: "fibre", label: "Fibre", rating: fR, fill: fF, tone: fT, value: fibre, unit: "g", context: fibre >= 3 ? "A useful amount of fibre, which supports digestion and fullness." : "A modest amount of fibre for this category." },
-    { key: "additives", label: "Additives", rating: additivesRating, fill: additivesFill, tone: cleanLabel ? "good" : "mid", value: null, unit: "", context: cleanLabel ? "No synthetic preservatives, colours or flavours detected on the label." : "A small number of standard additives - nothing flagged as high-risk." },
-  ];
-
-  // ── Health comparison (vs category average) ──
-  const avg = p.categoryAverage || {};
-  const comparison = [
-    { label: "Protein", better: "high", product: protein, market: num(avg.Protein) || Math.max(2, Math.round(protein * 0.5)), unit: "g" },
-    { label: "Sugar", better: "low", product: sugar, market: num(avg.Sugar) || Math.round(sugar * 1.8 + 4), unit: "g" },
-    { label: "Fibre", better: "high", product: fibre, market: num(avg.Fibre) || Math.max(1, Math.round(fibre * 0.5)), unit: "g" },
-  ];
-
-  // ── Personas ──
-  const goalMap = {
-    "High Protein": [{ label: "Gym & fitness", icon: "Dumbbell" }, { label: "Post-workout", icon: "Flame" }],
-    "Post-Workout": [{ label: "Post-workout recovery", icon: "Flame" }],
-    "Kids Nutrition": [{ label: "Kids", icon: "Baby" }, { label: "Parents", icon: "Heart" }],
-    "Better Energy": [{ label: "Students", icon: "Sparkles" }, { label: "Office snacks", icon: "Briefcase" }, { label: "Travel", icon: "Plane" }],
-    "Weight Loss": [{ label: "Mindful snacking", icon: "Activity" }],
-    "Gut Health": [{ label: "Everyday wellness", icon: "Leaf" }],
-    "Heart Health": [{ label: "Heart-conscious", icon: "Heart" }],
-  };
-  const forSet = new Map();
-  (p.goalTags || []).forEach((gt) => (goalMap[gt] || []).forEach((x) => forSet.set(x.label, x)));
-  if (forSet.size === 0) [{ label: "Everyday snacking", icon: "Leaf" }, { label: "Office & travel", icon: "Briefcase" }].forEach((x) => forSet.set(x.label, x));
-  const personasFor = Array.from(forSet.values()).slice(0, 6);
-  const personasNot = [];
-  if (sugar > 8 || carbs > 15) personasNot.push({ label: "Strict low-carb / keto", icon: "Ban" });
-  if (sugar > 6) personasNot.push({ label: "Diabetes - watch portions", icon: "Ban" });
-  if (kcal > 150) personasNot.push({ label: "Active calorie cutting", icon: "Ban" });
-  if (personasNot.length === 0) personasNot.push({ label: "Anyone with listed allergens", icon: "Ban" });
-
-  // ── Usage ──
-  const usage = [
-    { time: "Morning", note: "Alongside tea or coffee to start the day." },
-    { time: "Midday", note: "A steadier pick-me-up than the office biscuit jar." },
-    { time: "Pre / post workout", note: protein >= 8 ? "Handy protein around training." : "Light fuel around movement." },
-    { time: "Travel", note: "Individually portioned and mess-free on the go." },
-    { time: "Evening", note: "A small, satisfying bite without the sugar crash." },
-  ];
-  const pairings = ["Milk", "Coffee", "Greek yogurt", "Fresh fruit"];
-
-  // ── Scientific insights ──
-  const science = [];
-  if (protein >= 6) science.push({ title: "Where the protein comes from", body: `The protein here is largely from ${ingredients.find((i) => i.role.includes("Protein"))?.name || "nuts and dairy"} - whole-food sources that also bring healthy fats and minerals, not isolated powders.` });
-  if (has(tags, "sugar") || has(tags, "refined")) science.push({ title: "Why not refined sugar", body: "Refined white sugar is pure sucrose with nothing else. Natural sweeteners like jaggery or dates carry trace minerals and fibre, and tend to have a gentler glycaemic impact - though they're still sugar." });
-  if (has(tags, "palm")) science.push({ title: "The palm-oil difference", body: "Palm oil is cheap and shelf-stable but high in saturated fat. Swapping it for butter, ghee or nut fats gives a better overall fat profile." });
-  if (science.length < 2) science.push({ title: "Whole over refined", body: "Whole grains keep their bran and germ, so they retain fibre and nutrients that refined flours lose - meaning slower, steadier energy." });
-
-  // ── Transparency ──
-  const check = (cond, passNote, elseNote, elseStatus = "limited") => (cond ? { status: "pass", note: passNote } : { status: elseStatus, note: elseNote });
-  const transparency = [
-    { label: "Palm oil", ...check(has(tags, "palm"), "None - declared palm-oil free.", "Not highlighted on the label.") },
-    { label: "Artificial colours", ...check(has(tags, "colour") || has(tags, "color") || cleanLabel, "None detected.", "Standard colours may be present.") },
-    { label: "Artificial flavours", ...check(has(tags, "flavour") || has(tags, "flavor") || cleanLabel, "None detected.", "Standard flavours may be present.") },
-    { label: "Preservatives", ...check(has(tags, "preserv") || cleanLabel, "No synthetic preservatives.", "Standard preservatives may be present.") },
-    { label: "Added sweeteners", ...check(has(tags, "sugar") || has(tags, "refined"), "No refined / artificial sweeteners.", "Contains natural sugars.") },
-    { label: "Processing", status: "pass", note: has(tags, "baked") ? "Baked, not fried." : has(tags, "roast") ? "Roasted, not fried." : "Minimally processed." },
-    { label: "Ingredient sourcing", status: "pass", note: `Disclosed by ${p.brand || "the brand"}.` },
-    { label: "Third-party testing", ...check(has(tags, "lab"), "Independently lab tested.", "Not independently verified yet.") },
-  ];
-
-  // ── Community ──
-  const noteText = {
-    "High Protein": "Genuinely keeps me full between meals - I stopped reaching for the vending machine.",
-    "Kids Nutrition": "My kids don't realise it's the healthier option, which is the whole point.",
-    "Better Energy": "Perfect desk snack. No 4pm crash and it travels well.",
-    "Weight Loss": "Portioned and satisfying - it fits my day without derailing it.",
-    "Gut Health": "Sits light and I actually feel good after, not sluggish.",
-  };
-  const goals = p.goalTags || [];
-  const community = {
-    notes: (goals.length ? goals : ["Better Energy"]).slice(0, 3).map((gtag, i) => ({
-      name: ["A. Menon", "R. Iyer", "S. Kapoor"][i] || "KOI member",
-      tag: gtag,
-      rating: 5 - (i % 2),
-      text: noteText[gtag] || "Exactly what it says on the label - clean, honest and genuinely tasty.",
-    })),
-    nutritionist: {
-      text: `A sensible choice within ${category.toLowerCase()}: recognisable ingredients, ${sugar <= 8 ? "restrained sugar" : "natural sweetness"} and ${protein >= 8 ? "a useful protein hit" : "a clean profile"}. As always, portion size is what turns a good product into a good habit.`,
+    meter("protein", "Protein", proteinRating, protein, protein === null ? noFigure : high.protein
+      ? `Meets KOI's high-protein rule: ${THRESHOLDS.proteinHigh} g per 100 g and at least ${THRESHOLDS.proteinPerServingFloor} g in a declared serving.`
+      : `Below KOI's high-protein rule of ${THRESHOLDS.proteinHigh} g per 100 g with ${THRESHOLDS.proteinPerServingFloor} g in a serving.`),
+    meter("sugar", "Sugar", sugarRating, sugar, sugar === null ? noFigure : high.sugarFree
+      ? "0.5 g or less per 100 — FSSAI's condition for \"sugar free\"."
+      : high.lowSugar
+        ? "Within FSSAI's low-sugar condition: 5 g per 100 g, or 2.5 g per 100 ml for drinks."
+        : "Above FSSAI's low-sugar condition. It counts toward your daily sugar."),
+    meter("fibre", "Fibre", fibreRating, fibre, fibre === null ? noFigure : high.fibre
+      ? "Meets FSSAI's high-fibre condition: 6 g per 100 g, or 3 g per 100 kcal."
+      : "Below FSSAI's high-fibre condition of 6 g per 100 g."),
+    {
+      key: "additives", label: "Additives",
+      rating: cleanDeclared ? "None declared" : "Not checked",
+      fill: cleanDeclared ? 0.1 : 0, tone: "mid", value: null, unit: "",
+      context: cleanDeclared
+        ? `${brand} declares no preservatives or artificial additives. KOI hasn't checked the pack yet.`
+        : "KOI hasn't checked this product's additives yet.",
     },
-  };
+  ];
+
+  // ── Comparison: only against a real reference ──
+  // A comparison needs a reference food. None is held, so none is drawn — the
+  // old "market" figures were the product's own numbers halved or doubled.
+  const avg = p.categoryAverage || {};
+  const comparison = [["Protein", "high", protein], ["Sugar", "low", sugar], ["Fibre", "high", fibre]]
+    .filter(([label, , value]) => value !== null && Number.isFinite(Number(avg[label])))
+    .map(([label, better, product]) => ({ label, better, product, market: Number(avg[label]), unit: "g" }));
+
+  // ── Who it suits ──
+  // Occasions only, and only where a claim rule backs them. Suitability for a
+  // disease or physiological condition is prohibited outright.
+  const personasFor = high.protein
+    ? [{ label: "Gym & fitness", icon: "Dumbbell" }, { label: "Post-workout", icon: "Flame" }]
+    : [];
+  const personasNot = [];
+  if (carbs !== null && (carbs > 15 || (sugar !== null && sugar > 8))) personasNot.push({ label: "Strict low-carb / keto", icon: "Ban" });
+  if (sugar !== null && !high.lowSugar && sugar > THRESHOLDS.sugarHigh) personasNot.push({ label: `Watching sugar: ${sugar} g ${per}`, icon: "Ban" });
+  if (ingredients.length) personasNot.push({ label: "Anyone avoiding an ingredient listed above", icon: "Ban" });
+
+  // ── Transparency: who said what ──
+  const declaredBy = (cond, what) => (cond
+    ? { status: "pass", note: `${brand} declares it ${what}. KOI hasn't checked the pack yet.` }
+    : { status: "limited", note: "Not declared, and not checked yet." });
+  const transparency = [
+    { label: "Ingredient list", ...(ingredientsVerified
+      ? { status: "pass", note: "Checked against the pack by KOI." }
+      : { status: "limited", note: rawIngredients.length ? "Partial — from the brand's submission, not the full pack." : "KOI doesn't hold this product's ingredient list yet." }) },
+    { label: "Nutrient claims", status: "pass", note: "Every nutrient claim on this page is tested against FSSAI's conditions on the declared figures." },
+    { label: "Palm oil", ...declaredBy(has(tags, "no palm"), "palm-oil free") },
+    { label: "Preservatives", ...declaredBy(has(tags, "no preserv"), "free of preservatives") },
+    { label: "Artificial colours", ...declaredBy(has(tags, "no artificial colour") || has(tags, "no artificial color") || has(tags, "no artificial additive"), "free of artificial colours") },
+    { label: "Third-party testing", ...(has(tags, "lab tested")
+      ? { status: "pass", note: `${brand} states it is lab tested.` }
+      : { status: "limited", note: "Not independently verified." }) },
+  ];
 
   return {
     id: p.id,
@@ -261,13 +239,14 @@ export function buildProductVM(p, all = []) {
     score: p.score,
     image: p.image || {},
     // NOT `|| "Verified"`. That defaulted every product with no screening
-    // verdict — 11 of the 18 currently listed — to "KOI Verified", printed
-    // over the product image. A missing verdict is not a positive one.
+    // verdict to "KOI Verified", printed over the product image.
     koiStatus: p.koiStatus || null,
-    philosophy,
+    // The reviewer's note when there is one. The fallback was marketing copy
+    // ("ingredients your body actually understands") stamped on every product.
+    philosophy: p.insight || null,
     tags,
     dietary: p.dietary || [],
-    goalTags: goals,
+    goalTags: p.goalTags || [],
     grade: g,
     raw: p,
     trust: {
@@ -275,20 +254,25 @@ export function buildProductVM(p, all = []) {
       scored: g !== null,
       grade: g?.g ?? null,
       gradeLabel: g?.label ?? null,
-      attributes: attributes.slice(0, 5),
+      attributes,
       subs,
     },
     reasons: [...pros, ...cons],
-    verdict: { quote: verdictQuote, confidence: Number.isFinite(Number(p.score)) && p.score !== null ? p.score : null, refs: ["KOI Nutrition Review", "FSSAI label decode", "Ingredient risk index"] },
+    verdict: {
+      quote: p.verdict?.summary || null,
+      confidence: Number.isFinite(Number(p.score)) && p.score !== null ? p.score : null,
+      refs: p.koiStatus ? ["KOI screening report"] : [],
+    },
     ingredients,
-    ingredientTimeline,
-    nutrition: { meters, calories: kcal, carbs, fat, serving: p.weight },
+    ingredientsVerified,
+    ingredientTimeline: [],
+    nutrition: { meters, calories: kcal, carbs, fat, basisLabel: per, serving: p.servingSize || null },
     comparison,
     personas: { for: personasFor, not: personasNot.slice(0, 3) },
-    usage,
-    pairings,
-    science: science.slice(0, 3),
+    usage: [],
+    pairings: [],
+    science: [],
     transparency,
-    community,
+    community: { notes: [], nutritionist: null },
   };
 }

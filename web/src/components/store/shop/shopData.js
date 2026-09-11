@@ -132,13 +132,15 @@ export const INGREDIENTS = [
 export const EDITORIAL = [
   { title: "How KOI scores every product", tag: "Method" },
   { title: 'The truth about "no added sugar"', tag: "Labels" },
-  { title: "Best healthy snacks under ₹300", tag: "Guide" },
+  { title: "Screened snacks under ₹300", tag: "Guide" },
   { title: "Palm oil: why we always flag it", tag: "Ingredients" },
 ];
 
 export const TRENDING = [
   "High Protein", "Sugar Free", "No Palm Oil", "Breakfast",
-  "Kids", "Gym", "Gut Health", "Weight Loss", "Diabetes Friendly",
+  // "Diabetes Friendly" was here: a trending chip that promised a shelf of
+  // products suitable for a disease. The claims regulations prohibit that.
+  "Kids", "Gym", "Gut Health", "Weight Loss",
 ];
 
 export const DIETARY_OPTIONS = ["Vegan", "Vegetarian", "Gluten Free", "Keto", "No Added Sugar"];

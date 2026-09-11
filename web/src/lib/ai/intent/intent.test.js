@@ -406,6 +406,23 @@ test("a drink under 5 g but over 2.5 g per 100 ml is not low in sugar", () => {
   assert.equal(resolveIntent([drink], interpret("under 5g sugar"), null).ids.size, 1);
 });
 
+test("a medical condition is declined out loud, never turned into a filter", () => {
+  const i = interpret("diabetes friendly snacks");
+  assert.equal(i.profile.goal, null);
+  assert.equal(i.view.maxSugar, null);
+  assert.deepEqual(i.profile.mealPrefs, ["snacks"], "the rest of the sentence still counts");
+  assert.ok(describeIntent(i).some((c) => c.label === "KOI doesn't filter by medical condition"));
+  assert.equal(interpret("good for cholesterol").profile.goal, null);
+});
+
+test("'sugar free' is FSSAI's 0.5 g, not a soft refined-sugar avoid", () => {
+  const i = interpret("sugar free cookies");
+  assert.equal(i.view.maxSugar, 0.5);
+  assert.deepEqual(i.profile.foodsAvoid, []);
+  assert.ok(describeIntent(i).some((c) => c.label === "Sugar free"));
+  assert.deepEqual(interpret("no added sugar").profile.foodsAvoid, ["refined_sugar"], "a different claim, unchanged");
+});
+
 test("removing the low-sugar chip lifts its claim gate too", () => {
   const intent = interpret("low sugar");
   const chip = describeIntent(intent).find((c) => c.id === "maxSugar");

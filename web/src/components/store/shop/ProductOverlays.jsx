@@ -8,6 +8,10 @@
 import React from "react";
 import { X, TrendingUp, Scale, Info, Check } from "lucide-react";
 import { C, HEADING, BODY, scoreColor } from "@/components/store/landing/tokens";
+import { toPer100 } from "@/lib/nutrition/basis";
+import { rowFromProduct } from "@/lib/nutrition/claims";
+
+const isFigure = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
 
 function Backdrop({ onClose }) {
   return (
@@ -32,7 +36,7 @@ export function KoiScoreModal({ product, onClose }) {
               KOI Score {product.score}
               <span className="text-[15px] font-semibold text-[#083D2D]/40">/100</span>
             </h3>
-            <p className="mt-1 text-[12.5px] font-medium text-[#083D2D]/55" style={BODY}>Independent nutrition analysis</p>
+            <p className="mt-1 text-[12.5px] font-medium text-[#083D2D]/55" style={BODY}>From KOI&apos;s screening report</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-full bg-[#083D2D]/6 hover:bg-[#083D2D]/12">
             <X className="h-4 w-4 text-[#083D2D]/60" />
@@ -40,7 +44,8 @@ export function KoiScoreModal({ product, onClose }) {
         </div>
 
         <div className="mb-6 space-y-4">
-          {Object.entries(product.scoreBreakdown || {}).map(([key, val]) => (
+          {/* Only sub-scores the report carried. A null rendered as "null/100". */}
+          {Object.entries(product.scoreBreakdown || {}).filter(([, val]) => isFigure(val)).map(([key, val]) => (
             <div key={key}>
               <div className="mb-1.5 flex justify-between text-[12.5px] font-bold text-[#083D2D]">
                 <span>{key}</span>
@@ -53,14 +58,16 @@ export function KoiScoreModal({ product, onClose }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 border-t border-[#083D2D]/10 pt-4">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full" style={{ background: `${C.lime}33` }}>
-            <TrendingUp className="h-5 w-5" style={{ color: C.forest }} />
-          </span>
-          <p className="text-[13.5px] font-bold leading-snug text-[#083D2D]">
-            Better than {product.betterThanPercentage}% of similar products
-          </p>
-        </div>
+        {isFigure(product.betterThanPercentage) && (
+          <div className="flex items-center gap-3 border-t border-[#083D2D]/10 pt-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full" style={{ background: `${C.lime}33` }}>
+              <TrendingUp className="h-5 w-5" style={{ color: C.forest }} />
+            </span>
+            <p className="text-[13.5px] font-bold leading-snug text-[#083D2D]">
+              Better than {product.betterThanPercentage}% of similar products
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -70,13 +77,17 @@ export function KoiScoreModal({ product, onClose }) {
 export function CompareModal({ product, onClose }) {
   if (!product) return null;
 
-  const pTag = product.tags?.find((t) => t.toLowerCase().includes("protein")) || "12g";
-  const sTag = product.tags?.find((t) => t.toLowerCase().includes("sugar")) || "2g";
+  // The product's own declared figures, per 100 of its unit. These used to be
+  // invented: "12g" protein when no tag mentioned protein (and the word "High"
+  // when one did), sugar hard-coded to 4g or 0g, fibre to 3g, additives to
+  // Low or Med from a sub-score that does not exist.
+  const per100 = toPer100(rowFromProduct(product));
+  const show = (v) => (isFigure(v) ? `${Math.round(Number(v) * 10) / 10}g` : "—");
+  const avg = product.categoryAverage || {};
   const metrics = [
-    { label: "Protein", prod: pTag.split(" ")[0], avg: product.categoryAverage?.Protein },
-    { label: "Sugar", prod: sTag.includes("0") || sTag.includes("No") ? "0g" : "4g", avg: product.categoryAverage?.Sugar },
-    { label: "Fibre", prod: product.categoryAverage?.Fibre === "0g" ? "0g" : "3g", avg: product.categoryAverage?.Fibre },
-    { label: "Additives", prod: (product.scoreBreakdown?.Additives ?? 0) >= 90 ? "Low" : "Med", avg: product.categoryAverage?.Additives },
+    { label: "Protein", prod: show(per100.protein_g), avg: avg.Protein ?? "—" },
+    { label: "Sugar", prod: show(per100.sugars_g), avg: avg.Sugar ?? "—" },
+    { label: "Fibre", prod: show(per100.fibre_g), avg: avg.Fibre ?? "—" },
   ];
 
   return (
@@ -109,7 +120,9 @@ export function CompareModal({ product, onClose }) {
           </div>
           <div className="flex items-start gap-3 rounded-xl border border-[#083D2D]/10 bg-[#EAF8F0] p-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0" style={{ color: C.forest }} />
-            <p className="text-[13px] font-medium leading-relaxed text-[#083D2D]" style={BODY}>{product.compareInsight}</p>
+            <p className="text-[13px] font-medium leading-relaxed text-[#083D2D]" style={BODY}>
+              {product.compareInsight || `Figures per 100 ${per100.unit || "g"}, as declared by ${product.brand || "the brand"}. KOI doesn't hold a category average yet.`}
+            </p>
           </div>
         </div>
       </div>
