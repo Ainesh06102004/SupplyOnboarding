@@ -49,6 +49,7 @@ import { toPer100, toPerServing } from "@/lib/nutrition/basis";
 import { generateCandidates } from "@/lib/recommendation/candidateGenerator";
 import { filterEligible } from "@/lib/recommendation/eligibilityFilter";
 import { isNum } from "@/lib/recommendation/scoringEngine";
+import { unverifiedFor } from "@/lib/recommendation/verification";
 import { mealMatches } from "@/lib/recommendation/shelves";
 import { mergeProfile } from "./merge";
 import { isEmptyIntent } from "./schema";
@@ -95,6 +96,7 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
       profile,
       refusals,
       text: "",
+      unverified: { ids: new Set(), allergens: [], diet: null },
       diagnostics: { total: products.length, applied: false },
     };
   }
@@ -161,11 +163,28 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
   const usableText = residual && textMatches.length ? residual : "";
   const finalSet = usableText ? textMatches : survivors;
 
+  // Results KOI keeps but cannot vouch for. A product whose data SHOWS an
+  // allergen the shopper avoids was removed above; one whose data shows nothing
+  // stays, because hiding every unverified product would empty the shop while
+  // no labels are verified — but the shopper is told how many of them there
+  // are, and for what. Mark, never imply clean.
+  // Ids rather than a count, so the page can count what it actually shows
+  // after its own filters.
+  const unverified = { ids: new Set(), allergens: new Set(), diet: null };
+  for (const f of finalSet) {
+    const gaps = unverifiedFor(f, profile);
+    if (!gaps.allergens.length && !gaps.diet) continue;
+    unverified.ids.add(f.id);
+    for (const a of gaps.allergens) unverified.allergens.add(a.label);
+    if (gaps.diet) unverified.diet = gaps.diet.label;
+  }
+
   return {
     ids: new Set(finalSet.map((f) => f.id)),
     profile,
     refusals,
     text: usableText,
+    unverified: { ids: unverified.ids, allergens: [...unverified.allergens], diet: unverified.diet },
     diagnostics: {
       applied: true,
       total: products.length,
@@ -175,6 +194,7 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
       ...counters,
       textDropped: Boolean(residual) && !usableText,
       matched: finalSet.length,
+      unverified: unverified.ids.size,
     },
   };
 }

@@ -14,6 +14,7 @@ export const toDTO = (s) => ({
   score: s.display,
   raw: s.raw,
   reasons: s.reasons,
+  cautions: s.cautions || [],
   category: s.category,
 });
 

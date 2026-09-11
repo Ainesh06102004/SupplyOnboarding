@@ -10,10 +10,13 @@
 //   - An interpretation the shopper cannot see is an interpretation they cannot
 //     correct. If KOI decides "high protein" means 12g and quietly filters on
 //     it, a thin grid looks like a thin catalogue.
-//   - A restriction KOI could NOT apply has to be visible. "no nuts" has no
-//     tree-nut key in FOODS_AVOID, so it is shown in warning styling as
-//     unapplied. Silently returning almonds under a "no nuts" query is the one
+//   - A restriction KOI could NOT apply has to be visible. "no onion" has no
+//     key in FOODS_AVOID, so it is shown in warning styling as unapplied.
+//     Silently returning onion-heavy snacks under that query is the one
 //     failure this whole feature must not have.
+//   - Neither may a restriction KOI applied but could not CHECK. A product whose
+//     ingredient list nobody has verified stays in the results, and the note
+//     under the chips says how many there are and for what.
 //
 // Purely presentational. Labels arrive already built by describeIntent(), which
 // composes them from catalog labels and the shopper's own numbers.
@@ -36,8 +39,9 @@ const KIND_STYLE = {
  * @param {() => void} props.onClearAll
  * @param {number|null} props.matchCount products matching, or null when not narrowing
  * @param {Array<{chip: object, matched: number}>} [props.relaxations] offered when nothing matched
+ * @param {string|null} [props.unverifiedNote] CAUTIONS.unverifiedInResults text, when any result is unchecked
  */
-export default function IntentChips({ chips = [], onRemove, onClearAll, matchCount = null, relaxations = [] }) {
+export default function IntentChips({ chips = [], onRemove, onClearAll, matchCount = null, relaxations = [], unverifiedNote = null }) {
   if (!chips.length) return null;
 
   const empty = matchCount === 0;
@@ -89,6 +93,16 @@ export default function IntentChips({ chips = [], onRemove, onClearAll, matchCou
           Clear
         </button>
       </div>
+
+      {unverifiedNote && !empty && (
+        <p
+          className="mt-3 inline-flex items-start gap-1.5 text-[12.5px] font-semibold"
+          style={{ ...BODY, color: "#9B3A25" }}
+        >
+          <AlertTriangle size={13} className="mt-[2px] shrink-0" aria-hidden="true" />
+          {unverifiedNote}
+        </p>
+      )}
 
       {/* A correct interpretation can still match nothing. Saying which limit is
           binding turns a dead end into one tap. */}

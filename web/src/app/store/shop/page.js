@@ -25,6 +25,7 @@ import IntentChips from "@/components/store/shop/IntentChips";
 import {
   interpret, resolveIntent, describeIntent, removeFromIntent, suggestRelaxations, isEmptyIntent,
 } from "@/lib/ai/intent";
+import { CAUTIONS } from "@/lib/recommendation/reasons";
 import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
 import { useLocation } from "@/contexts/LocationContext";
 import { useCatalogueSupply } from "@/lib/marketplace/useCatalogueSupply";
@@ -278,6 +279,16 @@ export default function ShopPage() {
     [intent, resolved, products, goalProfile, intentChips]
   );
 
+  // How many of the products on screen KOI could not check against the
+  // shopper's allergens or diet. Counted over what is actually shown, after the
+  // drawer filters, so the sentence matches the grid under it.
+  const unverifiedNote = useMemo(() => {
+    const { ids, allergens, diet } = resolved.unverified || {};
+    if (!resolved.ids || !ids?.size || !filteredProducts.length) return null;
+    const count = filteredProducts.filter((p) => ids.has(p.id)).length;
+    return count ? CAUTIONS.unverifiedInResults(count, filteredProducts.length, allergens, diet) : null;
+  }, [resolved, filteredProducts]);
+
   const cardHandlers = {
     onSelect: selectProduct,
     onOpenScore: setSelectedScoreProduct,
@@ -367,6 +378,7 @@ export default function ShopPage() {
             onClearAll={clearContext}
             matchCount={resolved.ids ? filteredProducts.length : null}
             relaxations={relaxations}
+            unverifiedNote={unverifiedNote}
           />
 
           {/* Sticky filters + full catalogue */}

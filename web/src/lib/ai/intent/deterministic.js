@@ -12,9 +12,11 @@
 //     VOCAB_DRIFT reports any phrase pointing at a key the catalogs no longer
 //     have, and the test suite asserts it is empty.
 //   - A restriction it recognises but cannot map becomes `unresolved` rather
-//     than a near-miss. "no nuts" must not silently become "no peanuts": there
-//     is no tree-nut key in FOODS_AVOID, and narrowing a stated allergy to the
-//     one nut KOI can express is a false safety promise.
+//     than a near-miss. Narrowing a stated allergy to the nearest key KOI has
+//     is a false safety promise.
+//   - An ambiguous restriction widens, never narrows. "no nuts" becomes BOTH
+//     peanuts and tree nuts: a shopper who says it may mean either, and a
+//     restriction can only ever be over-applied safely.
 //
 // Negation is POSITIONAL, not per-clause. "high protein snacks without dairy"
 // is one clause, and a clause-wide flag would negate the whole thing — dropping
@@ -81,7 +83,12 @@ const MEAL_PHRASES = {
 const AVOID_PHRASES = {
   milk: ["dairy", "milk", "butter", "ghee", "paneer", "cheese", "curd", "yogurt", "yoghurt", "cream", "whey"],
   lactose: ["lactose"],
-  peanuts: ["peanut", "groundnut"],
+  // "nut" sits in both lists on purpose — see the banner.
+  peanuts: ["peanut", "groundnut", "nut"],
+  tree_nuts: [
+    "nut", "tree nut", "almond", "cashew", "walnut", "pistachio", "hazelnut",
+    "pecan", "macadamia", "badam", "kaju", "akhrot", "pista", "dry fruit",
+  ],
   soy: ["soy", "soya", "tofu"],
   gluten: ["gluten", "wheat", "maida"],
   eggs: ["egg"],
@@ -104,7 +111,6 @@ const AVOID_PHRASES = {
 // them is a shared-catalog change (engine + UI + migration) and deliberately
 // outside this slice.
 const UNRESOLVABLE_RESTRICTIONS = [
-  "nut", "tree nut", "almond", "cashew", "walnut", "pistachio", "hazelnut",
   "seafood", "onion", "garlic", "msg", "sesame", "corn", "yeast", "mushroom",
   "coconut", "maize", "jaggery",
 ];
@@ -158,7 +164,10 @@ const PHRASE_INDEX = (() => {
     const p = phrase.toLowerCase().trim();
     if (!p) return;
     const entry = index.get(p) || {};
-    if (entry[field] === undefined) entry[field] = key;
+    // An avoid phrase keeps EVERY key it names ("nut" → peanuts and tree nuts):
+    // dropping one would narrow a restriction. Other fields keep the first.
+    if (field === "avoid") entry.avoid = [...(entry.avoid || []), key];
+    else if (entry[field] === undefined) entry[field] = key;
     index.set(p, entry);
   };
   for (const [field, table] of TABLES) {
@@ -333,7 +342,7 @@ const blank = (padded, at, length) =>
  */
 function applyNegated(acc, entry, spoken) {
   if (!entry) { push(acc.unresolved, spoken); return; }
-  if (entry.avoid !== undefined) push(acc.foodsAvoid, entry.avoid);
+  if (entry.avoid !== undefined) for (const key of entry.avoid) push(acc.foodsAvoid, key);
   else push(acc.unresolved, spoken);
 }
 

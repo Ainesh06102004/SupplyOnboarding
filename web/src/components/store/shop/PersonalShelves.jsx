@@ -9,7 +9,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Check, Sparkles } from "lucide-react";
+import { Plus, Check, Sparkles, CircleHelp } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useGoalStore } from "@/store/goalStore";
 import { recommend } from "@/lib/recommendation";
@@ -17,7 +17,7 @@ import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Reveal, Eyebrow, ScoreRing, ProductImage } from "@/components/store/landing/primitives";
 
 function RecoCard({ dto, onSelect }) {
-  const { product, score, reasons } = dto;
+  const { product, score, reasons, cautions = [] } = dto;
   const items = useCartStore((s) => s.items);
   const addToCart = useCartStore((s) => s.addToCart);
   const inCart = items.some((i) => i.id === product.id);
@@ -51,6 +51,15 @@ function RecoCard({ dto, onSelect }) {
             <li key={r} className="flex items-start gap-1.5 text-[11.5px] font-semibold text-[#0C6B4C]">
               <Check className="mt-[1px] h-3 w-3 shrink-0" strokeWidth={3} />
               <span className="leading-snug">{r}</span>
+            </li>
+          ))}
+          {/* What KOI could not check. Muted and marked differently from the
+              ticks above on purpose: a reason is a claim about the food, this
+              is a limit on what KOI knows about it. */}
+          {cautions.map((c) => (
+            <li key={c} className="flex items-start gap-1.5 text-[11.5px] font-semibold text-[#9B3A25]">
+              <CircleHelp className="mt-[1px] h-3 w-3 shrink-0" strokeWidth={2.6} aria-hidden="true" />
+              <span className="leading-snug">{c} — check the pack</span>
             </li>
           ))}
         </ul>

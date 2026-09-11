@@ -126,22 +126,51 @@ test("a diet type and a meal survive alongside a negation", () => {
 // ── The safety case ─────────────────────────────────────────────────────────
 
 test("an unmappable restriction is reported, never narrowed to a near-miss", () => {
-  // FOODS_AVOID has `peanuts` but no tree-nut key. Mapping "no nuts" to peanuts
-  // would leave almonds and cashews in the grid under a promise of "no nuts".
-  const i = interpret("no nuts");
+  // FOODS_AVOID has no onion key. Dropping "no onion" silently would leave
+  // onion-heavy snacks in the grid under a promise the shopper never saw fail.
+  const i = interpret("no onion");
   assert.deepEqual(i.profile.foodsAvoid, []);
   assert.ok(i.unresolved.length > 0, "should report that it could not apply this");
   assert.ok(describeIntent(i).some((c) => c.kind === "unapplied"));
+});
+
+test("an ambiguous restriction widens: 'no nuts' is peanuts AND tree nuts", () => {
+  // Narrowing to either one leaves the other in the grid under "no nuts".
+  const i = interpret("no nuts");
+  assert.deepEqual([...i.profile.foodsAvoid].sort(), ["peanuts", "tree_nuts"]);
+  assert.deepEqual(i.unresolved, []);
+  assert.deepEqual([...interpret("nut free cookies").profile.foodsAvoid].sort(), ["peanuts", "tree_nuts"]);
 });
 
 test("peanut is still mapped precisely when named", () => {
   assert.deepEqual(interpret("no peanuts").profile.foodsAvoid, ["peanuts"]);
 });
 
+test("a named tree nut maps to tree nuts, in English or Hindi", () => {
+  assert.deepEqual(interpret("cashew free").profile.foodsAvoid, ["tree_nuts"]);
+  assert.deepEqual(interpret("no badam").profile.foodsAvoid, ["tree_nuts"]);
+});
+
+test("search keeps an unverified product but says it could not check it", () => {
+  const unchecked = product({ goodIngredients: [{ name: "Oats" }] });
+  const r = resolveIntent([unchecked], interpret("no peanuts"), null);
+  assert.ok(r.ids.has("p1"), "mark, don't hide: nothing in its data shows peanuts");
+  assert.ok(r.unverified.ids.has("p1"));
+  assert.deepEqual(r.unverified.allergens, ["Peanuts"]);
+
+  const checked = product({ label: { verified: true, ingredientsText: "oats, salt", allergens: [] } });
+  assert.equal(resolveIntent([checked], interpret("no peanuts"), null).unverified.ids.size, 0);
+});
+
+test("search removes a product whose data shows the allergen", () => {
+  const withPeanuts = product({ goodIngredients: [{ name: "Peanuts" }] });
+  assert.equal(resolveIntent([withPeanuts], interpret("no nuts"), null).ids.size, 0);
+});
+
 test("an unapplied restriction echoes the shopper's own wording", () => {
-  // The table key is "nut"; the shopper typed "nuts". Reading back their word
-  // is the point of the echo, and sanitiseIntent still verifies it was theirs.
-  assert.ok(interpret("no nuts").unresolved.includes("nuts"));
+  // The table key is "onion"; the shopper typed "onions". Reading back their
+  // word is the point of the echo, and sanitiseIntent still verifies it was theirs.
+  assert.ok(interpret("no onions").unresolved.includes("onions"));
 });
 
 // ── Merge invariants ────────────────────────────────────────────────────────

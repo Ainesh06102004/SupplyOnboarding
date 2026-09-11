@@ -145,26 +145,36 @@ export const FOODS_LOVE = [
   { key: "healthy_desserts", label: "Healthy Desserts", emoji: "🍮", keywords: ["dessert", "laddu", "halwa"] },
 ];
 
-// avoid key → { flag, mode, label }. hard = eligibility removal, soft = penalty.
+// avoid key → { flag, mode, kind, label }. hard = eligibility removal, soft = penalty.
+//
+// `kind` mirrors `avoided_item.kind` in the database, and it is what decides
+// whether an absence can be asserted. An `allergen` is a promise about what is
+// NOT in the food, which only a complete ingredient list a person has checked
+// can keep — a partial list, a product name or a tag cannot. `ingredient` and
+// `attribute` are preferences and are scored on the evidence there is.
+//
+// Adding a key here needs a matching `avoided_item` row (user_avoided_food has a
+// foreign key to it) — see migration 00021 for tree nuts.
 export const FOODS_AVOID = [
-  { key: "peanuts", label: "Peanuts", emoji: "🥜", flag: "peanut", mode: "hard" },
-  { key: "soy", label: "Soy", emoji: "🫛", flag: "soy", mode: "hard" },
-  { key: "gluten", label: "Gluten", emoji: "🌾", flag: "gluten", mode: "hard" },
-  { key: "milk", label: "Milk", emoji: "🥛", flag: "dairy", mode: "hard" },
-  { key: "lactose", label: "Lactose", emoji: "🥛", flag: "dairy", mode: "hard" },
-  { key: "eggs", label: "Eggs", emoji: "🥚", flag: "egg", mode: "hard" },
-  { key: "fish", label: "Fish", emoji: "🐟", flag: "fish", mode: "hard" },
-  { key: "shellfish", label: "Shellfish", emoji: "🦐", flag: "shellfish", mode: "hard" },
-  { key: "red_meat", label: "Red Meat", emoji: "🥩", flag: "meat", mode: "hard" },
-  { key: "caffeine", label: "Caffeine", emoji: "☕", flag: "caffeine", mode: "hard" },
-  { key: "artificial_sweeteners", label: "Artificial Sweeteners", emoji: "🧪", flag: "artificial_sweetener", mode: "soft" },
-  { key: "palm_oil", label: "Palm Oil", emoji: "🌴", flag: "palm_oil", mode: "soft" },
-  { key: "refined_sugar", label: "Refined Sugar", emoji: "🍬", flag: "refined_sugar", mode: "soft" },
-  { key: "high_sodium", label: "High Sodium", emoji: "🧂", flag: "high_sodium", mode: "soft" },
-  { key: "preservatives", label: "Preservatives", emoji: "🧪", flag: "preservatives", mode: "soft" },
-  { key: "artificial_colours", label: "Artificial Colours", emoji: "🎨", flag: "artificial_colour", mode: "soft" },
-  { key: "artificial_flavours", label: "Artificial Flavours", emoji: "🧪", flag: "artificial_flavour", mode: "soft" },
-  { key: "spicy", label: "Spicy Food", emoji: "🌶️", flag: "spicy", mode: "soft" },
+  { key: "peanuts", label: "Peanuts", emoji: "🥜", flag: "peanut", kind: "allergen", mode: "hard" },
+  { key: "tree_nuts", label: "Tree Nuts", emoji: "🌰", flag: "tree_nut", kind: "allergen", mode: "hard" },
+  { key: "soy", label: "Soy", emoji: "🫛", flag: "soy", kind: "allergen", mode: "hard" },
+  { key: "gluten", label: "Gluten", emoji: "🌾", flag: "gluten", kind: "allergen", mode: "hard" },
+  { key: "milk", label: "Milk", emoji: "🥛", flag: "dairy", kind: "allergen", mode: "hard" },
+  { key: "lactose", label: "Lactose", emoji: "🥛", flag: "dairy", kind: "allergen", mode: "hard" },
+  { key: "eggs", label: "Eggs", emoji: "🥚", flag: "egg", kind: "allergen", mode: "hard" },
+  { key: "fish", label: "Fish", emoji: "🐟", flag: "fish", kind: "allergen", mode: "hard" },
+  { key: "shellfish", label: "Shellfish", emoji: "🦐", flag: "shellfish", kind: "allergen", mode: "hard" },
+  { key: "red_meat", label: "Red Meat", emoji: "🥩", flag: "meat", kind: "ingredient", mode: "hard" },
+  { key: "caffeine", label: "Caffeine", emoji: "☕", flag: "caffeine", kind: "ingredient", mode: "hard" },
+  { key: "artificial_sweeteners", label: "Artificial Sweeteners", emoji: "🧪", flag: "artificial_sweetener", kind: "attribute", mode: "soft" },
+  { key: "palm_oil", label: "Palm Oil", emoji: "🌴", flag: "palm_oil", kind: "ingredient", mode: "soft" },
+  { key: "refined_sugar", label: "Refined Sugar", emoji: "🍬", flag: "refined_sugar", kind: "attribute", mode: "soft" },
+  { key: "high_sodium", label: "High Sodium", emoji: "🧂", flag: "high_sodium", kind: "attribute", mode: "soft" },
+  { key: "preservatives", label: "Preservatives", emoji: "🧪", flag: "preservatives", kind: "attribute", mode: "soft" },
+  { key: "artificial_colours", label: "Artificial Colours", emoji: "🎨", flag: "artificial_colour", kind: "attribute", mode: "soft" },
+  { key: "artificial_flavours", label: "Artificial Flavours", emoji: "🧪", flag: "artificial_flavour", kind: "attribute", mode: "soft" },
+  { key: "spicy", label: "Spicy Food", emoji: "🌶️", flag: "spicy", kind: "attribute", mode: "soft" },
 ];
 
 export const DIET_TYPES = [
@@ -209,13 +219,30 @@ export const CONTAINS_KEYWORDS = Object.freeze({
   fish: ["fish", "tuna", "salmon", "anchovy"],
   shellfish: ["prawn", "shrimp", "crab", "lobster", "shellfish"],
   peanut: ["peanut", "groundnut"],
-  tree_nut: ["almond", "cashew", "walnut", "hazelnut", "pistachio"],
+  // Hindi names too, because Indian labels print them ("kaju", "badam"), and
+  // "dry fruit" because a dry-fruit mix almost always carries almonds or
+  // cashews. Over-detection only ever removes a product for a shopper who
+  // avoids tree nuts; under-detection is the failure that matters.
+  tree_nut: [
+    "almond", "cashew", "walnut", "hazelnut", "pistachio", "pecan", "macadamia",
+    "brazil nut", "pine nut", "chilgoza", "marzipan", "badam", "kaju", "akhrot",
+    "pista", "dry fruit", "dryfruit",
+  ],
   soy: ["soy", "soya", "tofu"],
   gluten: ["wheat", "maida", "bread", "pasta", "gluten", "barley", "rava", "suji"],
   honey: ["honey"],
   caffeine: ["coffee", "tea", "caffeine", "espresso"],
   spicy: ["madras", "spicy", "chilli", "chili", "masala", "mixture", "chivda", "peri"],
   palm_oil: ["palm oil", "palmolein"],
+  // What a Jain diet excludes beyond meat, fish and egg: vegetables that grow
+  // underground. Ginger is on the list although some Jains accept it dried —
+  // a hard diet rule errs toward excluding. Hindi names for the same reason
+  // tree_nut carries them.
+  root_veg: [
+    "onion", "garlic", "potato", "carrot", "beetroot", "radish", "turnip",
+    "sweet potato", "yam", "ginger", "shallot", "aloo", "pyaz", "pyaaz",
+    "lahsun", "lehsun", "mooli", "arbi",
+  ],
 });
 
 // "Free-from" tag signals that CLEAR a flag even if a keyword appears.
@@ -229,14 +256,27 @@ export const CLEAR_TAGS = Object.freeze({
 });
 
 // dietType → contains-flags to exclude
+//
+// Jain used to be identical to vegetarian, which recommended potato chips and
+// honey to a Jain shopper. Jainism excludes both: root vegetables, and honey.
 export const DIET_EXCLUSIONS = Object.freeze({
   vegan: ["dairy", "egg", "meat", "fish", "shellfish", "honey"],
   vegetarian: ["meat", "fish", "shellfish", "egg"],
   eggetarian: ["meat", "fish", "shellfish"],
-  jain: ["meat", "fish", "shellfish", "egg"],
+  jain: ["meat", "fish", "shellfish", "egg", "honey", "root_veg"],
   pescatarian: ["meat"],
   non_vegetarian: [],
 });
+
+// Diets that can only be confirmed from a complete ingredient list.
+//
+// Vegetarian is not here, and that is deliberate: FSSAI makes the green/brown
+// veg mark mandatory on every pack, so vegetarian status is declared by law on
+// the label itself. Nothing marks a pack vegan or Jain. "Spices" on a partial
+// list can hide garlic, and "milk solids" can be missing from one entirely, so
+// without a verified list — or the brand's own declaration — KOI says the diet
+// is not verified rather than implying it fits.
+export const LABEL_VERIFIED_DIETS = Object.freeze(["vegan", "jain"]);
 
 // meal → matching categories / keywords
 export const MEAL_MATCH = Object.freeze({

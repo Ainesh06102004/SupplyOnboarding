@@ -33,7 +33,8 @@ export async function fetchAllProducts() {
       skus (
         id, variant_name, mrp, net_weight,
         sku_nutrition (*),
-        screening_reports (*)
+        screening_reports (*),
+        sku_label_facts (raw_ingredient_text, allergens, manually_verified)
       )
     `)
     .eq('status', 'approved');
@@ -49,6 +50,15 @@ export async function fetchAllProducts() {
     const nutrition = sku.sku_nutrition?.[0] || {};
     const screening = sku.screening_reports?.[0] || {};
     const flags = screening.flags || {};
+    // A verified ingredient label, or nothing. The view only ever returns rows
+    // a person has checked (migration 00019), so its presence IS the evidence;
+    // an absent row means "not verified", never "clean". PostgREST nests it as
+    // an array today — reading either shape keeps a future one-to-one embed
+    // from silently dropping every label.
+    const labelRow = Array.isArray(sku.sku_label_facts) ? sku.sku_label_facts[0] : sku.sku_label_facts;
+    const label = labelRow?.manually_verified
+      ? { verified: true, ingredientsText: labelRow.raw_ingredient_text || '', allergens: labelRow.allergens || [] }
+      : null;
     // Only claims the screening report actually made. This used to default to
     // ["Healthy", "Natural"] for any product without flags, which invented a
     // claim for every unscreened row.
@@ -202,6 +212,7 @@ export async function fetchAllProducts() {
       measurementBasis: nutrition.measurement_basis || null,
       benefits: [],
       goodIngredients: (flags.ingredients_partial || []).map(name => ({ name, desc: null })),
+      label,
       watchOuts: [],
       alternatives: [],
       reviews: [],

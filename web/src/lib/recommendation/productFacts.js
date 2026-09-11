@@ -41,7 +41,8 @@ function readAvailability(product) {
  *   id, name, brand, category, price, trust, recommended,
  *   macros: { protein, sugar, fat, fibre, kcal, carbs, sodium },
  *   dietary: string[], tags: string[], goalTags: string[],
- *   contains: Set<string>, haystack: string, status: string,
+ *   contains: Set<string>, ingredientEvidence: 'verified'|'partial'|'none',
+ *   haystack: string, status: string,
  *   availability: 'available'|'unavailable'|'unknown'
  * }}
  */
@@ -49,7 +50,19 @@ export function extractFacts(product) {
   const tags = (product.tags || []).map((t) => String(t).toLowerCase());
   const dietary = product.dietary || [];
   const ingredients = (product.goodIngredients || []).map((x) => (x?.name || x || "")).join(" ");
-  const haystack = [product.name, product.brand, product.category, ingredients, ...(product.tags || []), ...(product.goalTags || [])]
+
+  // ── How much KOI knows about what is in it ─────────────────────────────
+  // `verified`: a person has checked the full printed ingredient list
+  //             (public.sku_label_facts). Only this can support a claim that
+  //             something is ABSENT.
+  // `partial`:  a screening report named some ingredients. `ingredients_partial`
+  //             is partial by name — it can prove presence, never absence.
+  // `none`:     nothing beyond the name and tags.
+  const label = product.label?.verified ? product.label : null;
+  const ingredientEvidence = label ? "verified" : ingredients.trim() ? "partial" : "none";
+  const labelText = label ? String(label.ingredientsText || "").toLowerCase() : "";
+
+  const haystack = [product.name, product.brand, product.category, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]
     .join(" ")
     .toLowerCase();
 
@@ -106,6 +119,21 @@ export function extractFacts(product) {
     if (hasTag(clears)) contains.delete(flag);
   }
 
+  // A verified label outranks every declaration above. A brand's "Vegan" or
+  // "Gluten free" is a claim; a checked ingredient list saying "milk solids" or
+  // "wheat flour" is the evidence that claim has to answer to. So whatever the
+  // label shows is put back after the clears — including the allergens its
+  // statement declares, which the extraction step stores as KOI flag keys
+  // ("dairy", "tree_nut", …) so they need no second parse here.
+  if (label) {
+    for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
+      if (anyKeyword(labelText, kws)) contains.add(flag);
+    }
+    for (const declared of Array.isArray(label.allergens) ? label.allergens : []) {
+      if (typeof declared === "string" && declared in CONTAINS_KEYWORDS) contains.add(declared);
+    }
+  }
+
   // Refined sugar: decided only where the sugar figure is known. An unknown
   // figure is not a clean one — `null > 0` is false, so the old `else` branch
   // cleared the flag and handed a shopper who avoids refined sugar a clean bill
@@ -139,6 +167,7 @@ export function extractFacts(product) {
     tags,
     goalTags: product.goalTags || [],
     contains,
+    ingredientEvidence,
     haystack,
     // Tri-state, never inferred. An unchecked product is `unknown`, not in
     // stock — defaulting the other way turns absence of evidence into a claim.

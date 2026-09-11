@@ -19,3 +19,23 @@ export const REASONS = {
   popular: () => "Popular with the community",
   clean: () => "Clean, recognisable ingredients",
 };
+
+// Cautions: what KOI could NOT check, shown beside the reasons rather than
+// mixed into them. A reason is a claim about the food; a caution is a limit on
+// what KOI knows, and the card has to make that difference visible.
+const joinOr = (list) =>
+  list.length <= 1 ? list.join("") : `${list.slice(0, -1).join(", ")} or ${list[list.length - 1]}`;
+
+export const CAUTIONS = {
+  notVerifiedFor: (labels) => `Not verified for ${joinOr(labels.map((l) => String(l).toLowerCase()))}`,
+  notVerifiedAsDiet: (label) => `Not verified as ${label}`,
+  // The line under search chips when some results could not be checked.
+  unverifiedInResults: (count, total, allergens = [], diet = null) => {
+    const what = [
+      allergens.length ? `for ${joinOr(allergens.map((l) => String(l).toLowerCase()))}` : null,
+      diet ? `as ${diet}` : null,
+    ].filter(Boolean).join(" or ");
+    const one = count === 1;
+    return `${count} of ${total} ${total === 1 ? "result" : "results"} ${one ? "hasn't" : "haven't"} had ${one ? "its" : "their"} ingredient list verified ${what}. Check the pack before you buy.`;
+  },
+};

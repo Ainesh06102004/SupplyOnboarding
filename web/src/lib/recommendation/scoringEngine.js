@@ -13,7 +13,8 @@ import {
   WEIGHTS, PENALTIES, THRESHOLDS as T, GOAL_PROFILES, UNKNOWN_FIT,
   FOODS_LOVE, FOODS_AVOID, MEALS, BUDGET_RANGES, MEAL_MATCH,
 } from "./config";
-import { REASONS } from "./reasons";
+import { REASONS, CAUTIONS } from "./reasons";
+import { unverifiedFor } from "./verification";
 
 const clamp = (n, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, n));
 
@@ -202,12 +203,21 @@ export function scoreProduct(facts, profile = {}) {
   // undeclared sugar or sodium figure means the flag's absence is silence, not
   // a clean result. Charged only when nothing was actually detected —
   // otherwise the -100 above already covers it.
-  const unprovable = avoided.some(
+  //
+  // Allergens and label-only diets join them. An allergen the product's data
+  // does not mention has not been ruled out unless a person checked the whole
+  // ingredient list — see verification.js.
+  const gaps = unverifiedFor(facts, profile);
+  const unprovable = gaps.allergens.length > 0 || gaps.diet !== null || avoided.some(
     (a) =>
       (a.flag === "refined_sugar" && !isNum(facts.macros.sugar)) ||
       (a.flag === "high_sodium" && !isNum(facts.macros.sodium))
   );
   if (unprovable && !softAvoidHits.length) b.penalties += PENALTIES.unverifiableAvoid;
+
+  const cautions = [];
+  if (gaps.allergens.length) cautions.push(CAUTIONS.notVerifiedFor(gaps.allergens.map((a) => a.label)));
+  if (gaps.diet) cautions.push(CAUTIONS.notVerifiedAsDiet(gaps.diet.label));
   if ((goal === "fatloss" || goal === "low_sugar") && isNum(facts.macros.sugar) && facts.macros.sugar > T.sugarHigh) b.penalties += PENALTIES.highSugarForFatLoss;
   // `null < T.proteinMin` is TRUE. Without the guard this penalised every
   // product whose protein was merely undeclared — a verdict about a gap in
@@ -228,7 +238,8 @@ export function scoreProduct(facts, profile = {}) {
   // "No ingredients you avoid" is only sayable when the things they avoid could
   // have been detected. Two avoid flags are derived from macros rather than
   // from ingredient keywords, so where that macro is undeclared the absence of
-  // the flag proves nothing and the reassurance is withheld.
+  // the flag proves nothing and the reassurance is withheld. The same holds for
+  // an allergen on a product with no verified ingredient list.
   if (avoided.length && !softAvoidHits.length && !unprovable) reasons.push(REASONS.noAvoid());
 
   const raw = b.goalMatch + b.macroMatch + b.preferredFood + b.mealMatch + b.budgetMatch + b.popularity + b.trust + b.penalties;
@@ -238,5 +249,5 @@ export function scoreProduct(facts, profile = {}) {
   const seen = new Set();
   const cleanReasons = reasons.filter((r) => (seen.has(r) ? false : seen.add(r))).slice(0, 5);
 
-  return { id: facts.id, raw: +raw.toFixed(2), display, breakdown: b, reasons: cleanReasons, category: facts.category, facts };
+  return { id: facts.id, raw: +raw.toFixed(2), display, breakdown: b, reasons: cleanReasons, cautions, category: facts.category, facts };
 }
