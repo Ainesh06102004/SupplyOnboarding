@@ -66,7 +66,7 @@ export async function getSkuReview(skuId) {
 
   const { data: output, error } = await engine
     .from("extraction_outputs")
-    .select("id, upload_id, model, prompt_version, extracted, checks, confidence, created_at")
+    .select("*")
     .eq("sku_id", skuId)
     .order("created_at", { ascending: false })
     .limit(1)

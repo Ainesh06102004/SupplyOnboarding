@@ -27,12 +27,14 @@ const TIMEOUT_MS = 120_000;
 export class EngineConfigError extends Error {}
 
 /**
- * @param {{ imageBase64: string, mimeType: string }} image
+ * @param {{ imageBase64: string, mimeType: string, model?: string }} image
+ *   model defaults to KOI_LABEL_MODEL; the pipeline passes the verifier model
+ *   for the second, independent reading.
  * @returns {Promise<{ json: object, model: string, usage: object|null, latencyMs: number }>}
  */
-export async function readLabel({ imageBase64, mimeType }) {
+export async function readLabel({ imageBase64, mimeType, model: requested }) {
   const key = process.env.OPENAI_API_KEY;
-  const model = process.env.KOI_LABEL_MODEL;
+  const model = requested || process.env.KOI_LABEL_MODEL;
   if (!key) throw new EngineConfigError("OPENAI_API_KEY is not set. Add it to web/.env.local.");
   if (!model) throw new EngineConfigError("KOI_LABEL_MODEL is not set. Add a vision-capable OpenAI model id to web/.env.local.");
 

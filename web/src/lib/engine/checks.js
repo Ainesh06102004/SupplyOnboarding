@@ -139,8 +139,11 @@ export function runChecks(reading) {
           ? `The ingredients mention ${undeclared.join(", ")}, which the allergen statement does not declare.`
           : "The allergen statement covers every allergen the ingredients mention.");
     } else {
-      add("allergens.statement", "allergens", false,
-        "No allergen statement was read, so allergens rest on the ingredient list alone.");
+      // Not a failure: FSSAI requires an allergen declaration only when one of
+      // the listed allergens is present, so many packs have none. Allergens then
+      // rest on the ingredient list, which is what the storefront says.
+      add("allergens.statement", "allergens", null,
+        "No allergen statement on the pack; allergens are read from the ingredient list.");
     }
   }
 

@@ -242,7 +242,15 @@ export function scoreProduct(facts, profile = {}) {
   // from ingredient keywords, so where that macro is undeclared the absence of
   // the flag proves nothing and the reassurance is withheld. The same holds for
   // an allergen on a product with no verified ingredient list.
-  if (avoided.length && !softAvoidHits.length && !unprovable) reasons.push(REASONS.noAvoid());
+  //
+  // How it is said depends on who checked. A person's check supports "No
+  // ingredients you avoid". Two agreeing machine readings support only what the
+  // pack lists — so that is what the shopper is told.
+  if (avoided.length && !softAvoidHits.length && !unprovable) {
+    reasons.push(facts.ingredientEvidence === "machine_read"
+      ? REASONS.notListedOnPack(avoided.map((a) => a.label))
+      : REASONS.noAvoid());
+  }
 
   const raw = b.goalMatch + b.macroMatch + b.preferredFood + b.mealMatch + b.budgetMatch + b.popularity + b.trust + b.penalties;
   const display = Math.round(clamp(raw, 0, 100));

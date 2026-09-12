@@ -1,12 +1,14 @@
 "use client";
 
 // ============================================================================
-// KOI STAFF — Label review console
+// KOI STAFF — Label engine console
 //
-// The one screen where a model's reading of a pack becomes something KOI tells
-// shoppers. The photo sits beside what was read, the arithmetic checks sit
-// above the fields they concern, and every field group is decided separately:
-// accept, correct, or reject. Allergens always need a decision here.
+// Optional. The engine publishes on its own when two independent readings of
+// a label agree and every check passes (lib/engine/autopublish.js); nothing
+// here has to be done for the storefront to fill in. This page shows what did
+// NOT publish and why — a disagreement, a failed check, a photo of the wrong
+// product — for anyone who chooses to fix it. A fix made here is recorded as a
+// person's verification, which outranks a machine reading.
 //
 // Talks only to /api/engine/review, which re-checks the reviewer role on every
 // call and records the signed-in reviewer against each decision.
@@ -220,7 +222,7 @@ export default function ReviewConsole({ reviewerEmail }) {
     setSkuId(upload.skuId);
     refresh();
     return r;
-  }, (r) => `Read. ${r.groups.length} groups to review; checks passed ${Math.round(r.confidence * 100)}%.`);
+  }, (r) => `Read. Published: ${r.published?.join(", ") || "nothing"}.${r.blocked?.length ? ` Couldn't publish: ${r.blocked.map((b) => b.group).join(", ")}.` : ""}`);
 
   const decideItem = (item, action, value) => run(async () => {
     await api("POST", { op: "decide", itemId: item.id, action, value });
@@ -244,7 +246,11 @@ export default function ReviewConsole({ reviewerEmail }) {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#16A06E]">KOI staff</p>
-          <h1 className="text-[28px] font-extrabold text-[#083D2D]" style={HEADING}>Label review</h1>
+          <h1 className="text-[28px] font-extrabold text-[#083D2D]" style={HEADING}>Label engine</h1>
+          <p className="mt-1 max-w-[62ch] text-[13px] text-[#101412]/60">
+            Labels publish on their own when two readings agree and the checks pass. Nothing here is required —
+            it lists what couldn&apos;t publish, and why, for anyone who wants to fix it.
+          </p>
         </div>
         <div className="flex items-center gap-3 text-[12.5px] text-[#101412]/60">
           <span>Signed in as {reviewerEmail}</span>
@@ -261,7 +267,7 @@ export default function ReviewConsole({ reviewerEmail }) {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
         <aside className="space-y-6">
           <div>
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#101412]/55">Waiting on you ({queue.toReview.length})</h2>
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#101412]/55">Couldn&apos;t publish automatically ({queue.toReview.length})</h2>
             <ul className="mt-2 space-y-2">
               {queue.toReview.map((e) => (
                 <li key={e.skuId}>
@@ -272,7 +278,7 @@ export default function ReviewConsole({ reviewerEmail }) {
                   </button>
                 </li>
               ))}
-              {!queue.toReview.length && <li className="text-[13px] text-[#101412]/55">Nothing to review.</li>}
+              {!queue.toReview.length && <li className="text-[13px] text-[#101412]/55">Everything read so far published.</li>}
             </ul>
           </div>
           <div>
@@ -330,6 +336,13 @@ export default function ReviewConsole({ reviewerEmail }) {
                 </div>
 
                 <div className="space-y-4">
+                  <div className="rounded-2xl border border-[#083D2D]/10 bg-white p-4 text-[13px]">
+                    <p><span className="font-bold text-[#083D2D]">Published automatically: </span>{detail.output.published?.join(", ") || "nothing"}</p>
+                    {(detail.output.blocked || []).map((b) => (
+                      <p key={b.group} className="mt-1 text-rose-800"><span className="font-bold">{b.group}: </span>{b.reason}</p>
+                    ))}
+                    {detail.output.second_model && <p className="mt-1 text-[12px] text-[#101412]/50">Second reading by {detail.output.second_model}.</p>}
+                  </div>
                   {itemsInOrder.map((item) => (
                     <GroupCard key={`${item.id}-${item.status}`} item={item} busy={busy} onDecide={decideItem} />
                   ))}

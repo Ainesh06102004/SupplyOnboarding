@@ -9,6 +9,9 @@ export const REASONS = {
   proteinGoal: () => "Matches your protein goal",
   calorieTarget: () => "Fits your calorie target",
   noAvoid: () => "No ingredients you avoid",
+  // For a list read by machine rather than checked by a person: a statement
+  // about the pack, not a guarantee about the food.
+  notListedOnPack: (labels) => `No ${joinOr(labels.map((l) => String(l).toLowerCase()))} listed on the pack`,
   meal: (label) => `Great ${String(label).toLowerCase()} option`,
   likes: (label) => `You like ${label}`,
   // "Low", not "Lower": "lower" is a comparative claim and needs a named

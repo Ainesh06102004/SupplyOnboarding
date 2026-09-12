@@ -78,6 +78,15 @@ test("a verified label can", () => {
   assert.deepEqual(s.cautions, []);
 });
 
+test("a machine-read label says what the pack lists, not that the food is safe", () => {
+  const p = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, jaggery", allergens: [], mayContain: [] } });
+  const s = score(p, { foodsAvoid: ["peanuts", "milk"] });
+  assert.ok(s.reasons.includes(REASONS.notListedOnPack(["Peanuts", "Milk"])));
+  assert.equal(REASONS.notListedOnPack(["Peanuts", "Milk"]), "No peanuts or milk listed on the pack");
+  assert.ok(!s.reasons.includes(REASONS.noAvoid()));
+  assert.deepEqual(s.cautions, [], "the whole list was read, so nothing is 'not verified'");
+});
+
 test("an unverified product ranks below an identical verified one", () => {
   const profile = { foodsAvoid: ["peanuts"] };
   const unchecked = score(product(), profile);

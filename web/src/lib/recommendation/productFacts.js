@@ -41,7 +41,7 @@ function readAvailability(product) {
  *   id, name, brand, category, price, trust, recommended,
  *   macros: { protein, sugar, fat, fibre, kcal, carbs, sodium },
  *   dietary: string[], tags: string[], goalTags: string[],
- *   contains: Set<string>, ingredientEvidence: 'verified'|'partial'|'none',
+ *   contains: Set<string>, ingredientEvidence: 'verified'|'machine_read'|'partial'|'none',
  *   haystack: string, status: string,
  *   availability: 'available'|'unavailable'|'unknown'
  * }}
@@ -52,14 +52,16 @@ export function extractFacts(product) {
   const ingredients = (product.goodIngredients || []).map((x) => (x?.name || x || "")).join(" ");
 
   // ── How much KOI knows about what is in it ─────────────────────────────
-  // `verified`: a person has checked the full printed ingredient list
-  //             (public.sku_label_facts). Only this can support a claim that
-  //             something is ABSENT.
-  // `partial`:  a screening report named some ingredients. `ingredients_partial`
-  //             is partial by name — it can prove presence, never absence.
-  // `none`:     nothing beyond the name and tags.
-  const label = product.label?.verified ? product.label : null;
-  const ingredientEvidence = label ? "verified" : ingredients.trim() ? "partial" : "none";
+  // `verified`:     a person checked the full printed ingredient list.
+  // `machine_read`: the full list, read twice independently with the readings
+  //                 agreeing and every check passing (lib/engine/autopublish.js).
+  //                 It can support "not listed on the pack", worded as such.
+  // `partial`:      a screening report named some ingredients. Partial by name
+  //                 — it can prove presence, never absence.
+  // `none`:         nothing beyond the name and tags.
+  const labelEvidence = product.label?.evidence ?? (product.label?.verified ? "verified" : null);
+  const label = labelEvidence ? product.label : null;
+  const ingredientEvidence = labelEvidence || (ingredients.trim() ? "partial" : "none");
   const labelText = label ? String(label.ingredientsText || "").toLowerCase() : "";
 
   const haystack = [product.name, product.brand, product.category, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]

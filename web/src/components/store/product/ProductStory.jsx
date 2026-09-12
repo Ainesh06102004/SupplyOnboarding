@@ -134,16 +134,18 @@ export function Verdict({ verdict }) {
 }
 
 // ── 3. Ingredient Intelligence ──────────────────────────────────────────────
-export function IngredientIntelligence({ ingredients, timeline = [], verified = false }) {
+export function IngredientIntelligence({ ingredients, timeline = [], evidence = null }) {
   const [sel, setSel] = useState(0);
   const active = ingredients[sel] || ingredients[0];
-  // A partial list must say so. Shown as "What's actually inside" it reads as
-  // the whole pack — which is exactly how an allergen goes unnoticed.
-  const subtitle = verified
+  // Say what kind of list this is. A partial list shown as "What's inside"
+  // reads as the whole pack — which is exactly how an allergen goes unnoticed.
+  const subtitle = evidence === "verified"
     ? "The full ingredient list, checked against the pack. Tap one for what it is."
-    : "A partial list from the brand's submission — not the full pack. Check the label for allergens.";
+    : evidence === "machine_read"
+      ? "The full ingredient list as printed on the pack, read automatically. With a severe allergy, check the pack itself."
+      : "A partial list from the brand's submission — not the full pack. Check the label for allergens.";
   return (
-    <Section id="ingredients" index="03" eyebrow="Ingredient intelligence" title={verified ? "What's inside" : "Some of what's inside"} subtitle={subtitle}>
+    <Section id="ingredients" index="03" eyebrow="Ingredient intelligence" title={evidence ? "What's inside" : "Some of what's inside"} subtitle={subtitle}>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_0.9fr] lg:gap-12">
         <div className="flex flex-wrap gap-2.5 self-start">
           {ingredients.map((ing, i) => {

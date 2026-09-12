@@ -14,6 +14,7 @@ import { LabelReading, LABEL_JSON_SCHEMA, NUTRIENT_FIELDS } from "@/lib/engine/l
 import { runChecks, flagsInIngredients, flagsInStatement } from "@/lib/engine/checks.js";
 import { toReviewItems, toNutritionRow, AUTO_ACCEPT } from "@/lib/engine/proposals.js";
 import { validateDecision, buildPublishPayload } from "@/lib/engine/decisions.js";
+import { planAutoPublish, matchesProduct } from "@/lib/engine/autopublish.js";
 
 const values = (over = {}) => ({ ...Object.fromEntries(NUTRIENT_FIELDS.map((f) => [f, null])), ...over });
 
@@ -170,4 +171,53 @@ test("corrected nutrition gets freshly computed per-100 columns", () => {
   const r = buildPublishPayload([item("identity", "accepted", {}), item("nutrition", "corrected", {}, corrected)]);
   assert.equal(r.nutrition.protein_per_100g, 20);
   assert.equal(r.nutrition.protein_per_serving, 10);
+});
+
+// ── Publishing without a reviewer ──────────────────────────────────────────
+
+const SKU = { product: "Madras Mixture", brand: "Sweet Karam Coffee", variant: "Classic", netWeight: "200g" };
+const plan = (a, b = a) => planAutoPublish({ reading: a, second: b, result: runChecks(a), sku: SKU });
+
+test("two agreeing readings with clean checks publish the nutrition table", () => {
+  const p = plan(reading());
+  assert.equal(p.agreement.nutrition.ok, true);
+  assert.ok(p.nutrition);
+  assert.equal(p.nutrition.kcal_per_serving, 112);
+  assert.deepEqual(p.blocked, []);
+});
+
+test("one misread digit between the readings blocks the table, and says which figure", () => {
+  const other = reading({ nutrition: { ...reading().nutrition, values: { ...reading().nutrition.values, protein_g: 14.4 } } });
+  const p = plan(reading(), other);
+  assert.equal(p.nutrition, null);
+  assert.match(p.blocked[0].reason, /protein_g: 10.4 vs 14.4/);
+});
+
+test("a failed second reading blocks everything rather than trusting the first", () => {
+  const p = planAutoPublish({ reading: reading(), second: null, result: runChecks(reading()), sku: SKU });
+  assert.equal(p.nutrition, null);
+});
+
+test("allergens must agree exactly even when the lists nearly match", () => {
+  const a = withList("Gram flour, rice flour, peanuts, curry leaves, salt, spices, edible vegetable oil, turmeric, chilli");
+  const b = withList("Gram flour, rice flour, cashew, curry leaves, salt, spices, edible vegetable oil, turmeric, chilli");
+  const p = plan(a, b);
+  assert.equal(p.ingredients, null);
+  assert.equal(p.agreement.allergens.ok, false);
+});
+
+test("an agreed ingredient list publishes with its allergens, no statement needed", () => {
+  const a = withList("Gram flour, peanuts, curry leaves");
+  const p = plan(a);
+  assert.deepEqual(p.ingredients.allergens, ["peanut"]);
+  assert.equal(runChecks(a).checks.find((c) => c.id === "allergens.statement").ok, null);
+});
+
+test("a photo naming another product publishes nothing", () => {
+  const wrong = reading({ product_name: "Butter Cookies" });
+  const p = plan(wrong);
+  assert.equal(p.nutrition, null);
+  assert.equal(p.blocked[0].group, "identity");
+  assert.equal(matchesProduct(reading(), SKU).ok, true);
+  assert.equal(matchesProduct(reading({ product_name: null }), SKU).ok, true, "no name on the photo cannot contradict it");
 });

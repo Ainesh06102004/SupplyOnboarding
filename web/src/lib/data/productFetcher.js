@@ -33,7 +33,7 @@ export async function fetchAllProducts() {
         id, variant_name, mrp, net_weight,
         sku_nutrition (*),
         screening_reports (*),
-        sku_label_facts (raw_ingredient_text, allergens, may_contain, manually_verified)
+        sku_label_facts (*)
       )
     `)
     .eq('status', 'approved');
@@ -49,14 +49,22 @@ export async function fetchAllProducts() {
     const nutrition = sku.sku_nutrition?.[0] || {};
     const screening = sku.screening_reports?.[0] || {};
     const flags = screening.flags || {};
-    // A verified ingredient label, or nothing. The view only ever returns rows
-    // a person has checked (migration 00019), so its presence IS the evidence;
-    // an absent row means "not verified", never "clean". PostgREST nests it as
-    // an array today — reading either shape keeps a future one-to-one embed
-    // from silently dropping every label.
+    // A published ingredient label, or nothing. The view returns only
+    // published rows, each saying how it was established: `verified` (a person
+    // checked it) or `machine_read` (two agreeing readings, checks passed —
+    // migration 00024). An absent row means "not checked", never "clean".
+    // Selected with `*` and read defensively so this works whether or not the
+    // `evidence` column exists yet; PostgREST nests it as an array today.
     const labelRow = Array.isArray(sku.sku_label_facts) ? sku.sku_label_facts[0] : sku.sku_label_facts;
-    const label = labelRow?.manually_verified
-      ? { verified: true, ingredientsText: labelRow.raw_ingredient_text || '', allergens: labelRow.allergens || [], mayContain: labelRow.may_contain || [] }
+    const evidence = labelRow ? (labelRow.evidence ?? (labelRow.manually_verified ? 'verified' : null)) : null;
+    const label = evidence
+      ? {
+          evidence,
+          verified: evidence === 'verified',
+          ingredientsText: labelRow.raw_ingredient_text || '',
+          allergens: labelRow.allergens || [],
+          mayContain: labelRow.may_contain || [],
+        }
       : null;
     // Only claims the screening report actually made. This used to default to
     // ["Healthy", "Natural"] for any product without flags, which invented a

@@ -115,10 +115,14 @@ export function buildProductVM(p, all = []) {
   const high = { protein: isHighProtein(row), fibre: isHighFibre(row), lowSugar: isLowSugar(row), sugarFree: isSugarFree(row) };
 
   // ── Ingredients: the verified label, else the partial list, else nothing ──
-  const labelList = p.label?.verified ? splitIngredients(p.label.ingredientsText) : null;
+  // `verified` = a person checked it; `machine_read` = two agreeing automatic
+  // readings. Both are the full printed list; the page says which it is.
+  const labelEvidence = p.label?.evidence ?? (p.label?.verified ? "verified" : null);
+  const labelList = labelEvidence ? splitIngredients(p.label.ingredientsText) : null;
   const rawIngredients = labelList || (p.goodIngredients || []).map((x) => x?.name || x).filter(Boolean);
   const ingredients = rawIngredients.slice(0, labelList ? 16 : 8).map(ingredientEntry);
-  const ingredientsVerified = Boolean(labelList && labelList.length);
+  const ingredientsEvidence = labelList && labelList.length ? labelEvidence : null;
+  const ingredientsVerified = ingredientsEvidence === "verified";
 
   // ── Trust module: "What we confirmed" ──
   // Only what KOI established itself — a claim rule passed on the declared
@@ -129,6 +133,7 @@ export function buildProductVM(p, all = []) {
     high.fibre && { label: "High fibre", ok: true },
     high.sugarFree ? { label: "Sugar free", ok: true } : high.lowSugar && { label: "Low sugar", ok: true },
     ingredientsVerified && { label: "Ingredient list verified", ok: true },
+    ingredientsEvidence === "machine_read" && { label: "Ingredient list read from the pack", ok: true },
   ].filter(Boolean);
 
   // Only sub-scores the screening report actually carried.
@@ -219,7 +224,9 @@ export function buildProductVM(p, all = []) {
   const transparency = [
     { label: "Ingredient list", ...(ingredientsVerified
       ? { status: "pass", note: "Checked against the pack by KOI." }
-      : { status: "limited", note: rawIngredients.length ? "Partial — from the brand's submission, not the full pack." : "KOI doesn't hold this product's ingredient list yet." }) },
+      : ingredientsEvidence === "machine_read"
+        ? { status: "pass", note: "Read from the pack automatically; two independent readings agreed." }
+        : { status: "limited", note: rawIngredients.length ? "Partial — from the brand's submission, not the full pack." : "KOI doesn't hold this product's ingredient list yet." }) },
     { label: "Nutrient claims", status: "pass", note: "Every nutrient claim on this page is tested against FSSAI's conditions on the declared figures." },
     { label: "Palm oil", ...declaredBy(has(tags, "no palm"), "palm-oil free") },
     { label: "Preservatives", ...declaredBy(has(tags, "no preserv"), "free of preservatives") },
@@ -264,7 +271,7 @@ export function buildProductVM(p, all = []) {
       refs: p.koiStatus ? ["KOI screening report"] : [],
     },
     ingredients,
-    ingredientsVerified,
+    ingredientsEvidence,
     ingredientTimeline: [],
     nutrition: { meters, calories: kcal, carbs, fat, basisLabel: per, serving: p.servingSize || null },
     comparison,

@@ -24,8 +24,11 @@ const DIET_BY_KEY = Object.freeze(Object.fromEntries(DIET_TYPES.map((d) => [d.ke
  * @returns {{ allergens: Array<object>, diet: object|null }} FOODS_AVOID entries
  *   KOI cannot confirm absent, and the DIET_TYPES entry it cannot confirm, if any
  */
+/** Evidence that covers the whole printed list, so absence can be stated. */
+export const FULL_LIST_EVIDENCE = Object.freeze(["verified", "machine_read"]);
+
 export function unverifiedFor(facts, profile = {}) {
-  if (facts.ingredientEvidence === "verified") return { allergens: [], diet: null };
+  if (FULL_LIST_EVIDENCE.includes(facts.ingredientEvidence)) return { allergens: [], diet: null };
 
   // Milk and lactose share the `dairy` flag; one caution per flag is enough.
   const flags = new Set();

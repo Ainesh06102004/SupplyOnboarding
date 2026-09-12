@@ -130,7 +130,7 @@ export default function ProductDetailPage({ params }) {
         {vm.reasons.length > 0 && <WhyEarned reasons={vm.reasons} />}
         {vm.verdict.quote && <Verdict verdict={vm.verdict} />}
         {vm.ingredients.length > 0 && (
-          <IngredientIntelligence ingredients={vm.ingredients} timeline={vm.ingredientTimeline} verified={vm.ingredientsVerified} />
+          <IngredientIntelligence ingredients={vm.ingredients} timeline={vm.ingredientTimeline} evidence={vm.ingredientsEvidence} />
         )}
         <NutritionExplained nutrition={vm.nutrition} />
         {vm.comparison.length > 0 && <HealthComparison comparison={vm.comparison} name={vm.name} />}
