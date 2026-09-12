@@ -187,7 +187,7 @@ export default function CheckoutPage() {
         return;
       }
       if (intentId) {
-        await fulfilmentService.markHandedOff(intentId, {
+        const recorded = await fulfilmentService.markHandedOff(intentId, {
           marketplace: caps.adapter,
           planId,
           externalOrderRef: result?.externalCartRef ?? null,
@@ -197,6 +197,19 @@ export default function CheckoutPage() {
           // recording it here would give it a second life in the order history.
           providerSubtotal: plan?.totals?.complete ? plan.totals.subtotal ?? null : null,
         });
+        // The basket is already with the provider — the plan committed before
+        // this line ran. So a failure here is a hole in KOI's own records, not
+        // a failed hand-off, and it must never be reported as one: sending
+        // them back to try again would replace the cart a second time. Say
+        // where the basket actually is and leave the retry alone.
+        if (!recorded) {
+          console.error("markHandedOff: hand-off completed but was not recorded", { intentId, planId });
+          setHandoffError(
+            "Your basket is in your Swiggy cart — go and check out there. We couldn't add it to your KOI order history, so it may not appear below."
+          );
+          if (result?.handoffUrl) window.open(result.handoffUrl, "_blank", "noopener");
+          return;
+        }
       }
       // Swiggy is where the shopper finishes: they confirm and pay there.
       if (result?.handoffUrl) window.open(result.handoffUrl, "_blank", "noopener");

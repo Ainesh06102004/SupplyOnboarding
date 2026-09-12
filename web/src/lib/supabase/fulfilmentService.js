@@ -225,8 +225,26 @@ export const fulfilmentService = {
    * picking, delivery — happens on the provider's side, and KOI learns about
    * it only if the shopper says so.
    *
+   * BY THE TIME THIS RUNS, THE DESTRUCTIVE WORK HAS ALREADY HAPPENED. The plan
+   * is committed and the shopper's provider cart already holds this basket.
+   * So this call records a fact about the past, and it must not fail over a
+   * detail: an annotation that cannot be stored is worth losing, the record of
+   * the hand-off is not.
+   *
+   * `zone_id` is that detail. It is a foreign key into `marketplace_zone`, so
+   * a zone KOI has not registered rejects the whole UPDATE with 23503 — which
+   * left the intent in `draft` with a committed plan beside it, and the shopper
+   * looking at an order history that never mentioned the basket they had just
+   * sent. The mock synthesises a zone per pincode, so in development this
+   * happened on every hand-off; a real zone resolved through
+   * `marketplace_zone` will normally exist, which is exactly why nobody would
+   * have found it before production.
+   *
    * @param {string} intentId
-   * @param {{ marketplace: string, planId?: string|null, externalOrderRef?: string|null }} details
+   * @param {{ marketplace: string, planId?: string|null, externalOrderRef?: string|null,
+   *   zoneId?: string|null, providerSubtotal?: number|null }} details
+   * @returns {Promise<object|null>} the updated intent, or null if it could not
+   *   be recorded at all — which the caller must not read as "nothing was sent"
    */
   async markHandedOff(
     intentId,
@@ -235,31 +253,46 @@ export const fulfilmentService = {
     if (!intentId || !marketplace) return null;
     const supabase = getSupabaseClient();
 
-    const { data, error } = await supabase
-      .from(INTENTS)
-      .update({
-        state: FULFILMENT.HANDED_OFF,
-        marketplace,
-        plan_id: planId,
-        external_order_ref: externalOrderRef,
-        // Both are known only now. The zone is resolved during checkout, after
-        // the draft was opened, and the provider's price is not known until it
-        // has been asked — which is why the draft carries neither.
-        zone_id: zoneId,
-        // What the provider quoted, distinct from subtotal_at_handoff, which is
-        // KOI's own MRP. Null for a partially-fulfillable basket, because the
-        // plan withholds its subtotal rather than quote an incomplete one.
-        provider_subtotal_at_handoff: numOrNull(providerSubtotal),
-        handed_off_at: new Date().toISOString(),
-      })
-      .eq("id", intentId)
-      // Only a draft can be handed off. Without this an accidental double
-      // submit would stamp a new hand-off time over a completed intent.
-      .eq("state", FULFILMENT.DRAFT)
-      .select()
-      .maybeSingle();
+    const write = (zone) =>
+      supabase
+        .from(INTENTS)
+        .update({
+          state: FULFILMENT.HANDED_OFF,
+          marketplace,
+          plan_id: planId,
+          external_order_ref: externalOrderRef,
+          // Both are known only now. The zone is resolved during checkout, after
+          // the draft was opened, and the provider's price is not known until it
+          // has been asked — which is why the draft carries neither.
+          zone_id: zone,
+          // What the provider quoted, distinct from subtotal_at_handoff, which is
+          // KOI's own MRP. Null for a partially-fulfillable basket, because the
+          // plan withholds its subtotal rather than quote an incomplete one.
+          provider_subtotal_at_handoff: numOrNull(providerSubtotal),
+          handed_off_at: new Date().toISOString(),
+        })
+        .eq("id", intentId)
+        // Only a draft can be handed off. Without this an accidental double
+        // submit would stamp a new hand-off time over a completed intent.
+        .eq("state", FULFILMENT.DRAFT)
+        .select()
+        .maybeSingle();
+
+    let { data, error } = await write(zoneId);
+
+    // 23503 is foreign_key_violation. plan_id points at the plan just
+    // committed and profile_id at the signed-in shopper, so zone_id is the
+    // only key here that can dangle — drop it and keep the hand-off.
+    if (error?.code === "23503" && zoneId) {
+      console.error(
+        `markHandedOff: zone "${zoneId}" is not in marketplace_zone; recording the hand-off without it`
+      );
+      ({ data, error } = await write(null));
+    }
 
     if (error) {
+      // The basket IS with the provider. This only means KOI failed to write
+      // that down, which is a reporting gap, never grounds to send it again.
       console.error("markHandedOff:", error);
       return null;
     }
