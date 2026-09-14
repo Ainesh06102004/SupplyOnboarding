@@ -48,12 +48,27 @@ export function toNutritionRow(nutrition, netWeight = null) {
  * under-proposing is how an allergen goes unremarked. `may_contain` comes from
  * the precautionary statement only.
  */
+// A statement about the factory, not the food: "Manufactured in a facility
+// that also processes peanut, gluten, soy…". Models file these under the
+// allergen statement (both did, for Daily Dry Fruit Mix), which would publish
+// every allergen the factory handles as an ingredient. Classified here, by
+// wording, rather than trusted to the transcription.
+const PRECAUTIONARY = /\b(may contain|may be present|traces? of|facility|premises|same (?:line|plant|equipment)|shared|also (?:processes|handles)|processed (?:in|on|with)|manufactured (?:in|on))\b/i;
+
+export const isPrecautionary = (statement) => Boolean(statement) && PRECAUTIONARY.test(statement);
+
 export function proposeAllergens(reading) {
   const fromText = flagsInIngredients(reading.ingredients_text);
-  const fromStatement = flagsInStatement(reading.allergen_statement);
+  const precautionary = isPrecautionary(reading.allergen_statement);
+  const fromStatement = precautionary ? [] : flagsInStatement(reading.allergen_statement);
+  const contains = [...new Set([...fromText, ...fromStatement])];
+  const mayContain = [...new Set([
+    ...flagsInStatement(reading.may_contain_statement),
+    ...(precautionary ? flagsInStatement(reading.allergen_statement) : []),
+  ])].filter((flag) => !contains.includes(flag));
   return {
-    contains: [...new Set([...fromText, ...fromStatement])],
-    may_contain: flagsInStatement(reading.may_contain_statement),
+    contains,
+    may_contain: mayContain,
     from_text: fromText,
     from_statement: fromStatement,
   };

@@ -264,6 +264,17 @@ test("the manufacturer's company name does not count as naming another product",
   assert.equal(matchesProduct(reading({ product_name: null, brand: "ImmaculateBites Private Limited" }), SKU).ok, true);
 });
 
+test("a shared-facility statement becomes may-contain, not contents (Daily Dry Fruit Mix)", () => {
+  const r = withList("Roasted Almonds, Roasted Cashews, Black Raisins",
+    "Manufactured in a facility that also processes tree nut (Almond, Cashew), peanut, gluten, soy, milk products, Oats.");
+  const p = toReviewItems(r, runChecks(r)).find((i) => i.field_group === "allergens").proposed;
+  assert.deepEqual(p.contains, ["tree_nut"], "only what the ingredients themselves contain");
+  assert.deepEqual([...p.may_contain].sort(), ["dairy", "gluten", "peanut", "soy"]);
+  const declared = toReviewItems(withList("Wheat flour, milk solids", "Contains: wheat, milk"), runChecks(withList("Wheat flour, milk solids", "Contains: wheat, milk")))
+    .find((i) => i.field_group === "allergens").proposed;
+  assert.deepEqual([...declared.contains].sort(), ["dairy", "gluten"], "a real contains-statement is still contents");
+});
+
 test("percentages over 100 are informational, because labels nest them", () => {
   const r = withList("Dates (40%), Almonds (30%) [roasted almonds (100%)], Cashews (26%)");
   r.ingredients = [{ name: "Dates", percent: 40 }, { name: "Almonds", percent: 30 }, { name: "roasted almonds", percent: 100 }, { name: "Cashews", percent: 26 }];
