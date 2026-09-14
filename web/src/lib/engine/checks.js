@@ -123,8 +123,11 @@ export function runChecks(reading) {
     const printed = reading.ingredients.filter((i) => isNum(i.percent));
     if (printed.length) {
       const total = printed.reduce((s, i) => s + i.percent, 0);
-      add("ingredients.percent", "ingredients", total <= 100.5,
-        total <= 100.5 ? `Printed percentages total ${Math.round(total)}%.` : `Printed percentages total ${Math.round(total)}%, over 100.`);
+      // Informational above 100: labels print percentages at more than one level
+      // ("Chocolate (20%) [cocoa (50%) …]"), and a transcription that picks up a
+      // nested one sums past 100 without anything being misread.
+      add("ingredients.percent", "ingredients", total <= 100.5 ? true : null,
+        total <= 100.5 ? `Printed percentages total ${Math.round(total)}%.` : `Printed percentages total ${Math.round(total)}% — nested percentages, so not compared.`);
     }
   }
 

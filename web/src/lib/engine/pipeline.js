@@ -21,7 +21,7 @@ import { getServiceClient } from "@/lib/supabase/admin";
 import { LabelReading, PROMPT_VERSION } from "./labelSchema";
 import { runChecks } from "./checks";
 import { toReviewItems } from "./proposals";
-import { planAutoPublish } from "./autopublish";
+import { planAutoPublish, pickPrimary } from "./autopublish";
 import { readLabel } from "./providers/openai";
 
 // uploads.file_type values that can carry a label.
@@ -77,19 +77,33 @@ export async function runExtraction(uploadId) {
     ]);
     if (first.status === "rejected") throw first.reason;
 
-    const parsed = LabelReading.safeParse(first.value.json);
-    if (!parsed.success) {
-      fail(`The reading did not match the label schema: ${parsed.error.issues.slice(0, 3).map((i) => i.path.join(".")).join(", ")}`);
+    const firstParse = LabelReading.safeParse(first.value.json);
+    if (!firstParse.success) {
+      fail(`The reading did not match the label schema: ${firstParse.error.issues.slice(0, 3).map((i) => i.path.join(".")).join(", ")}`);
     }
     const verify = second.status === "fulfilled" ? LabelReading.safeParse(second.value.json) : null;
-    const secondReading = verify?.success ? verify.data : null;
+    const verifyReading = verify?.success ? verify.data : null;
+
+    // Publish from whichever reading took the per-100 column; the other is the
+    // check. Everything below reads `parsed.data` as the primary.
+    const [primary, other] = pickPrimary(firstParse.data, verifyReading);
+    const swapped = primary !== firstParse.data;
+    const parsed = { data: primary };
+    const secondReading = other;
+    const primaryMeta = swapped ? second.value : first.value;
+    const otherMeta = swapped ? first.value : (second.status === "fulfilled" ? second.value : null);
 
     const sku = upload.skus || {};
+    // The rest of the catalogue, so a photo is refused only when it names a
+    // different product KOI lists (autopublish.js#matchesProduct).
+    const { data: catalogue, error: catalogueError } = await db.from("products").select("product_name");
+    if (catalogueError) throw catalogueError;
     const context = {
       product: sku.products?.product_name ?? "",
       brand: sku.products?.brands?.brand_name ?? null,
       variant: sku.variant_name ?? null,
       netWeight: sku.net_weight ?? null,
+      others: catalogue.map((p) => p.product_name).filter((name) => name && name !== sku.products?.product_name),
     };
 
     const result = runChecks(parsed.data);
@@ -99,11 +113,11 @@ export async function runExtraction(uploadId) {
       .from("extraction_outputs")
       .insert({
         job_id: job.id, upload_id: upload.id, sku_id: upload.sku_id,
-        model: first.value.model, prompt_version: PROMPT_VERSION,
+        model: primaryMeta.model, prompt_version: PROMPT_VERSION,
         extracted: parsed.data, checks: result.checks, confidence: result.confidence,
-        usage: { first: first.value.usage, second: second.status === "fulfilled" ? second.value.usage : null },
-        latency_ms: first.value.latencyMs,
-        second_read: secondReading, second_model: second.status === "fulfilled" ? second.value.model : null,
+        usage: { primary: primaryMeta.usage, second: otherMeta?.usage ?? null },
+        latency_ms: primaryMeta.latencyMs,
+        second_read: secondReading, second_model: otherMeta?.model ?? null,
         agreement: plan.agreement, blocked: plan.blocked,
       })
       .select("id")

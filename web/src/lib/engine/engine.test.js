@@ -14,7 +14,8 @@ import { LabelReading, LABEL_JSON_SCHEMA, NUTRIENT_FIELDS } from "@/lib/engine/l
 import { runChecks, flagsInIngredients, flagsInStatement } from "@/lib/engine/checks.js";
 import { toReviewItems, toNutritionRow, AUTO_ACCEPT } from "@/lib/engine/proposals.js";
 import { validateDecision, buildPublishPayload } from "@/lib/engine/decisions.js";
-import { planAutoPublish, matchesProduct } from "@/lib/engine/autopublish.js";
+import { planAutoPublish, matchesProduct, pickPrimary, compareNutrition } from "@/lib/engine/autopublish.js";
+import { canonicalServing } from "@/lib/engine/labelSchema.js";
 
 const values = (over = {}) => ({ ...Object.fromEntries(NUTRIENT_FIELDS.map((f) => [f, null])), ...over });
 
@@ -213,11 +214,70 @@ test("an agreed ingredient list publishes with its allergens, no statement neede
   assert.equal(runChecks(a).checks.find((c) => c.id === "allergens.statement").ok, null);
 });
 
-test("a photo naming another product publishes nothing", () => {
+// ── Normalising and consensus (from reading all 18 KOI labels) ─────────────
+
+test("a printed serving size becomes its amount, and only when there is exactly one", () => {
+  assert.equal(canonicalServing("Serving Size: 15g (2 Biscuits Approx.)"), "15g");
+  assert.equal(canonicalServing("Per 35g Serving (Approx. Value)"), "35g");
+  assert.equal(canonicalServing("100 g"), "100g");
+  assert.equal(canonicalServing("1 pack"), "1 pack");
+  assert.equal(canonicalServing("20g or 40g"), "20g or 40g");
+});
+
+test("parsing turns blank strings into null and a prefixed licence into its number", () => {
+  const r = LabelReading.parse(reading({ brand: "", fssai_licence: "FSSAI Lic. No. 10019022009733 (Central)", nutrition: { ...reading().nutrition, serving_size: "40g (per serve)" } }));
+  assert.equal(r.brand, null);
+  assert.equal(r.fssai_licence, "10019022009733");
+  assert.equal(r.nutrition.serving_size, "40g");
+});
+
+test("per-100 against per-serving is compared after conversion, and the per-100 reading leads", () => {
+  const per100 = LabelReading.parse(reading());
+  const perServing = LabelReading.parse(reading({ nutrition: { basis: "per_serving", serving_size: "20g", servings_per_pack: 10,
+    values: values({ energy_kcal: 112, protein_g: 2.1, carbs_g: 10, sugars_g: 0, total_fat_g: 7 }) } }));
+  const [primary, other] = pickPrimary(perServing, per100);
+  assert.equal(primary.nutrition.basis, "per_100g");
+  const n = compareNutrition(primary, other);
+  assert.equal(n.ok, true, n.differences.join("; "));
+  assert.equal(n.values.energy_kcal, 560);
+  assert.ok(n.dropped.some((d) => d.startsWith("sodium_mg")), "a secondary row only one reading has is dropped");
+  assert.equal(n.values.sodium_mg, null);
+});
+
+test("a secondary row read differently is dropped, while a core conflict still blocks", () => {
+  const other = reading({ nutrition: { ...reading().nutrition, values: { ...reading().nutrition.values, cholesterol_mg: 6 } } });
+  const n = compareNutrition(reading(), other);
+  assert.equal(n.ok, true);
+  assert.equal(n.values.cholesterol_mg, null);
+  const core = reading({ nutrition: { ...reading().nutrition, values: { ...reading().nutrition.values, sugars_g: 12 } } });
+  assert.equal(compareNutrition(reading(), core).ok, false);
+});
+
+test("a serving size only one reading found is left out of a per-100 table, not blocking it", () => {
+  const noServing = reading({ nutrition: { ...reading().nutrition, serving_size: null } });
+  const n = compareNutrition(noServing, reading());
+  assert.equal(n.ok, true);
+  assert.equal(n.serving_size, null);
+});
+
+test("the manufacturer's company name does not count as naming another product", () => {
+  assert.equal(matchesProduct(reading({ product_name: null, brand: "ImmaculateBites Private Limited" }), SKU).ok, true);
+});
+
+test("percentages over 100 are informational, because labels nest them", () => {
+  const r = withList("Dates (40%), Almonds (30%) [roasted almonds (100%)], Cashews (26%)");
+  r.ingredients = [{ name: "Dates", percent: 40 }, { name: "Almonds", percent: 30 }, { name: "roasted almonds", percent: 100 }, { name: "Cashews", percent: 26 }];
+  assert.equal(runChecks(r).checks.find((c) => c.id === "ingredients.percent").ok, null);
+});
+
+test("a photo naming another product publishes nothing; a tagline does not count", () => {
+  const catalogue = { ...SKU, others: ["The Healthy Butter Cookies", "Moringa Jowar Crispies - Indian Masala"] };
   const wrong = reading({ product_name: "Butter Cookies" });
-  const p = plan(wrong);
+  const p = planAutoPublish({ reading: wrong, second: wrong, result: runChecks(wrong), sku: catalogue });
   assert.equal(p.nutrition, null);
   assert.equal(p.blocked[0].group, "identity");
+  assert.equal(matchesProduct(reading({ product_name: "Moringa Jowar" }), catalogue).ok, false, "a combo photographed as one of its contents");
+  assert.equal(matchesProduct(reading({ product_name: "Mother's wisdom" }), catalogue).ok, true, "a tagline names no product");
   assert.equal(matchesProduct(reading(), SKU).ok, true);
   assert.equal(matchesProduct(reading({ product_name: null }), SKU).ok, true, "no name on the photo cannot contradict it");
 });
