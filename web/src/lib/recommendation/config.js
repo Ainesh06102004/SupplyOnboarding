@@ -219,12 +219,16 @@ export const COOKING = [
 
 // ── Ingredient flag inference: flag → keyword signals (name/tags/ingredients) ──
 export const CONTAINS_KEYWORDS = Object.freeze({
-  dairy: ["milk", "butter", "ghee", "yogurt", "curd", "paneer", "cheese", "khoya", "cream", "whey"],
+  // Casein, caseinate and lactose are milk under another name ("sodium
+  // caseinate" in a coconut creamer, "lactose" in a spice mix).
+  dairy: ["milk", "butter", "ghee", "yogurt", "curd", "paneer", "cheese", "khoya", "cream", "whey", "casein", "lactose"],
   egg: ["egg"],
   meat: ["chicken", "mutton", "beef", "pork", "meat", "lamb"],
   fish: ["fish", "tuna", "salmon", "anchovy"],
   shellfish: ["prawn", "shrimp", "crab", "lobster", "shellfish"],
-  peanut: ["peanut", "groundnut"],
+  // Hindi and Marathi names, which Indian labels print on their own
+  // ("Poha, Moongphali, Namak").
+  peanut: ["peanut", "groundnut", "moongphali", "mungfali", "moongfali", "singdana", "shengdana"],
   // Hindi names too, because Indian labels print them ("kaju", "badam"), and
   // "dry fruit" because a dry-fruit mix almost always carries almonds or
   // cashews. Over-detection only ever removes a product for a shopper who
