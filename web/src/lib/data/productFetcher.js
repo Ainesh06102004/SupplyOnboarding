@@ -15,6 +15,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { AVAILABILITY } from '@/lib/recommendation/config';
 import { guardClaims, isClaimSafeText, isHighProtein } from '@/lib/nutrition/claims';
+import { isLabelCurrent } from '@/lib/recommendation/verification';
 
 /** Number, or null when the column is absent. Never coerces missing to 0. */
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -64,6 +65,9 @@ export async function fetchAllProducts() {
           ingredientsText: labelRow.raw_ingredient_text || '',
           allergens: labelRow.allergens || [],
           mayContain: labelRow.may_contain || [],
+          // When KOI last saw the pack (migration 00029). A year without a
+          // fresh sighting and the list stops counting as complete.
+          confirmedAt: labelRow.confirmed_at ?? null,
         }
       : null;
     // Only claims the screening report actually made. This used to default to
@@ -74,7 +78,12 @@ export async function fetchAllProducts() {
     // claims regulations, so "Immunity Booster" is dropped as a physiological
     // claim, and a brand's "High protein" survives only if its own declared
     // figures pass the test KOI's badge applies (lib/nutrition/claims.js).
-    const claims = guardClaims(flags.claims, nutrition);
+    //
+    // Figures nobody has seen on a pack for a year support no nutrient claim,
+    // the brand's or KOI's: the recipe may have changed. They still display as
+    // what was declared.
+    const figures = isLabelCurrent(nutrition.confirmed_at) ? nutrition : {};
+    const claims = guardClaims(flags.claims, figures);
 
     // "High protein" is derived from the declared value, never from the name.
     // The previous rule also fired on any product whose name contained
@@ -92,7 +101,7 @@ export async function fetchAllProducts() {
     // disagreement: at 10 a product got the badge on its card while shelves.js
     // and search, both reading 12, left it out.
     const hasHighProtein = claims.some(c => String(c).toLowerCase() === 'high protein');
-    if (!hasHighProtein && isHighProtein(nutrition)) claims.push("High Protein");
+    if (!hasHighProtein && isHighProtein(figures)) claims.push("High Protein");
     // A reviewer's note is KOI's own voice, so it answers to the same rule as
     // a brand claim. "Potent anti-inflammatory mix" is a physiological claim
     // no pack could print; KOI showing it is KOI making it.

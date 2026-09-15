@@ -99,12 +99,19 @@ export async function runExtraction(uploadId) {
     // different product KOI lists (autopublish.js#matchesProduct).
     const { data: catalogue, error: catalogueError } = await db.from("products").select("product_name");
     if (catalogueError) throw catalogueError;
+    // A photo taken from the brand's store listing (lib/engine/recheck.js) was
+    // chosen by matching, not handed over by the brand for this SKU, so its
+    // printed name has to name this product.
+    const { data: storeImages, error: storeError } = await engine
+      .from("source_images").select("id").eq("upload_id", upload.id).limit(1);
+    if (storeError) throw storeError;
     const context = {
       product: sku.products?.product_name ?? "",
       brand: sku.products?.brands?.brand_name ?? null,
       variant: sku.variant_name ?? null,
       netWeight: sku.net_weight ?? null,
       others: catalogue.map((p) => p.product_name).filter((name) => name && name !== sku.products?.product_name),
+      fromStore: storeImages.length > 0,
     };
 
     const result = runChecks(parsed.data);

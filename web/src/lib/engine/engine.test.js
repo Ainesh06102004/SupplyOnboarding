@@ -292,3 +292,13 @@ test("a photo naming another product publishes nothing; a tagline does not count
   assert.equal(matchesProduct(reading(), SKU).ok, true);
   assert.equal(matchesProduct(reading({ product_name: null }), SKU).ok, true, "no name on the photo cannot contradict it");
 });
+
+test("an image from the brand's store must name this product if it names any", () => {
+  // Store galleries carry other products' panels; that image was matched to
+  // the SKU, not handed over for it.
+  const fromStore = { ...SKU, fromStore: true };
+  assert.equal(matchesProduct(reading({ product_name: "Tandoori Masala Nut Mix" }), fromStore).ok, false);
+  assert.equal(matchesProduct(reading({ product_name: "Tandoori Masala Nut Mix" }), SKU).ok, true, "a brand's own upload keeps the benefit of the doubt");
+  assert.equal(matchesProduct(reading(), fromStore).ok, true);
+  assert.equal(matchesProduct(reading({ product_name: null }), fromStore).ok, true, "a bare nutrition table from the matched listing");
+});

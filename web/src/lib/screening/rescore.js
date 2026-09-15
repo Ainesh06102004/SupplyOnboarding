@@ -15,6 +15,7 @@ import "server-only";
 
 import { getServiceClient } from "@/lib/supabase/admin";
 import { buildMasterIndex, screen } from "./score";
+import { isLabelCurrent } from "@/lib/recommendation/verification";
 
 /**
  * @param {string[]|null} skuIds null = every SKU of an approved product
@@ -32,7 +33,7 @@ export async function rescoreSkus(skuIds = null) {
   const [{ data: skus, error: e1 }, { data: master, error: e2 }, { data: labels, error: e3 }] = await Promise.all([
     skuQuery,
     db.schema("food").from("ingredients_master").select("canonical_name, aliases, ingredient_category, risk_level, is_blocked"),
-    db.schema("food").from("sku_ingredients").select("sku_id, parsed_ingredients, evidence"),
+    db.schema("food").from("sku_ingredients").select("sku_id, parsed_ingredients, evidence, confirmed_at"),
   ]);
   if (e1 || e2 || e3) throw e1 || e2 || e3;
 
@@ -46,7 +47,11 @@ export async function rescoreSkus(skuIds = null) {
     const label = labelBySku.get(sku.id);
     const report = screen({
       nutrition,
-      label: label ? { evidence: label.evidence, parsed: label.parsed_ingredients } : null,
+      // A list nobody has seen on a pack for a year is no longer the complete
+      // list, so the score is capped as if none had been read.
+      label: label
+        ? { evidence: isLabelCurrent(label.confirmed_at) ? label.evidence : "partial", parsed: label.parsed_ingredients }
+        : null,
       claims: latest?.flags?.claims ?? [],
       index,
     });

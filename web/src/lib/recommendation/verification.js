@@ -27,6 +27,23 @@ const DIET_BY_KEY = Object.freeze(Object.fromEntries(DIET_TYPES.map((d) => [d.ke
 /** Evidence that covers the whole printed list, so absence can be stated. */
 export const FULL_LIST_EVIDENCE = Object.freeze(["verified", "machine_read"]);
 
+// A label says what the pack said when KOI last read it. Recipes change without
+// notice, so after this long with no fresh reading (lib/engine/recheck.js) a
+// label keeps proving what it lists and stops proving what it leaves out.
+export const LABEL_MAX_AGE_DAYS = 365;
+const DAY_MS = 86_400_000;
+
+/**
+ * @param {string|Date|null|undefined} confirmedAt when KOI last read the label
+ * @param {number} [now]
+ * @returns {boolean} false when the date is missing, unreadable, or too old
+ */
+export function isLabelCurrent(confirmedAt, now = Date.now()) {
+  if (!confirmedAt) return false;
+  const t = new Date(confirmedAt).getTime();
+  return Number.isFinite(t) && now - t <= LABEL_MAX_AGE_DAYS * DAY_MS;
+}
+
 export function unverifiedFor(facts, profile = {}) {
   if (FULL_LIST_EVIDENCE.includes(facts.ingredientEvidence)) return { allergens: [], diet: null };
 

@@ -34,7 +34,9 @@ function product(over = {}) {
 }
 
 const partial = (...names) => names.map((name) => ({ name, desc: null }));
-const verified = (ingredientsText, allergens = []) => ({ verified: true, ingredientsText, allergens });
+const TODAY = new Date().toISOString();
+const A_YEAR_AGO = new Date(Date.now() - 400 * 86_400_000).toISOString();
+const verified = (ingredientsText, allergens = []) => ({ verified: true, ingredientsText, allergens, confirmedAt: TODAY });
 
 const eligible = (p, profile) => filterEligible([extractFacts(p)], profile).eligible.length === 1;
 const score = (p, profile) => scoreProduct(extractFacts(p), profile);
@@ -79,12 +81,28 @@ test("a verified label can", () => {
 });
 
 test("a machine-read label says what the pack lists, not that the food is safe", () => {
-  const p = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, jaggery", allergens: [], mayContain: [] } });
+  const p = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, jaggery", allergens: [], mayContain: [], confirmedAt: TODAY } });
   const s = score(p, { foodsAvoid: ["peanuts", "milk"] });
   assert.ok(s.reasons.includes(REASONS.notListedOnPack(["Peanuts", "Milk"])));
   assert.equal(REASONS.notListedOnPack(["Peanuts", "Milk"]), "No peanuts or milk listed on the pack");
   assert.ok(!s.reasons.includes(REASONS.noAvoid()));
   assert.deepEqual(s.cautions, [], "the whole list was read, so nothing is 'not verified'");
+});
+
+test("a label unconfirmed for a year proves what it lists, not what it leaves out", () => {
+  const listed = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, peanuts", allergens: [], mayContain: [], confirmedAt: A_YEAR_AGO } });
+  assert.equal(extractFacts(listed).ingredientEvidence, "partial");
+  assert.equal(eligible(listed, { foodsAvoid: ["peanuts"] }), false, "what an old label lists still counts");
+
+  const silent = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats", allergens: [], mayContain: [], confirmedAt: A_YEAR_AGO } });
+  const s = score(silent, { foodsAvoid: ["peanuts"] });
+  assert.ok(!s.reasons.includes(REASONS.notListedOnPack(["Peanuts"])), "an old label cannot say what is not listed");
+  assert.deepEqual(s.cautions, [CAUTIONS.notVerifiedFor(["Peanuts"])]);
+});
+
+test("a label with no confirmation date is not treated as current", () => {
+  const p = product({ label: { evidence: "machine_read", ingredientsText: "oats", allergens: [], mayContain: [] } });
+  assert.equal(extractFacts(p).ingredientEvidence, "partial");
 });
 
 test("an unverified product ranks below an identical verified one", () => {

@@ -199,6 +199,12 @@ export function matchesProduct(reading, sku) {
   if (rival && rival[1] >= 0.5 && rival[1] > own) {
     return { ok: false, reason: `The photo reads "${reading.product_name}", which names ${rival[0]}, not ${sku.product}.` };
   }
+  // An image taken from the brand's store was matched to this SKU, not given
+  // for it, and store galleries show other products too. A printed name that
+  // does not name this product is not given the benefit of the doubt.
+  if (sku.fromStore) {
+    return { ok: false, reason: `The image came from the brand's store and reads "${reading.product_name}", which does not name ${sku.product}.` };
+  }
   return { ok: true, reason: `The photo reads "${reading.product_name}", which names no other product KOI lists; taken as ${sku.product}.` };
 }
 

@@ -16,8 +16,8 @@
 // ============================================================================
 
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { cronRefusal } from "@/lib/auth/cronSecret";
 import { runPending, runExtraction } from "@/lib/engine/pipeline";
 import { rescoreSkus } from "@/lib/screening/rescore";
 
@@ -25,20 +25,9 @@ import { rescoreSkus } from "@/lib/screening/rescore";
 export const maxDuration = 60;
 const PER_RUN = 2;
 
-function authorised(request) {
-  const secret = process.env.CRON_SECRET;
-  const header = request.headers.get("authorization") || "";
-  if (!secret) return false;
-  const expected = Buffer.from(`Bearer ${secret}`);
-  const given = Buffer.from(header);
-  return given.length === expected.length && timingSafeEqual(given, expected);
-}
-
 export async function GET(request) {
-  if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "CRON_SECRET is not set, so the label reader is off." }, { status: 503 });
-  }
-  if (!authorised(request)) return NextResponse.json({ error: "Not authorised." }, { status: 401 });
+  const refused = cronRefusal(request);
+  if (refused) return NextResponse.json(refused.body, { status: refused.status });
 
   const params = new URL(request.url).searchParams;
   const upload = params.get("upload");

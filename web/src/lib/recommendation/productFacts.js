@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./config";
+import { isLabelCurrent } from "./verification";
 
 const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
 
@@ -59,9 +60,15 @@ export function extractFacts(product) {
   // `partial`:      a screening report named some ingredients. Partial by name
   //                 — it can prove presence, never absence.
   // `none`:         nothing beyond the name and tags.
+  //
+  // A label with no reading in LABEL_MAX_AGE_DAYS drops to `partial`: the
+  // recipe may have changed since, so it still proves what it lists and no
+  // longer proves what it leaves out.
   const labelEvidence = product.label?.evidence ?? (product.label?.verified ? "verified" : null);
   const label = labelEvidence ? product.label : null;
-  const ingredientEvidence = labelEvidence || (ingredients.trim() ? "partial" : "none");
+  const ingredientEvidence = label && isLabelCurrent(label.confirmedAt)
+    ? labelEvidence
+    : (label || ingredients.trim() ? "partial" : "none");
   const labelText = label ? String(label.ingredientsText || "").toLowerCase() : "";
 
   const haystack = [product.name, product.brand, product.category, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]

@@ -158,7 +158,7 @@ test("search keeps an unverified product but says it could not check it", () => 
   assert.ok(r.unverified.ids.has("p1"));
   assert.deepEqual(r.unverified.allergens, ["Peanuts"]);
 
-  const checked = product({ label: { verified: true, ingredientsText: "oats, salt", allergens: [] } });
+  const checked = product({ label: { verified: true, ingredientsText: "oats, salt", allergens: [], confirmedAt: new Date().toISOString() } });
   assert.equal(resolveIntent([checked], interpret("no peanuts"), null).unverified.ids.size, 0);
 });
 
