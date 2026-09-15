@@ -23,7 +23,15 @@
 // Project Settings -> Data API); until then the write fails with PGRST106,
 // which is the error to expect rather than a bug in this script.
 //
+// Since migration 00035 every alias is also a name in the allergen graph
+// (food.ingredient_alias). After upserting, this adds any new name to the graph
+// (food.sync_ingredient_aliases, 00036); after that, rebuild the lexicon and
+// re-run the label evaluation. --check changes nothing: it reports every
+// difference between the file and the database, including names the graph
+// lacks, and exits 1 if there is any.
+//
 // Usage, from web/:
+//   node --env-file=.env.local scripts/applyIngredientsSeed.mjs --check
 //   node --env-file=.env.local scripts/applyIngredientsSeed.mjs --dry-run
 //   node --env-file=.env.local scripts/applyIngredientsSeed.mjs
 // ============================================================================
@@ -32,6 +40,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const CHECK = process.argv.includes("--check");
 
 const SEED_FILE = path.resolve(
   process.cwd(), "..", "supabase", "seed", "ingredients_master.sql",
@@ -46,6 +55,54 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
     "Run with --env-file=.env.local from the web/ directory.",
   );
   process.exit(1);
+}
+
+const BASE = SUPABASE_URL.replace(/\/$/, "");
+const HEADERS = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+
+async function callFood(fn) {
+  const res = await fetch(`${BASE}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { ...HEADERS, "Content-Type": "application/json", "Content-Profile": "food" },
+    body: "{}",
+  });
+  if (!res.ok) throw new Error(`food.${fn} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+/** Every difference between the seed rows and the database, as sentences. */
+async function driftFrom(rows) {
+  const res = await fetch(
+    `${BASE}/rest/v1/ingredients_master?select=canonical_name,aliases,ingredient_category,risk_level,is_blocked,notes`,
+    { headers: { ...HEADERS, "Accept-Profile": "food" } },
+  );
+  if (!res.ok) throw new Error(`Reading food.ingredients_master failed: ${res.status} ${await res.text()}`);
+  const db = new Map((await res.json()).map((r) => [r.canonical_name, r]));
+  const problems = [];
+
+  for (const row of rows) {
+    const stored = db.get(row.canonical_name);
+    if (!stored) {
+      problems.push(`${row.canonical_name}: in the file, not in the database`);
+      continue;
+    }
+    const inFile = new Set(row.aliases);
+    const inDb = new Set(stored.aliases ?? []);
+    const onlyFile = [...inFile].filter((a) => !inDb.has(a));
+    const onlyDb = [...inDb].filter((a) => !inFile.has(a));
+    if (onlyFile.length) problems.push(`${row.canonical_name}: aliases only in the file: ${onlyFile.join(", ")}`);
+    if (onlyDb.length) problems.push(`${row.canonical_name}: aliases only in the database: ${onlyDb.join(", ")}`);
+    for (const field of ["ingredient_category", "risk_level", "is_blocked", "notes"]) {
+      if (row[field] !== stored[field]) problems.push(`${row.canonical_name}: ${field} differs`);
+    }
+  }
+  const inFile = new Set(rows.map((r) => r.canonical_name));
+  for (const name of db.keys()) if (!inFile.has(name)) problems.push(`${name}: in the database, not in the file`);
+
+  const { missing = [], orphaned = [] } = await callFood("ingredient_alias_drift");
+  if (missing.length) problems.push(`names the allergen graph does not have yet: ${missing.join(", ")}`);
+  if (orphaned.length) problems.push(`graph names no ingredient lists any more: ${orphaned.join(", ")}`);
+  return problems;
 }
 
 const COLUMNS = [
@@ -165,6 +222,16 @@ async function main() {
   console.log(`  categories:  ${byCategory.size}`);
   console.log(`  blocked:     ${rows.filter((r) => r.is_blocked).map((r) => r.canonical_name).join(", ")}`);
 
+  if (CHECK) {
+    const problems = await driftFrom(rows);
+    if (problems.length) {
+      console.error(`\nThe seed file and the database differ:\n  ${problems.join("\n  ")}`);
+      process.exit(1);
+    }
+    console.log("\nThe seed file, food.ingredients_master and the allergen graph agree.");
+    return;
+  }
+
   if (DRY_RUN) {
     console.log("\nDRY RUN - nothing written.");
     return;
@@ -191,6 +258,11 @@ async function main() {
   }
 
   console.log(`\nUpserted ${rows.length} rows into food.ingredients_master.`);
+
+  const added = await callFood("sync_ingredient_aliases");
+  console.log(added
+    ? `Added ${added} new name(s) to the allergen graph. Rebuild the lexicon (scripts/buildAllergenLexicon.mjs) and re-run the label evaluation.`
+    : "The allergen graph already had every name.");
 }
 
 main().catch((err) => {

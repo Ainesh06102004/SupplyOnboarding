@@ -44,6 +44,13 @@
 -- Idempotent: re-running updates in place and never duplicates.
 --
 -- The table lives in the `food` schema since migration 00019, not `public`.
+--
+-- Since migration 00035 every alias here is also a name in the allergen graph
+-- (food.ingredient_alias). web/scripts/applyIngredientsSeed.mjs adds any new
+-- name to the graph after upserting, and its --check mode reports drift
+-- between this file and the database. After changing names, rebuild the
+-- lexicon (web/scripts/buildAllergenLexicon.mjs) and re-run the label
+-- evaluation, or label reading stays paused.
 -- ============================================================================
 
 INSERT INTO food.ingredients_master
@@ -216,29 +223,29 @@ VALUES
 -- FSSAI labelling rules, not a judgement that the food is unhealthy. Milk is
 -- not risky; milk is an allergen. A copilot needs both facts and only has room
 -- for one column, so the notes carry the distinction.
-('Milk', '["milk","milk solids","milk powder","skimmed milk powder","SMP","dairy","butter","ghee","cream","cheese","curd","paneer","khoya","malai"]', 'allergen', 'caution', FALSE,
+('Milk', '["milk","milk solids","milk powder","skimmed milk powder","SMP","dairy","butter","ghee","cream","cheese","curd","paneer","khoya","malai","yogurt","yoghurt","dahi","lactose","buttermilk","chaas","makhan","chhena","mawa","milk fat","milkfat"]', 'allergen', 'caution', FALSE,
  'Declarable milk allergen. Also the marker for lactose intolerance, which is highly prevalent in India, and disqualifies a vegan claim.'),
 ('Casein', '["casein","caseinate","sodium caseinate","calcium caseinate","milk protein"]', 'allergen', 'caution', FALSE,
  'Milk protein fraction. Declarable milk allergen even where the word milk does not appear.'),
 ('Whey', '["whey","whey protein","whey protein concentrate","WPC","whey protein isolate","WPI","whey permeate"]', 'allergen', 'caution', FALSE,
  'Milk-derived. Declarable milk allergen; common in protein products where shoppers may not expect it.'),
-('Egg', '["egg","egg white","egg yolk","albumen","albumin","egg powder","liquid egg"]', 'allergen', 'caution', FALSE,
+('Egg', '["egg","egg white","egg yolk","albumen","albumin","egg powder","liquid egg","anda"]', 'allergen', 'caution', FALSE,
  'Declarable egg allergen. Disqualifies vegan and most Indian vegetarian claims.'),
-('Peanut', '["peanut","groundnut","groundnut oil","peanut butter","moongphali","arachis oil"]', 'allergen', 'caution', FALSE,
+('Peanut', '["peanut","groundnut","groundnut oil","peanut butter","moongphali","arachis oil","singdana","shengdana","mungfali","moongfali"]', 'allergen', 'caution', FALSE,
  'Declarable allergen and among the most common causes of food anaphylaxis.'),
-('Tree Nuts', '["tree nuts","almond","badam","cashew","kaju","walnut","akhrot","pistachio","pista","hazelnut","pecan","macadamia","brazil nut"]', 'allergen', 'caution', FALSE,
+('Tree Nuts', '["tree nuts","almond","badam","cashew","kaju","walnut","akhrot","pistachio","pista","hazelnut","pecan","macadamia","brazil nut","pine nut","chilgoza","marzipan","dry fruit","dry fruits","dryfruit","dryfruits","almond butter","cashew butter","almond milk","cashew nut"]', 'allergen', 'caution', FALSE,
  'Declarable allergen group. Distinct from peanut, which is a legume.'),
-('Soya', '["soy","soya","soybean","soya bean","soy protein","soya flour","textured vegetable protein","TVP","tofu"]', 'allergen', 'caution', FALSE,
+('Soya', '["soy","soya","soybean","soya bean","soy protein","soya flour","textured vegetable protein","TVP","tofu","soyabean","soy milk","soya milk","soya chunks"]', 'allergen', 'caution', FALSE,
  'Declarable allergen. Highly refined soybean oil and soy lecithin are usually tolerated but are still declared.'),
-('Wheat', '["wheat","atta","maida","suji","semolina","rava","wheat flour","durum","couscous"]', 'allergen', 'caution', FALSE,
+('Wheat', '["wheat","atta","maida","suji","semolina","rava","wheat flour","durum","couscous","bread","bread crumbs","breadcrumbs","pasta","wholewheat","whole wheat"]', 'allergen', 'caution', FALSE,
  'Declarable cereal allergen and a gluten source. See the Refined Wheat Flour row for the separate refinement question.'),
-('Gluten', '["gluten","wheat gluten","vital gluten","barley","rye","malt","malt extract","triticale"]', 'allergen', 'caution', FALSE,
+('Gluten', '["gluten","wheat gluten","vital gluten","barley","rye","malt","malt extract","triticale","malted","malted barley","cereals containing gluten"]', 'allergen', 'caution', FALSE,
  'Declarable. Central to coeliac disease and non-coeliac gluten sensitivity. Note barley malt in cereals and drinks is an easily missed source.'),
 ('Sesame', '["sesame","til","gingelly","sesame oil","tahini","sesame seeds"]', 'allergen', 'caution', FALSE,
  'Declarable allergen, common in Indian sweets and snacks.'),
-('Fish', '["fish","fish oil","anchovy","tuna","sardine","fish sauce"]', 'allergen', 'caution', FALSE,
+('Fish', '["fish","fish oil","anchovy","tuna","sardine","fish sauce","salmon","machli","machhli"]', 'allergen', 'caution', FALSE,
  'Declarable allergen. Also disqualifies vegetarian claims.'),
-('Crustacean Shellfish', '["crustacean","shellfish","prawn","shrimp","crab","lobster","krill"]', 'allergen', 'caution', FALSE,
+('Crustacean Shellfish', '["crustacean","shellfish","prawn","shrimp","crab","lobster","krill","jhinga"]', 'allergen', 'caution', FALSE,
  'Declarable allergen and a frequent cause of adult-onset food allergy.'),
 ('Mustard', '["mustard","sarson","rai","mustard oil","mustard seeds","kasundi"]', 'allergen', 'caution', FALSE,
  'Declarable allergen in several jurisdictions and very common in Indian cooking.'),
@@ -272,7 +279,7 @@ VALUES
 -- ── Fats and oils ───────────────────────────────────────────────────────────
 ('Palm Oil', '["palm oil","palmolein","refined palmolein","palm kernel oil","palm fat","vegetable fat (palm)"]', 'fat_oil', 'caution', FALSE,
  'High in palmitic acid, a saturated fat that raises LDL. Dominant in Indian processed food. Deforestation is a separate and legitimate reason a brand may exclude it.'),
-('Vanaspati', '["vanaspati","hydrogenated vegetable oil","vanaspati ghee","dalda"]', 'fat_oil', 'risky', FALSE,
+('Vanaspati', '["vanaspati","hydrogenated vegetable oil","vanaspati ghee","dalda","vegetable ghee"]', 'fat_oil', 'risky', FALSE,
  'Historically the main industrial trans fat source in India. Now bound by the 2 percent trans fat limit, so modern product is fully hydrogenated and highly saturated rather than trans-rich.'),
 ('Interesterified Fat', '["interesterified fat","interesterified vegetable fat"]', 'fat_oil', 'caution', FALSE,
  'The common replacement for partially hydrogenated fat. Avoids trans fat; long-term health data is thinner than for the fats it replaced.'),
@@ -294,9 +301,9 @@ VALUES
 -- ── Whole foods and recognised-good ingredients ────────────────────────────
 -- A knowledge base that only knows what is wrong cannot recognise what is
 -- right, and a copilot that can only warn is not much use to a health brand.
-('Whole Wheat Flour', '["whole wheat flour","atta","whole meal flour","chakki atta","gehun atta"]', 'whole_food', 'safe', FALSE,
+('Whole Wheat Flour', '["whole wheat flour","atta","whole meal flour","chakki atta","gehun atta","wholewheat flour"]', 'whole_food', 'safe', FALSE,
  'Bran and germ retained. Still a wheat allergen and gluten source.'),
-('Oats', '["oats","rolled oats","steel cut oats","oat flour","jai"]', 'whole_food', 'safe', FALSE,
+('Oats', '["oats","rolled oats","steel cut oats","oat flour","jai","oat milk"]', 'whole_food', 'safe', FALSE,
  'Beta-glucan soluble fibre with an authorised cholesterol-lowering role. Frequently cross-contaminated with gluten unless certified.'),
 ('Ragi', '["ragi","finger millet","nachni","ragi flour"]', 'whole_food', 'safe', FALSE,
  'Millet, notably high in calcium, naturally gluten free.'),
@@ -397,7 +404,15 @@ VALUES
 ('Cocoa Butter', '["cocoa butter"]', 'fat_oil', 'caution', FALSE,
  'Highly saturated, though its stearic acid fraction has a smaller LDL effect than palmitic acid.'),
 ('Inulin', '["inulin","chicory root fibre","chicory inulin","fructooligosaccharide","FOS"]', 'whole_food', 'caution', FALSE,
- 'Prebiotic soluble fibre. Genuinely beneficial, but causes bloating at higher intakes and is often added to inflate a fibre claim.')
+ 'Prebiotic soluble fibre. Genuinely beneficial, but causes bloating at higher intakes and is often added to inflate a fibre claim.'),
+
+-- ── Added with the allergen graph (migration 00035) ─────────────────────────
+-- So a longer name is found before a misleading shorter one: coconut milk is
+-- not dairy, and sunflower lecithin is not soy.
+('Coconut Milk', '["coconut milk","coconut milk powder","coconut milk solids","coconut cream"]', 'whole_food', 'safe', FALSE,
+ 'Plant milk. Not a dairy allergen, despite the word.'),
+('Sunflower Lecithin', '["sunflower lecithin"]', 'emulsifier', 'safe', FALSE,
+ 'Lecithin from sunflower seed. Not a soy allergen.')
 
 ON CONFLICT (canonical_name) DO UPDATE SET
   aliases             = EXCLUDED.aliases,
