@@ -7,7 +7,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { fromProduct, fromCsv, nutrientsPer100, tagList, isIndian } from "@/lib/off/record.js";
-import { findOffMatch, compareWithOff, brandSlug } from "@/lib/off/match.js";
+import { findOffMatch, compareWithOff, brandSlug, shouldReread, REREAD_COOLDOWN_DAYS } from "@/lib/off/match.js";
+
+test("a disagreement re-reads the label once a month at most, and never over a person's check", () => {
+  const now = Date.parse("2026-09-15T00:00:00Z");
+  const daysAgo = (d) => new Date(now - d * 86_400_000).toISOString();
+  assert.equal(shouldReread({ now }), true, "never asked before");
+  assert.equal(shouldReread({ lastRequestedAt: daysAgo(3), now }), false);
+  assert.equal(shouldReread({ lastRequestedAt: daysAgo(REREAD_COOLDOWN_DAYS), now }), true);
+  assert.equal(shouldReread({ nutritionVerified: true, now }), false);
+});
 
 const doc = (over = {}) => ({
   code: "8908015836114",

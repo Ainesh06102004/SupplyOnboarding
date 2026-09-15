@@ -76,6 +76,25 @@ export function findOffMatch(sku, candidates = []) {
   return { status: "no_match", reason: "No Open Food Facts product of this brand has this name." };
 }
 
+// ── Looking again ──────────────────────────────────────────────────────────
+
+// A disagreement is a reason to read the pack again, not to trust either side.
+// Once a month per product at most, so a lasting disagreement cannot become a
+// loop of model calls.
+export const REREAD_COOLDOWN_DAYS = 30;
+
+/**
+ * Should a disagreement queue a fresh reading of this product's labels?
+ * @param {{ nutritionVerified?: boolean, lastRequestedAt?: string|null, now?: number }} input
+ */
+export function shouldReread({ nutritionVerified = false, lastRequestedAt = null, now = Date.now() } = {}) {
+  // A person checked these figures against the pack; a community entry does not outweigh that.
+  if (nutritionVerified) return false;
+  if (!lastRequestedAt) return true;
+  const last = new Date(lastRequestedAt).getTime();
+  return !Number.isFinite(last) || now - last >= REREAD_COOLDOWN_DAYS * 86_400_000;
+}
+
 const round = (v) => Math.round(v * 10) / 10;
 
 // Labels round, and a recipe tweak moves figures a little; beyond these it is

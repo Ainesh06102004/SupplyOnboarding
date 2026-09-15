@@ -199,17 +199,41 @@ export async function runExtraction(uploadId) {
  */
 export async function runPending({ limit = 2 } = {}) {
   const db = engineDb();
+  const engine = db.schema("engine");
+  const results = [];
+
+  // Re-reads first: a product an independent source contradicted
+  // (lib/off/crosscheck.js) matters more than a photo nobody has doubted.
+  const { data: rereads, error: rereadError } = await engine
+    .from("reread_requests").select("id, upload_id").is("done_at", null)
+    .order("requested_at", { ascending: true }).limit(limit);
+  if (rereadError) throw rereadError;
+  for (const request of rereads) {
+    let update;
+    try {
+      const out = await runExtraction(request.upload_id);
+      update = { output_id: out.outputId, result: { published: out.published, blocked: (out.blocked || []).map((b) => b.group) } };
+      results.push({ uploadId: request.upload_id, reread: true, ...out });
+    } catch (err) {
+      const message = String(err?.message || err).slice(0, 200);
+      update = { result: { error: message } };
+      results.push({ uploadId: request.upload_id, reread: true, error: message });
+    }
+    const { error: doneError } = await engine
+      .from("reread_requests").update({ ...update, done_at: new Date().toISOString() }).eq("id", request.id);
+    if (doneError) throw doneError;
+  }
+
   const [{ data: uploads, error: e1 }, { data: jobs, error: e2 }] = await Promise.all([
     db.from("uploads").select("id").in("file_type", LABEL_FILE_TYPES).eq("is_deleted", false)
       .not("sku_id", "is", null).order("uploaded_at", { ascending: true }),
-    db.schema("engine").from("ai_extraction_jobs").select("upload_id"),
+    engine.from("ai_extraction_jobs").select("upload_id"),
   ]);
   if (e1 || e2) throw e1 || e2;
 
   const attempted = new Set(jobs.map((j) => j.upload_id));
-  const todo = uploads.filter((u) => !attempted.has(u.id)).slice(0, limit);
+  const todo = uploads.filter((u) => !attempted.has(u.id)).slice(0, Math.max(0, limit - rereads.length));
 
-  const results = [];
   for (const u of todo) {
     try {
       results.push({ uploadId: u.id, ...(await runExtraction(u.id)) });
@@ -217,5 +241,9 @@ export async function runPending({ limit = 2 } = {}) {
       results.push({ uploadId: u.id, error: String(err?.message || err).slice(0, 200) });
     }
   }
-  return { attempted: todo.length, remaining: uploads.filter((u) => !attempted.has(u.id)).length - todo.length, results };
+  return {
+    attempted: rereads.length + todo.length,
+    remaining: uploads.filter((u) => !attempted.has(u.id)).length - todo.length,
+    results,
+  };
 }
