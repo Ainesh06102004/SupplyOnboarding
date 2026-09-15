@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { allergensIn, allergensInStatement, ALLERGEN_KEYS, LEXICON_VERSION } from "@/lib/food/allergens.js";
+import { allergensIn, allergensInStatement, ingredientFlagsIn, ALLERGEN_KEYS, LEXICON_VERSION } from "@/lib/food/allergens.js";
 import { words } from "@/lib/food/normalise.js";
 
 const flags = (text) => allergensIn(text).contains;
@@ -68,6 +68,18 @@ test("every name the old keyword lists knew still resolves to the same allergen"
   for (const [flag, names] of Object.entries(known)) {
     for (const name of names) assert.ok(flags(name).includes(flag), `${name} -> ${flag}`);
   }
+});
+
+test("additives raise the shopper filters they belong to, and only those", () => {
+  assert.deepEqual(ingredientFlagsIn("Colour (INS 102), Preservative (INS 211)"), ["artificial_colour", "preservatives"]);
+  assert.deepEqual(ingredientFlagsIn("Colour (Curcumin), Paprika Extract, Caramel Colour (E150d)"), []);
+  assert.deepEqual(ingredientFlagsIn("Sweetener (INS 955)"), ["artificial_sweetener"]);
+  assert.deepEqual(ingredientFlagsIn("Sweetener (Steviol Glycosides), Erythritol"), []);
+  assert.deepEqual(ingredientFlagsIn("Antioxidant (INS 319)"), ["preservatives"]);
+  assert.deepEqual(ingredientFlagsIn("Antioxidant (Ascorbic Acid, Tocopherols)"), []);
+  assert.deepEqual(ingredientFlagsIn("Contains added flavours (Natural and Artificial Flavouring Substances)"), ["artificial_flavour"]);
+  assert.deepEqual(ingredientFlagsIn("Contains added flavour (Nature Identical Flavouring Substances)"), []);
+  assert.deepEqual(ingredientFlagsIn("Titanium Dioxide"), ["artificial_colour"]);
 });
 
 test("statements name groups, and 'peanuts' does not declare tree nuts", () => {

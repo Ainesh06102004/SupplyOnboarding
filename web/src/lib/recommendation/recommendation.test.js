@@ -105,6 +105,34 @@ test("a label with no confirmation date is not treated as current", () => {
   assert.equal(extractFacts(p).ingredientEvidence, "partial");
 });
 
+test("a preservative on the label raises the filter, whatever the brand's tag says", () => {
+  const read = (ingredientsText) => product({
+    tags: ["No Preservatives"],
+    label: { evidence: "machine_read", ingredientsText, allergens: [], mayContain: [], confirmedAt: TODAY },
+  });
+  const preserved = read("Mango pulp, sugar, preservative (INS 211)");
+  const plain = read("Mango pulp, sugar");
+  assert.equal(extractFacts(preserved).contains.has("preservatives"), true);
+  assert.equal(extractFacts(plain).contains.has("preservatives"), false);
+  assert.equal(extractFacts(product({ tags: ["No Preservatives"] })).contains.has("preservatives"), false);
+
+  // Nothing used to set this flag, so a pack printing INS 211 was told to a
+  // shopper avoiding preservatives as "No preservatives listed on the pack".
+  const profile = { foodsAvoid: ["preservatives"] };
+  assert.ok(!score(preserved, profile).reasons.includes(REASONS.notListedOnPack(["Preservatives"])));
+  assert.ok(score(plain, profile).reasons.includes(REASONS.notListedOnPack(["Preservatives"])));
+  assert.ok(score(preserved, profile).raw < score(plain, profile).raw);
+});
+
+test("synthetic colours, sweeteners and artificial flavours raise their filters; natural ones do not", () => {
+  const listed = (text) => extractFacts(product({ goodIngredients: partial(text) })).contains;
+  assert.equal(listed("Tartrazine").has("artificial_colour"), true);
+  assert.equal(listed("Beetroot Red").has("artificial_colour"), false);
+  assert.equal(listed("Sucralose").has("artificial_sweetener"), true);
+  assert.equal(listed("Steviol Glycosides").has("artificial_sweetener"), false);
+  assert.equal(listed("Artificial Flavouring Substances").has("artificial_flavour"), true);
+});
+
 test("an unverified product ranks below an identical verified one", () => {
   const profile = { foodsAvoid: ["peanuts"] };
   const unchecked = score(product(), profile);

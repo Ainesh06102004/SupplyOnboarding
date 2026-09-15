@@ -19,9 +19,14 @@
 //   sugar free   <= 0.5 g per 100 g or 100 ml
 //   high protein Schedule I asks for 20% of the ICMR RDA per 100 g (10% per
 //                100 ml or per 100 kcal). KOI keeps its own stricter rule —
-//                THRESHOLDS.proteinHigh per 100 AND proteinPerServingFloor in a
-//                real serving — because density alone put the badge on a 0.1 g
-//                pinch of saffron. Stricter is permitted; looser is not.
+//                12 g per 100 AND 5 g in a real serving — because density
+//                alone put the badge on a 0.1 g pinch of saffron. Stricter is
+//                permitted; looser is not.
+//
+// Since Phase 2.2 these are DATA, not constants: food.claim_rule, in a
+// versioned food.claim_rule_set, compiled into ./claimRules.js by
+// scripts/buildClaimRules.mjs. The tests hold THRESHOLDS.proteinHigh,
+// proteinPerServingFloor, fibreHigh and sugarLow to the same figures.
 //
 // Every test here refuses rather than guesses. No basis, no serving, or no
 // figure means no claim — built on basis.js, which never converts g to ml.
@@ -33,50 +38,78 @@
 // through `guardClaims` / `isClaimSafeText` before the storefront shows them.
 // ============================================================================
 
-import { THRESHOLDS } from "@/lib/recommendation/config";
 import { extractFacts } from "@/lib/recommendation/productFacts";
 import { isNum } from "@/lib/recommendation/scoringEngine";
 import { toPer100, toPerServing } from "./basis";
+import { CLAIM_RULES, CLAIM_RULE_VERSION } from "./claimRules";
 
+export { CLAIM_RULES, CLAIM_RULE_VERSION };
+
+const thresholdOf = (claim, match) =>
+  (CLAIM_RULES[claim] ?? []).flat().find((c) => Object.entries(match).every(([key, value]) => c[key] === value))?.threshold ?? null;
+
+// The same figures under the names other modules already print and compare.
 export const SCHEDULE_I = Object.freeze({
-  highFibre: Object.freeze({ per100g: 6, per100kcal: 3 }),
-  lowSugar: Object.freeze({ solid: 5, liquid: 2.5 }),
-  sugarFree: 0.5,
+  highFibre: Object.freeze({
+    per100g: thresholdOf("high_fibre", { basis: "per_100", form: "solid" }),
+    per100kcal: thresholdOf("high_fibre", { basis: "per_100kcal" }),
+  }),
+  lowSugar: Object.freeze({
+    solid: thresholdOf("low_sugar", { form: "solid" }),
+    liquid: thresholdOf("low_sugar", { form: "liquid" }),
+  }),
+  sugarFree: thresholdOf("sugar_free", { nutrient: "sugars_g" }),
 });
 
-/** True when a per-100 figure is declared and satisfies `test`. */
-const holds = (value, test) => isNum(value) && test(Number(value));
+/**
+ * One clause's figure from a row, or null when the row cannot answer it: no
+ * basis, no measurable serving, a solid's rule asked of a drink, no energy.
+ */
+function valueFor(row, clause) {
+  if (clause.basis === "per_serving") {
+    const s = toPerServing(row);
+    return isNum(s[clause.nutrient]) ? Number(s[clause.nutrient]) : null;
+  }
+  const p = toPer100(row);
+  if (clause.basis === "per_100kcal") {
+    // Unit-free, so it serves solids and drinks alike.
+    return isNum(p[clause.nutrient]) && isNum(p.energy_kcal) && Number(p.energy_kcal) > 0
+      ? (Number(p[clause.nutrient]) / Number(p.energy_kcal)) * 100
+      : null;
+  }
+  if (clause.form === "solid" && p.unit !== "g") return null;
+  if (clause.form === "liquid" && p.unit !== "ml") return null;
+  if (clause.form === "any" && p.unit === null) return null;
+  return isNum(p[clause.nutrient]) ? Number(p[clause.nutrient]) : null;
+}
+
+const passes = (value, clause) =>
+  value !== null && (clause.comparator === "gte" ? value >= clause.threshold : value <= clause.threshold);
 
 /**
+ * Whether a row supports a claim under the active rule set: every clause of
+ * any one group holds. An unknown claim holds for nothing.
+ * @param {string} claim high_protein | high_fibre | low_sugar | sugar_free
  * @param {object} row a `sku_nutrition`-shaped row (see rowFromFacts)
  * @returns {boolean}
  */
-export function isHighFibre(row) {
-  const p = toPer100(row);
-  if (p.unit === "g" && holds(p.fibre_g, (v) => v >= SCHEDULE_I.highFibre.per100g)) return true;
-  // The energy route is unit-free, so it serves liquids too.
-  return isNum(p.fibre_g) && isNum(p.energy_kcal) && Number(p.energy_kcal) > 0
-    && (Number(p.fibre_g) / Number(p.energy_kcal)) * 100 >= SCHEDULE_I.highFibre.per100kcal;
+export function claimHolds(claim, row) {
+  const groups = CLAIM_RULES[claim];
+  if (!groups || !row) return false;
+  return groups.some((clauses) => clauses.every((clause) => passes(valueFor(row, clause), clause)));
 }
 
 /** @param {object} row @returns {boolean} */
-export function isLowSugar(row) {
-  const p = toPer100(row);
-  const limit = p.unit === "g" ? SCHEDULE_I.lowSugar.solid : p.unit === "ml" ? SCHEDULE_I.lowSugar.liquid : null;
-  return limit !== null && holds(p.sugars_g, (v) => v <= limit);
-}
+export const isHighFibre = (row) => claimHolds("high_fibre", row);
 
 /** @param {object} row @returns {boolean} */
-export function isSugarFree(row) {
-  const p = toPer100(row);
-  return p.unit !== null && holds(p.sugars_g, (v) => v <= SCHEDULE_I.sugarFree);
-}
+export const isLowSugar = (row) => claimHolds("low_sugar", row);
 
 /** @param {object} row @returns {boolean} */
-export function isHighProtein(row) {
-  return holds(toPer100(row).protein_g, (v) => v >= THRESHOLDS.proteinHigh)
-    && holds(toPerServing(row).protein_g, (v) => v >= THRESHOLDS.proteinPerServingFloor);
-}
+export const isSugarFree = (row) => claimHolds("sugar_free", row);
+
+/** @param {object} row @returns {boolean} */
+export const isHighProtein = (row) => claimHolds("high_protein", row);
 
 // ── Rows ────────────────────────────────────────────────────────────────────
 

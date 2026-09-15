@@ -14,6 +14,10 @@
 // not sesame or mustard. The keyword lists this replaced matched substrings
 // and got every one of those wrong.
 //
+// Since Phase 2.2 the same graph also answers the additive shopper filters —
+// artificial colours, preservatives, artificial sweeteners, artificial
+// flavours — from food.ingredient_flag (ingredientFlagsIn).
+//
 // Pure.
 // ============================================================================
 
@@ -97,6 +101,21 @@ export function allergensIn(text) {
   }
   for (const family of contains) mayContain.delete(family);
   return { contains: inFamilyOrder(contains), mayContain: inFamilyOrder(mayContain), ingredients };
+}
+
+/**
+ * Shopper filters an ingredient list raises — artificial_colour,
+ * preservatives, artificial_sweetener, artificial_flavour — from the
+ * ingredients it names ("Colour (INS 102)", "Sodium Benzoate").
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function ingredientFlagsIn(text) {
+  const flags = new Set();
+  for (const hit of scan(text, INGREDIENT_INDEX)) {
+    for (const flag of INGREDIENTS[hit.ingredient][2] ?? []) flags.add(flag);
+  }
+  return [...flags].sort();
 }
 
 /**

@@ -5,7 +5,7 @@
 // ============================================================================
 
 import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./config";
-import { allergensIn, ALLERGEN_KEYS } from "@/lib/food/allergens";
+import { allergensIn, ingredientFlagsIn, ALLERGEN_KEYS } from "@/lib/food/allergens";
 import { isLabelCurrent } from "./verification";
 
 const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
@@ -120,6 +120,10 @@ export function extractFacts(product) {
   // vegetables and the rest) are still keyword lists.
   const graph = allergensIn(haystack);
   const contains = new Set([...graph.contains, ...graph.mayContain]);
+  // Additives raise the preservative, artificial colour, sweetener and
+  // flavour filters (food.ingredient_flag, Phase 2.2). Until then nothing set
+  // those flags, and a shopper avoiding them was never told anything.
+  for (const flag of ingredientFlagsIn(haystack)) contains.add(flag);
   for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
     if (anyKeyword(haystack, kws)) contains.add(flag);
   }
@@ -144,6 +148,8 @@ export function extractFacts(product) {
   if (label) {
     const fromLabel = allergensIn(labelText);
     for (const flag of [...fromLabel.contains, ...fromLabel.mayContain]) contains.add(flag);
+    // And a preservative on the label outranks the brand's "No Preservatives".
+    for (const flag of ingredientFlagsIn(labelText)) contains.add(flag);
     for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
       if (anyKeyword(labelText, kws)) contains.add(flag);
     }

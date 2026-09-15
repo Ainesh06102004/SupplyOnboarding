@@ -412,7 +412,15 @@ VALUES
 ('Coconut Milk', '["coconut milk","coconut milk powder","coconut milk solids","coconut cream"]', 'whole_food', 'safe', FALSE,
  'Plant milk. Not a dairy allergen, despite the word.'),
 ('Sunflower Lecithin', '["sunflower lecithin"]', 'emulsifier', 'safe', FALSE,
- 'Lecithin from sunflower seed. Not a soy allergen.')
+ 'Lecithin from sunflower seed. Not a soy allergen.'),
+
+-- ── Flavouring classes (migration 00037) ────────────────────────────────────
+-- The classes FSSAI makes a pack declare. Artificial flavouring substances
+-- raise the "artificial flavours" shopper filter; nature identical ones do not.
+('Artificial Flavouring Substances', '["artificial flavouring substances","artificial flavoring substances","artificial flavouring","artificial flavoring","artificial flavour","artificial flavours","artificial flavor","artificial flavors"]', 'flavouring', 'caution', FALSE,
+ 'FSSAI labelling class, declared as "Contains added flavour (Artificial flavouring substances)".'),
+('Nature Identical Flavouring Substances', '["nature identical flavouring substances","nature identical flavoring substances","nature identical flavouring","nature identical flavour","nature identical flavours"]', 'flavouring', 'safe', FALSE,
+ 'Made to be chemically identical to natural flavour molecules. FSSAI labels them apart from artificial flavours, and KOI does not count them as artificial.')
 
 ON CONFLICT (canonical_name) DO UPDATE SET
   aliases             = EXCLUDED.aliases,

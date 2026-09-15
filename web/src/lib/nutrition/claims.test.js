@@ -8,10 +8,26 @@ import assert from "node:assert/strict";
 
 import {
   isHighFibre, isLowSugar, isSugarFree, isHighProtein, guardClaims, isClaimSafeText,
+  CLAIM_RULES, CLAIM_RULE_VERSION, SCHEDULE_I, claimHolds,
 } from "@/lib/nutrition/claims.js";
+import { THRESHOLDS } from "@/lib/recommendation/config.js";
 
 const solid = (over) => ({ measurement_basis: "per_100g", ...over });
 const liquid = (over) => ({ measurement_basis: "per_100ml", ...over });
+
+test("the claim rules are data, and every copy of their figures agrees", () => {
+  assert.match(CLAIM_RULE_VERSION, /^claims-v\d+$/);
+  const protein = CLAIM_RULES.high_protein.flat();
+  assert.equal(protein.find((c) => c.basis === "per_100").threshold, THRESHOLDS.proteinHigh);
+  assert.equal(protein.find((c) => c.basis === "per_serving").threshold, THRESHOLDS.proteinPerServingFloor);
+  assert.equal(SCHEDULE_I.highFibre.per100g, THRESHOLDS.fibreHigh);
+  assert.equal(SCHEDULE_I.lowSugar.solid, THRESHOLDS.sugarLow);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(SCHEDULE_I)),
+    { highFibre: { per100g: 6, per100kcal: 3 }, lowSugar: { solid: 5, liquid: 2.5 }, sugarFree: 0.5 },
+  );
+  assert.equal(claimHolds("no_such_claim", solid({ protein_g: 90 })), false);
+});
 
 test("high fibre is 6 g per 100 g, not KOI's old 5", () => {
   assert.equal(isHighFibre(solid({ fibre_g: 6 })), true);
