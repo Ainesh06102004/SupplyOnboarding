@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase/client'
+import { latestReport } from '../score'
 
 /**
  * Fetch a list of products with their related SKUs, inventory, and screening reports.
@@ -14,7 +15,7 @@ export async function getProducts(filters = {}) {
       category_l1,
       status,
       created_at,
-      skus ( id, screening_reports ( final_score ) )
+      skus ( id, screening_reports ( final_score, is_latest, created_at ) )
     `)
     .order('created_at', { ascending: false })
 
@@ -34,15 +35,15 @@ export async function getProducts(filters = {}) {
   }
 
   return data.map((product) => {
-    // try to get health score from the first SKU that has a screening report
+    // The standing score of the first SKU that has been screened — its latest
+    // report, not whichever version the database returned first.
     let healthScore = null;
-    if (product.skus && product.skus.length > 0) {
-       for (const sku of product.skus) {
-           if (sku.screening_reports && sku.screening_reports.length > 0) {
-               healthScore = sku.screening_reports[0].final_score;
-               break;
-           }
-       }
+    for (const sku of product.skus || []) {
+      const report = latestReport(sku.screening_reports)
+      if (report) {
+        healthScore = report.final_score
+        break
+      }
     }
 
     return {

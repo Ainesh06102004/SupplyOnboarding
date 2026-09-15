@@ -17,6 +17,7 @@ import { AVAILABILITY } from '@/lib/recommendation/config';
 import { guardClaims, isClaimSafeText, isHighProtein } from '@/lib/nutrition/claims';
 import { isLabelCurrent } from '@/lib/recommendation/verification';
 import { categorise } from '@/lib/food/taxonomy';
+import { latestReport } from '@/lib/score';
 
 /** Number, or null when the column is absent. Never coerces missing to 0. */
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -50,7 +51,9 @@ export async function fetchAllProducts() {
   return data.map(p => {
     const sku = p.skus?.[0] || {};
     const nutrition = sku.sku_nutrition?.[0] || {};
-    const screening = sku.screening_reports?.[0] || {};
+    // The report that stands now, not the first row returned: older versions
+    // are kept for history, and the first was a hand-typed June score.
+    const screening = latestReport(sku.screening_reports) || {};
     const flags = screening.flags || {};
     // A published ingredient label, or nothing. The view returns only
     // published rows, each saying how it was established: `verified` (a person

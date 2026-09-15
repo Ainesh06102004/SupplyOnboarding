@@ -241,6 +241,9 @@ export function buildProductVM(p, all = []) {
     brand: p.brand,
     name: p.name,
     category,
+    // The category within the aisle, from KOI's category tree ("Nuts" in
+    // "Nuts, seeds & dried fruit"); null for an aisle-level placement.
+    subcategory: p.subcategory ?? null,
     price: p.price,
     weight: p.weight,
     score: p.score,

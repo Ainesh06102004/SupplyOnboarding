@@ -32,6 +32,26 @@ export function hasScore(score) {
   return Number.isFinite(Number(score));
 }
 
+/**
+ * The screening report that currently stands for a SKU.
+ *
+ * engine.record_screening() versions reports and marks one `is_latest`; the
+ * older rows stay for history. Every caller used to read `screening_reports[0]`,
+ * which is whatever row the database returns first — in practice the oldest.
+ * So Golden Milk Mix showed its hand-typed June score of 95 on the shop, and
+ * was featured as "This week's standout", while its computed score was 22.
+ *
+ * @param {Array<{is_latest?: boolean, created_at?: string}>|null|undefined} reports
+ * @returns {object|null} the row marked latest, else the newest, else null
+ */
+export function latestReport(reports) {
+  const rows = (Array.isArray(reports) ? reports : [reports]).filter(Boolean);
+  if (!rows.length) return null;
+  const marked = rows.find((r) => r.is_latest === true);
+  if (marked) return marked;
+  return [...rows].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))[0];
+}
+
 /** Products carrying a real score. Never assume the caller pre-filtered. */
 export const scoredOnly = (items = []) => items.filter((i) => i && hasScore(i.score));
 
