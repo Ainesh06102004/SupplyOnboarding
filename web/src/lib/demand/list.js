@@ -46,9 +46,18 @@ export async function listDemand() {
   const catalogue = (products.data || []).map((p) =>
     [p.product_name, p.category_l1, p.brands?.brand_name].filter(Boolean).join(" ").toLowerCase());
 
-  return {
-    publishAt: PUBLISH_AT,
-    waiting: waiting.count ?? 0,
-    terms: (shown.data || []).map((row) => ({ ...row, answeredNow: answeredNow(row, catalogue) })),
-  };
+  const terms = (shown.data || []).map((row) => ({ ...row, answeredNow: answeredNow(row, catalogue), makers: [] }));
+
+  // Who makes it in India, from the staged Open Food Facts products: names to
+  // approach for onboarding, never facts KOI publishes (lib/off/, Phase 1.5).
+  const wanted = terms.filter((t) => t.kind === "not_stocked" && !t.answeredNow).map((t) => t.term);
+  if (wanted.length) {
+    const { data: makers, error: makersError } = await db.schema("engine").rpc("off_candidates", { p_terms: wanted, p_per_term: 3 });
+    if (makersError) throw makersError;
+    for (const maker of makers || []) {
+      terms.find((t) => t.kind === "not_stocked" && t.term === maker.term)?.makers.push(maker);
+    }
+  }
+
+  return { publishAt: PUBLISH_AT, waiting: waiting.count ?? 0, terms };
 }

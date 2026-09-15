@@ -88,7 +88,14 @@ export default async function DemandPage() {
                   <tbody className="tabular-nums">
                     {rows.map((row) => (
                       <tr key={row.term} className="border-t border-[#083D2D]/10">
-                        <td className="px-4 py-3 font-semibold text-[#101412]">{row.term}</td>
+                        <td className="px-4 py-3">
+                          <span className="font-semibold text-[#101412]">{row.term}</span>
+                          {row.makers?.length > 0 && (
+                            <span className="mt-0.5 block text-[12px] text-[#101412]/60">
+                              Made in India by {row.makers.map((m) => `${m.brand} (${m.products})`).join(", ")}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right">{row.occurrences}</td>
                         <td className="px-4 py-3 text-[#101412]/70">{day(row.first_seen)}</td>
                         <td className="px-4 py-3 text-[#101412]/70">{day(row.last_seen)}</td>
@@ -108,6 +115,11 @@ export default async function DemandPage() {
           </section>
         );
       })}
+
+      <p className="mt-10 text-[12px] text-[#101412]/50">
+        Who makes a term comes from Open Food Facts (openfoodfacts.org), used under the Open Database Licence. It names
+        brands to approach; nothing from it is shown to shoppers.
+      </p>
     </main>
   );
 }
