@@ -23,6 +23,7 @@ import { runChecks } from "./checks";
 import { toReviewItems } from "./proposals";
 import { planAutoPublish, pickPrimary } from "./autopublish";
 import { readLabel } from "./providers/openai";
+import { rescoreSkus } from "@/lib/screening/rescore";
 
 // uploads.file_type values that can carry a label.
 export const LABEL_FILE_TYPES = Object.freeze(["nutrition_label", "ingredient_label", "back_image", "front_image"]);
@@ -133,6 +134,13 @@ export async function runExtraction(uploadId) {
       });
       if (publishError) throw publishError;
       published = data?.published ?? [];
+    }
+
+    // A published fact changes what KOI knows, so the KOI score is recomputed
+    // now rather than on some later pass. A scoring failure is logged, not
+    // thrown: the reading and the publish already succeeded.
+    if (published.length) {
+      await rescoreSkus([upload.sku_id]).catch((err) => console.error("[engine] rescore failed", err));
     }
 
     // Only what could not publish goes to the queue — for anyone who chooses

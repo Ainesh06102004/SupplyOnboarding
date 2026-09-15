@@ -198,7 +198,11 @@ export async function fetchAllProducts() {
       compareInsight: null,
 
       // Details page extra mapping
-      koiStatus: screening.verdict || null,
+      // Shown only when it is a pass. Scores are computed now, and "KOI review"
+      // or "KOI rejected" printed over a listed product's photo reads as a
+      // warning label nobody decided to publish. The score ring still shows
+      // the number; whether a low-scoring product stays listed is a decision.
+      koiStatus: screening.verdict === 'eligible' ? screening.verdict : null,
       verdict: {
         summary: reviewNotes,
         pros: claims,
