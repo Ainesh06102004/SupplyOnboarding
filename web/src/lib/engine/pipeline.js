@@ -2,6 +2,7 @@
 // KOI ENGINE — One upload, read twice, published when the readings agree
 //
 // SERVER ONLY. runExtraction(uploadId):
+//   evaluation gate (evalGate.js: no reading by an unevaluated reader) ->
 //   upload row -> image from Storage -> two independent model readings ->
 //   Zod parse -> deterministic checks -> agreement (autopublish.js) ->
 //   engine.extraction_outputs -> engine.publish_machine_read() for the groups
@@ -24,6 +25,7 @@ import { toReviewItems } from "./proposals";
 import { planAutoPublish, pickPrimary } from "./autopublish";
 import { readLabel } from "./providers/openai";
 import { rescoreSkus } from "@/lib/screening/rescore";
+import { evaluationGate } from "./evalGate";
 
 // uploads.file_type values that can carry a label.
 export const LABEL_FILE_TYPES = Object.freeze(["nutrition_label", "ingredient_label", "back_image", "front_image"]);
@@ -41,9 +43,14 @@ const fail = (message) => { throw Object.assign(new Error(message), { expose: tr
  * @param {string} uploadId public.uploads id
  * @returns {Promise<{ outputId: string, confidence: number, groups: string[] }>}
  */
-export async function runExtraction(uploadId) {
+export async function runExtraction(uploadId, { gate = null } = {}) {
   const db = engineDb();
   const engine = db.schema("engine");
+
+  // A reader whose prompt and models have not passed the evaluation set reads
+  // nothing (evalGate.js). Nothing is spent and nothing is published.
+  const open = gate ?? await evaluationGate(engine);
+  if (!open.open) fail(open.reason);
 
   const { data: upload, error: uploadError } = await db
     .from("uploads")
@@ -202,6 +209,11 @@ export async function runPending({ limit = 2 } = {}) {
   const engine = db.schema("engine");
   const results = [];
 
+  // Paused while the reader's configuration lacks a passing evaluation:
+  // uploads and re-reads wait, and no model credit is spent.
+  const gate = await evaluationGate(engine);
+  if (!gate.open) return { attempted: 0, remaining: null, paused: gate.reason, results };
+
   // Re-reads first: a product an independent source contradicted
   // (lib/off/crosscheck.js) matters more than a photo nobody has doubted.
   const { data: rereads, error: rereadError } = await engine
@@ -211,7 +223,7 @@ export async function runPending({ limit = 2 } = {}) {
   for (const request of rereads) {
     let update;
     try {
-      const out = await runExtraction(request.upload_id);
+      const out = await runExtraction(request.upload_id, { gate });
       update = { output_id: out.outputId, result: { published: out.published, blocked: (out.blocked || []).map((b) => b.group) } };
       results.push({ uploadId: request.upload_id, reread: true, ...out });
     } catch (err) {
@@ -236,7 +248,7 @@ export async function runPending({ limit = 2 } = {}) {
 
   for (const u of todo) {
     try {
-      results.push({ uploadId: u.id, ...(await runExtraction(u.id)) });
+      results.push({ uploadId: u.id, ...(await runExtraction(u.id, { gate })) });
     } catch (err) {
       results.push({ uploadId: u.id, error: String(err?.message || err).slice(0, 200) });
     }
