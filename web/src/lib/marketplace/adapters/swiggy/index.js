@@ -196,6 +196,27 @@ export function createSwiggyAdapter(options = {}) {
     },
 
     /**
+     * One search on the caller's behalf, for linking a KOI SKU to a listing
+     * (lib/marketplace/match.js). The query is KOI's own brand and product
+     * name. Null when there is no way to ask — no credential or no address —
+     * which callers must not read as "nothing found".
+     */
+    async searchCatalogue({ zoneId, query }) {
+      const cred = await token();
+      if (!cred || !query) return null;
+      const addressId = await addressFor(zoneId, cred);
+      if (!addressId) return null;
+
+      const { data } = await callTool({
+        tool: "search_products",
+        args: { addressId, query },
+        accessToken: cred.accessToken,
+      });
+      if (!data) return null;
+      return fromSearchProducts(data, new Date().toISOString()).items;
+    },
+
+    /**
      * Verify one KOI SKU.
      *
      * Costs a search, because there is no lookup by id: KOI asks for the

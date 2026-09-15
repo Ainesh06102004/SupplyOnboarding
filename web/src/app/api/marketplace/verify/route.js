@@ -18,7 +18,7 @@
 // ============================================================================
 
 import { NextResponse } from "next/server";
-import { verifyItems, getMarketplaceAdapter } from "@/lib/marketplace";
+import { verifyItems, getMarketplaceAdapter, matchUnlinkedSkus } from "@/lib/marketplace";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
 import { resolveSkuMappings } from "@/lib/marketplace/skuMapRepo";
 
@@ -61,11 +61,11 @@ export async function POST(request) {
   // only KOI's own ids — never an externalId and never a search string, so
   // free-text from a browser can never reach a provider's search box.
   //
-  // A SKU with no trusted mapping arrives at the adapter with externalId null,
-  // and the adapter answers `unknown`. That is correct: unmapped means KOI has
-  // never established which provider product is the one it screened, and
-  // guessing would risk reporting stock for different food under a similar
-  // name.
+  // A SKU with no trusted link in this zone is searched for inside this
+  // shopper's request, with KOI's own brand and product name, and linked only
+  // when the match is strict (lib/marketplace/match.js). Anything short of that
+  // still arrives at the adapter with externalId null and answers `unknown`:
+  // guessing would report stock for different food under a similar name.
   // OPTIONAL identity, and the optionality is the design. A signed-in shopper
   // who has connected Swiggy is asked about THEIR address, on THEIR account. A
   // signed-out visitor is not turned away — they fall through to the house
@@ -76,6 +76,7 @@ export async function POST(request) {
 
   const adapter = getMarketplaceAdapter({ profileId });
   const mappings = await resolveSkuMappings(adapter.id, ids, { zoneId });
+  Object.assign(mappings, await matchUnlinkedSkus({ zoneId, koiSkuIds: ids, profileId, known: mappings }));
 
   const results = await verifyItems({
     zoneId,

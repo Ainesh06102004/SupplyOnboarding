@@ -26,7 +26,7 @@
 import "server-only";
 
 import { getServiceClient } from "@/lib/supabase/admin";
-import { getMarketplaceAdapter, verifyItems } from "./index";
+import { getMarketplaceAdapter, verifyItems, matchUnlinkedSkus } from "./index";
 import { resolveSkuMappings } from "./skuMapRepo";
 import {
   NotConfiguredError, AuthExpiredError, NotServiceableError,
@@ -197,6 +197,11 @@ export async function prepareHandoff({ profileId, zoneId, lines = [] }) {
   // out of it" call for different fixes.
   const ids = lines.map((l) => String(l.koiSkuId)).filter(Boolean);
   const mappings = await resolveSkuMappings(adapter.id, ids, { zoneId });
+  // A line never linked in this zone is searched for now: the shopper is
+  // handing it off, which is exactly the task a search may serve. It is linked
+  // only on a strict match (lib/marketplace/match.js); otherwise it stays
+  // `unmapped` below.
+  Object.assign(mappings, await matchUnlinkedSkus({ zoneId, koiSkuIds: ids, profileId, known: mappings }));
 
   const askable = [];
   const unmapped = [];

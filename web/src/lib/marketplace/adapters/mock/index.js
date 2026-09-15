@@ -226,6 +226,23 @@ export function createMockAdapter(options = {}) {
       };
     },
 
+    /**
+     * A search that actually reads its query, for the automatic matcher.
+     * Gated like every other read: the real provider needs a shopper's
+     * address, so an unconnected caller gets null — "could not ask" — rather
+     * than an empty result that would read as "not sold here".
+     */
+    async searchCatalogue({ zoneId, query }) {
+      if (!query || !(await connected())) return null;
+      await simulateCall(`${zoneId}:search:${query}:${windowOf(now(), TTL.shelfMs)}`);
+      const wanted = String(query).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+      const hits = FIXTURE_POOL.filter((f) => {
+        const hay = `${f.rawBrand ?? ""} ${f.rawName}`.toLowerCase();
+        return wanted.filter((w) => hay.includes(w)).length >= Math.min(2, wanted.length);
+      });
+      return hits.slice(0, capabilities.maxResultsPerQuery).map((f) => itemFor(f, zoneId));
+    },
+
     async verifyItem({ zoneId, koiSkuId, externalId, matchQuery, withSubstitutes = false }) {
       const nothingKnown = {
         item: null,

@@ -47,6 +47,17 @@ export const FIXTURE_POOL = [
   { externalId: "SPN10022", variantRef: "SKU10022", rawName: "Chia Seeds 200 g", rawBrand: "True Elements", rawPackSize: "200 g", price: 190, mrp: 225 },
   { externalId: "SPN10023", variantRef: "SKU10023", rawName: "Cold Pressed Coconut Oil 500 ml", rawBrand: "Max Care", rawPackSize: "500 ml", price: 215, mrp: 250 },
   { externalId: "SPN10024", variantRef: "SKU10024", rawName: "Bagrry's White Oats 1 kg", rawBrand: "Bagrry's", rawPackSize: "1 kg", price: 235, mrp: 275 },
+
+  // Look-alikes of KOI's own catalogue, beside the near misses a real search
+  // returns with them — another flavour, another pack size, a multi-pack — so
+  // the automatic matcher (lib/marketplace/match.js) has something to get
+  // wrong. MRPs follow KOI's own SKUs.
+  { externalId: "SPN20001", variantRef: "SKU20001", rawName: "Troovy Healthy Potato Chips Masala 200 g", rawBrand: "Troovy", rawPackSize: "200 g", price: 135, mrp: 150 },
+  { externalId: "SPN20002", variantRef: "SKU20002", rawName: "Troovy Healthy Potato Chips Lemon 200 g", rawBrand: "Troovy", rawPackSize: "200 g", price: 135, mrp: 150 },
+  { externalId: "SPN20003", variantRef: "SKU20003", rawName: "Troovy Healthy Potato Chips Masala Pack of 3", rawBrand: "Troovy", rawPackSize: "3 x 200 g", price: 399, mrp: 450 },
+  { externalId: "SPN20004", variantRef: "SKU20004", rawName: "Open Secret California Almonds 200 g", rawBrand: "Open Secret", rawPackSize: "200 g", price: 405, mrp: 450 },
+  { externalId: "SPN20005", variantRef: "SKU20005", rawName: "Open Secret California Almonds 500 g", rawBrand: "Open Secret", rawPackSize: "500 g", price: 949, mrp: 1050 },
+  { externalId: "SPN20006", variantRef: "SKU20006", rawName: "KisaanSay Premium Pampore Saffron 1 g", rawBrand: "KisaanSay", rawPackSize: "1 g", price: 1150, mrp: 1250 },
 ];
 
 /**

@@ -62,7 +62,7 @@ export async function resolveSkuMappings(marketplace, koiSkuIds = [], ctx = {}) 
 
   const { data, error } = await supabase
     .from("marketplace_sku_map")
-    .select("koi_sku_id, external_id, variant_ref, scope, scope_ref, match_query, confidence, verified_at")
+    .select("koi_sku_id, external_id, variant_ref, scope, scope_ref, match_query, match_method, confidence, verified_at, last_seen_at")
     .eq("marketplace", marketplace)
     .eq("is_active", true)
     .in("koi_sku_id", queryable);
@@ -82,6 +82,8 @@ export async function resolveSkuMappings(marketplace, koiSkuIds = [], ctx = {}) 
       matchQuery: r.match_query,
       confidence: r.confidence,
       verifiedAt: r.verified_at,
+      method: r.match_method,
+      lastSeenAt: r.last_seen_at,
     }))
   );
 
@@ -97,6 +99,9 @@ export async function resolveSkuMappings(marketplace, koiSkuIds = [], ctx = {}) 
       externalId: trusted ? mapping.externalId : null,
       matchQuery: mapping.matchQuery,
       trusted,
+      // When KOI last searched for this SKU here, found or not — so the
+      // automatic matcher does not search again on every view.
+      lastCheckedAt: mapping.lastSeenAt ?? null,
     };
   }
 
@@ -165,4 +170,93 @@ export async function resolveKoiSkusByExternalId(marketplace, externalIds = []) 
   }
 
   return out;
+}
+
+/**
+ * What the automatic matcher needs to recognise a SKU in a search result:
+ * brand, product name, variant, net weight and MRP — all from KOI's own
+ * catalogue, never from a shopper.
+ *
+ * @param {string[]} koiSkuIds
+ * @returns {Promise<Record<string, { brand: string|null, product: string, variant: string|null, netWeight: string|null, mrp: number|null }>>}
+ */
+export async function loadMatchContext(koiSkuIds = []) {
+  const out = {};
+  const ids = koiSkuIds.filter((id) => UUID.test(String(id)));
+  const supabase = getServiceClient();
+  if (!supabase || !ids.length) return out;
+
+  const { data, error } = await supabase
+    .from("skus")
+    .select("id, variant_name, net_weight, mrp, products!inner(product_name, status, brands(brand_name))")
+    .in("id", ids)
+    .eq("products.status", "approved");
+  if (error) {
+    console.error("loadMatchContext:", error.message);
+    return out;
+  }
+  for (const s of data ?? []) {
+    out[s.id] = {
+      brand: s.products.brands?.brand_name ?? null,
+      product: s.products.product_name,
+      variant: s.variant_name ?? null,
+      netWeight: s.net_weight ?? null,
+      mrp: s.mrp === null || s.mrp === undefined ? null : Number(s.mrp),
+    };
+  }
+  return out;
+}
+
+/**
+ * Record what the automatic matcher found for one SKU in one zone
+ * (lib/marketplace/match.js): a link, a weak candidate below trust, or — with
+ * externalId null and confidence 0 — that KOI searched and found no listing.
+ *
+ * Zone-scoped, because that is what was observed; resolution is
+ * most-specific-wins, so it answers this zone without touching any other.
+ *
+ * It never replaces a link a person confirmed ('manual' or verified_at set) or
+ * one made on a barcode: an automatic match does not outrank those. verified_at
+ * stays null, because nobody verified it. Trust comes from the confidence the
+ * match earned (MATCH.minConfidence).
+ *
+ * @returns {Promise<boolean>} whether a row was written
+ */
+export async function recordAutomaticMatch({ marketplace, koiSkuId, zoneId, externalId = null, variantRef = null, matchQuery, confidence = 0 }) {
+  const supabase = getServiceClient();
+  if (!supabase || !marketplace || !zoneId || !UUID.test(String(koiSkuId))) return false;
+
+  const { data: existing, error: readError } = await supabase
+    .from("marketplace_sku_map")
+    .select("match_method, verified_at")
+    .eq("marketplace", marketplace).eq("koi_sku_id", koiSkuId).eq("scope", "zone").eq("scope_ref", zoneId)
+    .maybeSingle();
+  if (readError) {
+    console.error("recordAutomaticMatch:", readError.message);
+    return false;
+  }
+  if (existing && (existing.verified_at || ["manual", "barcode"].includes(existing.match_method))) return false;
+
+  const { error } = await supabase.from("marketplace_sku_map").upsert(
+    {
+      marketplace,
+      koi_sku_id: koiSkuId,
+      scope: "zone",
+      scope_ref: zoneId,
+      external_id: externalId,
+      variant_ref: externalId ? variantRef : null,
+      match_query: matchQuery,
+      match_method: "name_pack",
+      confidence: Math.round(Math.max(0, Math.min(1, confidence)) * 100) / 100,
+      verified_at: null,
+      last_seen_at: new Date().toISOString(),
+      is_active: true,
+    },
+    { onConflict: "marketplace,koi_sku_id,scope,scope_ref" }
+  );
+  if (error) {
+    console.error("recordAutomaticMatch:", error.message);
+    return false;
+  }
+  return true;
 }

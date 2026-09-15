@@ -18,13 +18,15 @@ import "server-only";
 
 import { ADAPTERS, TTL, BUDGET } from "./config";
 import { AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE } from "./types";
-import { NotServiceableError } from "./errors";
+import { NotServiceableError, RateLimitError } from "./errors";
 import { nullAdapter } from "./adapters/null";
 import { createMockAdapter } from "./adapters/mock";
 import { createSwiggyAdapter } from "./adapters/swiggy";
 import { readThrough, cacheKey, cacheStats } from "./cache/shelfCache";
-import { resolveKoiSkusByExternalId } from "./skuMapRepo";
+import { resolveKoiSkusByExternalId, loadMatchContext, recordAutomaticMatch } from "./skuMapRepo";
 import { SHELVES } from "./shelves";
+import { pickListingMatch, matchQueryFor, REMATCH_AFTER_MS } from "./match";
+import { logMarketplaceCall } from "./callLog";
 
 let cached = null;
 
@@ -341,6 +343,96 @@ function preferSignal(a, b) {
   const defB = b?.availability && b.availability !== AVAILABILITY.UNKNOWN;
   if (defA !== defB) return defA ? a : b;
   return String(a?.observedAt ?? "") >= String(b?.observedAt ?? "") ? a : b;
+}
+
+/**
+ * Link KOI SKUs that have no trusted link in this zone yet (Phase 1.6).
+ *
+ * Swiggy ties the use of its data to the user's immediate task, so KOI does
+ * not sweep its catalogue against the provider. A SKU is searched for only
+ * inside a shopper's own request to see or buy it: one search per SKU, queried
+ * with KOI's brand and product name, never the shopper's words.
+ * lib/marketplace/match.js decides. A strict match is linked for the zone and
+ * primes the item cache, so the verify that follows costs no second search.
+ * Found or not, the outcome is recorded, so a SKU is not searched for again in
+ * that zone for REMATCH_AFTER_MS.
+ *
+ * @param {{ zoneId: string, koiSkuIds: string[], profileId?: string|null, known?: Record<string, object> }} p
+ *   known: resolveSkuMappings() for the same ids
+ * @returns {Promise<Record<string, { externalId: string, matchQuery: string, trusted: true }>>}
+ *   the SKUs newly linked; merge over the known mappings
+ */
+export async function matchUnlinkedSkus({ zoneId, koiSkuIds = [], profileId = null, known = {} }) {
+  const adapter = getMarketplaceAdapter({ profileId });
+  if (!zoneId || typeof adapter.searchCatalogue !== "function") return {};
+
+  const due = koiSkuIds.filter((id) => {
+    const mapping = known[id];
+    if (mapping?.trusted) return false;
+    const last = mapping?.lastCheckedAt ? new Date(mapping.lastCheckedAt).getTime() : NaN;
+    return !Number.isFinite(last) || Date.now() - last >= REMATCH_AFTER_MS;
+  });
+  if (!due.length) return {};
+
+  const [context, audience] = await Promise.all([loadMatchContext(due), audienceFor(adapter, zoneId)]);
+  const credentialScope = audience === "house" ? "house" : "user";
+  const linked = {};
+
+  for (const koiSkuId of due) {
+    const koi = context[koiSkuId];
+    const query = matchQueryFor(koi);
+    if (!query) continue;
+
+    let listings;
+    const started = Date.now();
+    try {
+      const { value, source } = await readThrough(
+        cacheKey(zoneId, `match:${koiSkuId}`, audience),
+        () => adapter.searchCatalogue({ zoneId, query }),
+        { ttlMs: TTL.itemMs }
+      );
+      listings = value;
+      if (source === SIGNAL_SOURCE.LIVE && Array.isArray(value)) {
+        await logMarketplaceCall({ marketplace: adapter.id, route: "match", zoneId, credentialScope, latencyMs: Date.now() - started, outcome: "ok" });
+      }
+    } catch (err) {
+      await logMarketplaceCall({
+        marketplace: adapter.id, route: "match", zoneId, credentialScope, latencyMs: Date.now() - started,
+        outcome: err instanceof RateLimitError ? "rate_limited" : "error",
+      });
+      continue;
+    }
+    // Null: there was no way to ask — no credential, no address. That is not
+    // "searched and found nothing", so nothing is recorded.
+    if (!Array.isArray(listings)) continue;
+
+    const match = pickListingMatch(koi, listings);
+    await recordAutomaticMatch({
+      marketplace: adapter.id,
+      koiSkuId,
+      zoneId,
+      externalId: match.item?.externalId ?? null,
+      variantRef: match.item?.variantRef ?? null,
+      matchQuery: query,
+      confidence: match.item ? match.confidence : 0,
+    });
+    if (match.status !== "matched") continue;
+
+    linked[koiSkuId] = { externalId: match.item.externalId, matchQuery: query, trusted: true, lastCheckedAt: new Date().toISOString() };
+    await readThrough(
+      cacheKey(zoneId, `item:${koiSkuId}`, audience),
+      async () => ({
+        item: match.item,
+        availability: match.item.availability,
+        substitutes: [],
+        checkedAt: match.item.observedAt ?? new Date().toISOString(),
+        source: SIGNAL_SOURCE.LIVE,
+      }),
+      { ttlMs: TTL.itemMs }
+    );
+  }
+
+  return linked;
 }
 
 export { cacheStats, AVAILABILITY, SERVICEABILITY, SIGNAL_SOURCE, TTL, BUDGET };
