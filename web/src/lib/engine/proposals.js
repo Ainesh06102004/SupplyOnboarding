@@ -19,7 +19,7 @@
 
 import { normalizedColumns } from "@/lib/nutrition/basis";
 import { NUTRIENT_FIELDS } from "./labelSchema";
-import { flagsInIngredients, flagsInStatement } from "./checks";
+import { flagsInIngredients, flagsInStatement, mayContainInIngredients } from "./checks";
 
 export const AUTO_ACCEPT = Object.freeze({ nutrition: false });
 
@@ -63,6 +63,7 @@ export function proposeAllergens(reading) {
   const fromStatement = precautionary ? [] : flagsInStatement(reading.allergen_statement);
   const contains = [...new Set([...fromText, ...fromStatement])];
   const mayContain = [...new Set([
+    ...mayContainInIngredients(reading.ingredients_text),
     ...flagsInStatement(reading.may_contain_statement),
     ...(precautionary ? flagsInStatement(reading.allergen_statement) : []),
   ])].filter((flag) => !contains.includes(flag));

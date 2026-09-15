@@ -16,7 +16,8 @@
 // Pure.
 // ============================================================================
 
-import { CONTAINS_KEYWORDS, FOODS_AVOID } from "@/lib/recommendation/config";
+import { FOODS_AVOID } from "@/lib/recommendation/config";
+import { allergensIn, allergensInStatement } from "@/lib/food/allergens";
 import { parseAmount } from "@/lib/nutrition/basis";
 
 const isNum = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
@@ -27,34 +28,23 @@ export const ALLERGEN_FLAGS = Object.freeze(
   [...new Set(FOODS_AVOID.filter((a) => a.kind === "allergen").map((a) => a.flag))],
 );
 
-// An allergen statement names groups ("tree nuts", "crustaceans", "cereals
-// containing gluten") that an ingredient list names by ingredient.
-const STATEMENT_WORDS = Object.freeze({
-  dairy: ["milk", "dairy", "lactose", "casein", "whey"],
-  egg: ["egg"],
-  fish: ["fish"],
-  shellfish: ["crustacean", "shellfish", "prawn", "shrimp", "crab", "lobster"],
-  peanut: ["peanut", "groundnut"],
-  tree_nut: ["tree nut", "nuts", "almond", "cashew", "walnut", "pistachio", "hazelnut"],
-  soy: ["soy", "soya"],
-  gluten: ["gluten", "wheat", "barley", "rye", "oats"],
-});
+// Both answers come from the allergen graph (lib/food/allergens.js): whole
+// words, longest ingredient name first, so "peanut butter" is not milk and
+// "Contains peanuts" does not declare tree nuts. Only the flags the storefront
+// acts on are returned.
+const storefrontFlags = (flags) => flags.filter((flag) => ALLERGEN_FLAGS.includes(flag));
 
-const matchFlags = (text, words) => {
-  const hay = ` ${String(text || "").toLowerCase()} `;
-  return ALLERGEN_FLAGS.filter((flag) => (words[flag] || []).some((w) => hay.includes(w)));
-};
+/** Allergen flags an ingredient list names. */
+export const flagsInIngredients = (text) => storefrontFlags(allergensIn(text).contains);
 
-/** Allergen flags an ingredient list mentions, by the storefront's own keywords. */
-export const flagsInIngredients = (text) => matchFlags(text, CONTAINS_KEYWORDS);
+/** Allergen flags the ingredients may contain (a graph `may_contain` link), not counting what they contain. */
+export const mayContainInIngredients = (text) => storefrontFlags(allergensIn(text).mayContain);
 
 /**
- * Allergen flags an allergen or may-contain statement declares. "Peanuts" is
- * folded to "peanut" first: it contains "nuts", and a statement saying
- * "contains peanuts" does not declare tree nuts.
+ * Allergen flags an allergen or may-contain statement declares, by group
+ * ("tree nuts", "crustaceans", "cereals containing gluten") or by ingredient.
  */
-export const flagsInStatement = (text) =>
-  matchFlags(String(text || "").toLowerCase().replace(/\b(?:pea|ground)nuts?\b/g, "peanut"), STATEMENT_WORDS);
+export const flagsInStatement = (text) => storefrontFlags(allergensInStatement(text));
 
 /**
  * @param {object} reading a parsed LabelReading

@@ -106,7 +106,7 @@ function describe(r) {
   ].filter(Boolean).join("  ");
 }
 
-console.log(`${EVAL_SET_VERSION}, ${selected.length} case(s), ${PROMPT_VERSION} with ${config.primary} and ${config.verifier}`);
+console.log(`${EVAL_SET_VERSION}, ${selected.length} case(s), ${PROMPT_VERSION} with ${config.primary} and ${config.verifier}, allergen graph ${config.lexiconVersion}`);
 const started = Date.now();
 const results = new Array(selected.length);
 let next = 0;
@@ -158,6 +158,7 @@ if (only.length) {
       prompt_version: PROMPT_VERSION,
       primary_model: config.primary,
       verifier_model: config.verifier,
+      lexicon_version: config.lexiconVersion,
       cases: selected.length,
       passed,
       metrics,

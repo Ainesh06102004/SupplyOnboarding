@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./config";
+import { allergensIn, ALLERGEN_KEYS } from "@/lib/food/allergens";
 import { isLabelCurrent } from "./verification";
 
 const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
@@ -112,7 +113,13 @@ export function extractFacts(product) {
   const hasTag = (list) => (list || []).some((t) => tags.some((tag) => tag.includes(t)));
 
   // ── infer ingredient/attribute flags ──
-  const contains = new Set();
+  // Allergens come from the allergen graph (lib/food/allergens.js): whole
+  // words, longest ingredient name first, so "peanut butter" is not milk and
+  // "eggless" is not egg. What an ingredient may contain counts as present,
+  // as a may-contain statement does below. The other flags (meat, honey, root
+  // vegetables and the rest) are still keyword lists.
+  const graph = allergensIn(haystack);
+  const contains = new Set([...graph.contains, ...graph.mayContain]);
   for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
     if (anyKeyword(haystack, kws)) contains.add(flag);
   }
@@ -135,6 +142,8 @@ export function extractFacts(product) {
   // statement declares, which the extraction step stores as KOI flag keys
   // ("dairy", "tree_nut", …) so they need no second parse here.
   if (label) {
+    const fromLabel = allergensIn(labelText);
+    for (const flag of [...fromLabel.contains, ...fromLabel.mayContain]) contains.add(flag);
     for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
       if (anyKeyword(labelText, kws)) contains.add(flag);
     }
@@ -145,7 +154,7 @@ export function extractFacts(product) {
       ...(Array.isArray(label.mayContain) ? label.mayContain : []),
     ];
     for (const declared of declaredFlags) {
-      if (typeof declared === "string" && declared in CONTAINS_KEYWORDS) contains.add(declared);
+      if (typeof declared === "string" && (ALLERGEN_KEYS.includes(declared) || declared in CONTAINS_KEYWORDS)) contains.add(declared);
     }
   }
 
@@ -165,7 +174,8 @@ export function extractFacts(product) {
     else contains.delete("high_sodium");
   }
 
-  // peanut/tree_nut split (tree_nut isn't an avoid flag but keep peanut precise)
+  // A name that runs peanut into another word ("PeanutCrunch") still counts.
+  // Over-reading an allergen only ever hides a product from someone avoiding it.
   if (haystack.includes("peanut") || haystack.includes("groundnut")) contains.add("peanut");
 
   return {

@@ -218,28 +218,12 @@ export const COOKING = [
 ];
 
 // ── Ingredient flag inference: flag → keyword signals (name/tags/ingredients) ──
+// ALLERGENS ARE NOT HERE. Since Phase 2.1 they come from the allergen graph
+// (food.ingredient_allergen, compiled into lib/food/allergens.js), which matches
+// whole ingredient names instead of substrings. What remains are flags the
+// graph does not cover yet.
 export const CONTAINS_KEYWORDS = Object.freeze({
-  // Casein, caseinate and lactose are milk under another name ("sodium
-  // caseinate" in a coconut creamer, "lactose" in a spice mix).
-  dairy: ["milk", "butter", "ghee", "yogurt", "curd", "paneer", "cheese", "khoya", "cream", "whey", "casein", "lactose"],
-  egg: ["egg"],
   meat: ["chicken", "mutton", "beef", "pork", "meat", "lamb"],
-  fish: ["fish", "tuna", "salmon", "anchovy"],
-  shellfish: ["prawn", "shrimp", "crab", "lobster", "shellfish"],
-  // Hindi and Marathi names, which Indian labels print on their own
-  // ("Poha, Moongphali, Namak").
-  peanut: ["peanut", "groundnut", "moongphali", "mungfali", "moongfali", "singdana", "shengdana"],
-  // Hindi names too, because Indian labels print them ("kaju", "badam"), and
-  // "dry fruit" because a dry-fruit mix almost always carries almonds or
-  // cashews. Over-detection only ever removes a product for a shopper who
-  // avoids tree nuts; under-detection is the failure that matters.
-  tree_nut: [
-    "almond", "cashew", "walnut", "hazelnut", "pistachio", "pecan", "macadamia",
-    "brazil nut", "pine nut", "chilgoza", "marzipan", "badam", "kaju", "akhrot",
-    "pista", "dry fruit", "dryfruit",
-  ],
-  soy: ["soy", "soya", "tofu"],
-  gluten: ["wheat", "maida", "bread", "pasta", "gluten", "barley", "rava", "suji"],
   honey: ["honey"],
   caffeine: ["coffee", "tea", "caffeine", "espresso"],
   spicy: ["madras", "spicy", "chilli", "chili", "masala", "mixture", "chivda", "peri"],

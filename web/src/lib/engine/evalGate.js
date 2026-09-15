@@ -13,6 +13,7 @@ import "server-only";
 
 import { PROMPT_VERSION } from "./labelSchema";
 import { EVAL_SET_VERSION } from "./eval/cases";
+import { LEXICON_VERSION } from "@/lib/food/allergens";
 
 /** The configuration an evaluation run is recorded against. */
 export function evalConfig() {
@@ -20,6 +21,9 @@ export function evalConfig() {
   return {
     setVersion: EVAL_SET_VERSION,
     promptVersion: PROMPT_VERSION,
+    // The allergen graph decides what a reading's ingredients contain, so a
+    // changed graph needs its own passing run (Phase 2.1).
+    lexiconVersion: LEXICON_VERSION,
     primary,
     verifier: process.env.KOI_LABEL_VERIFIER_MODEL || primary,
   };
@@ -40,11 +44,12 @@ export async function evaluationGate(engine) {
     .eq("prompt_version", config.promptVersion)
     .eq("primary_model", config.primary)
     .eq("verifier_model", config.verifier)
+    .eq("lexicon_version", config.lexiconVersion)
     .order("created_at", { ascending: false })
     .limit(1);
   if (error) throw error;
 
-  const setup = `${config.promptVersion} with ${config.primary} and ${config.verifier} (${config.setVersion})`;
+  const setup = `${config.promptVersion} with ${config.primary} and ${config.verifier} (${config.setVersion}, allergen graph ${config.lexiconVersion})`;
   const run = data?.[0];
   if (!run) return { open: false, reason: `Label reading is paused: ${setup} has not been evaluated. Run scripts/runEval.mjs.` };
   if (!run.passed) return { open: false, reason: `Label reading is paused: the latest evaluation of ${setup} failed. Fix it and run scripts/runEval.mjs again.` };
