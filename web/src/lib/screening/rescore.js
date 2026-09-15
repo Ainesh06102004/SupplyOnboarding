@@ -7,8 +7,14 @@
 // engine.record_screening(), which versions the report and skips no-change
 // writes.
 //
-// Called after every automatic publish (lib/engine/pipeline.js), and for the
-// whole catalogue from /api/engine/run?rescore=all when the rubric changes.
+// Called after every automatic publish (lib/engine/pipeline.js), daily from
+// the store check (/api/engine/recheck), and for the whole catalogue from
+// /api/engine/run?rescore=all when the rubric changes.
+//
+// It also records where each SKU sits in the category tree
+// (food.sku_taxonomy, Phase 2.3), because the category's reference portion is
+// part of what the score reads: a per-serving claim is judged on a realistic
+// serving.
 // ============================================================================
 
 import "server-only";
@@ -16,6 +22,7 @@ import "server-only";
 import { getServiceClient } from "@/lib/supabase/admin";
 import { buildMasterIndex, screen } from "./score";
 import { isLabelCurrent } from "@/lib/recommendation/verification";
+import { categorise } from "@/lib/food/taxonomy";
 
 /**
  * @param {string[]|null} skuIds null = every SKU of an approved product
@@ -27,7 +34,7 @@ export async function rescoreSkus(skuIds = null) {
 
   let skuQuery = db
     .from("skus")
-    .select("id, products!inner(product_name, status), sku_nutrition(*), screening_reports(flags, is_latest)");
+    .select("id, products!inner(product_name, category_l1, category_l2, status), sku_nutrition(*), screening_reports(flags, is_latest)");
   skuQuery = skuIds ? skuQuery.in("id", skuIds) : skuQuery.eq("products.status", "approved");
 
   const [{ data: skus, error: e1 }, { data: master, error: e2 }, { data: labels, error: e3 }] = await Promise.all([
@@ -40,9 +47,23 @@ export async function rescoreSkus(skuIds = null) {
   const index = buildMasterIndex(master);
   const labelBySku = new Map(labels.map((l) => [l.sku_id, l]));
   const results = [];
+  const placed = [];
+  const unplaced = [];
 
   for (const sku of skus) {
-    const nutrition = [].concat(sku.sku_nutrition || [])[0] || null;
+    const category = categorise({
+      name: sku.products.product_name,
+      categoryL2: sku.products.category_l2,
+      categoryL1: sku.products.category_l1,
+    });
+    if (category) {
+      placed.push({ sku_id: sku.id, node_key: category.key, matched_on: category.matchedOn, term: category.term, taxonomy_version: category.version, classified_at: new Date().toISOString() });
+    } else {
+      unplaced.push(sku.id);
+    }
+
+    const declared = [].concat(sku.sku_nutrition || [])[0] || null;
+    const nutrition = declared ? { ...declared, portion_reference: category?.portion ?? null } : null;
     const latest = [].concat(sku.screening_reports || []).find((r) => r.is_latest);
     const label = labelBySku.get(sku.id);
     const report = screen({
@@ -59,7 +80,19 @@ export async function rescoreSkus(skuIds = null) {
     const { data, error } = await db.schema("engine").rpc("record_screening", { p_sku_id: sku.id, p_report: report });
     results.push(error
       ? { skuId: sku.id, product: sku.products.product_name, error: error.message }
-      : { skuId: sku.id, product: sku.products.product_name, final: report.final_score, verdict: report.verdict, changed: data.changed, previous: data.previous_final ?? null });
+      : { skuId: sku.id, product: sku.products.product_name, category: category?.key ?? null, final: report.final_score, verdict: report.verdict, changed: data.changed, previous: data.previous_final ?? null });
+  }
+
+  // A SKU whose name no longer names a known category loses its old placement
+  // rather than keeping a stale one.
+  const taxonomy = db.schema("food").from("sku_taxonomy");
+  if (placed.length) {
+    const { error } = await taxonomy.upsert(placed, { onConflict: "sku_id" });
+    if (error) console.error("[screening] category placement failed", error.message);
+  }
+  if (unplaced.length) {
+    const { error } = await db.schema("food").from("sku_taxonomy").delete().in("sku_id", unplaced);
+    if (error) console.error("[screening] clearing stale placements failed", error.message);
   }
   return results;
 }

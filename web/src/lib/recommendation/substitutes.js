@@ -36,7 +36,9 @@ export const MAX_CANDIDATES = 4;
  * Rank KOI's own catalogue as replacements for a product that cannot be bought.
  *
  * Ordering, in priority:
- *   1. Same category — a replacement for peanut butter is not a beverage.
+ *   1. Same category, then same aisle — a replacement for biscuits is
+ *      biscuits before it is chips, and a replacement for peanut butter is
+ *      never a beverage. Categories come from KOI's tree (lib/food/taxonomy.js).
  *   2. KRE score against the shopper's goal profile, so the substitute
  *      preserves what they were actually shopping for rather than merely
  *      filling the hole.
@@ -60,6 +62,7 @@ export function pickSubstituteCandidates(target, catalogue = [], profile = {}, l
 
   const targetId = String(target.id);
   const targetCategory = target.category || null;
+  const targetKey = target.categoryKey || null;
 
   const scored = [];
   for (const p of catalogue) {
@@ -81,7 +84,9 @@ export function pickSubstituteCandidates(target, catalogue = [], profile = {}, l
 
     scored.push({
       product: p,
-      sameCategory: targetCategory && p.category === targetCategory ? 1 : 0,
+      // 2: the same category; 1: the same aisle; 0: neither.
+      sameCategory: targetKey && p.categoryKey === targetKey ? 2
+        : targetCategory && p.category === targetCategory ? 1 : 0,
       fit,
       // hasScore, not Number.isFinite(Number(...)): Number(null) is 0, so the
       // intended "unscored sorts last" sentinel of -1 was never reached — an

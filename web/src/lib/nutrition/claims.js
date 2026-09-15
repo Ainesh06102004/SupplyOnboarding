@@ -19,9 +19,11 @@
 //   sugar free   <= 0.5 g per 100 g or 100 ml
 //   high protein Schedule I asks for 20% of the ICMR RDA per 100 g (10% per
 //                100 ml or per 100 kcal). KOI keeps its own stricter rule —
-//                12 g per 100 AND 5 g in a real serving — because density
+//                12 g per 100 AND 5 g in a realistic serving — because density
 //                alone put the badge on a 0.1 g pinch of saffron. Stricter is
-//                permitted; looser is not.
+//                permitted; looser is not. Since claims-v2 (Phase 2.3) the
+//                serving is the declared one unless that is more than twice
+//                the category's reference amount (see basis.js).
 //
 // Since Phase 2.2 these are DATA, not constants: food.claim_rule, in a
 // versioned food.claim_rule_set, compiled into ./claimRules.js by
@@ -40,7 +42,7 @@
 
 import { extractFacts } from "@/lib/recommendation/productFacts";
 import { isNum } from "@/lib/recommendation/scoringEngine";
-import { toPer100, toPerServing } from "./basis";
+import { toPer100, toPerServing, toPerRealisticServing } from "./basis";
 import { CLAIM_RULES, CLAIM_RULE_VERSION } from "./claimRules";
 
 export { CLAIM_RULES, CLAIM_RULE_VERSION };
@@ -66,8 +68,10 @@ export const SCHEDULE_I = Object.freeze({
  * basis, no measurable serving, a solid's rule asked of a drink, no energy.
  */
 function valueFor(row, clause) {
-  if (clause.basis === "per_serving") {
-    const s = toPerServing(row);
+  if (clause.basis === "per_serving" || clause.basis === "per_realistic_serving") {
+    // A realistic serving is the declared one, or the category's reference
+    // amount when the declared serving is implausibly large (basis.js).
+    const s = clause.basis === "per_serving" ? toPerServing(row) : toPerRealisticServing(row);
     return isNum(s[clause.nutrient]) ? Number(s[clause.nutrient]) : null;
   }
   const p = toPer100(row);
@@ -134,6 +138,8 @@ export function rowFromFacts(facts) {
     fibre_g: m.fibre ?? null,
     total_fat_g: m.fat ?? null,
     sodium_mg: m.sodium ?? null,
+    // The category's reference portion (lib/food/taxonomy.js), when known.
+    portion_reference: p.portion ?? null,
   };
 }
 

@@ -141,6 +141,34 @@ export function toPerServing(nutrition) {
 }
 
 /**
+ * Macros per REALISTIC serving: the declared serving, unless it is more than
+ * the category's plausible maximum, in which case the category's reference
+ * amount. The row carries the category's portion as `portion_reference`
+ * ({ amount, unit, max }, from lib/food/taxonomy.js).
+ *
+ * California Almonds declares a 100 g serving. Nobody eats 100 g of almonds
+ * at a sitting, and a per-serving test on that figure passes on a third of the
+ * pack. The reference for nuts is 30 g (21 CFR 101.12), so above 60 g the
+ * serving is read as 30 g.
+ *
+ * Only ever the declared serving or less, so a claim judged on it is never
+ * looser than one judged on the pack's own figure. No portion, no declared
+ * serving, or a unit that differs: the declared serving, as toPerServing.
+ */
+export function toPerRealisticServing(nutrition) {
+  const declared = toPerServing(nutrition);
+  const portion = nutrition?.portion_reference;
+  if (!portion || declared.unit === null) return declared;
+
+  const serving = parseAmount(nutrition?.serving_size);
+  if (serving === null || serving.unit !== portion.unit || serving.value <= portion.max) return declared;
+
+  const per100 = toPer100(nutrition);
+  if (per100.unit !== portion.unit) return declared;
+  return scale(per100, portion.amount / 100, portion.unit);
+}
+
+/**
  * How many declared servings a pack holds, from the pack's net weight.
  * Null unless both amounts parse in the same unit system.
  */

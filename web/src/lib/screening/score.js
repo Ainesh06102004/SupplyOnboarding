@@ -44,7 +44,7 @@
 
 import { toPer100 } from "@/lib/nutrition/basis";
 import { THRESHOLDS } from "@/lib/recommendation/config";
-import { isHighProtein, isHighFibre, guardClaims } from "@/lib/nutrition/claims";
+import { isHighProtein, isHighFibre, guardClaims, CLAIM_RULE_VERSION } from "@/lib/nutrition/claims";
 
 export const RUBRIC_VERSION = "koi-screen-v2";
 
@@ -233,6 +233,9 @@ export function screen({ nutrition, label, claims, index }) {
     verdict,
     scoring: {
       rubric_version: RUBRIC_VERSION,
+      // The claim rules and the reference portion the claim tests were run under.
+      claim_rules: CLAIM_RULE_VERSION,
+      portion_reference: nutrition?.portion_reference ?? null,
       weights: WEIGHTS,
       capped_without_ingredient_list: capped,
       evidence: { nutrition: nutrition?.evidence ?? nutrition?.source ?? null, ingredients: label?.evidence ?? null },

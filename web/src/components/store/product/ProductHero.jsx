@@ -128,7 +128,7 @@ export default function ProductHero({ product }) {
               <div className="flex items-center gap-2.5">
                 <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#16A06E]">{product.brand}</span>
                 <span className="h-1 w-1 rounded-full bg-[#083D2D]/25" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#083D2D]/45">{product.category}</span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#083D2D]/45">{product.subcategory || product.category}</span>
               </div>
               <h1 className="mt-3 font-extrabold leading-[0.98] tracking-[-0.02em] text-[#083D2D]" style={{ ...HEADING, fontSize: "clamp(2rem, 4.5vw, 3.4rem)" }}>
                 {product.name}

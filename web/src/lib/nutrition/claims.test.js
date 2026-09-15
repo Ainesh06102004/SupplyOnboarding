@@ -19,7 +19,7 @@ test("the claim rules are data, and every copy of their figures agrees", () => {
   assert.match(CLAIM_RULE_VERSION, /^claims-v\d+$/);
   const protein = CLAIM_RULES.high_protein.flat();
   assert.equal(protein.find((c) => c.basis === "per_100").threshold, THRESHOLDS.proteinHigh);
-  assert.equal(protein.find((c) => c.basis === "per_serving").threshold, THRESHOLDS.proteinPerServingFloor);
+  assert.equal(protein.find((c) => c.basis !== "per_100").threshold, THRESHOLDS.proteinPerServingFloor);
   assert.equal(SCHEDULE_I.highFibre.per100g, THRESHOLDS.fibreHigh);
   assert.equal(SCHEDULE_I.lowSugar.solid, THRESHOLDS.sugarLow);
   assert.deepEqual(
@@ -72,6 +72,21 @@ test("high protein needs density AND a real serving — the saffron case", () =>
   assert.equal(isHighProtein(solid({ protein_g: 20, serving_size: "30g" })), true);
   assert.equal(isHighProtein(solid({ protein_g: 20, serving_size: "20g" })), false, "4 g a serving");
   assert.equal(isHighProtein(solid({ protein_g: 20 })), false, "no serving, no claim");
+});
+
+test("the protein floor is judged on a realistic serving, never a larger one than declared", () => {
+  const nuts = { amount: 30, unit: "g", max: 60, measure: null };
+  // 12.5 g per 100 g and a declared 100 g serving: 12.5 g "per serving" on a
+  // third of the pack. At the 30 g reference for nuts it is 3.75 g.
+  assert.equal(isHighProtein(solid({ protein_g: 12.5, serving_size: "100g", portion_reference: nuts })), false);
+  assert.equal(isHighProtein(solid({ protein_g: 17, serving_size: "100g", portion_reference: nuts })), true, "5.1 g in 30 g");
+  // A declared serving within the plausible maximum is used as declared.
+  assert.equal(isHighProtein(solid({ protein_g: 20, serving_size: "40g", portion_reference: nuts })), true);
+  // A declared serving smaller than the reference is never scaled up.
+  assert.equal(isHighProtein(solid({ protein_g: 20, serving_size: "20g", portion_reference: nuts })), false);
+  // No reference portion, or a unit that differs: the declared serving.
+  assert.equal(isHighProtein(solid({ protein_g: 12.5, serving_size: "100g" })), true);
+  assert.equal(isHighProtein(solid({ protein_g: 12.5, serving_size: "100g", portion_reference: { amount: 240, unit: "ml", max: 480 } })), true);
 });
 
 test("prohibited wording is dropped from brand claims", () => {

@@ -21,7 +21,7 @@
 // Pure.
 // ============================================================================
 
-import { words } from "./normalise";
+import { buildIndex, scan } from "./phrases";
 import { FAMILIES, INGREDIENTS, ALIASES, LEXICON_VERSION as GRAPH_VERSION } from "./allergenLexicon";
 
 // Bump when the matching rules below change. The label engine's evaluation
@@ -35,16 +35,8 @@ export const LEXICON_VERSION = `${GRAPH_VERSION}-${MATCHER_VERSION}`;
 /** Every allergen family the graph knows, by the storefront's flag names. */
 export const ALLERGEN_KEYS = Object.freeze(Object.keys(FAMILIES));
 
-function buildIndex(entries) {
-  const index = new Map();
-  let longest = 1;
-  for (const [phrase, target] of entries) {
-    if (!index.has(phrase)) index.set(phrase, target);
-    longest = Math.max(longest, phrase.split(" ").length);
-  }
-  return { index, longest };
-}
-
+// Matching itself (whole words, longest first, never across a list separator)
+// lives in ./phrases.js, shared with the category tree.
 const INGREDIENT_INDEX = buildIndex(ALIASES.map(([alias, i]) => [alias, { ingredient: i }]));
 
 // A statement names groups ("tree nuts", "crustaceans") as well as
@@ -53,33 +45,6 @@ const STATEMENT_INDEX = buildIndex([
   ...Object.entries(FAMILIES).flatMap(([key, family]) => family.statementWords.map((w) => [w, { family: key }])),
   ...ALIASES.map(([alias, i]) => [alias, { ingredient: i }]),
 ]);
-
-// A list separator ends a name. "Soy, Milk Solids" is soy AND milk; read
-// without the comma it would be "soy milk", which is soy only, and the milk
-// would be lost. So names are matched only within the pieces between
-// separators, never across them.
-const SEPARATORS = /[,;:()[\]{}.\/|&•\r\n]+/;
-
-function scan(text, { index, longest }) {
-  const hits = [];
-  for (const piece of String(text ?? "").split(SEPARATORS)) {
-    const tokens = words(piece);
-    let i = 0;
-    while (i < tokens.length) {
-      let step = 1;
-      for (let n = Math.min(longest, tokens.length - i); n >= 1; n -= 1) {
-        const target = index.get(tokens.slice(i, i + n).join(" "));
-        if (target) {
-          hits.push(target);
-          step = n;
-          break;
-        }
-      }
-      i += step;
-    }
-  }
-  return hits;
-}
 
 const inFamilyOrder = (set) => ALLERGEN_KEYS.filter((key) => set.has(key));
 

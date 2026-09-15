@@ -188,7 +188,9 @@ export function extractFacts(product) {
     id: product.id,
     name: product.name,
     brand: product.brand,
-    category: product.category || "Snacks",
+    // The aisle from KOI's category tree, or null. Never a default: an unplaced
+    // product called "Snacks" would join snack shelves it was never placed on.
+    category: product.category || null,
     price: toNum(product.price),
     trust: toNum(product.score),
     recommended: !!product.recommended,

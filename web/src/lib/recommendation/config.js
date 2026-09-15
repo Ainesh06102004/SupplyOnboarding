@@ -273,13 +273,16 @@ export const DIET_EXCLUSIONS = Object.freeze({
 export const LABEL_VERIFIED_DIETS = Object.freeze(["vegan", "jain"]);
 
 // meal → matching categories / keywords
+// Live aisles come from the category tree (lib/food/taxonomy.js): "Staples",
+// "Drinks", "Snacks". "Breakfast", "Pantry", "Meals" and "Beverages" are the
+// curated fallback catalogue's. Phase 2.4 replaces this table with meal roles.
 export const MEAL_MATCH = Object.freeze({
   breakfast: { categories: ["Breakfast"], keywords: ["oats", "granola", "muesli", "cookie", "honey", "coffee", "cereal"] },
-  lunch: { categories: ["Pantry", "Meals"], keywords: ["rice", "meal", "mixture"] },
-  dinner: { categories: ["Pantry", "Meals"], keywords: ["rice", "meal"] },
+  lunch: { categories: ["Pantry", "Meals", "Staples"], keywords: ["rice", "meal", "mixture"] },
+  dinner: { categories: ["Pantry", "Meals", "Staples"], keywords: ["rice", "meal"] },
   snacks: { categories: ["Snacks"], keywords: ["snack", "chivda", "mixture", "cookie", "nut", "crispies", "almond", "bar"] },
   office_snacks: { categories: ["Snacks"], keywords: ["snack", "nut", "cookie", "bar", "crispies"] },
   late_night: { categories: ["Snacks"], keywords: ["cookie", "chocolate", "nut"] },
-  pre_workout: { categories: ["Beverages"], keywords: ["coffee", "energy"] },
+  pre_workout: { categories: ["Beverages", "Drinks"], keywords: ["coffee", "energy"] },
   post_workout: { categories: ["Snacks"], keywords: ["protein", "almond", "nut", "bar", "crispies"] },
 });

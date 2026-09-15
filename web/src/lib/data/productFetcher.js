@@ -16,6 +16,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { AVAILABILITY } from '@/lib/recommendation/config';
 import { guardClaims, isClaimSafeText, isHighProtein } from '@/lib/nutrition/claims';
 import { isLabelCurrent } from '@/lib/recommendation/verification';
+import { categorise } from '@/lib/food/taxonomy';
 
 /** Number, or null when the column is absent. Never coerces missing to 0. */
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
@@ -28,6 +29,7 @@ export async function fetchAllProducts() {
       id,
       product_name,
       category_l1,
+      category_l2,
       brand_id,
       brands (brand_name),
       skus (
@@ -82,7 +84,13 @@ export async function fetchAllProducts() {
     // Figures nobody has seen on a pack for a year support no nutrient claim,
     // the brand's or KOI's: the recipe may have changed. They still display as
     // what was declared.
-    const figures = isLabelCurrent(nutrition.confirmed_at) ? nutrition : {};
+    // The aisle and category come from KOI's category tree, not the brand's
+    // typed category ("Healthy Snacks" put a prohibited word on the shelf).
+    // The category also carries its reference portion, so a per-serving claim
+    // is judged on a realistic serving (lib/food/taxonomy.js, basis.js).
+    const taxonomy = categorise({ name: p.product_name, categoryL2: p.category_l2, categoryL1: p.category_l1 });
+    const portion = taxonomy?.portion ?? null;
+    const figures = isLabelCurrent(nutrition.confirmed_at) ? { ...nutrition, portion_reference: portion } : {};
     const claims = guardClaims(flags.claims, figures);
 
     // "High protein" is derived from the declared value, never from the name.
@@ -175,7 +183,12 @@ export async function fetchAllProducts() {
       skuId: sku.id ?? null,
       brand: p.brands?.brand_name || "Unknown",
       name: p.product_name,
-      category: p.category_l1,
+      // null when the name and the brand's category name nothing KOI knows:
+      // an unplaced product is shown under "All", never under a made-up aisle.
+      category: taxonomy?.aisle ?? null,
+      subcategory: taxonomy?.subcategory ?? null,
+      categoryKey: taxonomy?.key ?? null,
+      portion,
       goalTags: claims,
       image: image || { hero: '', label: '', lifestyle: '' },
       price: sku.mrp || 0,

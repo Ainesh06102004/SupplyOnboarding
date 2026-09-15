@@ -149,7 +149,7 @@ export function buildProductVM(p, all = []) {
     type: "pro",
     title: t,
     detail: String(t).toLowerCase() === "high protein" && high.protein
-      ? `Meets KOI's high-protein rule on the declared figures: ${THRESHOLDS.proteinHigh} g per 100 g and ${THRESHOLDS.proteinPerServingFloor} g in a serving.`
+      ? `Meets KOI's high-protein rule on the declared figures: ${THRESHOLDS.proteinHigh} g per 100 g and ${THRESHOLDS.proteinPerServingFloor} g in a realistic serving.`
       : `Declared by ${brand}.`,
   }));
   const consSource = p.watchouts && p.watchouts.length ? p.watchouts : (p.watchOuts || []).map((w) => w.name || w);
@@ -178,8 +178,8 @@ export function buildProductVM(p, all = []) {
 
   const meters = [
     meter("protein", "Protein", proteinRating, protein, protein === null ? noFigure : high.protein
-      ? `Meets KOI's high-protein rule: ${THRESHOLDS.proteinHigh} g per 100 g and at least ${THRESHOLDS.proteinPerServingFloor} g in a declared serving.`
-      : `Below KOI's high-protein rule of ${THRESHOLDS.proteinHigh} g per 100 g with ${THRESHOLDS.proteinPerServingFloor} g in a serving.`),
+      ? `Meets KOI's high-protein rule: ${THRESHOLDS.proteinHigh} g per 100 g and at least ${THRESHOLDS.proteinPerServingFloor} g in a realistic serving.`
+      : `Below KOI's high-protein rule of ${THRESHOLDS.proteinHigh} g per 100 g with ${THRESHOLDS.proteinPerServingFloor} g in a realistic serving.`),
     meter("sugar", "Sugar", sugarRating, sugar, sugar === null ? noFigure : high.sugarFree
       ? "0.5 g or less per 100 — FSSAI's condition for \"sugar free\"."
       : high.lowSugar
