@@ -111,6 +111,32 @@ export function matchListing(sku, listings = []) {
   };
 }
 
+// ── Who is checked ──────────────────────────────────────────────────────────
+
+// Only brands that completed onboarding with KOI. Their store is part of how
+// they sell through KOI, and the website is one they gave at onboarding (or
+// one KOI confirmed lists their products). Foods that come from an open
+// database (Open Food Facts, Phase 1.5) are never checked: they are staged in
+// engine.off_products with no brand record and no website, and a food whose
+// brand is missing or has not finished onboarding is refused here regardless.
+export const ONBOARDED_BRAND_STATUSES = Object.freeze(["approved"]);
+
+/**
+ * @param {{ products?: { status?: string, brands?: { onboarding_status?: string, website?: string }|null } }} sku
+ * @returns {{ ok: true, host: string }|{ ok: false, reason: string }}
+ */
+export function storeCheckEligibility(sku) {
+  const product = sku?.products;
+  const brand = product?.brands;
+  if (product?.status !== "approved") return { ok: false, reason: "The product is not approved." };
+  if (!brand || !ONBOARDED_BRAND_STATUSES.includes(brand.onboarding_status)) {
+    return { ok: false, reason: "The brand has not completed onboarding with KOI." };
+  }
+  const host = storeHost(brand.website);
+  if (!host) return { ok: false, reason: "The brand has no store KOI can check." };
+  return { ok: true, host };
+}
+
 // ── What may be fetched ─────────────────────────────────────────────────────
 
 /** A DNS name with a letter TLD: never an IP literal, localhost, or a private suffix. */

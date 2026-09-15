@@ -8,7 +8,20 @@ import assert from "node:assert/strict";
 
 import {
   matchListing, words, sizesIn, gramsOf, storeHost, isPublicHostname, allowedImageUrl, isLabelHint, labelFileType,
+  storeCheckEligibility,
 } from "@/lib/engine/storeMatch.js";
+
+test("only approved products of brands that completed onboarding are store-checked", () => {
+  const sku = (brand, status = "approved") => ({ products: { status, brands: brand } });
+  const store = "https://opensecret.in";
+  assert.deepEqual(storeCheckEligibility(sku({ onboarding_status: "approved", website: store })), { ok: true, host: "opensecret.in" });
+  for (const status of ["draft", "submitted", "screening_complete", "rejected", "suspended"]) {
+    assert.equal(storeCheckEligibility(sku({ onboarding_status: status, website: store })).ok, false, status);
+  }
+  assert.equal(storeCheckEligibility(sku(null)).ok, false, "a food with no brand record, such as one from an open database");
+  assert.equal(storeCheckEligibility(sku({ onboarding_status: "approved", website: null })).ok, false);
+  assert.equal(storeCheckEligibility(sku({ onboarding_status: "approved", website: store }, "draft")).ok, false);
+});
 
 const L = (title, handle, { variants = [], images = 1 } = {}) => ({
   title,

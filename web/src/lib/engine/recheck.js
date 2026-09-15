@@ -18,6 +18,11 @@
 //                          publishes like any other label photo
 //        no longer listed  marked gone; nothing is re-confirmed from it
 //
+// WHO IS CHECKED: only approved products of brands that completed onboarding
+// with KOI (storeMatch.js#storeCheckEligibility). Foods from an open database
+// are never store-checked; anything skipped is listed in the run report with
+// the reason.
+//
 // A changed recipe arrives as a new label image. Its reading replaces the old
 // facts (kept in engine.publish_log) and the product is re-scored. If nothing
 // can be found, the label is simply never re-confirmed, and a year on the
@@ -44,7 +49,7 @@ import { createHash } from "node:crypto";
 import { engineDb } from "./pipeline";
 import { classifyImage, EngineConfigError } from "./providers/openai";
 import {
-  matchListing, storeHost, sameStore, isPublicHostname, allowedImageUrl, isLabelHint, labelFileType,
+  matchListing, storeCheckEligibility, sameStore, isPublicHostname, allowedImageUrl, isLabelHint, labelFileType,
 } from "./storeMatch";
 
 const BUCKET = "product-labels";
@@ -266,7 +271,7 @@ export async function recheckLabels({ deadline = Date.now() + 30_000, maxImages 
 
   const [{ data: skus, error: skuError }, { data: sources, error: sourceError }] = await Promise.all([
     db.from("skus")
-      .select("id, variant_name, net_weight, products!inner(id, product_name, status, brand_id, brands!inner(brand_name, website))")
+      .select("id, variant_name, net_weight, products!inner(id, product_name, status, brand_id, brands(brand_name, website, onboarding_status))")
       .eq("products.status", "approved"),
     engine.from("label_sources").select("sku_id, status, last_seen_at"),
   ]);
@@ -274,15 +279,15 @@ export async function recheckLabels({ deadline = Date.now() + 30_000, maxImages 
   const previous = new Map(sources.map((s) => [s.sku_id, s]));
 
   const byStore = new Map();
-  const noStore = [];
+  const skipped = [];
   for (const sku of skus) {
-    const host = storeHost(sku.products.brands.website);
-    if (!host) { noStore.push(sku.products.product_name); continue; }
-    if (!byStore.has(host)) byStore.set(host, []);
-    byStore.get(host).push(sku);
+    const eligible = storeCheckEligibility(sku);
+    if (!eligible.ok) { skipped.push({ product: sku.products.product_name, reason: eligible.reason }); continue; }
+    if (!byStore.has(eligible.host)) byStore.set(eligible.host, []);
+    byStore.get(eligible.host).push(sku);
   }
 
-  const report = { stores: [], noStore, imagesTaken: 0, imagesWaiting: 0 };
+  const report = { stores: [], skipped, imagesTaken: 0, imagesWaiting: 0 };
   const jobs = [];
 
   // Pass 1
