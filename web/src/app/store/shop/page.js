@@ -19,6 +19,8 @@ import { getSeedCatalogue, GOALS, INGREDIENTS, SORTS } from "@/components/store/
 import { useCatalogue } from "@/lib/data/useCatalogue";
 import { averageScore } from "@/lib/score";
 import CommandSearch from "@/components/store/shop/CommandSearch";
+import { demandTerms } from "@/lib/demand/terms";
+import { reportDemand } from "@/lib/demand/report";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
 import IntentChips from "@/components/store/shop/IntentChips";
@@ -257,8 +259,13 @@ export default function ShopPage() {
     let readBack = false;
     if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); setIntent(null); }
     else if (brand !== undefined) { setActiveBrand(brand); setActiveGoal(null); setSearchQuery(""); setIntent(null); }
-    else if (incoming !== undefined) readBack = applyIntent(incoming);
-    else if (query !== undefined) readBack = applyIntent(interpret(query));
+    else if (incoming !== undefined || query !== undefined) {
+      const next = incoming !== undefined ? incoming : interpret(query);
+      readBack = applyIntent(next);
+      // The words the catalogue could not answer, counted to decide what to
+      // stock next. Never the sentence — see lib/demand/terms.js.
+      reportDemand(demandTerms(next, products));
+    }
     setActiveCategory("All");
     // Land on the chip row when there is one to read: it explains why the grid
     // below it changed. Otherwise the grid itself is the answer.
