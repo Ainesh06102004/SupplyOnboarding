@@ -21,15 +21,17 @@
 // is better served by an excellent basket in two seconds than a perfect one
 // in ten. `status` says which they got, and the plan records it.
 //
-// The wasm file sits next to the module in node_modules, and `locateFile`
-// must say so explicitly — the default resolution looks in the process's
-// working directory, which on a server is not where the package is.
+// LOADING. The CommonJS build finds highs.wasm beside itself (`__dirname`),
+// whatever the working directory, so no `locateFile` is passed. That only
+// holds while Node loads the package itself: bundled by Turbopack, both
+// `__dirname` and `require.resolve` become virtual `[project]/...` paths and
+// the .wasm cannot be read. next.config.mjs lists `highs` in
+// serverExternalPackages for that reason.
 // ============================================================================
 
 import "server-only";
 
 import { createRequire } from "node:module";
-import path from "node:path";
 import { toLp, readSolution, isUsable } from "./lp";
 
 const require = createRequire(import.meta.url);
@@ -43,8 +45,7 @@ let loading = null;
 async function highsInstance() {
   if (!loading) {
     const loader = require("highs");
-    const build = path.dirname(require.resolve("highs"));
-    loading = loader({ locateFile: (file) => path.join(build, file) }).catch((err) => {
+    loading = loader().catch((err) => {
       loading = null;
       throw err;
     });
