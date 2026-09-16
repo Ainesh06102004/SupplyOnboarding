@@ -21,6 +21,7 @@
 // ============================================================================
 
 import { extractFacts } from "@/lib/recommendation/productFacts";
+import { nodeInfo } from "@/lib/food/taxonomy";
 import { rowFromProduct } from "@/lib/nutrition/claims";
 import { toPer100, parseAmount } from "@/lib/nutrition/basis";
 import { NUTRIENTS } from "./model";
@@ -87,6 +88,12 @@ export function plannableFrom(products = []) {
       availability: product.availability ?? "unknown",
       perPack: supplied.perPack,
       packSize: `${supplied.packSize.value} ${supplied.packSize.unit}`,
+      // For the portion ceiling (model.js PORTION_RULE): the pack in the
+      // portion's unit, what the food is in a meal, and its reference serving.
+      packAmount: supplied.packSize.value,
+      packUnit: supplied.packSize.unit,
+      role: product.categoryKey ? nodeInfo(product.categoryKey)?.role ?? null : null,
+      portion: product.portion ?? null,
     });
   }
   return { catalogue, unplannable };

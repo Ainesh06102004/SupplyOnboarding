@@ -9,12 +9,18 @@ import assert from "node:assert/strict";
 import { toLp, toLpText, readSolution, isUsable, isLpSafe, aliasesFor } from "@/lib/planner/lp.js";
 import { buildPlanModel, nameOf } from "@/lib/planner/model.js";
 
-const rice = { skuId: "rice", price: 299, contains: [], perPack: { protein: 95, kcal: 3500 } };
+const rice = {
+  skuId: "rice", price: 299, contains: [], perPack: { protein: 95, kcal: 3500 },
+  packAmount: 1000, packUnit: "g", role: "meal_base", portion: { amount: 45, unit: "g", max: 90 },
+};
 const adult = { id: "me", targets: { protein: 60 }, avoidFlags: [], dietExcludes: [] };
 
 // A real SKU id, which is what broke the first version of this module.
 const UUID = "9a80563e-22ac-42d2-b9a3-7b7186c974f3";
-const dates = { skuId: UUID, price: 299, contains: [], perPack: { protein: 13, kcal: 2820 } };
+const dates = {
+  skuId: UUID, price: 299, contains: [], perPack: { protein: 13, kcal: 2820 },
+  packAmount: 250, packUnit: "g", role: "snack", portion: { amount: 40, unit: "g", max: 80 },
+};
 
 test("every name the solver reads is safe for LP format, whatever a SKU id looks like", () => {
   const model = buildPlanModel({ members: [adult], catalogue: [dates], days: 7, budget: 1500 });

@@ -14,7 +14,7 @@
 //
 //   1. budget      the cheapest thing to give up is the ceiling, and a
 //                  shopper can decide to spend more
-//   2. variety     allow more packs of fewer products
+//   2. variety     allow twice the portions, and more packs of fewer products
 //   3. macros      admit the shortfall, and name it per member
 //
 // ALLERGENS AND DIET ARE NEVER RELAXED. They are not in this ladder at any
@@ -30,7 +30,7 @@ import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
 import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
 import { plannableFrom, memberFor } from "./candidates";
 import { solvePlanModel } from "./solve";
-import { planReport, basketDiff, materiallyShort } from "./report";
+import { planReport, basketDiff, materiallyShort, atPortionLimit } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
 
 export const PLAN_RULE_VERSION = "plan-v1";
@@ -56,10 +56,14 @@ const LADDER = [
   },
   {
     step: "variety_relaxed",
-    gave_up: "variety: more packs of fewer products",
-    apply: (base) => ({ ...base, budget: null, maxPacksPerSku: MAX_PACKS_PER_SKU * 2 }),
+    gave_up: "variety: twice the usual portions, and more packs of fewer products",
+    apply: (base) => ({ ...base, budget: null, maxPacksPerSku: MAX_PACKS_PER_SKU * 2, portionRelax: 2 }),
   },
 ];
+
+/** Excluded rows with the product's name, for the page. */
+const named = (rows, catalogue) =>
+  rows.map((e) => ({ ...e, name: catalogue.find((i) => i.skuId === e.skuId)?.name ?? null }));
 
 /** Climb the ladder until something can be shown. Allergens and diet are never on it. */
 async function solveWithLadder(base) {
@@ -171,6 +175,11 @@ export async function planForHousehold({
     products_refused: model.excluded.filter((e) => e.reason === "refused"),
     products_not_plannable: unplannable,
     products_not_candidates: model.excluded.filter((e) => e.reason === "not_a_candidate").length,
+    // Packs bigger than the household can eat in the period (PORTION_RULE).
+    products_too_big: named(model.excluded.filter((e) => e.reason === "pack_outlasts_the_plan"), catalogue),
+    // Nutrition priced far beyond the catalogue's (PRICE_SANITY).
+    products_priced_out: named(model.excluded.filter((e) => e.reason === "priced_beyond_its_nutrition"), catalogue),
+    portion_limited: atPortionLimit({ meta: model.meta, solution, catalogue, members }),
     unmet: report.unmet,
     budget_blocked: await costToMeetTargets({ base, report }),
   };
@@ -197,6 +206,8 @@ export async function planForHousehold({
         availability,
         candidate_limit: CANDIDATE_LIMIT,
         candidate_rule: model.meta.candidateRule,
+        portion_rule: model.meta.portionRule,
+        portion_relax: model.meta.portionRelax,
         model_version: model.meta.version,
         catalogue_size: catalogue.length,
       },

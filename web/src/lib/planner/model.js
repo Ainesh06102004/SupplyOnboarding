@@ -21,6 +21,12 @@
 //     packs[s]. Nothing is planned into a basket and left uneaten.
 //   * budget, when given.
 //   * availability, when the caller requires it (see `availability` below).
+//   * portions: nobody is planned more of one product than they could eat
+//     (PORTION_RULE). Without it the program is Stigler's diet problem: a
+//     live four-person plan on ₹4,000 was 13 kg of rice and nothing else,
+//     because rice was the cheapest energy and the cheapest protein.
+//   * a product whose nutrition is priced far beyond the catalogue's is not
+//     planned with (PRICE_SANITY), or the solver buys saffron for protein.
 //
 // THE SOFT CONSTRAINTS — the macro targets, as goal programming. Each target
 // becomes an equality with a shortfall and an excess variable, and the
@@ -32,7 +38,7 @@
 // avoid. What is good food is the screening engine's business.
 // ============================================================================
 
-export const MODEL_VERSION = "plan-model-v2";
+export const MODEL_VERSION = "plan-model-v3";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -83,11 +89,102 @@ export const DEVIATION_COST = Object.freeze({
   fat: { short: 0.2, over: 0.6 },
 });
 
+/**
+ * A product is planned with for its nutrition only when that nutrition is not
+ * priced far beyond the rest of the catalogue (plan-model-v3).
+ *
+ * A shortfall costs 6 per gram of protein and a rupee costs 0.0001, so once
+ * portions bind the solver will pay ₹60,000 for a gram — and with no budget a
+ * live plan bought seven 1 g packs of saffron (₹8,750) for under a gram of
+ * protein. So a product enters the program only if its energy or its protein
+ * costs at most `multiple` times the catalogue's median rupees for the same.
+ * Saffron's energy is about ₹4 lakh per 1,000 kcal against a median near
+ * ₹200. What is left out, and the figures that left it out, are recorded.
+ */
+export const PRICE_SANITY = Object.freeze({ multiple: 10 });
+
+const median = (values) => {
+  const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+/** Rupees for 1,000 kcal and for 100 g of protein, where the pack declares them. */
+function nutritionPrices(item) {
+  const price = Number(item?.price);
+  const kcal = Number(item?.perPack?.kcal);
+  const protein = Number(item?.perPack?.protein);
+  return {
+    per1000kcal: price > 0 && kcal > 0 ? (1000 * price) / kcal : null,
+    per100gProtein: price > 0 && protein > 0 ? (100 * price) / protein : null,
+  };
+}
+
 /** The nutrients a target may be set for, and their per-pack field. */
 export const NUTRIENTS = Object.freeze(["kcal", "protein", "carbs", "fat"]);
 
 /** A pack cap keeps the search finite; 14 of one product is already odd. */
 export const MAX_PACKS_PER_SKU = 14;
+
+/**
+ * How much of one product one member may be planned to eat (plan-model-v3).
+ *
+ * A day's ceiling is the category's largest realistic serving
+ * (food.portion_norm.plausible_max: twice the US FDA reference amount, 21 CFR
+ * 101.12(b)) times the meals a day that kind of food appears in: a staple at
+ * lunch and dinner, anything else once. So rice, 90 g dry a serving, is at
+ * most 180 g a day; cookies, 60 g.
+ *
+ * The ceiling scales with the member's stated energy target against the
+ * 2,000 kcal reference diet nutrition labels are read against (21 CFR
+ * 101.9(c)(9)): a child asking for 1,400 kcal gets 70% of an adult's portion.
+ * With no energy target, the adult portion stands.
+ *
+ * A product whose category has no reference portion may supply at most a
+ * tenth of the member's energy over the period (of 2,000 kcal a day when no
+ * target is stated), and one with no energy figure at most one pack.
+ *
+ * These are planning rules, not nutrition advice: they stop a basket being
+ * built from one cheap product, and a plan held back by them says so.
+ */
+export const PORTION_RULE = Object.freeze({
+  version: "portion-cap-v1",
+  occasionsPerDay: Object.freeze({ meal_base: 2 }),
+  defaultOccasions: 1,
+  referenceKcal: 2000,
+  unreferencedEnergyShare: 0.1,
+});
+
+const round1 = (v) => Math.round(v * 10) / 10;
+const round4 = (v) => Math.round(v * 10000) / 10000;
+
+/**
+ * The most packs of `item` that `member` may eat over `days`, and why.
+ *
+ * @param {object} item a catalogue row: packAmount, packUnit, role, portion, perPack
+ * @param {object} member from memberFor(): targets
+ * @param {number} days
+ * @param {number} [relax] 1 as asked; the ladder's variety step doubles it
+ * @returns {{ packs: number, basis: "reference_portion"|"energy_share"|"one_pack", perDay: number|null, unit: string|null }}
+ */
+export function portionCap(item, member, days, relax = 1) {
+  const kcalTarget = isNum(member?.targets?.kcal) && Number(member.targets.kcal) > 0 ? Number(member.targets.kcal) : null;
+  const portion = item?.portion;
+  const packAmount = Number(item?.packAmount);
+  if (portion && isNum(portion.max) && packAmount > 0 && portion.unit === item.packUnit) {
+    const occasions = PORTION_RULE.occasionsPerDay[item.role] ?? PORTION_RULE.defaultOccasions;
+    const scale = kcalTarget ? kcalTarget / PORTION_RULE.referenceKcal : 1;
+    const perDay = occasions * Number(portion.max) * scale * relax;
+    return { packs: round4((perDay * days) / packAmount), basis: "reference_portion", perDay: round1(perDay), unit: portion.unit };
+  }
+  const kcalPerPack = Number(item?.perPack?.kcal);
+  if (kcalPerPack > 0) {
+    const perDay = (kcalTarget ?? PORTION_RULE.referenceKcal) * PORTION_RULE.unreferencedEnergyShare * relax;
+    return { packs: round4((perDay * days) / kcalPerPack), basis: "energy_share", perDay: round1(perDay), unit: "kcal" };
+  }
+  return { packs: relax, basis: "one_pack", perDay: null, unit: null };
+}
 
 /**
  * How many products may enter the program, and how they are chosen.
@@ -145,6 +242,7 @@ function refusedBy(item, member) {
  *   infeasible, so the caller states which it wants and the choice is recorded.
  * @param {number|null} [input.candidateLimit] most products to admit (see CANDIDATE_RULE)
  * @param {number} [input.maxPacksPerSku]
+ * @param {number} [input.portionRelax] multiplies every portion ceiling (PORTION_RULE)
  * @returns {{ columns, rows, meta, excluded }}
  */
 export function buildPlanModel({
@@ -158,11 +256,26 @@ export function buildPlanModel({
   excludeSkus = [],
   qualityTiebreak = QUALITY_TIEBREAK,
   spendTiebreak = SPEND_TIEBREAK,
+  portionRelax = 1,
 }) {
   const removed = new Set((excludeSkus ?? []).map(String));
   const columns = [];
   const rows = [];
   const excluded = [];
+  // skuId -> memberId -> portionCap()
+  const portionCaps = {};
+
+  // The catalogue's typical price of energy and of protein (PRICE_SANITY).
+  const prices = catalogue.map(nutritionPrices);
+  const typical = {
+    per1000kcal: median(prices.map((p) => p.per1000kcal ?? NaN)),
+    per100gProtein: median(prices.map((p) => p.per100gProtein ?? NaN)),
+  };
+  const withinReason = (item) => {
+    const own = nutritionPrices(item);
+    const judged = ["per1000kcal", "per100gProtein"].filter((k) => own[k] !== null && typical[k] !== null);
+    return !judged.length || judged.some((k) => own[k] <= PRICE_SANITY.multiple * typical[k]);
+  };
 
   const allowed = [];
   for (const item of catalogue) {
@@ -181,6 +294,18 @@ export function buildPlanModel({
       excluded.push({ skuId: item.skuId, reason: "no_price" });
       continue;
     }
+    if (!withinReason(item)) {
+      const own = nutritionPrices(item);
+      excluded.push({
+        skuId: item.skuId,
+        reason: "priced_beyond_its_nutrition",
+        rupeesPer1000kcal: own.per1000kcal === null ? null : Math.round(own.per1000kcal),
+        typicalPer1000kcal: typical.per1000kcal === null ? null : Math.round(typical.per1000kcal),
+        rupeesPer100gProtein: own.per100gProtein === null ? null : Math.round(own.per100gProtein),
+        typicalPer100gProtein: typical.per100gProtein === null ? null : Math.round(typical.per100gProtein),
+      });
+      continue;
+    }
     if (availability === "require_available" && item.availability !== "available") {
       excluded.push({ skuId: item.skuId, reason: "not_confirmed_available", availability: item.availability ?? "unknown" });
       continue;
@@ -190,6 +315,15 @@ export function buildPlanModel({
       excluded.push({ skuId: item.skuId, reason: "refused", ...refusal });
       continue;
     }
+    // Everything bought is eaten, so a pack bigger than the whole household
+    // may eat in the period cannot be bought at all.
+    const caps = Object.fromEntries(members.map((m) => [m.id, portionCap(item, m, days, portionRelax)]));
+    const canEat = round4(Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0));
+    if (members.length && canEat < 1) {
+      excluded.push({ skuId: item.skuId, reason: "pack_outlasts_the_plan", canEat });
+      continue;
+    }
+    portionCaps[item.skuId] = caps;
     allowed.push(item);
   }
 
@@ -207,10 +341,15 @@ export function buildPlanModel({
   // Packs, and who eats them.
   for (const item of eligible) {
     const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price);
-    columns.push({ name: packsName(item.skuId), lower: 0, upper: maxPacksPerSku, integer: true, cost: Math.round(packCost * 1e6) / 1e6 });
+    const caps = portionCaps[item.skuId] ?? {};
+    // No more whole packs than the household can eat between them.
+    const canEat = Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0);
+    const packUpper = members.length ? Math.min(maxPacksPerSku, Math.floor(canEat + 1e-9)) : maxPacksPerSku;
+    columns.push({ name: packsName(item.skuId), lower: 0, upper: packUpper, integer: true, cost: Math.round(packCost * 1e6) / 1e6 });
     const eaten = { name: `eaten_${item.skuId}`, lower: 0, upper: 0, coefficients: { [packsName(item.skuId)]: -1 } };
     for (const m of members) {
-      columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper: maxPacksPerSku, integer: false, cost: 0 });
+      const upper = Math.min(maxPacksPerSku, caps[m.id]?.packs ?? maxPacksPerSku);
+      columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper, integer: false, cost: 0 });
       eaten.coefficients[eatsName(item.skuId, m.id)] = 1;
     }
     rows.push(eaten);
@@ -260,6 +399,9 @@ export function buildPlanModel({
       qualityTiebreak,
       spendTiebreak,
       removedByShopper: [...removed],
+      portionRule: PORTION_RULE.version,
+      portionRelax,
+      portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),
     },
   };
 }

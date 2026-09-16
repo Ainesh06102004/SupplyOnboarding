@@ -81,6 +81,41 @@ export function materiallyShort(report, share = MATERIAL_SHORTFALL) {
 /** A miss smaller than this is arithmetic noise, not a shortfall. */
 export const TOLERANCE = 0.5;
 
+/** A share within this fraction of its ceiling is at the ceiling (solver tolerance). */
+const AT_LIMIT = 0.001;
+
+/**
+ * Where the portion ceiling decided the plan (model.js PORTION_RULE): every
+ * product some member was planned right up to their limit of, and that limit
+ * a day. A plan short of a target while rice is at its limit was held back by
+ * the rule, not by price, and the shopper is told which.
+ *
+ * @param {object} input
+ * @param {object} input.meta the model's meta (portionCaps)
+ * @param {object} input.solution from solvePlanModel()
+ * @param {Array} input.catalogue the rows that were planned with
+ * @param {Array} input.members from memberFor()
+ * @returns {Array<{ skuId, name, members: Array<{ member, label, perDay, unit, basis }> }>}
+ */
+export function atPortionLimit({ meta = {}, solution = {}, catalogue = [], members = [] }) {
+  const caps = meta.portionCaps ?? {};
+  const nameOf = new Map(catalogue.map((i) => [String(i.skuId), i.name ?? null]));
+  const labelOf = new Map(members.map((m) => [String(m.id), m.label ?? null]));
+  const limited = [];
+  for (const [skuId, byMember] of Object.entries(solution.eats ?? {})) {
+    const held = [];
+    for (const [memberId, amount] of Object.entries(byMember ?? {})) {
+      const cap = caps[skuId]?.[memberId];
+      if (!cap || !(cap.packs > 0) || !(Number(amount) > 0)) continue;
+      if (Number(amount) >= cap.packs * (1 - AT_LIMIT)) {
+        held.push({ member: memberId, label: labelOf.get(memberId) ?? null, perDay: cap.perDay, unit: cap.unit, basis: cap.basis });
+      }
+    }
+    if (held.length) limited.push({ skuId, name: nameOf.get(String(skuId)) ?? null, members: held });
+  }
+  return limited;
+}
+
 /**
  * @param {object} input
  * @param {Array} input.members from memberFor()

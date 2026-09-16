@@ -6,7 +6,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { planReport, basketDiff, materiallyShort, TOLERANCE } from "@/lib/planner/report.js";
+import { planReport, basketDiff, materiallyShort, atPortionLimit, TOLERANCE } from "@/lib/planner/report.js";
+
+test("a plan says which products the portion ceiling held back, and for whom", () => {
+  const meta = {
+    portionCaps: {
+      rice: {
+        me: { packs: 1.26, basis: "reference_portion", perDay: 180, unit: "g" },
+        kid: { packs: 0.882, basis: "reference_portion", perDay: 126, unit: "g" },
+      },
+      mix: { me: { packs: 2.849, basis: "energy_share", perDay: 200, unit: "kcal" } },
+    },
+  };
+  const limited = atPortionLimit({
+    meta,
+    // Me at the ceiling (within solver tolerance), the kid under it, the mix under it.
+    solution: { eats: { rice: { me: 1.2599, kid: 0.5 }, mix: { me: 1 } } },
+    catalogue: [{ skuId: "rice", name: "Rice" }, { skuId: "mix", name: "Golden Milk Mix" }],
+    members: [{ id: "me", label: "Me" }, { id: "kid", label: "Kid 1" }],
+  });
+  assert.deepEqual(limited, [
+    { skuId: "rice", name: "Rice", members: [{ member: "me", label: "Me", perDay: 180, unit: "g", basis: "reference_portion" }] },
+  ]);
+  assert.deepEqual(atPortionLimit({ meta: {}, solution: { eats: { rice: { me: 5 } } } }), [], "no ceiling recorded, nothing claimed");
+});
 
 test("a plan more than 5% short of any target has not met its brief", () => {
   const report = (short, asked) => ({ perMember: [{ asked: { protein: asked }, shortfall: short ? { protein: short } : {} }] });

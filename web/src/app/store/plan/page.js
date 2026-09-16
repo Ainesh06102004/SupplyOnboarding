@@ -15,6 +15,11 @@
 // Members are described by the person filling this in: a label they choose, an
 // age band, a diet, what to avoid, and targets they state. No names, no dates
 // of birth, and nothing is tracked against anyone — see migration 00044.
+//
+// ONE HOUSEHOLD. The shopper's latest saved household opens in the form, and
+// "Plan it" saves changes to that same household before planning: members
+// are updated, added or removed, and avoids replaced. It used to insert a new
+// household on every click, so each retry left another copy behind.
 // ============================================================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -48,8 +53,84 @@ const blankMember = () => ({
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 
+/** Stored members as form rows, in the order they were added. */
+const membersFrom = (rows) => [...rows]
+  .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.label).localeCompare(String(b.label)))
+  .map((row) => ({
+    key: row.id,
+    memberId: row.id,
+    label: row.label ?? "",
+    age_band: row.age_band ?? "adult_19_59",
+    diet_type: row.diet_type ?? "vegetarian",
+    target_kcal: row.target_kcal ?? "",
+    target_protein_g: row.target_protein_g ?? "",
+    avoidKeys: (row.household_member_avoid ?? []).map((a) => a.avoid_key),
+  }));
+
+/** "Rice (Me 180 g, Partner 162 g)" — what the portion ceiling held, a day. */
+const describeLimit = (limit) =>
+  `${limit.name ?? "A product"} (${limit.members.map((m) => `${m.label ?? "someone"} ${m.perDay ?? "?"} ${m.unit ?? ""}`.trim()).join(", ")})`;
+
+/**
+ * Save the form to the shopper's household, creating it only if there is none.
+ * Row-level security ties every row to this account (migration 00044).
+ * @returns {Promise<{ householdId: string, saved: Array<{ key, memberId }> }>}
+ */
+async function saveHousehold(supabase, householdId, members) {
+  let id = householdId;
+  if (!id) {
+    const { data, error } = await supabase.from("household").insert({ label: "My household" }).select("id").single();
+    if (error) throw error;
+    id = data.id;
+  }
+
+  const { data: stored, error: readError } = await supabase.from("household_member").select("id").eq("household_id", id);
+  if (readError) throw readError;
+  const storedIds = new Set((stored ?? []).map((r) => r.id));
+  const kept = new Set(members.map((m) => m.memberId).filter(Boolean));
+  const gone = [...storedIds].filter((memberId) => !kept.has(memberId));
+  if (gone.length) {
+    // Their avoids go with them (ON DELETE CASCADE). Past plans keep their own snapshot.
+    const { error } = await supabase.from("household_member").delete().in("id", gone);
+    if (error) throw error;
+  }
+
+  const saved = [];
+  // One at a time, so each new member's created_at keeps the form's order.
+  for (const m of members) {
+    const row = {
+      label: m.label.trim(),
+      age_band: m.age_band,
+      diet_type: m.diet_type,
+      target_kcal: num(m.target_kcal),
+      target_protein_g: num(m.target_protein_g),
+    };
+    if (m.memberId && storedIds.has(m.memberId)) {
+      const { error } = await supabase.from("household_member").update(row).eq("id", m.memberId);
+      if (error) throw error;
+      saved.push({ key: m.key, memberId: m.memberId });
+    } else {
+      const { data, error } = await supabase.from("household_member").insert({ ...row, household_id: id }).select("id").single();
+      if (error) throw error;
+      saved.push({ key: m.key, memberId: data.id });
+    }
+  }
+
+  // Avoids are replaced outright: the form is what the shopper means now.
+  const memberIds = saved.map((s) => s.memberId);
+  const { error: clearError } = await supabase.from("household_member_avoid").delete().in("member_id", memberIds);
+  if (clearError) throw clearError;
+  const avoidRows = members.flatMap((m, i) => m.avoidKeys.map((avoid_key) => ({ member_id: saved[i].memberId, avoid_key })));
+  if (avoidRows.length) {
+    const { error } = await supabase.from("household_member_avoid").insert(avoidRows);
+    if (error) throw error;
+  }
+  return { householdId: id, saved };
+}
+
 export default function PlanPage() {
   const [session, setSession] = useState(undefined);
+  const [householdId, setHouseholdId] = useState(null);
   const [members, setMembers] = useState([blankMember()]);
   const [days, setDays] = useState(7);
   const [budget, setBudget] = useState("");
@@ -77,7 +158,28 @@ export default function PlanPage() {
 
   useEffect(() => {
     const supabase = getSupabaseClient();
-    supabase.auth.getUser().then(({ data }) => setSession(data?.user ?? null));
+    let live = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user ?? null;
+      if (user) {
+        // The latest household this shopper saved, so planning again edits it.
+        const { data: household, error: loadError } = await supabase
+          .from("household")
+          .select("id, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, created_at, household_member_avoid(avoid_key))")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!live) return;
+        if (loadError) setError("Your saved household could not be loaded. Planning now will save a new one.");
+        if (household) {
+          setHouseholdId(household.id);
+          if (household.household_member?.length) setMembers(membersFrom(household.household_member));
+        }
+      }
+      if (live) setSession(user);
+    })();
+    return () => { live = false; };
   }, []);
 
   const ready = useMemo(
@@ -96,40 +198,19 @@ export default function PlanPage() {
     setBusy(true);
     setError(null);
     setPlan(null);
+    setWithout({});
     try {
       const supabase = getSupabaseClient();
-      // The household and its members are written as the signed-in shopper;
-      // row-level security ties them to this account (migration 00044).
-      const { data: household, error: householdError } = await supabase
-        .from("household")
-        .insert({ label: "My household" })
-        .select("id")
-        .single();
-      if (householdError) throw householdError;
-
-      const { data: saved, error: memberError } = await supabase
-        .from("household_member")
-        .insert(members.map((m) => ({
-          household_id: household.id,
-          label: m.label.trim(),
-          age_band: m.age_band,
-          diet_type: m.diet_type,
-          target_kcal: num(m.target_kcal),
-          target_protein_g: num(m.target_protein_g),
-        })))
-        .select("id");
-      if (memberError) throw memberError;
-
-      const avoidRows = members.flatMap((m, i) => m.avoidKeys.map((avoid_key) => ({ member_id: saved[i].id, avoid_key })));
-      if (avoidRows.length) {
-        const { error: avoidError } = await supabase.from("household_member_avoid").insert(avoidRows);
-        if (avoidError) throw avoidError;
-      }
+      const { householdId: id, saved } = await saveHousehold(supabase, householdId, members);
+      setHouseholdId(id);
+      // Each form row now knows which stored member it is.
+      const idOf = new Map(saved.map((s) => [s.key, s.memberId]));
+      setMembers((list) => list.map((m) => (idOf.has(m.key) ? { ...m, memberId: idOf.get(m.key) } : m)));
 
       const response = await fetch("/api/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ householdId: household.id, days: Number(days), budget: num(budget) }),
+        body: JSON.stringify({ householdId: id, days: Number(days), budget: num(budget) }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error ?? "The plan could not be built.");
@@ -161,8 +242,14 @@ export default function PlanPage() {
       <h1 className="text-2xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Plan the week</h1>
       <p className="mt-2 text-[13px] leading-relaxed text-[#5A6B5A]">
         Who is eating, what each of them is aiming at, and what to avoid. KOI plans whole packs from its own screened
-        catalogue: nobody is given something they avoid, and you are told exactly what the plan could not manage.
+        catalogue: nobody is given something they avoid, nobody is planned more of one food than a realistic day&apos;s
+        servings, and you are told exactly what the plan could not manage.
       </p>
+      {householdId && (
+        <p className="mt-2 text-[11.5px] text-[#16A06E]">
+          This is your saved household. Changes are saved to it each time you plan.
+        </p>
+      )}
 
       <section className="mt-8 space-y-4">
         {members.map((m, i) => (
@@ -359,6 +446,23 @@ export default function PlanPage() {
               )}
               {plan.explanation.products_not_plannable.length > 0 && (
                 <li>{plan.explanation.products_not_plannable.length} products KOI cannot plan with yet (no price, or a pack it cannot measure)</li>
+              )}
+              {(plan.explanation.products_priced_out ?? []).length > 0 && (
+                <li>
+                  Left out because their nutrition costs far more than the rest of the catalogue:{" "}
+                  {plan.explanation.products_priced_out.map((p) => p.name ?? "a product").join(", ")}
+                </li>
+              )}
+              {(plan.explanation.products_too_big ?? []).length > 0 && (
+                <li>
+                  Packs too big to finish in {plan.days} days:{" "}
+                  {plan.explanation.products_too_big.map((p) => p.name ?? "a product").join(", ")}
+                </li>
+              )}
+              {(plan.explanation.portion_limited ?? []).length > 0 && (
+                <li>
+                  Held to a day&apos;s portions: {plan.explanation.portion_limited.map(describeLimit).join("; ")}
+                </li>
               )}
               {plan.explanation.unmet.length > 0 && (
                 <li>Short: {plan.explanation.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}</li>
