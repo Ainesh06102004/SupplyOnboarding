@@ -6,7 +6,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { categorise, nodeInfo, NODES, PORTIONS, TAXONOMY_VERSION } from "@/lib/food/taxonomy.js";
+import { categorise, nodeInfo, occasionsOf, servesOccasion, NODES, PORTIONS, TAXONOMY_VERSION } from "@/lib/food/taxonomy.js";
+
+test("occasions come from the category, and a category without its own takes its aisle's", () => {
+  assert.ok(servesOccasion("snacks.bars", "post_workout"));
+  assert.ok(servesOccasion("staples.rice", "lunch"), "rice takes Staples' occasions");
+  assert.ok(servesOccasion("snacks.biscuits_cookies", "breakfast"));
+  assert.ok(!servesOccasion("snacks.chips_crisps", "breakfast"));
+  assert.deepEqual(occasionsOf(null), []);
+  assert.equal(nodeInfo("nuts_seeds.nuts").role, "snack");
+  assert.equal(nodeInfo("nuts_seeds.nut_butters").role, "spread");
+});
 import { isClaimSafeText } from "@/lib/nutrition/claims.js";
 import { toPerRealisticServing } from "@/lib/nutrition/basis.js";
 

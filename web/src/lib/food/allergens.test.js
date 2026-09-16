@@ -82,6 +82,18 @@ test("additives raise the shopper filters they belong to, and only those", () =>
   assert.deepEqual(ingredientFlagsIn("Titanium Dioxide"), ["artificial_colour"]);
 });
 
+test("the last keyword flags come from the graph: meat, caffeine, root vegetables, spicy", () => {
+  assert.deepEqual(ingredientFlagsIn("Rice Flour, Red Chilli Powder, Salt"), ["spicy"]);
+  assert.deepEqual(ingredientFlagsIn("Madras Mixture"), ["spicy"], "a product word");
+  assert.deepEqual(ingredientFlagsIn("Onion, Garlic, Green Tea"), ["caffeine", "root_veg"]);
+  assert.deepEqual(ingredientFlagsIn("Sweet Potato Chips"), ["root_veg"]);
+  assert.deepEqual(ingredientFlagsIn("Chicken Tikka"), ["meat"]);
+  assert.deepEqual(ingredientFlagsIn("Mutton Keema"), ["meat", "red_meat"]);
+  assert.deepEqual(ingredientFlagsIn("Gelatin"), ["meat"]);
+  assert.deepEqual(ingredientFlagsIn("Palmolein"), ["palm_oil"]);
+  assert.deepEqual(ingredientFlagsIn("Steamed Rice"), [], "whole words: no tea in steamed");
+});
+
 test("statements name groups, and 'peanuts' does not declare tree nuts", () => {
   assert.deepEqual(allergensInStatement("Contains tree nuts and crustaceans").sort(), ["shellfish", "tree_nut"]);
   assert.deepEqual(allergensInStatement("Contains peanuts"), ["peanut"]);

@@ -33,9 +33,24 @@
 // ============================================================================
 
 import { buildIndex, scan } from "./phrases";
-import { NODES, TERMS, PORTIONS, TAXONOMY_VERSION } from "./taxonomyData";
+import { NODES, TERMS, PORTIONS, OCCASIONS, TAXONOMY_VERSION } from "./taxonomyData";
 
 export { NODES, PORTIONS, TAXONOMY_VERSION };
+
+/**
+ * The meal occasions a category serves (the storefront's MEALS keys), from
+ * food.category_occasion. A category without its own takes its aisle's.
+ * Since Phase 2.4 this replaces MEAL_MATCH's substring lists.
+ * @param {string|null} key
+ * @returns {string[]}
+ */
+export function occasionsOf(key) {
+  if (!key) return [];
+  return OCCASIONS[key] ?? OCCASIONS[key.split(".")[0]] ?? [];
+}
+
+/** @param {string|null} key @param {string} occasion @returns {boolean} */
+export const servesOccasion = (key, occasion) => occasionsOf(key).includes(occasion);
 
 const INDEX = buildIndex(TERMS.map(([term, key, kind]) => [term, { key, term, kind }]));
 
@@ -69,6 +84,9 @@ export function nodeInfo(key) {
     aisleKey,
     aisle: NODES[aisleKey]?.label ?? node.label,
     subcategory: key === aisleKey ? null : node.label,
+    // What it is in a meal (snack, meal_base, drink...), set on aisles.
+    role: node.role ?? NODES[aisleKey]?.role ?? null,
+    occasions: occasionsOf(key),
     // { amount, unit, max, measure } or null: 21 CFR 101.12 reference amounts,
     // recorded only where one exists for the category.
     portion: PORTIONS[key] ?? null,

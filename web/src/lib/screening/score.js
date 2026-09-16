@@ -45,10 +45,19 @@
 import { toPer100 } from "@/lib/nutrition/basis";
 import { THRESHOLDS } from "@/lib/recommendation/config";
 import { isHighProtein, isHighFibre, guardClaims, CLAIM_RULE_VERSION } from "@/lib/nutrition/claims";
+import { processingOf } from "@/lib/food/processing";
 
-export const RUBRIC_VERSION = "koi-screen-v2";
+export const RUBRIC_VERSION = "koi-screen-v3";
 
-export const WEIGHTS = Object.freeze({ ingredients: 0.35, nutrition: 0.45 });
+// Processing takes the 20% the rubric always reserved for it (koi-screen-v3,
+// Phase 2.4). It is scored only from a complete ingredient list; without one
+// the other parts are reweighted, as the ingredient part already was.
+export const WEIGHTS = Object.freeze({ ingredients: 0.35, nutrition: 0.45, processing: 0.2 });
+
+// NOVA group -> points. KOI editorial: a processed culinary ingredient such as
+// honey or ghee is not held against a food meant to be cooked with, and an
+// ultra-processed product is held well below a processed one.
+export const PROCESSING_POINTS = Object.freeze({ 1: 100, 2: 85, 3: 70, 4: 30 });
 export const CLAIM_PENALTY = Object.freeze({ each: 10, max: 30 });
 export const NO_LIST_CAP = 75;
 // Verdict bands from the onboarding documentation.
@@ -209,11 +218,16 @@ export function screen({ nutrition, label, claims, index }) {
   const hasList = Boolean(label && FULL_LIST.includes(label.evidence) && Array.isArray(label.parsed) && label.parsed.length);
   const ing = hasList ? ingredientScore(label.parsed, index) : { score: null, reason: "No full ingredient list has been read yet." };
   const c = claimScore(claims, nutrition);
+  // How processed, from the printed list (or the parsed names when the text is
+  // not at hand).
+  const nova = hasList ? processingOf(label.text ?? label.parsed.map((p) => p?.name ?? "").join(", ")) : null;
+  const processingScore = nova?.group ? PROCESSING_POINTS[nova.group] : null;
 
   let final = null;
   let capped = false;
   if (n.score !== null) {
-    const parts = [[ing.score, WEIGHTS.ingredients], [n.score, WEIGHTS.nutrition]].filter(([s]) => s !== null);
+    const parts = [[ing.score, WEIGHTS.ingredients], [n.score, WEIGHTS.nutrition], [processingScore, WEIGHTS.processing]]
+      .filter(([s]) => s !== null);
     const weight = parts.reduce((sum, [, w]) => sum + w, 0);
     let base = parts.reduce((sum, [s, w]) => sum + s * w, 0) / weight;
     if (!hasList && base > NO_LIST_CAP) { base = NO_LIST_CAP; capped = true; }
@@ -228,7 +242,7 @@ export function screen({ nutrition, label, claims, index }) {
   return {
     ingredient_score: ing.score,
     nutrition_score: n.score,
-    processing_score: null,
+    processing_score: processingScore,
     final_score: final,
     verdict,
     scoring: {
@@ -242,7 +256,9 @@ export function screen({ nutrition, label, claims, index }) {
       nutrition: n,
       ingredients: ing,
       claims: c,
-      processing: "Not scored until NOVA groups exist (Phase 2).",
+      processing: nova
+        ? { nova_group: nova.group, points: processingScore, markers: nova.markers, culinary: nova.culinary, processed: nova.processed, unclassified_additives: nova.unclassifiedAdditives, version: nova.version }
+        : "Not scored without a complete ingredient list.",
     },
   };
 }

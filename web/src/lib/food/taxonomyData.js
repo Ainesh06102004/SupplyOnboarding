@@ -5,165 +5,204 @@
 // 39 categories, 246 names, 24 reference portions.
 // ============================================================================
 
-export const TAXONOMY_VERSION = "1a6d1b783765";
+export const TAXONOMY_VERSION = "c5cdc763920b";
 
-// key -> { label, parent }
+// key -> { label, parent, role }: role is set on aisles and inherited
 export const NODES = {
   "beverages": {
     "label": "Drinks",
-    "parent": null
+    "parent": null,
+    "role": "drink"
   },
   "beverages.drink_mixes": {
     "label": "Drink mixes",
-    "parent": "beverages"
+    "parent": "beverages",
+    "role": null
   },
   "beverages.ready_to_drink": {
     "label": "Juices & ready-to-drink",
-    "parent": "beverages"
+    "parent": "beverages",
+    "role": null
   },
   "beverages.tea_coffee": {
     "label": "Tea & coffee",
-    "parent": "beverages"
+    "parent": "beverages",
+    "role": null
   },
   "fats_oils": {
     "label": "Oils & ghee",
-    "parent": null
+    "parent": null,
+    "role": "cooking"
   },
   "fats_oils.ghee": {
     "label": "Ghee",
-    "parent": "fats_oils"
+    "parent": "fats_oils",
+    "role": null
   },
   "fats_oils.oils": {
     "label": "Cooking oils",
-    "parent": "fats_oils"
+    "parent": "fats_oils",
+    "role": null
   },
   "nuts_seeds": {
     "label": "Nuts, seeds & dried fruit",
-    "parent": null
+    "parent": null,
+    "role": "snack"
   },
   "nuts_seeds.dried_fruit": {
     "label": "Dried fruit",
-    "parent": "nuts_seeds"
+    "parent": "nuts_seeds",
+    "role": null
   },
   "nuts_seeds.mixes": {
     "label": "Nut & dried fruit mixes",
-    "parent": "nuts_seeds"
+    "parent": "nuts_seeds",
+    "role": null
   },
   "nuts_seeds.nut_butters": {
     "label": "Nut butters",
-    "parent": "nuts_seeds"
+    "parent": "nuts_seeds",
+    "role": "spread"
   },
   "nuts_seeds.nuts": {
     "label": "Nuts",
-    "parent": "nuts_seeds"
+    "parent": "nuts_seeds",
+    "role": null
   },
   "nuts_seeds.seeds": {
     "label": "Seeds",
-    "parent": "nuts_seeds"
+    "parent": "nuts_seeds",
+    "role": null
   },
   "snacks": {
     "label": "Snacks",
-    "parent": null
+    "parent": null,
+    "role": "snack"
   },
   "snacks.assortments": {
     "label": "Assortments & combos",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "snacks.bars": {
     "label": "Snack bars",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "snacks.biscuits_cookies": {
     "label": "Biscuits & cookies",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "snacks.cakes": {
     "label": "Cakes & muffins",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "snacks.chips_crisps": {
     "label": "Chips & crisps",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "snacks.namkeen": {
     "label": "Namkeen & mixtures",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "snacks.puffs": {
     "label": "Puffs, crispies & makhana",
-    "parent": "snacks"
+    "parent": "snacks",
+    "role": null
   },
   "spices": {
     "label": "Spices & condiments",
-    "parent": null
+    "parent": null,
+    "role": "cooking"
   },
   "spices.pickles_sauces": {
     "label": "Pickles, chutneys & sauces",
-    "parent": "spices"
+    "parent": "spices",
+    "role": null
   },
   "spices.spices": {
     "label": "Spices & masalas",
-    "parent": "spices"
+    "parent": "spices",
+    "role": null
   },
   "staples": {
     "label": "Staples",
-    "parent": null
+    "parent": null,
+    "role": "meal_base"
   },
   "staples.breakfast_cereals": {
     "label": "Oats & breakfast cereals",
-    "parent": "staples"
+    "parent": "staples",
+    "role": null
   },
   "staples.flours": {
     "label": "Flours & atta",
-    "parent": "staples"
+    "parent": "staples",
+    "role": null
   },
   "staples.millets": {
     "label": "Millets & other grains",
-    "parent": "staples"
+    "parent": "staples",
+    "role": null
   },
   "staples.pulses": {
     "label": "Dals & pulses",
-    "parent": "staples"
+    "parent": "staples",
+    "role": null
   },
   "staples.rice": {
     "label": "Rice & poha",
-    "parent": "staples"
+    "parent": "staples",
+    "role": null
   },
   "supplements": {
     "label": "Protein & supplements",
-    "parent": null
+    "parent": null,
+    "role": "supplement"
   },
   "supplements.protein_powder": {
     "label": "Protein powders",
-    "parent": "supplements"
+    "parent": "supplements",
+    "role": null
   },
   "sweeteners": {
     "label": "Honey, jaggery & sugar",
-    "parent": null
+    "parent": null,
+    "role": "cooking"
   },
   "sweeteners.honey": {
     "label": "Honey",
-    "parent": "sweeteners"
+    "parent": "sweeteners",
+    "role": null
   },
   "sweeteners.jaggery": {
     "label": "Jaggery",
-    "parent": "sweeteners"
+    "parent": "sweeteners",
+    "role": null
   },
   "sweeteners.sugar": {
     "label": "Sugar",
-    "parent": "sweeteners"
+    "parent": "sweeteners",
+    "role": null
   },
   "sweets": {
     "label": "Sweets & chocolate",
-    "parent": null
+    "parent": null,
+    "role": "sweet"
   },
   "sweets.chocolate": {
     "label": "Chocolate",
-    "parent": "sweets"
+    "parent": "sweets",
+    "role": null
   },
   "sweets.indian_sweets": {
     "label": "Indian sweets",
-    "parent": "sweets"
+    "parent": "sweets",
+    "role": null
   }
 };
 
@@ -317,3 +356,6 @@ export const PORTIONS = {
     "measure": null
   }
 };
+
+// category key -> meal occasions it serves (MEALS keys); a category without its own takes its aisle's
+export const OCCASIONS = {"beverages.drink_mixes":["breakfast","late_night"],"beverages.ready_to_drink":["snacks"],"beverages.tea_coffee":["breakfast","pre_workout"],"fats_oils":["dinner","lunch"],"nuts_seeds":["office_snacks","snacks"],"nuts_seeds.dried_fruit":["breakfast","pre_workout","snacks"],"nuts_seeds.mixes":["office_snacks","post_workout","snacks"],"nuts_seeds.nut_butters":["breakfast","post_workout"],"nuts_seeds.nuts":["late_night","office_snacks","post_workout","snacks"],"nuts_seeds.seeds":["breakfast"],"snacks":["office_snacks","snacks"],"snacks.assortments":["office_snacks","snacks"],"snacks.bars":["office_snacks","post_workout","pre_workout","snacks"],"snacks.biscuits_cookies":["breakfast","late_night","office_snacks","snacks"],"snacks.cakes":["late_night","snacks"],"snacks.chips_crisps":["office_snacks","snacks"],"snacks.namkeen":["office_snacks","snacks"],"snacks.puffs":["office_snacks","snacks"],"spices":["dinner","lunch"],"staples":["dinner","lunch"],"staples.breakfast_cereals":["breakfast"],"staples.millets":["breakfast","dinner","lunch"],"supplements.protein_powder":["breakfast","post_workout"],"sweeteners.honey":["breakfast"],"sweets":["late_night","snacks"]};

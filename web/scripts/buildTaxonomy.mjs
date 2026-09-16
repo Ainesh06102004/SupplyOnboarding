@@ -19,7 +19,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { normalise } from "@/lib/food/normalise.js";
-import { isClaimSafeText } from "@/lib/nutrition/claims.js";
+
+// The claim words a category label must not carry. Checked again by the
+// database (food.taxonomy_node's label constraint) and by
+// src/lib/food/taxonomy.test.js through claims.js#isClaimSafeText — which this
+// script cannot import, because claims.js reads the file this script writes.
+const CLAIMISH = /health|immun|diabet|detox|boost|superfood|\bcure|\bheal/i;
 
 const CHECK = process.argv.includes("--check");
 const OUT = path.resolve(process.cwd(), "src", "lib", "food", "taxonomyData.js");
@@ -39,15 +44,16 @@ async function read(query) {
   return res.json();
 }
 
-const [nodes, terms, portions] = await Promise.all([
-  read("taxonomy_node?select=key,parent_key,label&order=key"),
+const [nodes, terms, portions, occasions] = await Promise.all([
+  read("taxonomy_node?select=key,parent_key,label,meal_role&order=key"),
   read("taxonomy_term?select=term,node_key,kind&order=term"),
   read("portion_norm?select=node_key,reference_amount,unit,plausible_max,household_measure&order=node_key"),
+  read("category_occasion?select=node_key,occasion&order=node_key,occasion"),
 ]);
 
 const problems = [];
 for (const n of nodes) {
-  if (!isClaimSafeText(n.label)) problems.push(`label "${n.label}" (${n.key}) reads as a claim`);
+  if (CLAIMISH.test(n.label)) problems.push(`label "${n.label}" (${n.key}) reads as a claim`);
 }
 
 // A name's owner is its category and its kind (form, ingredient, marker,
@@ -68,7 +74,9 @@ if (problems.length) {
   process.exit(1);
 }
 
-const NODES = Object.fromEntries(nodes.map((n) => [n.key, { label: n.label, parent: n.parent_key }]));
+const NODES = Object.fromEntries(nodes.map((n) => [n.key, { label: n.label, parent: n.parent_key, role: n.meal_role }]));
+const OCCASIONS = {};
+for (const { node_key: key, occasion } of occasions) (OCCASIONS[key] ??= []).push(occasion);
 const TERMS = [...owners.entries()]
   .sort((a, b) => a[0].localeCompare(b[0]))
   .map(([name, owner]) => {
@@ -82,7 +90,7 @@ const PORTIONS = Object.fromEntries(portions.map((p) => [p.node_key, {
   measure: p.household_measure,
 }]));
 
-const data = { NODES, TERMS, PORTIONS };
+const data = { NODES, TERMS, PORTIONS, OCCASIONS };
 const version = createHash("sha256").update(JSON.stringify(data)).digest("hex").slice(0, 12);
 
 const file = `// ============================================================================
@@ -94,7 +102,7 @@ const file = `// ===============================================================
 
 export const TAXONOMY_VERSION = ${JSON.stringify(version)};
 
-// key -> { label, parent }
+// key -> { label, parent, role }: role is set on aisles and inherited
 export const NODES = ${JSON.stringify(NODES, null, 2)};
 
 // [normalised name, category key or null, kind: form | ingredient | marker | ignore]
@@ -102,6 +110,9 @@ export const TERMS = ${JSON.stringify(TERMS)};
 
 // category key -> { amount, unit, max, measure }: 21 CFR 101.12 reference amounts
 export const PORTIONS = ${JSON.stringify(PORTIONS, null, 2)};
+
+// category key -> meal occasions it serves (MEALS keys); a category without its own takes its aisle's
+export const OCCASIONS = ${JSON.stringify(OCCASIONS)};
 `;
 
 if (CHECK) {

@@ -80,8 +80,8 @@ const MEAL_PHRASES = {
   office_snacks: ["office snack", "office", "desk snack", "work snack"],
 };
 
-// Curated rather than derived from CONTAINS_KEYWORDS. That catalog maps flags to
-// product-label signals, so borrowing it wholesale would read "no chicken" as
+// Curated rather than derived from the ingredient graph's flags. Those map
+// ingredients to flags, so borrowing them wholesale would read "no chicken" as
 // the whole `meat` flag and quietly exclude fish and mutton too. A shopper's
 // words deserve a narrower, deliberate mapping.
 const AVOID_PHRASES = {

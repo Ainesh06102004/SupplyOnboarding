@@ -178,6 +178,23 @@ test("peanuts are not tree nuts", () => {
   assert.equal(eligible(product({ goodIngredients: partial("Peanuts") }), { foodsAvoid: ["peanuts"] }), false);
 });
 
+// ── Meat ───────────────────────────────────────────────────────────────────
+
+test("Red Meat means red meat: chicken stays for that shopper, and no meat stays for a vegetarian", () => {
+  const chicken = product({ goodIngredients: partial("Chicken", "Rice") });
+  assert.equal(eligible(chicken, { foodsAvoid: ["red_meat"] }), true);
+  assert.equal(eligible(product({ goodIngredients: partial("Mutton") }), { foodsAvoid: ["red_meat"] }), false);
+  assert.equal(eligible(chicken, { dietType: "vegetarian" }), false);
+  assert.equal(eligible(product({ goodIngredients: partial("Gelatin") }), { dietType: "vegetarian" }), false, "gelatin is made from animals");
+});
+
+test("meal occasions come from the category, not substrings of the name", () => {
+  const facts = (p) => extractFacts(product(p));
+  assert.equal(facts({ name: "Energy Laddubar" }).categoryKey, "snacks.bars");
+  assert.equal(scoreProduct(facts({ name: "Energy Laddubar" }), { mealPrefs: ["post_workout"] }).breakdown.mealMatch > 0, true);
+  assert.equal(scoreProduct(facts({ name: "Barley Rusk" }), { mealPrefs: ["post_workout"] }).breakdown.mealMatch, 0, "'bar' inside barley is not a bar");
+});
+
 // ── Diets ──────────────────────────────────────────────────────────────────
 
 test("Jain is not vegetarian: it excludes root vegetables and honey", () => {

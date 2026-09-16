@@ -420,7 +420,34 @@ VALUES
 ('Artificial Flavouring Substances', '["artificial flavouring substances","artificial flavoring substances","artificial flavouring","artificial flavoring","artificial flavour","artificial flavours","artificial flavor","artificial flavors"]', 'flavouring', 'caution', FALSE,
  'FSSAI labelling class, declared as "Contains added flavour (Artificial flavouring substances)".'),
 ('Nature Identical Flavouring Substances', '["nature identical flavouring substances","nature identical flavoring substances","nature identical flavouring","nature identical flavour","nature identical flavours"]', 'flavouring', 'safe', FALSE,
- 'Made to be chemically identical to natural flavour molecules. FSSAI labels them apart from artificial flavours, and KOI does not count them as artificial.')
+ 'Made to be chemically identical to natural flavour molecules. FSSAI labels them apart from artificial flavours, and KOI does not count them as artificial.'),
+
+-- ── Meat, caffeine, chilli and root vegetables (migration 00041) ────────────
+-- The ingredients the meat, red meat, caffeine, spicy and root vegetable flags
+-- need, which CONTAINS_KEYWORDS used to find as substrings.
+('Chicken', '["chicken"]', 'whole_food', 'safe', FALSE, 'Meat.'),
+('Mutton', '["mutton","goat meat"]', 'whole_food', 'safe', FALSE, 'Red meat.'),
+('Beef', '["beef"]', 'whole_food', 'safe', FALSE, 'Red meat.'),
+('Pork', '["pork","bacon","ham"]', 'whole_food', 'safe', FALSE, 'Red meat.'),
+('Lamb', '["lamb"]', 'whole_food', 'safe', FALSE, 'Red meat.'),
+('Meat', '["meat","meat extract"]', 'whole_food', 'safe', FALSE, 'Meat of an unnamed animal.'),
+('Gelatin', '["gelatin","gelatine"]', 'thickener', 'caution', FALSE, 'Made from animal skin and bone: not vegetarian.'),
+('Chilli', '["chilli","chili","red chilli","green chilli","chilli powder","red chilli powder","chilli flakes","mirchi","lal mirch","kashmiri chilli","cayenne"]', 'whole_food', 'safe', FALSE, 'Makes a product spicy.'),
+('Coffee', '["coffee","instant coffee","coffee powder","espresso","coffee extract"]', 'whole_food', 'safe', FALSE, 'Contains caffeine.'),
+('Tea', '["tea","tea leaves","tea powder","green tea","black tea","tea extract","green tea extract"]', 'whole_food', 'safe', FALSE, 'Contains caffeine.'),
+('Caffeine', '["caffeine","caffeine powder","caffeine anhydrous"]', 'stimulant', 'caution', FALSE, 'Added caffeine.'),
+('Onion', '["onion","onion powder","dehydrated onion","pyaz","pyaaz","kanda"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Garlic', '["garlic","garlic powder","lahsun","lehsun"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Potato', '["potato","potato powder","potato flakes","dehydrated potato","aloo"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Carrot', '["carrot","gajar"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Beetroot', '["beetroot","chukandar"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Radish', '["radish","mooli"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Turnip', '["turnip","shalgam"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Sweet Potato', '["sweet potato","shakarkandi"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Yam', '["yam","suran","jimikand"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Ginger', '["ginger","dry ginger","ginger powder","adrak","sonth"]', 'whole_food', 'safe', FALSE, 'A rhizome. Some Jains accept it dried; a hard diet rule errs toward excluding.'),
+('Shallot', '["shallot"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+('Colocasia', '["colocasia","arbi","taro"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.')
 
 ON CONFLICT (canonical_name) DO UPDATE SET
   aliases             = EXCLUDED.aliases,

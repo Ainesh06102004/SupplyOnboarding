@@ -22,12 +22,13 @@
 // ============================================================================
 
 import { buildIndex, scan } from "./phrases";
-import { FAMILIES, INGREDIENTS, ALIASES, LEXICON_VERSION as GRAPH_VERSION } from "./allergenLexicon";
+import { FAMILIES, INGREDIENTS, ALIASES, ATTRIBUTES, LEXICON_VERSION as GRAPH_VERSION } from "./allergenLexicon";
 
 // Bump when the matching rules below change. The label engine's evaluation
 // gate keys on LEXICON_VERSION, so a new rule pauses label reading until the
 // evaluation passes on it, exactly as a changed graph does.
-const MATCHER_VERSION = "m2";
+// m3: product words (food.attribute_term) raise flags too.
+const MATCHER_VERSION = "m3";
 
 /** The compiled graph and the rules that read it, together. */
 export const LEXICON_VERSION = `${GRAPH_VERSION}-${MATCHER_VERSION}`;
@@ -68,10 +69,20 @@ export function allergensIn(text) {
   return { contains: inFamilyOrder(contains), mayContain: inFamilyOrder(mayContain), ingredients };
 }
 
+const ATTRIBUTE_INDEX = buildIndex(ATTRIBUTES.map(([term, flag]) => [term, { flag }]));
+
+/** Every non-allergen flag the graph can raise. */
+export const FLAG_KEYS = Object.freeze([...new Set([
+  ...INGREDIENTS.flatMap((entry) => entry[2] ?? []),
+  ...ATTRIBUTES.map(([, flag]) => flag),
+])].sort());
+
 /**
- * Shopper filters an ingredient list raises — artificial_colour,
- * preservatives, artificial_sweetener, artificial_flavour — from the
- * ingredients it names ("Colour (INS 102)", "Sodium Benzoate").
+ * Flags product text raises beyond allergens: from the ingredients it names
+ * ("Colour (INS 102)" is an artificial colour, "Onion" a root vegetable,
+ * "Green Tea" caffeine) and from how the product is described ("Masala",
+ * "Chivda" are spicy). Since Phase 2.4 this replaces the CONTAINS_KEYWORDS
+ * substring lists entirely.
  * @param {string} text
  * @returns {string[]}
  */
@@ -80,6 +91,7 @@ export function ingredientFlagsIn(text) {
   for (const hit of scan(text, INGREDIENT_INDEX)) {
     for (const flag of INGREDIENTS[hit.ingredient][2] ?? []) flags.add(flag);
   }
+  for (const hit of scan(text, ATTRIBUTE_INDEX)) flags.add(hit.flag);
   return [...flags].sort();
 }
 

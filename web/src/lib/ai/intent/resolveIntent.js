@@ -142,7 +142,7 @@ export function resolveIntent(products = [], intent = null, storedProfile = null
       if (f.contains.has(flag) || unverifiable) { counters.byAvoid += 1; return false; }
     }
 
-    if (meals.length && !meals.some((m) => mealMatches(f.category, f.haystack, m))) {
+    if (meals.length && !meals.some((m) => mealMatches(f, m))) {
       counters.byMeal += 1;
       return false;
     }

@@ -171,7 +171,9 @@ export const FOODS_AVOID = [
   { key: "eggs", label: "Eggs", emoji: "🥚", flag: "egg", kind: "allergen", mode: "hard" },
   { key: "fish", label: "Fish", emoji: "🐟", flag: "fish", kind: "allergen", mode: "hard" },
   { key: "shellfish", label: "Shellfish", emoji: "🦐", flag: "shellfish", kind: "allergen", mode: "hard" },
-  { key: "red_meat", label: "Red Meat", emoji: "🥩", flag: "meat", kind: "ingredient", mode: "hard" },
+  // `red_meat`, not `meat`: the broader flag removed chicken for a shopper who
+  // only avoids red meat. Diets still exclude all `meat` (DIET_EXCLUSIONS).
+  { key: "red_meat", label: "Red Meat", emoji: "🥩", flag: "red_meat", kind: "ingredient", mode: "hard" },
   { key: "caffeine", label: "Caffeine", emoji: "☕", flag: "caffeine", kind: "ingredient", mode: "hard" },
   { key: "artificial_sweeteners", label: "Artificial Sweeteners", emoji: "🧪", flag: "artificial_sweetener", kind: "attribute", mode: "soft" },
   { key: "palm_oil", label: "Palm Oil", emoji: "🌴", flag: "palm_oil", kind: "ingredient", mode: "soft" },
@@ -217,27 +219,12 @@ export const COOKING = [
   { key: "any", label: "No Preference", emoji: "🤷" },
 ];
 
-// ── Ingredient flag inference: flag → keyword signals (name/tags/ingredients) ──
-// ALLERGENS ARE NOT HERE. Since Phase 2.1 they come from the allergen graph
-// (food.ingredient_allergen, compiled into lib/food/allergens.js), which matches
-// whole ingredient names instead of substrings. What remains are flags the
-// graph does not cover yet.
-export const CONTAINS_KEYWORDS = Object.freeze({
-  meat: ["chicken", "mutton", "beef", "pork", "meat", "lamb"],
-  honey: ["honey"],
-  caffeine: ["coffee", "tea", "caffeine", "espresso"],
-  spicy: ["madras", "spicy", "chilli", "chili", "masala", "mixture", "chivda", "peri"],
-  palm_oil: ["palm oil", "palmolein"],
-  // What a Jain diet excludes beyond meat, fish and egg: vegetables that grow
-  // underground. Ginger is on the list although some Jains accept it dried —
-  // a hard diet rule errs toward excluding. Hindi names for the same reason
-  // tree_nut carries them.
-  root_veg: [
-    "onion", "garlic", "potato", "carrot", "beetroot", "radish", "turnip",
-    "sweet potato", "yam", "ginger", "shallot", "aloo", "pyaz", "pyaaz",
-    "lahsun", "lehsun", "mooli", "arbi",
-  ],
-});
+// ── Flags a product raises ──
+// Not here any more. Allergens (Phase 2.1), additive filters (2.2) and meat,
+// red meat, honey, caffeine, spicy, palm oil and root vegetables (2.4) all come
+// from the ingredient graph, compiled into lib/food/allergens.js, which matches
+// whole names instead of substrings. What a Jain diet excludes as root_veg,
+// ginger included, is recorded on the ingredients in food.ingredient_flag.
 
 // "Free-from" tag signals that CLEAR a flag even if a keyword appears.
 export const CLEAR_TAGS = Object.freeze({
@@ -272,17 +259,6 @@ export const DIET_EXCLUSIONS = Object.freeze({
 // is not verified rather than implying it fits.
 export const LABEL_VERIFIED_DIETS = Object.freeze(["vegan", "jain"]);
 
-// meal → matching categories / keywords
-// Live aisles come from the category tree (lib/food/taxonomy.js): "Staples",
-// "Drinks", "Snacks". "Breakfast", "Pantry", "Meals" and "Beverages" are the
-// curated fallback catalogue's. Phase 2.4 replaces this table with meal roles.
-export const MEAL_MATCH = Object.freeze({
-  breakfast: { categories: ["Breakfast"], keywords: ["oats", "granola", "muesli", "cookie", "honey", "coffee", "cereal"] },
-  lunch: { categories: ["Pantry", "Meals", "Staples"], keywords: ["rice", "meal", "mixture"] },
-  dinner: { categories: ["Pantry", "Meals", "Staples"], keywords: ["rice", "meal"] },
-  snacks: { categories: ["Snacks"], keywords: ["snack", "chivda", "mixture", "cookie", "nut", "crispies", "almond", "bar"] },
-  office_snacks: { categories: ["Snacks"], keywords: ["snack", "nut", "cookie", "bar", "crispies"] },
-  late_night: { categories: ["Snacks"], keywords: ["cookie", "chocolate", "nut"] },
-  pre_workout: { categories: ["Beverages", "Drinks"], keywords: ["coffee", "energy"] },
-  post_workout: { categories: ["Snacks"], keywords: ["protein", "almond", "nut", "bar", "crispies"] },
-});
+// Which meal occasions a product serves is no longer a table here: since
+// Phase 2.4 it comes from the product's category (food.category_occasion,
+// lib/food/taxonomy.js#servesOccasion).

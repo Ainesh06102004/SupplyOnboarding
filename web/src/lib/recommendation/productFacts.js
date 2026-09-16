@@ -4,8 +4,9 @@
 // `facts` object the engine can reason over. Pure, no side effects.
 // ============================================================================
 
-import { CONTAINS_KEYWORDS, CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./config";
-import { allergensIn, ingredientFlagsIn, ALLERGEN_KEYS } from "@/lib/food/allergens";
+import { CLEAR_TAGS, THRESHOLDS, AVAILABILITY } from "./config";
+import { allergensIn, ingredientFlagsIn, ALLERGEN_KEYS, FLAG_KEYS } from "@/lib/food/allergens";
+import { categorise } from "@/lib/food/taxonomy";
 import { isLabelCurrent } from "./verification";
 
 const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
@@ -116,17 +117,15 @@ export function extractFacts(product) {
   // Allergens come from the allergen graph (lib/food/allergens.js): whole
   // words, longest ingredient name first, so "peanut butter" is not milk and
   // "eggless" is not egg. What an ingredient may contain counts as present,
-  // as a may-contain statement does below. The other flags (meat, honey, root
-  // vegetables and the rest) are still keyword lists.
+  // as a may-contain statement does below.
   const graph = allergensIn(haystack);
   const contains = new Set([...graph.contains, ...graph.mayContain]);
-  // Additives raise the preservative, artificial colour, sweetener and
-  // flavour filters (food.ingredient_flag, Phase 2.2). Until then nothing set
-  // those flags, and a shopper avoiding them was never told anything.
+  // Every other flag comes from the same graph (food.ingredient_flag and
+  // food.attribute_term): additives raise the preservative, colour, sweetener
+  // and flavour filters (Phase 2.2); meat, honey, caffeine, palm oil and root
+  // vegetables are ingredients; "spicy" is an ingredient or a product word
+  // (Phase 2.4). The substring lists this replaced found tea in "steamed".
   for (const flag of ingredientFlagsIn(haystack)) contains.add(flag);
-  for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
-    if (anyKeyword(haystack, kws)) contains.add(flag);
-  }
 
   // dietary declarations authoritatively CLEAR flags
   const dl = dietary.map((d) => d.toLowerCase());
@@ -150,9 +149,6 @@ export function extractFacts(product) {
     for (const flag of [...fromLabel.contains, ...fromLabel.mayContain]) contains.add(flag);
     // And a preservative on the label outranks the brand's "No Preservatives".
     for (const flag of ingredientFlagsIn(labelText)) contains.add(flag);
-    for (const [flag, kws] of Object.entries(CONTAINS_KEYWORDS)) {
-      if (anyKeyword(labelText, kws)) contains.add(flag);
-    }
     // "May contain" counts as present. It is the brand saying it cannot rule
     // the allergen out, and a shopper avoiding it has asked KOI to rule it out.
     const declaredFlags = [
@@ -160,7 +156,7 @@ export function extractFacts(product) {
       ...(Array.isArray(label.mayContain) ? label.mayContain : []),
     ];
     for (const declared of declaredFlags) {
-      if (typeof declared === "string" && (ALLERGEN_KEYS.includes(declared) || declared in CONTAINS_KEYWORDS)) contains.add(declared);
+      if (typeof declared === "string" && (ALLERGEN_KEYS.includes(declared) || FLAG_KEYS.includes(declared))) contains.add(declared);
     }
   }
 
@@ -191,6 +187,9 @@ export function extractFacts(product) {
     // The aisle from KOI's category tree, or null. Never a default: an unplaced
     // product called "Snacks" would join snack shelves it was never placed on.
     category: product.category || null,
+    // The category-tree key, which decides meal occasions (lib/food/taxonomy.js).
+    // Live products carry it; anything else is placed the same way here.
+    categoryKey: product.categoryKey ?? categorise({ name: product.name, categoryL1: product.category })?.key ?? null,
     price: toNum(product.price),
     trust: toNum(product.score),
     recommended: !!product.recommended,

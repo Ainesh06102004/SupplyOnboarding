@@ -5,8 +5,9 @@
 // scored list, so the same profile always yields the same shelves.
 // ============================================================================
 
-import { GOAL_PROFILES, THRESHOLDS as T, BUDGET_RANGES, MEAL_MATCH } from "./config";
+import { GOAL_PROFILES, THRESHOLDS as T, BUDGET_RANGES } from "./config";
 import { isHighProtein, isLowSugar, rowFromFacts } from "@/lib/nutrition/claims";
+import { servesOccasion } from "@/lib/food/taxonomy";
 
 /** Recommendation DTO — the only shape the frontend consumes. */
 export const toDTO = (s) => ({
@@ -45,26 +46,23 @@ const byMacro = (key, dir) => (a, b) => {
 };
 
 /**
- * Does a product's category or label text belong to a meal occasion?
+ * Does a product serve a meal occasion?
  *
  * Exported because search narrows by meal as well as shelves do (see
  * `lib/ai/intent/resolveIntent.js`), and both callers must agree on what
  * "breakfast" means. A second definition of that would drift.
  *
- * @param {string} category product category
- * @param {string} haystack lowercased name + brand + tags + ingredients
+ * Decided by the product's category (food.category_occasion). It used to be
+ * substrings of the product text, so "bar" in any name made a post-workout
+ * snack and "energy" a pre-workout one.
+ *
+ * @param {object} facts extractFacts() output, carrying categoryKey
  * @param {string} mealKey a MEALS key
  * @returns {boolean}
  */
-export const mealMatches = (category, haystack, mealKey) => {
-  const m = MEAL_MATCH[mealKey];
-  return Boolean(m && (
-    m.categories.includes(category) ||
-    m.keywords.some((kw) => String(haystack || "").includes(kw))
-  ));
-};
+export const mealMatches = (facts, mealKey) => servesOccasion(facts?.categoryKey ?? null, mealKey);
 
-const matchMeal = (s, mealKey) => mealMatches(s.category, s.facts.haystack, mealKey);
+const matchMeal = (s, mealKey) => mealMatches(s.facts, mealKey);
 
 // Interleave categories so "try something different" feels varied.
 function diverseSample(list) {
@@ -97,7 +95,7 @@ export function buildShelves(ranked, included, profile = {}) {
       by((a, b) => b.raw - a.raw).filter((s) => matchMeal(s, "breakfast"))),
 
     shelf("snacks", "Smart snack swaps", "Better than the vending machine",
-      by((a, b) => b.raw - a.raw).filter((s) => s.category === "Snacks")),
+      by((a, b) => b.raw - a.raw).filter((s) => matchMeal(s, "snacks"))),
 
     (profile.budget && profile.budget !== "any")
       ? shelf("budget", "Under your budget", "Great value for your range",

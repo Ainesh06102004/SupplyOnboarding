@@ -121,11 +121,32 @@ test("a partial list does not count as a full one", () => {
 
 test("a full list and clean figures can reach eligible, and every part is recorded", () => {
   const report = screen({ nutrition: ALMONDS, label: { evidence: "machine_read", parsed: [{ name: "Almond kernels" }] }, claims: [], index: MASTER });
-  // (ingredients 100 x .35 + nutrition 80 x .45) / .80 = 88.75
-  assert.equal(report.final_score, 89);
+  // ingredients 100 x .35 + nutrition 80 x .45 + processing (NOVA 1) 100 x .20 = 91
+  assert.equal(report.final_score, 91);
   assert.equal(report.verdict, "eligible");
+  assert.equal(report.processing_score, 100);
+  assert.equal(report.scoring.processing.nova_group, 1);
+  assert.equal(report.scoring.rubric_version, "koi-screen-v3");
+});
+
+test("an ultra-processed list costs the processing part, and says why", () => {
+  const plain = screen({ nutrition: ALMONDS, label: { evidence: "machine_read", parsed: [{ name: "Almond kernels" }] }, claims: [], index: MASTER });
+  const flavoured = screen({
+    nutrition: ALMONDS,
+    label: { evidence: "machine_read", text: "Almond kernels, Salt, Natural and Nature Identical Flavouring Substances", parsed: [{ name: "Almond kernels" }, { name: "Salt" }, { name: "Natural and Nature Identical Flavouring Substances" }] },
+    claims: [],
+    index: MASTER,
+  });
+  assert.equal(flavoured.processing_score, 30);
+  assert.equal(flavoured.scoring.processing.nova_group, 4);
+  assert.deepEqual(flavoured.scoring.processing.markers, ["nature identical flavouring substance"]);
+  assert.ok(flavoured.final_score < plain.final_score);
+});
+
+test("without a complete list there is no processing score, not a guessed one", () => {
+  const report = screen({ nutrition: ALMONDS, label: null, claims: [], index: MASTER });
   assert.equal(report.processing_score, null);
-  assert.equal(report.scoring.rubric_version, "koi-screen-v2");
+  assert.match(report.scoring.processing, /complete ingredient list/);
 });
 
 test("no nutrition panel means no score and a review verdict", () => {
