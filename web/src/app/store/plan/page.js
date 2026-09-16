@@ -52,6 +52,7 @@ const blankMember = () => ({
 });
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
+const dayCount = (days) => `${days} ${Number(days) === 1 ? "day" : "days"}`;
 
 /** Stored members as form rows, in the order they were added. */
 const membersFrom = (rows) => [...rows]
@@ -365,7 +366,7 @@ export default function PlanPage() {
               {plan.report.summary.products > 0 ? "The basket" : "No basket KOI can stand behind"}
             </h2>
             <p className="mt-1 text-[12px] text-[#5A6B5A]">
-              {plan.report.summary.packs} packs over {plan.days} days · ₹{plan.report.cost}
+              {plan.report.summary.packs} packs over {dayCount(plan.days)} · ₹{plan.report.cost}
               {plan.report.withinBudget === false && " · over your budget"}
               {" · "}solved in {plan.solver.ms} ms by {plan.solver.name} {plan.solver.version}
             </p>
@@ -455,7 +456,7 @@ export default function PlanPage() {
               )}
               {(plan.explanation.products_too_big ?? []).length > 0 && (
                 <li>
-                  Packs too big to finish in {plan.days} days:{" "}
+                  Packs too big to finish in {dayCount(plan.days)}:{" "}
                   {plan.explanation.products_too_big.map((p) => p.name ?? "a product").join(", ")}
                 </li>
               )}
