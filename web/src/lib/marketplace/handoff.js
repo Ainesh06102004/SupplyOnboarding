@@ -34,6 +34,7 @@ import {
 } from "./errors";
 import { AVAILABILITY } from "./types";
 import { pickSubstituteCandidates, keepAvailable } from "@/lib/recommendation/substitutes";
+import { describeEdge } from "@/lib/food/substitutions";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 
 const PLANS = "marketplace_handoff_plan";
@@ -100,6 +101,26 @@ async function attachSubstitutes({ zoneId, rejected, basketSkuIds, profileId = n
     // this same plan has just rejected.
     const excluded = new Set([...basketSkuIds, ...rejected.map((r) => String(r.koiSkuId))]);
 
+    // Why KOI would offer each alternative (food.substitution_edge, Phase 2.5):
+    // the same category, less sugar, more protein, less processed, cheaper per
+    // gram of protein, or without an allergen this line carries. A screen that
+    // offers a replacement without saying why is asking for trust it has not
+    // earned. Failure is not fatal: the ranking below still works.
+    const edgesByFrom = {};
+    try {
+      const { data: edgeRows } = await getServiceClient()
+        .schema("food")
+        .from("substitution_edge")
+        .select("from_sku, to_sku, reason, comparability, basis")
+        .in("from_sku", rejected.map((r) => String(r.koiSkuId)));
+      for (const e of edgeRows ?? []) {
+        const from = (edgesByFrom[String(e.from_sku)] ??= {});
+        (from[String(e.to_sku)] ??= []).push({ reason: e.reason, basis: e.basis, comparability: Number(e.comparability) });
+      }
+    } catch (err) {
+      console.error("attachSubstitutes edges:", err?.message);
+    }
+
     // Rank first, spend second: choose every candidate before asking the
     // provider anything, so the budget is applied to a considered list rather
     // than to whatever the first line happened to want.
@@ -109,7 +130,7 @@ async function attachSubstitutes({ zoneId, rejected, basketSkuIds, profileId = n
       // No profile is loaded here: this runs on the service role, which is not
       // the shopper, and reading their goals would need a second identity.
       // Ranking still uses category and KOI score, which is honest if generic.
-      const picked = pickSubstituteCandidates(target, catalogue, {}, SUBSTITUTES_PER_LINE + 2)
+      const picked = pickSubstituteCandidates(target, catalogue, {}, SUBSTITUTES_PER_LINE + 2, { edges: edgesByFrom[String(r.koiSkuId)] ?? null })
         .filter((p) => p?.skuId && !excluded.has(String(p.skuId)));
       wanted.push({ koiSkuId: String(r.koiSkuId), candidates: picked });
     }
@@ -162,6 +183,8 @@ async function attachSubstitutes({ zoneId, rejected, basketSkuIds, profileId = n
           brand: p.brand ?? null,
           score: p.score ?? null,
           price: p.price ?? null,
+          // At most two reasons, in the order KOI recorded them.
+          why: (p.via ?? []).map((v) => describeEdge(v.reason, v.basis)).filter(Boolean).slice(0, 2),
         })),
       };
     });

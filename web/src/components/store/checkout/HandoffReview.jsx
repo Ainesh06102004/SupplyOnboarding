@@ -205,6 +205,13 @@ export default function HandoffReview({ plan, byId = {}, onCommit, onBack, commi
                               )}
                               <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-[#083D2D]/25 group-hover:text-[#083D2D]/60" />
                             </Link>
+                            {/* Why KOI offers this one: the recorded reason and its
+                                figures (food.substitution_edge), never "healthier". */}
+                            {(s.why ?? []).length > 0 && (
+                              <p className="mt-1 px-3 text-[11px] leading-relaxed text-[#5A6B5A]" style={BODY}>
+                                {s.why.join(" · ")}
+                              </p>
+                            )}
                           </li>
                         ))}
                       </ul>
