@@ -6,7 +6,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { planReport, TOLERANCE } from "@/lib/planner/report.js";
+import { planReport, basketDiff, materiallyShort, TOLERANCE } from "@/lib/planner/report.js";
+
+test("a plan more than 5% short of any target has not met its brief", () => {
+  const report = (short, asked) => ({ perMember: [{ asked: { protein: asked }, shortfall: short ? { protein: short } : {} }] });
+  assert.equal(materiallyShort(report(81, 210)), true);
+  assert.equal(materiallyShort(report(1, 70)), false, "1.4% is close enough");
+  assert.equal(materiallyShort(report(0, 70)), false);
+  assert.equal(materiallyShort({ perMember: [] }), false);
+});
+
+test("taking an item out names a substitute only where KOI holds a reason", () => {
+  const diff = basketDiff({
+    removedSkuId: "ragi",
+    before: [{ skuId: "ragi", name: "Ragi Mix", packs: 3 }, { skuId: "rice", name: "Rice", packs: 8 }, { skuId: "dates", name: "Dates", packs: 1 }],
+    after: [{ skuId: "golden", name: "Golden Milk Mix", packs: 2 }, { skuId: "rice", name: "Rice", packs: 9 }, { skuId: "chips", name: "Chips", packs: 1 }],
+    edges: [{ to_sku: "golden", why: ["35.5 g less sugar per 100 g"] }],
+  });
+  assert.deepEqual(diff.removed, { skuId: "ragi", name: "Ragi Mix", packs: 3 });
+  assert.deepEqual(diff.substitutes, [{ skuId: "golden", name: "Golden Milk Mix", packs: 2, why: ["35.5 g less sugar per 100 g"] }]);
+  assert.deepEqual(diff.added, [{ skuId: "chips", name: "Chips", packs: 1 }], "new, but not called a substitute");
+  assert.deepEqual(diff.changed, [{ skuId: "rice", name: "Rice", from: 8, to: 9 }]);
+  assert.deepEqual(diff.dropped, [{ skuId: "dates", name: "Dates", packs: 1 }]);
+});
 
 const rice = { skuId: "rice", name: "Kalanamak Rice", price: 299, packSize: "1000 g", perPack: { protein: 95, kcal: 3500 } };
 const almonds = { skuId: "almonds", name: "California Almonds", price: 450, packSize: "200 g", perPack: { protein: 34, kcal: 1312 } };

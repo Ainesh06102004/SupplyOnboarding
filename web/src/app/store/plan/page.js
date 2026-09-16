@@ -56,6 +56,24 @@ export default function PlanPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [plan, setPlan] = useState(null);
+  // skuId -> { busy, result, error }: "what if I can't get this?"
+  const [without, setWithout] = useState({});
+
+  async function seeWithout(skuId) {
+    setWithout((w) => ({ ...w, [skuId]: { busy: true } }));
+    try {
+      const response = await fetch("/api/plan/without", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: plan.planId, skuId }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "The plan could not be re-solved.");
+      setWithout((w) => ({ ...w, [skuId]: { result: body } }));
+    } catch (err) {
+      setWithout((w) => ({ ...w, [skuId]: { error: err?.message ?? "Something went wrong." } }));
+    }
+  }
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -265,12 +283,46 @@ export default function PlanPage() {
               {" · "}solved in {plan.solver.ms} ms by {plan.solver.name} {plan.solver.version}
             </p>
             <ul className="mt-3 space-y-1.5">
-              {plan.report.basket.map((line) => (
-                <li key={line.skuId} className="flex items-baseline justify-between gap-3 text-[13px]">
-                  <span className="text-[#0E4032]">{line.packs} × {line.name} <span className="text-[#5A6B5A]">({line.packSize})</span></span>
-                  <span className="font-semibold text-[#0E4032]">₹{line.cost}</span>
-                </li>
-              ))}
+              {plan.report.basket.map((line) => {
+                const w = without[line.skuId];
+                const d = w?.result?.diff;
+                return (
+                  <li key={line.skuId} className="text-[13px]">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[#0E4032]">{line.packs} × {line.name} <span className="text-[#5A6B5A]">({line.packSize})</span></span>
+                      <span className="font-semibold text-[#0E4032]">₹{line.cost}</span>
+                    </div>
+                    {!w && (
+                      <button type="button" onClick={() => seeWithout(line.skuId)}
+                              className="text-[11.5px] font-semibold text-[#16A06E] hover:underline">
+                        Can&apos;t get this?
+                      </button>
+                    )}
+                    {w?.busy && <p className="text-[11.5px] text-[#5A6B5A]">Re-planning without it…</p>}
+                    {w?.error && <p className="text-[11.5px] text-[#B4453C]">{w.error}</p>}
+                    {d && (
+                      <div className="mt-1 rounded-lg bg-[#083D2D]/[0.04] px-3 py-2 text-[12px] text-[#5A6B5A]">
+                        {w.result.status !== "solved" && <p>No plan fits without it.</p>}
+                        {d.substitutes.map((s) => (
+                          <p key={s.skuId}><span className="font-semibold text-[#0E4032]">Instead: {s.packs} × {s.name}</span> — {s.why.join(" · ")}</p>
+                        ))}
+                        {d.added.map((s) => <p key={s.skuId}>Adds {s.packs} × {s.name}</p>)}
+                        {d.changed.map((c) => <p key={c.skuId}>{c.name}: {c.from} → {c.to} packs</p>)}
+                        {d.dropped.map((s) => <p key={s.skuId}>No longer needs {s.name}</p>)}
+                        <p>
+                          New total ₹{w.result.report.cost}
+                          {w.result.report.unmet.length > 0
+                            ? ` · short: ${w.result.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}`
+                            : " · every target still met"}
+                        </p>
+                        {w.result.budget_blocked && (
+                          <p>Meeting the targets without it would take about ₹{w.result.budget_blocked.cost} (₹{w.result.budget_blocked.extra} over budget).</p>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
@@ -310,6 +362,13 @@ export default function PlanPage() {
               )}
               {plan.explanation.unmet.length > 0 && (
                 <li>Short: {plan.explanation.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}</li>
+              )}
+              {plan.explanation.budget_blocked && (
+                <li>
+                  Your budget is what stands in the way: meeting the targets would take about ₹{plan.explanation.budget_blocked.cost}
+                  {" "}(₹{plan.explanation.budget_blocked.extra} more)
+                  {plan.explanation.budget_blocked.unmet.length > 0 && ", and even then some targets stay short"}.
+                </li>
               )}
             </ul>
           </div>

@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost } from "@/lib/planner/model.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
 const cookies = { skuId: "cookies", price: 120, contains: ["gluten", "dairy", "soy", "peanut"], availability: "unknown", perPack: { kcal: 940, protein: 21.8, carbs: 130, fat: 40 } };
@@ -110,6 +110,34 @@ test("the pack cap is the caller's to tighten", () => {
   assert.equal(colNamed(model, nameOf.packs("rice")).upper, 3);
   assert.equal(colNamed(model, nameOf.eats("rice", "me")).upper, 3);
   assert.equal(model.meta.maxPacksPerSku, 3);
+});
+
+test("better-screened food wins a tie, and a tie is all it can win", () => {
+  assert.equal(qualityCost(100), 0);
+  assert.equal(qualityCost(10), 0.09);
+  assert.equal(qualityCost(null), QUALITY_TIEBREAK, "unscored is not assumed good");
+  const model = buildPlanModel({
+    members: [adult],
+    catalogue: [{ ...rice, score: 75 }, { ...cookies, skuId: "mithai", contains: [], score: 10 }],
+    days: 7,
+  });
+  // Quality plus spend: rice 0.025 + ₹299 x 0.0001; mithai 0.09 + ₹120 x 0.0001.
+  assert.equal(colNamed(model, nameOf.packs("rice")).cost, 0.0549);
+  assert.equal(colNamed(model, nameOf.packs("mithai")).cost, 0.102);
+  // The most quality can cost a pack is 5 kcal of shortfall; ₹1,000 of spend is the same.
+  assert.ok(QUALITY_TIEBREAK <= 5 * colNamed(model, nameOf.short("me", "kcal")).cost);
+  assert.ok(SPEND_TIEBREAK * 1000 <= 5 * colNamed(model, nameOf.short("me", "kcal")).cost);
+  assert.equal(model.meta.qualityTiebreak, QUALITY_TIEBREAK);
+  assert.equal(model.meta.spendTiebreak, SPEND_TIEBREAK);
+  const flat = buildPlanModel({ members: [adult], catalogue: [{ ...rice, score: 75 }], days: 7, qualityTiebreak: 0, spendTiebreak: 0 });
+  assert.equal(colNamed(flat, nameOf.packs("rice")).cost, 0);
+});
+
+test("a product the shopper cannot get is planned without, and says so", () => {
+  const model = buildPlanModel({ members: [adult], catalogue: [rice, cookies], days: 7, excludeSkus: ["rice"] });
+  assert.deepEqual(model.meta.skus, ["cookies"]);
+  assert.deepEqual(model.excluded, [{ skuId: "rice", reason: "removed_by_shopper" }]);
+  assert.deepEqual(model.meta.removedByShopper, ["rice"]);
 });
 
 test("the model says what it is, so a stored plan can be read back", () => {

@@ -80,6 +80,8 @@ export function plannableFrom(products = []) {
       skuId,
       name: product.name ?? null,
       price: Number(product.price),
+      // The latest KOI score, for the quality tiebreak (model.js). null when unscored.
+      score: isNum(product.score) ? Number(product.score) : null,
       // The flags the graph found: allergens, diet flags, additive filters.
       contains: [...extractFacts(product).contains],
       availability: product.availability ?? "unknown",

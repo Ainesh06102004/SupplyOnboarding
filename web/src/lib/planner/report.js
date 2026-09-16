@@ -17,6 +17,67 @@ import { NUTRIENTS } from "./model";
 const round1 = (v) => Math.round(v * 10) / 10;
 const isNum = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
 
+/**
+ * What changes when one item is taken out of a plan (Phase 3.5).
+ *
+ * An added product is only called a substitute for the removed one when KOI
+ * holds a recorded edge between them (food.substitution_edge), and then with
+ * that edge's reasons. Anything else the re-solve changed is reported as a
+ * change to the basket, not dressed up as a replacement.
+ *
+ * @param {object} input
+ * @param {string} input.removedSkuId
+ * @param {Array<{skuId, name, packs}>} input.before the plan's basket
+ * @param {Array<{skuId, name, packs}>} input.after the re-solved basket
+ * @param {Array<{to_sku, why: string[]}>} [input.edges] edges FROM the removed SKU, already worded
+ * @returns {{ removed, substitutes, added, changed, dropped }}
+ */
+export function basketDiff({ removedSkuId, before = [], after = [], edges = [] }) {
+  const was = new Map(before.map((l) => [String(l.skuId), l]));
+  const now = new Map(after.map((l) => [String(l.skuId), l]));
+  const whyTo = new Map(edges.map((e) => [String(e.to_sku), e.why ?? []]));
+  const line = (l) => ({ skuId: String(l.skuId), name: l.name ?? null, packs: l.packs });
+
+  const substitutes = [];
+  const added = [];
+  const changed = [];
+  for (const [skuId, l] of now) {
+    const prior = was.get(skuId);
+    if (!prior) {
+      if (whyTo.has(skuId)) substitutes.push({ ...line(l), why: whyTo.get(skuId) });
+      else added.push(line(l));
+    } else if (prior.packs !== l.packs) {
+      changed.push({ skuId, name: l.name ?? prior.name ?? null, from: prior.packs, to: l.packs });
+    }
+  }
+  const dropped = [...was.entries()]
+    .filter(([skuId]) => skuId !== String(removedSkuId) && !now.has(skuId))
+    .map(([, l]) => line(l));
+
+  const removedLine = was.get(String(removedSkuId));
+  return {
+    removed: removedLine ? line(removedLine) : { skuId: String(removedSkuId), name: null, packs: 0 },
+    substitutes,
+    added,
+    changed,
+    dropped,
+  };
+}
+
+/**
+ * A plan more than this share short of any target has not met its brief.
+ *
+ * Goal programming does not fail: it misses targets instead. So "no plan
+ * fits" has to be recognised from the misses, or it is never said at all.
+ */
+export const MATERIAL_SHORTFALL = 0.05;
+
+/** @param {object} report from planReport @param {number} [share] @returns {boolean} */
+export function materiallyShort(report, share = MATERIAL_SHORTFALL) {
+  return (report?.perMember ?? []).some((m) =>
+    Object.entries(m.shortfall).some(([n, short]) => (m.asked[n] ?? 0) > 0 && short / m.asked[n] > share));
+}
+
 /** A miss smaller than this is arithmetic noise, not a shortfall. */
 export const TOLERANCE = 0.5;
 

@@ -30,7 +30,8 @@ import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
 import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
 import { plannableFrom, memberFor } from "./candidates";
 import { solvePlanModel } from "./solve";
-import { planReport } from "./report";
+import { planReport, basketDiff, materiallyShort } from "./report";
+import { describeEdge } from "@/lib/food/substitutions";
 
 export const PLAN_RULE_VERSION = "plan-v1";
 
@@ -59,6 +60,44 @@ const LADDER = [
     apply: (base) => ({ ...base, budget: null, maxPacksPerSku: MAX_PACKS_PER_SKU * 2 }),
   },
 ];
+
+/** Climb the ladder until something can be shown. Allergens and diet are never on it. */
+async function solveWithLadder(base) {
+  let attempt = null;
+  let model = null;
+  let solution = null;
+  for (const rung of LADDER) {
+    model = buildPlanModel(rung.apply(base));
+    solution = await solvePlanModel(model);
+    attempt = rung;
+    if (solution.usable) break;
+  }
+  return { attempt, model, solution };
+}
+
+/**
+ * When the budget is what stands between a household and its targets, what
+ * meeting them would cost. Goal programming never reports "infeasible" — it
+ * misses targets — so a plan materially short under a budget is checked
+ * against the same plan without one, and the shopper is told the difference
+ * rather than having it spent for them.
+ *
+ * @returns {Promise<{cost, extra, unmet}|null>}
+ */
+async function costToMeetTargets({ base, report }) {
+  if (base.budget === null || base.budget === undefined || !materiallyShort(report)) return null;
+  const model = buildPlanModel({ ...base, budget: null });
+  const solution = await solvePlanModel(model);
+  if (!solution.usable) return null;
+  const free = planReport({
+    members: base.members,
+    catalogue: base.catalogue.filter((item) => model.meta.skus.includes(item.skuId)),
+    solution,
+    days: base.days,
+    budget: null,
+  });
+  return { cost: free.cost, extra: Math.round((free.cost - Number(base.budget)) * 10) / 10, unmet: free.unmet };
+}
 
 /**
  * Read a household, plan for it, store the plan, and return it.
@@ -110,17 +149,8 @@ export async function planForHousehold({
 
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
 
-  // Climb the ladder until something can be shown.
   const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT };
-  let attempt = null;
-  let model = null;
-  let solution = null;
-  for (const rung of LADDER) {
-    model = buildPlanModel(rung.apply(base));
-    solution = await solvePlanModel(model);
-    attempt = rung;
-    if (solution.usable) break;
-  }
+  const { attempt, model, solution } = await solveWithLadder(base);
 
   const report = planReport({
     members,
@@ -142,6 +172,7 @@ export async function planForHousehold({
     products_not_plannable: unplannable,
     products_not_candidates: model.excluded.filter((e) => e.reason === "not_a_candidate").length,
     unmet: report.unmet,
+    budget_blocked: await costToMeetTargets({ base, report }),
   };
 
   const { data: stored, error: planError } = await db
@@ -199,5 +230,96 @@ export async function planForHousehold({
     report,
     explanation,
     solver: { name: solution.solver, version: solution.solverVersion, status: solution.status, ms: solution.ms },
+  };
+}
+
+/**
+ * The same plan, without one item (Phase 3.5).
+ *
+ * When a shopper cannot get something — not on Instamart in their zone, out of
+ * stock, or simply not wanted — KOI re-solves the plan as it was asked, from
+ * the plan's own stored constraints, with that product removed. A replacement
+ * is proven by the re-solve, not asserted: whatever the new basket contains
+ * still keeps every member's allergens and diet, and the targets are
+ * re-reported as they now stand.
+ *
+ * Nothing is stored. This is a question about a plan, and the shopper decides
+ * whether to plan again.
+ *
+ * @param {{ planId: string, skuId: string }} input
+ */
+export async function planWithout({ planId, skuId }) {
+  if (!planId || !skuId) throw new Error("A plan id and a SKU id are required.");
+  const db = await getServerSupabase();
+
+  const { data: plan, error } = await db
+    .from("plan")
+    .select("id, days, budget_rupees, constraints, plan_item(sku_id, packs)")
+    .eq("id", planId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!plan) throw new Error("No such plan for this shopper.");
+
+  const snapshot = plan.constraints ?? {};
+  const members = (snapshot.members ?? []).map((m) => ({
+    id: m.id,
+    label: m.label,
+    targets: m.targets ?? {},
+    avoidFlags: m.avoid_flags ?? [],
+    softAvoidFlags: m.noted_not_enforced ?? [],
+    dietExcludes: m.diet_excludes ?? [],
+  }));
+  if (!members.length) throw new Error("This plan has no members to plan for.");
+
+  const days = plan.days;
+  const budget = plan.budget_rupees === null ? null : Number(plan.budget_rupees);
+  const { catalogue } = plannableFrom(await fetchAllProducts());
+  const nameOf = new Map(catalogue.map((i) => [String(i.skuId), i.name]));
+
+  const base = {
+    members,
+    catalogue,
+    days,
+    budget,
+    availability: snapshot.availability ?? "allow_unknown",
+    candidateLimit: CANDIDATE_LIMIT,
+    excludeSkus: [skuId],
+  };
+  const { attempt, model, solution } = await solveWithLadder(base);
+  const report = planReport({
+    members,
+    catalogue: catalogue.filter((item) => model.meta.skus.includes(item.skuId)),
+    solution,
+    days,
+    budget,
+  });
+
+  const { data: edgeRows } = await db
+    .schema("food")
+    .from("substitution_edge")
+    .select("to_sku, reason, basis")
+    .eq("from_sku", skuId);
+  const why = new Map();
+  for (const e of edgeRows ?? []) {
+    const words = describeEdge(e.reason, e.basis);
+    if (words) why.set(String(e.to_sku), [...(why.get(String(e.to_sku)) ?? []), words]);
+  }
+
+  const diff = basketDiff({
+    removedSkuId: skuId,
+    before: (plan.plan_item ?? []).map((i) => ({ skuId: i.sku_id, name: nameOf.get(String(i.sku_id)) ?? null, packs: i.packs })),
+    after: report.basket,
+    edges: [...why.entries()].map(([to_sku, words]) => ({ to_sku, why: words.slice(0, 2) })),
+  });
+
+  return {
+    planId: plan.id,
+    status: solution.usable ? "solved" : "infeasible",
+    reached: attempt.step,
+    gave_up: attempt.gave_up,
+    never_relaxed: ["allergens", "diet"],
+    budget_blocked: await costToMeetTargets({ base, report }),
+    diff,
+    report,
   };
 }

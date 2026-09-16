@@ -32,7 +32,41 @@
 // avoid. What is good food is the screening engine's business.
 // ============================================================================
 
-export const MODEL_VERSION = "plan-model-v1";
+export const MODEL_VERSION = "plan-model-v2";
+
+/**
+ * A tiebreak toward food KOI screened better (plan-model-v2).
+ *
+ * v1 had no notion of quality, so it met macros with the cheapest calories:
+ * a live basket carried Mango Mysore Pak (KOI score 10) and Chocolate Biscuits
+ * (14). Each pack now costs QUALITY_TIEBREAK x (1 - score/100) in the
+ * objective. That is deliberately tiny beside the targets: at most 0.1 per
+ * pack, which is 5 kcal or 0.017 g of protein of shortfall. So it decides
+ * between plans that meet the targets about equally, and can never buy a
+ * better score with a real miss. A product KOI has not scored earns no
+ * preference: it is not assumed good.
+ */
+export const QUALITY_TIEBREAK = 0.1;
+
+const isScore = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
+
+/**
+ * A tiebreak toward spending less (plan-model-v2).
+ *
+ * Without a price in the objective, every basket that met the targets was
+ * equally optimal — so with no budget the solver bought 45 packs for ₹14,570,
+ * five of them saffron at ₹1,250 each, to fine-tune a few kcal. Each rupee now
+ * costs SPEND_TIEBREAK: ₹1,000 is worth 0.1, the same 5 kcal of shortfall as
+ * the quality tiebreak, so the cheapest of equally good plans wins and no
+ * real target is traded for a saving.
+ */
+export const SPEND_TIEBREAK = 0.0001;
+
+/** @param {number|null} score @param {number} weight @returns {number} */
+export function qualityCost(score, weight = QUALITY_TIEBREAK) {
+  const s = isScore(score) ? Math.min(100, Math.max(0, Number(score))) : 0;
+  return Math.round(weight * (1 - s / 100) * 10000) / 10000;
+}
 
 /**
  * How much a miss costs, per gram or kcal, in the objective.
@@ -121,7 +155,11 @@ export function buildPlanModel({
   availability = "allow_unknown",
   candidateLimit = null,
   maxPacksPerSku = MAX_PACKS_PER_SKU,
+  excludeSkus = [],
+  qualityTiebreak = QUALITY_TIEBREAK,
+  spendTiebreak = SPEND_TIEBREAK,
 }) {
+  const removed = new Set((excludeSkus ?? []).map(String));
   const columns = [];
   const rows = [];
   const excluded = [];
@@ -129,6 +167,11 @@ export function buildPlanModel({
   const allowed = [];
   for (const item of catalogue) {
     if (!item?.skuId) continue;
+    // The shopper cannot get this one (Phase 3.5): plan as if it were not stocked.
+    if (removed.has(String(item.skuId))) {
+      excluded.push({ skuId: item.skuId, reason: "removed_by_shopper" });
+      continue;
+    }
     const quantifiable = NUTRIENTS.some((n) => isNum(item.perPack?.[n]));
     if (!quantifiable) {
       excluded.push({ skuId: item.skuId, reason: "not_quantifiable" });
@@ -163,7 +206,8 @@ export function buildPlanModel({
 
   // Packs, and who eats them.
   for (const item of eligible) {
-    columns.push({ name: packsName(item.skuId), lower: 0, upper: maxPacksPerSku, integer: true, cost: 0 });
+    const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price);
+    columns.push({ name: packsName(item.skuId), lower: 0, upper: maxPacksPerSku, integer: true, cost: Math.round(packCost * 1e6) / 1e6 });
     const eaten = { name: `eaten_${item.skuId}`, lower: 0, upper: 0, coefficients: { [packsName(item.skuId)]: -1 } };
     for (const m of members) {
       columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper: maxPacksPerSku, integer: false, cost: 0 });
@@ -213,6 +257,9 @@ export function buildPlanModel({
       candidateLimit: isNum(candidateLimit) ? Number(candidateLimit) : null,
       candidateRule: isNum(candidateLimit) && allowed.length > candidateLimit ? CANDIDATE_RULE : null,
       allowedBeforeLimit: allowed.length,
+      qualityTiebreak,
+      spendTiebreak,
+      removedByShopper: [...removed],
     },
   };
 }
