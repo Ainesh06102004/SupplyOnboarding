@@ -17,6 +17,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
+    "highs": "^1.15.3",
+    "javascript-lp-solver": "^1.0.3",
     "jose": "^6.2.10",
     "lucide-react": "^1.20.0",
     "next": "16.2.9",
