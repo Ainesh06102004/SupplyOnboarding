@@ -14,6 +14,13 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // The planner's solver (lib/planner/solve.js) is HiGHS compiled to
+  // WebAssembly. Bundled, `require.resolve('highs')` returns a virtual
+  // `[project]/node_modules/...` path and the .wasm beside it cannot be read,
+  // so /api/plan failed with ENOENT in the app while every script passed.
+  // Loaded with Node's own require, the package and its .wasm resolve where
+  // they are installed.
+  serverExternalPackages: ['highs'],
   images: {
     // Derived from the configured project so a new Supabase ref does not
     // silently break every remote image. Falls back to none when unset.
