@@ -461,6 +461,30 @@ export function Community({ community }) {
   );
 }
 
+// ── In context ──────────────────────────────────────────────────────────────
+// Plan §11.2. How the product sits among its category: every line names what
+// it is compared with, the attribution and reference version go with it, and
+// the KOI score is untouched. Rendered only when /api/products/relative is
+// switched on (KOI_RELATIVE_SCORES) and has something to say.
+export function InContext({ context }) {
+  const lines = [context.rating?.text, ...context.nutrients.map((n) => n.text), context.rank?.text].filter(Boolean);
+  return (
+    <Section id="context" index="05" eyebrow="In context" title="Among its category"
+             subtitle={context.category ? `Compared with ${context.category.label} sold in India, and with what KOI stocks.` : "Compared with what KOI stocks."}>
+      <ul className="max-w-3xl space-y-3">
+        {lines.map((line) => (
+          <li key={line} className="rounded-2xl border border-[#083D2D]/8 bg-white px-5 py-4 text-[15px] leading-relaxed text-[#083D2D]" style={BODY}>{line}</li>
+        ))}
+      </ul>
+      <p className="mt-5 max-w-3xl text-[12.5px] leading-relaxed text-[#101412]/55" style={BODY}>
+        {context.note}
+        {context.attribution ? ` ${context.attribution}` : ""}
+        {context.category?.builtAt ? ` Built ${new Date(context.category.builtAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.` : ""}
+      </p>
+    </Section>
+  );
+}
+
 // ── Swaps, with numbers ─────────────────────────────────────────────────────
 // Phase 5.1. KOI's own products with a recorded, at-least-25% difference
 // (food.substitution_edge), said in the figures and the price, never as

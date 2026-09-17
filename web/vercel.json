@@ -3,6 +3,7 @@
   "crons": [
     { "path": "/api/engine/off-sync", "schedule": "0 1 * * *" },
     { "path": "/api/engine/recheck", "schedule": "0 2 * * *" },
-    { "path": "/api/engine/run", "schedule": "0 3 * * *" }
+    { "path": "/api/engine/run", "schedule": "0 3 * * *" },
+    { "path": "/api/engine/category-reference", "schedule": "0 4 * * 0" }
   ]
 }

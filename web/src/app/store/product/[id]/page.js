@@ -29,7 +29,7 @@ import { StickyBuyBar } from "@/components/store/product/BuyPanel";
 import {
   WhyEarned, Verdict, IngredientIntelligence, NutritionExplained,
   HealthComparison, Personas, UsageTimeline, ScientificInsights,
-  Transparency, Community, RelatedShelf, SwapShelf,
+  Transparency, Community, RelatedShelf, SwapShelf, InContext,
 } from "@/components/store/product/ProductStory";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { isTestSku } from "@/lib/data/testCatalogue";
@@ -96,6 +96,19 @@ export default function ProductDetailPage({ params }) {
       .then(({ data }) => { if (live) setEdges({ skuId, rows: data ?? [] }); });
     return () => { live = false; };
   }, [skuId]);
+  // In context (plan §11.2): only when the route is switched on and has lines.
+  const [context, setContext] = useState({ skuId: null, value: null });
+  useEffect(() => {
+    if (!skuId || isTestSku(skuId)) return undefined;
+    let live = true;
+    fetch(`/api/products/relative?skuId=${encodeURIComponent(skuId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => { if (live) setContext({ skuId, value: body?.enabled ? body.context : null }); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [skuId]);
+  const inContext = context.skuId === skuId ? context.value : null;
+
   const swaps = useMemo(
     () => (base && edges.skuId === base.skuId ? swapsFor({ product: base, edges: edges.rows, catalogue: pool }) : []),
     [base, edges, pool],
@@ -157,6 +170,7 @@ export default function ProductDetailPage({ params }) {
           <IngredientIntelligence ingredients={vm.ingredients} timeline={vm.ingredientTimeline} evidence={vm.ingredientsEvidence} />
         )}
         <NutritionExplained nutrition={vm.nutrition} />
+        {inContext && <InContext context={inContext} />}
         {swaps.length > 0 && <SwapShelf swaps={swaps} onSelect={selectProduct} />}
         {vm.comparison.length > 0 && <HealthComparison comparison={vm.comparison} name={vm.name} />}
         {(vm.personas.for.length > 0 || vm.personas.goodToKnow.length > 0) && <Personas personas={vm.personas} />}
