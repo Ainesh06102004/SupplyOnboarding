@@ -11,7 +11,7 @@
 // text query + brand context surfaced by the command search.
 // ============================================================================
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import EditorialNav from "@/components/store/landing/EditorialNav";
 import { C } from "@/components/store/landing/tokens";
@@ -25,7 +25,7 @@ import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
 import PersonalShelves from "@/components/store/shop/PersonalShelves";
 import IntentChips from "@/components/store/shop/IntentChips";
 import {
-  interpret, resolveIntent, describeIntent, removeFromIntent, suggestRelaxations, isEmptyIntent,
+  interpret, resolveIntent, describeIntent, removeFromIntent, suggestRelaxations, isEmptyIntent, adoptRefinement,
 } from "@/lib/ai/intent";
 import { CAUTIONS } from "@/lib/recommendation/reasons";
 import ConnectSwiggy from "@/components/store/marketplace/ConnectSwiggy";
@@ -255,6 +255,30 @@ export default function ShopPage() {
     return meaningful;
   };
 
+  // A model's refinement of the reading already on screen (Phase 4.1). It can
+  // only tighten it (adoptRefinement), and it is dropped if the shopper has
+  // searched again meanwhile. With no model configured, or signed out, the
+  // route answers "nothing to refine" and the grid does not move.
+  const latestQuery = useRef(null);
+  const refineSearch = async (query, local) => {
+    latestQuery.current = query;
+    try {
+      const response = await fetch("/api/assistant/interpret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: query }),
+      });
+      if (!response.ok) return;
+      const body = await response.json();
+      if (!body?.refined || latestQuery.current !== query) return;
+      const merged = adoptRefinement(local, body.intent, query);
+      const substance = ({ profile, view, text, unresolved }) => JSON.stringify({ profile, view, text, unresolved });
+      if (substance(merged) !== substance(local)) applyIntent(merged);
+    } catch {
+      // The deterministic reading stands.
+    }
+  };
+
   const applyFromSearch = ({ query, goal, brand, intent: incoming }) => {
     let readBack = false;
     if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); setIntent(null); }
@@ -262,6 +286,7 @@ export default function ShopPage() {
     else if (incoming !== undefined || query !== undefined) {
       const next = incoming !== undefined ? incoming : interpret(query);
       readBack = applyIntent(next);
+      if (query && query.length <= 200) refineSearch(query, next);
       // The words the catalogue could not answer, counted to decide what to
       // stock next. Never the sentence — see lib/demand/terms.js.
       reportDemand(demandTerms(next, products));

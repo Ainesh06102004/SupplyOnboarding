@@ -20,8 +20,57 @@
 //     affect ranking and presentation, so a query may set them freely.
 // ============================================================================
 
-import { DIET_EXCLUSIONS } from "@/lib/recommendation/config";
+import { DIET_EXCLUSIONS, THRESHOLDS } from "@/lib/recommendation/config";
 import { normalise } from "./deterministic";
+
+const LIMIT_FIELDS = Object.freeze(["minScore", "maxKcal", "minProtein", "maxSugar", "maxPrice"]);
+
+/**
+ * Every number a shopper wrote, as numbers: "₹1,500" is 1500 and "2k" is 2000.
+ * @param {string} text
+ * @returns {Set<number>}
+ */
+export function numbersIn(text) {
+  const plain = normalise(text).replace(/(\d),(?=\d{2,3}\b)/g, "$1");
+  const found = new Set();
+  for (const m of plain.matchAll(/(\d+(?:\.\d+)?)\s*(k\b)?/g)) {
+    const value = Number(m[1]);
+    found.add(m[2] ? value * 1000 : value);
+  }
+  return found;
+}
+
+/**
+ * Remove any numeric limit the shopper did not write (Phase 4.1).
+ *
+ * `sanitiseIntent` holds a model to the shopper's words; this holds it to the
+ * shopper's numbers. A limit survives only if the number is in the sentence,
+ * or it is KOI's own claim threshold carried by its claim flag ("high protein"
+ * is THRESHOLDS.proteinHigh), or the deterministic reading already set exactly
+ * that value. A model that decides "healthy snacks" means "under 150 kcal"
+ * has made up a number, and it is dropped.
+ *
+ * @param {object} intent a parsed intent
+ * @param {string} queryText the shopper's original query
+ * @param {object|null} [local] the deterministic intent for the same text
+ * @returns {object}
+ */
+export function groundLimits(intent, queryText, local = null) {
+  const stated = numbersIn(queryText);
+  const view = { ...(intent.view || {}) };
+  for (const field of LIMIT_FIELDS) {
+    const value = view[field];
+    if (value === null || value === undefined) continue;
+    const claimWord =
+      (field === "minProtein" && view.proteinClaim && value === THRESHOLDS.proteinHigh) ||
+      (field === "maxSugar" && view.sugarClaim && value === THRESHOLDS.sugarLow);
+    const alreadyRead = local?.view?.[field] === value;
+    if (!claimWord && !alreadyRead && !stated.has(Number(value))) view[field] = null;
+  }
+  if (view.minProtein === null || view.minProtein === undefined) view.proteinClaim = false;
+  if (view.maxSugar === null || view.maxSugar === undefined) view.sugarClaim = false;
+  return { ...intent, view };
+}
 
 const uniq = (a) => [...new Set((a || []).filter(Boolean))];
 

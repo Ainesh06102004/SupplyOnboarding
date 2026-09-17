@@ -27,17 +27,7 @@ import { Plus, Trash2, Loader2, ShoppingBasket, TriangleAlert } from "lucide-rea
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 import { isTestSku } from "@/lib/data/testCatalogue";
-
-const AGE_BANDS = [
-  { key: "adult_19_59", label: "Adult (19–59)" },
-  { key: "senior_60_plus", label: "60 or over" },
-  { key: "teen_16_18", label: "Teen (16–18)" },
-  { key: "teen_13_15", label: "Teen (13–15)" },
-  { key: "child_10_12", label: "Child (10–12)" },
-  { key: "child_7_9", label: "Child (7–9)" },
-  { key: "child_4_6", label: "Child (4–6)" },
-  { key: "child_1_3", label: "Child (1–3)" },
-];
+import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
 
 const HARD_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "hard");
 const SOFT_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "soft");
@@ -184,10 +174,46 @@ export default function PlanPage() {
     return () => { live = false; };
   }, []);
 
+  // A drafted person can arrive without an age group or a diet; both are chosen
+  // by the shopper before anything is planned, because a blank diet excludes nothing.
   const ready = useMemo(
-    () => members.length > 0 && members.every((m) => m.label.trim() && (num(m.target_protein_g) || num(m.target_kcal))),
+    () => members.length > 0 && members.every((m) =>
+      m.label.trim() && m.age_band && m.diet_type && (num(m.target_protein_g) || num(m.target_kcal))),
     [members],
   );
+
+  // Phase 4.2: a household in words becomes a draft of this form. Nothing is
+  // saved or planned until "Plan it", which is the confirmation.
+  const [brief, setBrief] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [drafted, setDrafted] = useState(null);
+
+  async function draftFromBrief() {
+    setDrafting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/plan/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: brief }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "The description could not be read.");
+      const { draft } = body;
+      if (draft.members.length) {
+        setMembers(draft.members.map((m) => ({ ...m, key: crypto.randomUUID(), memberId: null })));
+        setPlan(null);
+        setWithout({});
+      }
+      if (draft.days) setDays(draft.days);
+      if (draft.budget) setBudget(String(draft.budget));
+      setDrafted(draft);
+    } catch (err) {
+      setError(err?.message ?? "Something went wrong.");
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   const update = (key, patch) => setMembers((list) => list.map((m) => (m.key === key ? { ...m, ...patch } : m)));
   const toggleAvoid = (key, avoidKey) => update(key, {
@@ -253,6 +279,33 @@ export default function PlanPage() {
         </p>
       )}
 
+      <section className="mt-6 rounded-2xl border border-[#083D2D]/10 bg-[#083D2D]/[0.02] p-4">
+        <label htmlFor="household-brief" className="text-[12px] font-semibold text-[#0E4032]">Or describe your household</label>
+        <textarea id="household-brief" value={brief} onChange={(e) => setBrief(e.target.value)} maxLength={MAX_BRIEF_CHARS} rows={2}
+                  placeholder="We're four, two adults and two kids, 120 g protein each for the adults, ₹4,000 for a week"
+                  className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button type="button" onClick={draftFromBrief} disabled={!brief.trim() || drafting}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#0E4032] px-3 py-1.5 text-[12.5px] font-semibold text-[#0E4032] disabled:opacity-40">
+            {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {drafting ? "Reading it…" : "Fill the form from this"}
+          </button>
+          <span className="text-[11px] text-[#5A6B5A]">Fills the form below for you to check. Nothing is planned until you press Plan it.</span>
+        </div>
+        {drafted && (
+          <div className="mt-3 space-y-1 text-[12px] text-[#5A6B5A]">
+            <p className="font-semibold text-[#0E4032]">
+              {drafted.members.length
+                ? `Drafted ${drafted.members.length} ${drafted.members.length === 1 ? "person" : "people"} from what you wrote${drafted.source === "openai" ? " (read with OpenAI)" : ""}. Check each one.`
+                : "Nothing was drafted."}
+              {drafted.members.length > 0 && householdId ? " Planning will replace the people saved in your household." : ""}
+            </p>
+            {drafted.notes.map((note) => <p key={note}>{note}</p>)}
+            {drafted.unresolved.length > 0 && <p>Not applied: {drafted.unresolved.join(", ")}.</p>}
+          </div>
+        )}
+      </section>
+
       <section className="mt-8 space-y-4">
         {members.map((m, i) => (
           <div key={m.key} className="rounded-2xl border border-[#083D2D]/10 p-4">
@@ -279,6 +332,7 @@ export default function PlanPage() {
                 <span className="text-[12px] font-semibold text-[#0E4032]">Age</span>
                 <select value={m.age_band} onChange={(e) => update(m.key, { age_band: e.target.value })}
                         className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]">
+                  {!m.age_band && <option value="">Choose an age group</option>}
                   {AGE_BANDS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
                 </select>
               </label>
@@ -287,6 +341,7 @@ export default function PlanPage() {
                 <span className="text-[12px] font-semibold text-[#0E4032]">Diet</span>
                 <select value={m.diet_type} onChange={(e) => update(m.key, { diet_type: e.target.value })}
                         className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]">
+                  {!m.diet_type && <option value="">Choose a diet</option>}
                   {DIET_TYPES.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
                 </select>
               </label>
@@ -357,7 +412,7 @@ export default function PlanPage() {
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBasket className="h-4 w-4" />}
         {busy ? "Working it out…" : "Plan it"}
       </button>
-      {!ready && <p className="mt-2 text-[11.5px] text-[#5A6B5A]">Give everyone a label and at least one target.</p>}
+      {!ready && <p className="mt-2 text-[11.5px] text-[#5A6B5A]">Give everyone a label, an age group, a diet and at least one target.</p>}
       {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
 
       {plan && (

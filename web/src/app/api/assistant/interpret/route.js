@@ -27,7 +27,8 @@
 import { NextResponse } from "next/server";
 import { getIntentAdapter } from "@/lib/ai/intent/adapter";
 import { parseIntent } from "@/lib/ai/intent/schema";
-import { sanitiseIntent } from "@/lib/ai/intent/merge";
+import { sanitiseIntent, groundLimits } from "@/lib/ai/intent/merge";
+import { interpret } from "@/lib/ai/intent";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
 
 // A shopper's query, not a document. Anything longer is a paste or an attempt
@@ -68,9 +69,10 @@ export async function POST(request) {
   let raw = null;
   try {
     raw = await adapter.interpret(text);
-  } catch {
+  } catch (err) {
     // A provider failing is not a request failing. The shopper already has an
-    // answer; this one simply does not improve on it.
+    // answer; this one simply does not improve on it. Logged without the text.
+    console.error("[assistant/interpret]", adapter.name, err?.message ?? "failed");
     return NextResponse.json({ intent: null, source: adapter.name, refined: false });
   }
 
@@ -84,8 +86,9 @@ export async function POST(request) {
     });
   }
 
+  // The shopper's words and the shopper's numbers only (merge.js).
   return NextResponse.json({
-    intent: sanitiseIntent(parsed.intent, text),
+    intent: groundLimits(sanitiseIntent(parsed.intent, text), text, interpret(text)),
     source: adapter.name,
     refined: true,
   });

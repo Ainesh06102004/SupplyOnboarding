@@ -27,9 +27,11 @@
 import "server-only";
 
 import { NoneAdapter } from "./adapters/none";
+import { OpenAIAdapter } from "./adapters/openai";
 
 const ADAPTERS = Object.freeze({
   none: NoneAdapter,
+  openai: OpenAIAdapter,
 });
 
 /**

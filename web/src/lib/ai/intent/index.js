@@ -14,7 +14,7 @@
 
 import { interpretDeterministic } from "./deterministic";
 import { parseIntent, isEmptyIntent, EMPTY_INTENT } from "./schema";
-import { sanitiseIntent, isAtLeastAsStrict } from "./merge";
+import { sanitiseIntent, isAtLeastAsStrict, groundLimits } from "./merge";
 
 /**
  * Interpret a shopper's query. Pure, synchronous, no I/O.
@@ -48,7 +48,8 @@ const union = (a, b) => [...new Set([...(a || []), ...(b || [])])];
 export function adoptRefinement(local, raw, text) {
   const parsed = parseIntent(raw);
   if (!parsed.ok) return local;
-  const refined = sanitiseIntent(parsed.intent, text);
+  // Its words and its numbers must both be the shopper's.
+  const refined = groundLimits(sanitiseIntent(parsed.intent, text), text, local);
   if (isEmptyIntent(refined) && !refined.unresolved.length) return local;
 
   const localDiet = local.profile.dietType;
