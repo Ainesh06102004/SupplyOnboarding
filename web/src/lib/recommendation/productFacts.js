@@ -125,7 +125,16 @@ export function extractFacts(product) {
   // and flavour filters (Phase 2.2); meat, honey, caffeine, palm oil and root
   // vegetables are ingredients; "spicy" is an ingredient or a product word
   // (Phase 2.4). The substring lists this replaced found tea in "steamed".
-  for (const flag of ingredientFlagsIn(haystack)) contains.add(flag);
+  //
+  // Read without the brand. A brand is a name, not an ingredient: "Sweet Karam
+  // Coffee" put caffeine on its Madras Mixture and Mango Mysore Pak, which kept
+  // them from anyone avoiding caffeine and, with the planner's age rules, from
+  // every child. Allergens above still read the brand: over-reading an
+  // allergen only ever hides a product from someone avoiding it.
+  const productText = [product.name, product.category, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]
+    .join(" ")
+    .toLowerCase();
+  for (const flag of ingredientFlagsIn(productText)) contains.add(flag);
 
   // dietary declarations authoritatively CLEAR flags
   const dl = dietary.map((d) => d.toLowerCase());

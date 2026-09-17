@@ -105,6 +105,15 @@ test("a label with no confirmation date is not treated as current", () => {
   assert.equal(extractFacts(p).ingredientEvidence, "partial");
 });
 
+test("a brand name is not an ingredient: 'Sweet Karam Coffee' does not make a namkeen caffeinated", () => {
+  const mixture = product({ name: "Madras Mixture", brand: "Sweet Karam Coffee", goodIngredients: partial("Peanuts", "Gram flour") });
+  const facts = extractFacts(mixture);
+  assert.equal(facts.contains.has("caffeine"), false);
+  assert.equal(facts.contains.has("peanut"), true, "what the product lists still counts");
+  assert.equal(extractFacts(product({ name: "Filter Coffee Powder", brand: "Sweet Karam Coffee" })).contains.has("caffeine"), true, "the product's own name still does");
+  assert.equal(extractFacts(product({ name: "Mixture", brand: "Peanut Co" })).contains.has("peanut"), true, "allergens still read the brand: over-reading only hides a product");
+});
+
 test("a preservative on the label raises the filter, whatever the brand's tag says", () => {
   const read = (ingredientsText) => product({
     tags: ["No Preservatives"],
