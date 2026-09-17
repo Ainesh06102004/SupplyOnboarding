@@ -182,6 +182,38 @@ export default function PlanPage() {
     [members],
   );
 
+  // Phase 4.3: follow-ups on the plan on screen. The conversation is kept in
+  // this page for the session; the server stores only the plans it produces.
+  const [followText, setFollowText] = useState("");
+  const [followBusy, setFollowBusy] = useState(false);
+  const [conversation, setConversation] = useState([]);
+
+  async function followUp() {
+    const text = followText.trim();
+    if (!text || !plan?.planId) return;
+    setFollowBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/plan/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: plan.planId, text }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "The plan could not be changed.");
+      if (body.changed) {
+        setPlan(body);
+        setWithout({});
+      }
+      setConversation((turns) => [...turns, { text, ...body }]);
+      setFollowText("");
+    } catch (err) {
+      setConversation((turns) => [...turns, { text, changed: false, applied: [], notApplied: [err?.message ?? "Something went wrong."] }]);
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
   // Phase 4.2: a household in words becomes a draft of this form. Nothing is
   // saved or planned until "Plan it", which is the confirmation.
   const [brief, setBrief] = useState("");
@@ -243,6 +275,7 @@ export default function PlanPage() {
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error ?? "The plan could not be built.");
       setPlan(body);
+      setConversation([]);
     } catch (err) {
       setError(err?.message ?? "Something went wrong.");
     } finally {
@@ -540,6 +573,44 @@ export default function PlanPage() {
                 </li>
               )}
             </ul>
+          </div>
+
+          <div className="rounded-2xl border border-[#083D2D]/10 p-5">
+            <h2 className="text-lg font-bold text-[#0E4032]">Change this plan</h2>
+            <p className="mt-1 text-[12px] text-[#5A6B5A]">
+              Say what to change and KOI plans again. What you type stays on this page; only the new plan is saved.
+            </p>
+            {conversation.length > 0 && (
+              <ol className="mt-3 space-y-3">
+                {conversation.map((turn, i) => (
+                  <li key={i} className="text-[12.5px]">
+                    <p className="font-semibold text-[#0E4032]">&ldquo;{turn.text}&rdquo;</p>
+                    {turn.applied?.length > 0 && <p className="text-[#16A06E]">Changed: {turn.applied.join(" · ")}</p>}
+                    {turn.changed && turn.basketChange && (
+                      <div className="text-[#5A6B5A]">
+                        {turn.basketChange.added.map((s) => <p key={`a-${s.skuId}`}>Adds {s.packs} × {s.name}</p>)}
+                        {turn.basketChange.changed.map((c) => <p key={`c-${c.skuId}`}>{c.name}: {c.from} → {c.to} packs</p>)}
+                        {turn.basketChange.dropped.map((s) => <p key={`d-${s.skuId}`}>No longer {s.name}</p>)}
+                        <p>₹{turn.basketChange.costBefore} → ₹{turn.report.cost}
+                          {turn.report.unmet.length > 0 ? ` · short: ${turn.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}` : " · every target met"}
+                        </p>
+                      </div>
+                    )}
+                    {turn.notApplied?.map((n) => <p key={n} className="text-[#8A6508]">{n}</p>)}
+                  </li>
+                ))}
+              </ol>
+            )}
+            <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); followUp(); }}>
+              <input id="plan-followup" value={followText} onChange={(e) => setFollowText(e.target.value)} maxLength={200}
+                     placeholder="cheaper · no paneer · swap the oats · 60 g protein for Kid 1"
+                     className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
+              <button type="submit" disabled={!followText.trim() || followBusy}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#0E4032] px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-40">
+                {followBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                {followBusy ? "Planning…" : "Change it"}
+              </button>
+            </form>
           </div>
         </section>
       )}

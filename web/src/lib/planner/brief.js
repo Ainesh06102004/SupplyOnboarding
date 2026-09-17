@@ -106,7 +106,7 @@ function statedNumbers(text) {
 }
 
 /** Days the sentence asks for, if any. */
-function daysIn(text) {
+export function daysIn(text) {
   const t = normalise(text);
   const n = t.match(/\b(\d+)\s*days?\b/);
   if (n) return Math.min(MAX_DAYS, Math.max(1, Number(n[1])));
@@ -116,7 +116,7 @@ function daysIn(text) {
 }
 
 /** Rupees the sentence sets as a budget, if any. */
-function budgetIn(text) {
+export function budgetIn(text) {
   const t = normalise(text).replace(/(\d),(?=\d{2,3}\b)/g, "$1");
   const unit = String.raw`(?!\s*(?:kcal|cal|calories|g\b|gm|grams?|kg|days?|weeks?|months?|years?|yrs?|people|kids|adults))`;
   const patterns = [

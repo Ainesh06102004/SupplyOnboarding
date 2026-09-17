@@ -33,6 +33,8 @@ import { plannableFrom, memberFor } from "./candidates";
 import { solvePlanModel } from "./solve";
 import { planReport, basketDiff, materiallyShort, atPortionLimit } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
+import { applyFollowUp } from "./followup";
+import { readFollowUpWithModel } from "./followUpModel";
 
 export const PLAN_RULE_VERSION = "plan-v1";
 
@@ -153,8 +155,32 @@ export async function planForHousehold({
     memberFor({ ...row, avoidKeys: avoidsByMember.get(row.id) ?? [] }, CATALOGUES));
 
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
+  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget });
+}
 
-  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT };
+/** A plan's stored members, in the shape the model plans with. */
+function membersFromSnapshot(snapshot) {
+  return (snapshot?.members ?? []).map((m) => ({
+    id: m.id,
+    label: m.label,
+    targets: m.targets ?? {},
+    avoidFlags: m.avoid_flags ?? [],
+    softAvoidFlags: m.noted_not_enforced ?? [],
+    dietExcludes: m.diet_excludes ?? [],
+  }));
+}
+
+/**
+ * Solve, explain and store one plan. Shared by a first plan and a follow-up,
+ * so both are stored with the same snapshot and read back the same way.
+ *
+ * @param {object} input
+ * @param {object} input.db the shopper's Supabase client (RLS applies)
+ * @param {string[]} [input.excludeSkus] products this plan must do without
+ * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
+ */
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], extra = {} }) {
+  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus };
   const { attempt, model, solution } = await solveWithLadder(base);
 
   const report = planReport({
@@ -188,7 +214,7 @@ export async function planForHousehold({
   const { data: stored, error: planError } = await db
     .from("plan")
     .insert({
-      household_id: household.id,
+      household_id: householdId,
       days,
       budget_rupees: budget,
       zone_id: zoneId,
@@ -211,6 +237,11 @@ export async function planForHousehold({
         portion_relax: model.meta.portionRelax,
         model_version: model.meta.version,
         catalogue_size: catalogue.length,
+        // Carried into every follow-up, so "swap the oats" stays swapped.
+        excluded_skus: [...new Set(excludeSkus.map(String))],
+        // For a follow-up: the plan it changed and KOI's words for the change.
+        // The shopper's own message is not stored.
+        ...(extra.follows ? { follows: extra.follows, change: extra.change ?? [] } : {}),
       },
       // The whole basket, by name. plan_item holds only catalogue SKUs, so a
       // line from the local test catalogue is recorded here alone.
@@ -283,14 +314,7 @@ export async function planWithout({ planId, skuId }) {
   if (!plan) throw new Error("No such plan for this shopper.");
 
   const snapshot = plan.constraints ?? {};
-  const members = (snapshot.members ?? []).map((m) => ({
-    id: m.id,
-    label: m.label,
-    targets: m.targets ?? {},
-    avoidFlags: m.avoid_flags ?? [],
-    softAvoidFlags: m.noted_not_enforced ?? [],
-    dietExcludes: m.diet_excludes ?? [],
-  }));
+  const members = membersFromSnapshot(snapshot);
   if (!members.length) throw new Error("This plan has no members to plan for.");
 
   const days = plan.days;
@@ -305,7 +329,8 @@ export async function planWithout({ planId, skuId }) {
     budget,
     availability: snapshot.availability ?? "allow_unknown",
     candidateLimit: CANDIDATE_LIMIT,
-    excludeSkus: [skuId],
+    // What earlier follow-ups left out stays out.
+    excludeSkus: [...(snapshot.excluded_skus ?? []), skuId],
   };
   const { attempt, model, solution } = await solveWithLadder(base);
   const report = planReport({
@@ -348,5 +373,74 @@ export async function planWithout({ planId, skuId }) {
     budget_blocked: await costToMeetTargets({ base, report }),
     diff,
     report,
+  };
+}
+
+/**
+ * A follow-up on a stored plan (Phase 4.3): "cheaper", "swap the oats".
+ *
+ * The message is read (followup.js, with a model when configured), applied to
+ * the plan's own stored constraints, solved again, and stored as a new plan
+ * that records the plan it follows and KOI's words for the change. The
+ * shopper's message is not stored: the conversation lives in the page, for
+ * the session. When nothing in the message could be applied, nothing is
+ * solved and the shopper is told why.
+ *
+ * @param {{ planId: string, text: string }} input
+ */
+export async function planFollowUp({ planId, text }) {
+  if (!planId || !text) throw new Error("A plan id and a message are required.");
+  const db = await getServerSupabase();
+
+  const { data: plan, error } = await db
+    .from("plan")
+    .select("id, household_id, days, budget_rupees, zone_id, constraints, achieved")
+    .eq("id", planId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!plan) throw new Error("No such plan for this shopper.");
+
+  const snapshot = plan.constraints ?? {};
+  const members = membersFromSnapshot(snapshot);
+  if (!members.length) throw new Error("This plan has no members to plan for.");
+
+  const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
+  const reading = await readFollowUpWithModel(text);
+  const change = applyFollowUp({
+    members,
+    days: plan.days,
+    budget: plan.budget_rupees === null ? null : Number(plan.budget_rupees),
+    excludedSkus: snapshot.excluded_skus ?? [],
+    cost: Number(plan.achieved?.cost ?? 0),
+  }, reading, catalogue);
+
+  if (!change.applied.length) {
+    return { planId: plan.id, changed: false, applied: [], notApplied: change.notApplied };
+  }
+
+  const next = await solveAndStore({
+    db,
+    householdId: plan.household_id,
+    zoneId: plan.zone_id,
+    availability: snapshot.availability ?? "allow_unknown",
+    members: change.members,
+    catalogue,
+    unplannable,
+    days: change.days,
+    budget: change.budget,
+    excludeSkus: change.excludedSkus,
+    extra: { follows: plan.id, change: change.applied },
+  });
+
+  const before = (plan.achieved?.basket ?? []).map((l) => ({ skuId: l.skuId, name: l.name ?? null, packs: l.packs }));
+  const { added, changed, dropped } = basketDiff({ removedSkuId: null, before, after: next.report.basket, edges: [] });
+
+  return {
+    ...next,
+    changed: true,
+    follows: plan.id,
+    applied: change.applied,
+    notApplied: change.notApplied,
+    basketChange: { added, changed, dropped, costBefore: Number(plan.achieved?.cost ?? 0) },
   };
 }
