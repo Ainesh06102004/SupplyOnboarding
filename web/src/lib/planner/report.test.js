@@ -32,6 +32,7 @@ test("each person sees what in the basket is theirs, and what is not for them an
   assert.deepEqual(wife.notForThem, [{ skuId: "atta", name: "Atta", because: "contains gluten" }]);
   assert.deepEqual(kid.notForThem, [{ skuId: "almonds", name: "Almonds", because: "contains tree nuts" }]);
   assert.equal(refusalReason({ flag: "root_veg", rule: "diet" }), "not in their diet: root vegetables");
+  assert.equal(refusalReason({ flag: "carbs_not_declared", rule: "pattern" }), "carbohydrate not declared, so it can't be shown to fit their carb limit");
 });
 
 test("a plan says which products the portion ceiling held back, and for whom", () => {

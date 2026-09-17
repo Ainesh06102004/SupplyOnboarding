@@ -83,6 +83,28 @@ test("a member's hard avoids remove products; their preferences are noted, not e
   assert.deepEqual(member.dietExcludes, DIET_EXCLUSIONS.jain);
 });
 
+test("severity decides: a dislike is noted, a rule refuses even a soft avoid, and a disliked allergen is only noted", () => {
+  const member = memberFor({
+    id: "m3",
+    label: "Me",
+    avoids: [
+      { key: "palm_oil", severity: "rule" },
+      { key: "eggs", severity: "dislike" },
+      { key: "gluten", severity: "intolerance" },
+      { key: "spicy", severity: null },
+    ],
+  }, catalogues);
+  assert.deepEqual(member.avoidFlags.sort(), ["gluten", "palm_oil"]);
+  assert.deepEqual(member.softAvoidFlags.sort(), ["egg", "spicy"]);
+});
+
+test("a goal reaches the model for an adult, and not for a child", () => {
+  const adult = memberFor({ id: "a", age_band: "adult_19_59", energy_goal: "lose", eating_pattern: "keto", version: 3, avoidKeys: [] }, catalogues);
+  assert.deepEqual([adult.energyGoal, adult.eatingPattern, adult.carbsMax, adult.profileVersion], ["lose", "keto", 50, 3]);
+  const child = memberFor({ id: "c", age_band: "child_7_9", energy_goal: "lose", eating_pattern: "keto", avoidKeys: [] }, catalogues);
+  assert.deepEqual([child.energyGoal, child.eatingPattern, child.carbsMax], ["maintain", "balanced", null]);
+});
+
 test("a member with no targets and no diet asks nothing of the plan", () => {
   const member = memberFor({ id: "m2", label: "Guest", avoidKeys: [] }, catalogues);
   assert.deepEqual(member.targets, { kcal: null, protein: null, carbs: null, fat: null });

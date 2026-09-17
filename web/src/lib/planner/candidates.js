@@ -25,6 +25,7 @@ import { nodeInfo } from "@/lib/food/taxonomy";
 import { rowFromProduct } from "@/lib/nutrition/claims";
 import { toPer100, parseAmount } from "@/lib/nutrition/basis";
 import { NUTRIENTS } from "./model";
+import { effectiveGoal, carbCeiling } from "./goals";
 
 /** sku_nutrition's column for each nutrient the planner works in. */
 const COLUMN = Object.freeze({ kcal: "energy_kcal", protein: "protein_g", carbs: "carbs_g", fat: "total_fat_g" });
@@ -121,33 +122,53 @@ export function keepOutFlagsFor(keys = [], avoidByKey = {}) {
 }
 
 /**
- * A household member as the model wants them: their targets, the flags that
- * remove a product for them, and nothing else.
+ * How strict an avoid is when nothing says (00050): a hard allergen is an
+ * allergy, another hard avoid a rule, a soft one a dislike.
+ * @param {object} entry a FOODS_AVOID entry
+ * @returns {"allergy"|"rule"|"dislike"}
+ */
+export function defaultSeverity(entry) {
+  if (entry?.mode !== "hard") return "dislike";
+  return entry.kind === "allergen" ? "allergy" : "rule";
+}
+
+/**
+ * A household member as the model wants them: their targets, their goal, the
+ * flags that remove a product for them, and nothing else.
  *
- * Hard avoids remove a product. A soft avoid (preservatives, artificial
- * colours and the rest) is a preference, and a preference does not get to
- * decide whether a family can be fed — those are listed in the plan's
+ * An avoid's severity decides (00050): an allergy, an intolerance or a rule
+ * removes a product; a dislike is a preference, and a preference does not get
+ * to decide whether a family can be fed — dislikes are listed in the plan's
  * constraint snapshot as noted but not enforced, so the shopper can see that
- * KOI read them and chose not to starve the plan with them.
+ * KOI read them and chose not to starve the plan with them. With no severity
+ * stored, the avoid's own mode decides, as before.
  *
- * @param {object} member a household_member row plus its avoid keys
+ * A goal applies to adults only (goals.js#effectiveGoal).
+ *
+ * @param {object} member a household_member row, plus `avoids` [{ key, severity }] or `avoidKeys`
  * @param {{ avoidByKey: object, dietExclusions: object }} catalogues from config
- * @returns {{ id, label, ageBand, targets, avoidFlags, dietExcludes, softAvoidFlags }}
+ * @returns {{ id, label, ageBand, energyGoal, eatingPattern, carbsMax, profileVersion, targets, avoidFlags, dietExcludes, softAvoidFlags }}
  */
 export function memberFor(member, { avoidByKey, dietExclusions }) {
-  const keys = member.avoidKeys ?? [];
+  const avoids = member.avoids ?? (member.avoidKeys ?? []).map((key) => ({ key, severity: null }));
   const hard = [];
   const soft = [];
-  for (const key of keys) {
+  for (const { key, severity } of avoids) {
     const entry = avoidByKey[key];
     if (!entry) continue;
-    (entry.mode === "hard" ? hard : soft).push(entry.flag);
+    ((severity ?? defaultSeverity(entry)) === "dislike" ? soft : hard).push(entry.flag);
   }
+  const { energyGoal, eatingPattern } = effectiveGoal(member);
   return {
     id: String(member.id),
     label: member.label ?? null,
     // What the age rules read (ageSafety.js).
     ageBand: member.age_band ?? null,
+    energyGoal,
+    eatingPattern,
+    carbsMax: carbCeiling(eatingPattern),
+    // The saved profile this plan was made from (household_member_version).
+    profileVersion: isNum(member.version) ? Number(member.version) : null,
     targets: {
       kcal: isNum(member.target_kcal) ? Number(member.target_kcal) : null,
       protein: isNum(member.target_protein_g) ? Number(member.target_protein_g) : null,

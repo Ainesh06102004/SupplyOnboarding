@@ -42,8 +42,11 @@ const ADULT = Object.freeze({
   protein: { male: 54.0, female: 45.7 },
 });
 
-/** KOI's activity keys (goalStore ACTIVITY) against ICMR's three levels of work. */
-const WORK_FOR_ACTIVITY = Object.freeze({ sedentary: "sedentary", light: "sedentary", moderate: "moderate", active: "heavy" });
+/**
+ * Activity against ICMR's three levels of work: a household member's own
+ * activity_level is already one of them (00044); goal setup's keys map across.
+ */
+const WORK_FOR_ACTIVITY = Object.freeze({ sedentary: "sedentary", light: "sedentary", moderate: "moderate", heavy: "heavy", active: "heavy" });
 
 const ADULT_BANDS = Object.freeze(["adult_19_59", "senior_60_plus"]);
 
@@ -59,7 +62,7 @@ const pick = (value, sex) => {
  * @param {object} input
  * @param {string} input.ageBand a household_member age band
  * @param {"male"|"female"|null} [input.sex]
- * @param {"sedentary"|"light"|"moderate"|"active"|null} [input.activity] adults only; sedentary when absent
+ * @param {"sedentary"|"moderate"|"heavy"|"light"|"active"|null} [input.activity] adults only; sedentary when absent
  * @returns {{ kcal: number, protein: number, source: string, note: string|null }|null}
  */
 export function referenceNeeds({ ageBand, sex = null, activity = null }) {

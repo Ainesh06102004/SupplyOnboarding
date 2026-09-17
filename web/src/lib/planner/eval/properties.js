@@ -44,7 +44,7 @@ const ROUNDING = 0.001;
  * @param {number} [input.ms] wall time for the whole ladder
  * @returns {Array<{ kind: "safety"|"integrity"|"quality", property: string, detail: object }>}
  */
-export function checkPlan({ members = [], catalogue = [], keepOutFlags = [], budget = null, attempt, model, solution, report, ms = null }) {
+export function checkPlan({ members = [], catalogue = [], keepOutFlags = [], budget = null, days = 7, attempt, model, solution, report, ms = null }) {
   const findings = [];
   const add = (kind, property, detail) => findings.push({ kind, property, detail });
   const bySku = new Map(catalogue.map((item) => [String(item.skuId), item]));
@@ -80,6 +80,25 @@ export function checkPlan({ members = [], catalogue = [], keepOutFlags = [], bud
       }
       const forAge = ageRefusal(item, m.ageBand ?? null);
       if (forAge) add("safety", "unsafe_for_age", { skuId, member: m.id, rule: forAge.flag });
+      if (m.carbsMax !== null && m.carbsMax !== undefined && !Number.isFinite(Number(item.perPack?.carbs))) {
+        add("safety", "undeclared_carbs_under_a_carb_limit", { skuId, member: m.id });
+      }
+    }
+  }
+
+  // ── Goals ───────────────────────────────────────────────────────────────
+  for (const m of members) {
+    const supplied = (nutrient) => Object.entries(eats).reduce((sum, [skuId, byMember]) =>
+      sum + Number(byMember?.[m.id] ?? 0) * Number(bySku.get(String(skuId))?.perPack?.[nutrient] ?? 0), 0);
+    if (m.carbsMax !== null && m.carbsMax !== undefined) {
+      const limit = Number(m.carbsMax) * Number(days);
+      const carbs = supplied("carbs");
+      if (carbs > limit + 1) add("safety", "carb_limit_passed", { member: m.id, carbs: Math.round(carbs), limit });
+    }
+    if (m.energyGoal === "lose" && Number(m.targets?.kcal) > 0) {
+      const ceiling = Number(m.targets.kcal) * Number(days);
+      const kcal = supplied("kcal");
+      if (kcal > ceiling + 5) add("integrity", "deficit_passed", { member: m.id, kcal: Math.round(kcal), ceiling });
     }
   }
 

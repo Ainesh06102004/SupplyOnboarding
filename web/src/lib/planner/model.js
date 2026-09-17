@@ -49,7 +49,9 @@
 import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 
 // v6: age-band safety refusals (ageSafety.js).
-export const MODEL_VERSION = "plan-model-v6";
+// v7: goals (GOAL_MODEL): a deficit as an energy ceiling, a surplus weighted,
+//     keto and low carb as carbohydrate ceilings.
+export const MODEL_VERSION = "plan-model-v7";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -150,6 +152,20 @@ function nutritionPrices(item) {
  * household much hungrier overall to do it.
  */
 export const FAIRNESS = Object.freeze({ weight: 0.5 });
+
+/**
+ * How a member's goal shapes their targets (plan-model-v7, goals.js).
+ *
+ *   lose       the energy target is a ceiling: `over` is fixed at 0, so the
+ *              plan can fall short of it but never pass it. Always feasible,
+ *              because eating less always is.
+ *   gain       a shortfall on energy costs `gainShortfallMultiplier` times
+ *              more, so the plan works harder to reach the surplus.
+ *   keto,      carbohydrate over the plan is capped at the pattern's daily
+ *   low carb   ceiling × days, as a hard row; a product with no declared
+ *              carbohydrate is refused for that member.
+ */
+export const GOAL_MODEL = Object.freeze({ gainShortfallMultiplier: 5 });
 
 /** The nutrients a target may be set for, and their per-pack field. */
 export const NUTRIENTS = Object.freeze(["kcal", "protein", "carbs", "fat"]);
@@ -256,6 +272,11 @@ function refusedBy(item, member) {
   if (forAge) return { member: member.id, ...forAge };
   for (const flag of member.dietExcludes ?? []) {
     if (contains.has(flag)) return { member: member.id, flag, rule: "diet" };
+  }
+  // A carbohydrate ceiling (keto, low carb) cannot be kept with a product whose
+  // carbohydrate is not declared: "no figure, no claim" again.
+  if (isNum(member.carbsMax) && !isNum(item.perPack?.carbs)) {
+    return { member: member.id, flag: "carbs_not_declared", rule: "pattern" };
   }
   return null;
 }
@@ -415,7 +436,7 @@ export function buildPlanModel({
     rows.push(eaten);
   }
 
-  // Each member's targets, as goals.
+  // Each member's targets, as goals — shaped by their goal (GOAL_MODEL).
   for (const m of members) {
     for (const n of NUTRIENTS) {
       const perDay = m.targets?.[n];
@@ -426,10 +447,23 @@ export function buildPlanModel({
         const supplied = Number(item.perPack?.[n] ?? 0);
         if (supplied && mayEat(item.skuId, m.id)) row.coefficients[eatsName(item.skuId, m.id)] = supplied;
       }
-      columns.push({ name: shortName(m.id, n), lower: 0, upper: Infinity, integer: false, cost: DEVIATION_COST[n].short });
-      columns.push({ name: overName(m.id, n), lower: 0, upper: Infinity, integer: false, cost: DEVIATION_COST[n].over });
+      const losing = n === "kcal" && m.energyGoal === "lose";
+      const gaining = n === "kcal" && m.energyGoal === "gain";
+      const shortCost = DEVIATION_COST[n].short * (gaining ? GOAL_MODEL.gainShortfallMultiplier : 1);
+      columns.push({ name: shortName(m.id, n), lower: 0, upper: Infinity, integer: false, cost: shortCost });
+      // Losing: the energy target is a ceiling. Nothing over it, ever.
+      columns.push({ name: overName(m.id, n), lower: 0, upper: losing ? 0 : Infinity, integer: false, cost: DEVIATION_COST[n].over });
       row.coefficients[shortName(m.id, n)] = 1;
       row.coefficients[overName(m.id, n)] = -1;
+      rows.push(row);
+    }
+    // Keto and low carb: carbohydrate over the plan never passes the ceiling.
+    if (isNum(m.carbsMax)) {
+      const row = { name: `carbs_ceiling_${m.id}`, lower: -Infinity, upper: Number(m.carbsMax) * days, coefficients: {} };
+      for (const item of eligible) {
+        const carbs = Number(item.perPack?.carbs ?? 0);
+        if (carbs && mayEat(item.skuId, m.id)) row.coefficients[eatsName(item.skuId, m.id)] = carbs;
+      }
       rows.push(row);
     }
   }
@@ -488,6 +522,12 @@ export function buildPlanModel({
       refusals: Object.fromEntries(eligible.filter((i) => refusals[i.skuId]).map((i) => [i.skuId, refusals[i.skuId]])),
       keepOutFlags: [...keptOut],
       ageSafety: AGE_SAFETY_VERSION,
+      // Each member's goal as planned (children are always maintain and balanced).
+      goals: Object.fromEntries(members.map((m) => [m.id, {
+        energyGoal: m.energyGoal ?? "maintain",
+        eatingPattern: m.eatingPattern ?? "balanced",
+        carbsMax: isNum(m.carbsMax) ? Number(m.carbsMax) : null,
+      }])),
       fairness: fairFor.length ? fairness : 0,
       fairnessNutrients: fairFor,
     },

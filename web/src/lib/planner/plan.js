@@ -99,18 +99,18 @@ export async function planForHousehold({
 
   const { data: avoidRows, error: avoidError } = await db
     .from("household_member_avoid")
-    .select("member_id, avoid_key")
+    .select("member_id, avoid_key, severity")
     .in("member_id", memberRows.map((m) => m.id));
   if (avoidError) throw avoidError;
 
   const avoidsByMember = new Map();
   for (const row of avoidRows ?? []) {
     if (!avoidsByMember.has(row.member_id)) avoidsByMember.set(row.member_id, []);
-    avoidsByMember.get(row.member_id).push(row.avoid_key);
+    avoidsByMember.get(row.member_id).push({ key: row.avoid_key, severity: row.severity ?? null });
   }
 
   const members = memberRows.map((row) =>
-    memberFor({ ...row, avoidKeys: avoidsByMember.get(row.id) ?? [] }, CATALOGUES));
+    memberFor({ ...row, avoids: avoidsByMember.get(row.id) ?? [] }, CATALOGUES));
 
   // Kept out of the house (00047): hard avoids only, as their contains-flags.
   const keepOutFlags = keepOutFlagsFor(household.keep_out, AVOID_BY_KEY);
@@ -124,8 +124,13 @@ function membersFromSnapshot(snapshot) {
   return (snapshot?.members ?? []).map((m) => ({
     id: m.id,
     label: m.label,
-    // Plans stored before plan-model-v6 have no age band, and so no age rules.
+    // Plans stored before plan-model-v6 have no age band, and so no age rules;
+    // before v7, no goal.
     ageBand: m.age_band ?? null,
+    energyGoal: m.energy_goal ?? "maintain",
+    eatingPattern: m.eating_pattern ?? "balanced",
+    carbsMax: m.carbs_max ?? null,
+    profileVersion: m.profile_version ?? null,
     targets: m.targets ?? {},
     avoidFlags: m.avoid_flags ?? [],
     softAvoidFlags: m.noted_not_enforced ?? [],
@@ -185,6 +190,11 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
           id: m.id,
           label: m.label,
           age_band: m.ageBand ?? null,
+          energy_goal: m.energyGoal ?? "maintain",
+          eating_pattern: m.eatingPattern ?? "balanced",
+          carbs_max: m.carbsMax ?? null,
+          // The saved profile version this plan was made from (00050).
+          profile_version: m.profileVersion ?? null,
           targets: m.targets,
           avoid_flags: m.avoidFlags,
           // Recorded, and deliberately not enforced: a preference does not get

@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL } from "@/lib/planner/model.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
 const cookies = { skuId: "cookies", price: 120, contains: ["gluten", "dairy", "soy", "peanut"], availability: "unknown", perPack: { kcal: 940, protein: 21.8, carbs: 130, fat: 40 } };
@@ -82,6 +82,28 @@ test("whole nuts are kept from an under-5, and caffeine from a child, not from t
 
   const alone = buildPlanModel({ members: [toddler], catalogue: [wholeAlmonds, rice], days: 7 });
   assert.deepEqual(alone.excluded, [{ skuId: "almonds", reason: "refused", refusedBy: [{ member: "toddler", flag: "whole_nuts", rule: "age" }] }]);
+});
+
+test("losing: the energy target is a ceiling, and gaining weights the shortfall", () => {
+  const cutting = { ...adult, id: "cut", energyGoal: "lose" };
+  const bulking = { ...adult, id: "bulk", energyGoal: "gain" };
+  const model = buildPlanModel({ members: [cutting, bulking, adult], catalogue: [rice], days: 7 });
+  assert.equal(colNamed(model, nameOf.over("cut", "kcal")).upper, 0, "nothing over a deficit");
+  assert.equal(colNamed(model, nameOf.over("cut", "protein")).upper, Infinity, "protein may still go over");
+  assert.equal(colNamed(model, nameOf.short("bulk", "kcal")).cost, DEVIATION_COST.kcal.short * GOAL_MODEL.gainShortfallMultiplier);
+  assert.equal(colNamed(model, nameOf.short("me", "kcal")).cost, DEVIATION_COST.kcal.short);
+  assert.deepEqual(model.meta.goals.cut, { energyGoal: "lose", eatingPattern: "balanced", carbsMax: null });
+});
+
+test("keto: a carbohydrate ceiling over the plan, and no product whose carbohydrate is undeclared", () => {
+  const keto = { ...adult, id: "keto", eatingPattern: "keto", carbsMax: 50 };
+  const undeclared = { skuId: "mystery", price: 100, contains: [], availability: "unknown", perPack: { kcal: 1000, protein: 30 } };
+  const model = buildPlanModel({ members: [keto, adult], catalogue: [almonds, undeclared, rice], days: 7 });
+  const ceiling = rowNamed(model, "carbs_ceiling_keto");
+  assert.equal(ceiling.upper, 350, "50 g a day for 7 days");
+  assert.deepEqual(ceiling.coefficients, { [nameOf.eats("almonds", "keto")]: 44, [nameOf.eats("rice", "keto")]: 780 });
+  assert.deepEqual(model.meta.refusals.mystery, [{ member: "keto", flag: "carbs_not_declared", rule: "pattern" }]);
+  assert.ok(colNamed(model, nameOf.eats("mystery", "me")), "still planned for the member with no carb limit");
 });
 
 test("a member id that the solution could not be read back for is refused loudly", () => {
@@ -191,7 +213,7 @@ test("nobody is planned more of one product than they could eat", () => {
   assert.equal(colNamed(model, nameOf.packs("rice")).upper, 2, "1.26 + 0.882 packs: two whole ones");
   assert.deepEqual(model.meta.portionCaps.rice.me, { packs: 1.26, basis: "reference_portion", perDay: 180, unit: "g" });
   assert.equal(model.meta.portionRule, PORTION_RULE.version);
-  assert.equal(MODEL_VERSION, "plan-model-v6");
+  assert.equal(MODEL_VERSION, "plan-model-v7");
 });
 
 test("anything but a staple is one serving a day", () => {

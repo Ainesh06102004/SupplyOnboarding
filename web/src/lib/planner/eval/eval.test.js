@@ -88,19 +88,35 @@ test("the reference households are well formed, and use only keys the planner kn
     for (const m of h.members) {
       assert.ok(AGE_BAND_KEYS.includes(m.age_band), `${h.id}/${m.id} band`);
       assert.ok(diets.has(m.diet_type), `${h.id}/${m.id} diet`);
-      for (const key of [...m.avoidKeys, ...(h.keepOut ?? [])]) assert.ok(avoidKeys.has(key), `${h.id}: ${key}`);
+      for (const key of [...m.avoids.map((a) => a.key), ...(h.keepOut ?? [])]) assert.ok(avoidKeys.has(key), `${h.id}: ${key}`);
       assert.ok(Number(m.target_kcal) > 0 || Number(m.target_protein_g) > 0, `${h.id}/${m.id} has a target`);
     }
   }
+  for (const id of ["keto_adult", "gym_cutting", "gym_bulking", "senior_losing", "middle_aged_low_carb"]) {
+    assert.ok(REFERENCE_HOUSEHOLDS.some((h) => h.id === id), `${id}: every kind of eater is in the set`);
+  }
 });
 
-test("random households replay exactly from their seed", () => {
+test("random households replay exactly from their seed, and give children no goal", () => {
   assert.deepEqual(randomHouseholds({ count: 5, seed: 7 }), randomHouseholds({ count: 5, seed: 7 }));
   assert.notDeepEqual(randomHouseholds({ count: 5, seed: 7 }), randomHouseholds({ count: 5, seed: 8 }));
   for (const h of randomHouseholds({ count: 40, seed: 1 })) {
     assert.ok(h.members.length >= 1 && h.members.length <= 6);
-    for (const key of h.keepOut) assert.ok(h.members.some((m) => m.avoidKeys.includes(key)), "only what someone avoids is kept out");
+    for (const key of h.keepOut) assert.ok(h.members.some((m) => m.avoids.some((a) => a.key === key && a.severity !== "dislike")), "only what someone refuses is kept out");
+    for (const m of h.members.filter((x) => !["adult_19_59", "senior_60_plus"].includes(x.age_band))) {
+      assert.deepEqual([m.energy_goal, m.eating_pattern, m.weight_kg], ["maintain", "balanced", null]);
+    }
   }
+});
+
+test("a keto member given undeclared carbohydrate, or more than the ceiling, is a safety finding", () => {
+  const keto = { id: "keto", ageBand: "adult_19_59", energyGoal: "lose", eatingPattern: "keto", carbsMax: 50, targets: { kcal: 1500 }, avoidFlags: [], dietExcludes: [] };
+  const bread = { skuId: "bread", price: 50, contains: [], categoryKey: "staples.flours", perPack: { kcal: 1000, carbs: 200 } };
+  const mystery = { skuId: "mystery", price: 50, contains: [], categoryKey: "snacks.namkeen", perPack: { kcal: 500 } };
+  const found = checkPlan({ members: [keto], catalogue: [bread, mystery], days: 7, ...plan({ bread: { keto: 2 }, mystery: { keto: 1 } }) });
+  assert.deepEqual(found.map((f) => f.property).sort(), ["carb_limit_passed", "undeclared_carbs_under_a_carb_limit"]);
+  const over = checkPlan({ members: [keto], catalogue: [bread], days: 1, ...plan({ bread: { keto: 1.6 } }) });
+  assert.ok(over.some((f) => f.property === "deficit_passed"), "1,600 kcal in a day against a 1,500 ceiling");
 });
 
 test("the suite fails on a safety finding in any household, and on an unfed reference member", async () => {

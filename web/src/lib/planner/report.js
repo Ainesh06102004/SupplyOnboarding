@@ -25,12 +25,13 @@ const DIET_FLAG_WORDS = Object.freeze({
 /**
  * Why a product is not for someone, in words: "contains gluten", "not in their
  * diet: egg", "not for their age: caffeine is not for children".
- * @param {{ flag: string, rule: "avoided"|"diet"|"age" }} refusal
+ * @param {{ flag: string, rule: "avoided"|"diet"|"age"|"pattern" }} refusal
  * @returns {string}
  */
 export function refusalReason({ flag, rule }) {
   if (rule === "diet") return `not in their diet: ${DIET_FLAG_WORDS[flag] ?? flag.replace(/_/g, " ")}`;
   if (rule === "age") return ageReason(flag);
+  if (rule === "pattern") return "carbohydrate not declared, so it can't be shown to fit their carb limit";
   const entry = FOODS_AVOID.find((a) => a.flag === flag);
   return `contains ${(entry?.label ?? flag.replace(/_/g, " ")).toLowerCase()}`;
 }
@@ -239,7 +240,18 @@ export function planReport({ members = [], catalogue = [], solution = {}, days =
       if (difference < -TOLERANCE) shortfall[nutrient] = Math.abs(difference);
       else if (difference > TOLERANCE) excess[nutrient] = difference;
     }
-    return { id: member.id, label: member.label ?? null, asked, achieved, shortfall, excess };
+    // Keto and low carb: the ceiling over the period, next to what was planned.
+    const carbsLimit = isNum(member.carbsMax) ? round1(Number(member.carbsMax) * days) : null;
+    return {
+      id: member.id,
+      label: member.label ?? null,
+      goal: { energyGoal: member.energyGoal ?? "maintain", eatingPattern: member.eatingPattern ?? "balanced" },
+      asked,
+      achieved,
+      shortfall,
+      excess,
+      ...(carbsLimit !== null ? { carbsLimit } : {}),
+    };
   });
 
   const unmet = perMember.flatMap((m) =>

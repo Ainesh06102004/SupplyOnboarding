@@ -59,7 +59,7 @@ export async function runPlannerSuite({ catalogue, reference = [], random = [], 
     let result = null;
     try {
       result = await solvePlan(base);
-      findings = checkPlan({ members, catalogue, keepOutFlags, budget: household.budget, ...result, ms: now() - started });
+      findings = checkPlan({ members, catalogue, keepOutFlags, budget: household.budget, days: household.days, ...result, ms: now() - started });
     } catch (err) {
       findings = [{ kind: "integrity", property: "planner_threw", detail: { message: String(err?.message ?? err) } }];
     }
