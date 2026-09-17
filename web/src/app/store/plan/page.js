@@ -48,6 +48,13 @@ const blankMember = () => ({
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 const dayCount = (days) => `${days} ${Number(days) === 1 ? "day" : "days"}`;
 
+/** A person's share of a product: "1.4 kg", "350 g", or packs when KOI cannot measure the pack. */
+const shareOf = ({ amount, unit, packs }) => {
+  if (amount === null || amount === undefined || !unit) return `${packs} ${packs === 1 ? "pack" : "packs"}`;
+  const big = { g: "kg", ml: "L" }[unit];
+  return big && amount >= 1000 ? `${Math.round(amount / 100) / 10} ${big}` : `${amount} ${unit}`;
+};
+
 /** Stored members as form rows, in the order they were added. */
 const membersFrom = (rows) => [...rows]
   .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.label).localeCompare(String(b.label)))
@@ -618,6 +625,44 @@ export default function PlanPage() {
             </div>
           </div>
 
+          {(plan.report.whoEatsWhat ?? []).length > 0 && (
+            <div className="rounded-2xl border border-[#083D2D]/10 p-5">
+              <h2 className="text-lg font-bold text-[#0E4032]">Who eats what</h2>
+              <p className="mt-1 text-[12px] text-[#5A6B5A]">
+                Each person&apos;s share of this basket over {dayCount(plan.days)}. Something one person cannot eat is still
+                bought for the others, so it is listed here as not for them.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                {plan.report.whoEatsWhat.map((person) => {
+                  const planned = person.allowed.filter((a) => a.packs > 0);
+                  const alsoFine = person.allowed.filter((a) => !(a.packs > 0));
+                  return (
+                    <div key={person.member} className="rounded-xl bg-[#083D2D]/[0.03] p-3 text-[12.5px]">
+                      <p className="font-bold text-[#0E4032]">{person.label}</p>
+                      {planned.length === 0 && <p className="text-[#5A6B5A]">Nothing in this basket is planned for them.</p>}
+                      <ul className="mt-1 space-y-0.5">
+                        {planned.map((a) => (
+                          <li key={a.skuId} className="flex items-baseline justify-between gap-3">
+                            <span className="text-[#0E4032]">{a.name}</span>
+                            <span className="text-[#5A6B5A]">{shareOf(a)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {alsoFine.length > 0 && (
+                        <p className="mt-1 text-[11.5px] text-[#5A6B5A]">Also fine for them: {alsoFine.map((a) => a.name).join(", ")}</p>
+                      )}
+                      {person.notForThem.length > 0 && (
+                        <p className="mt-1 text-[11.5px] font-semibold text-[#B4453C]">
+                          Not for {person.label}: {person.notForThem.map((n) => `${n.name} (${n.because})`).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-[#B8860B]/30 bg-[#B8860B]/[0.06] p-5">
             <h2 className="flex items-center gap-2 text-lg font-bold text-[#0E4032]">
               <TriangleAlert className="h-4 w-4" style={{ color: "#B8860B" }} /> What this plan could not do
@@ -626,7 +671,7 @@ export default function PlanPage() {
               <li>Reached: {plan.explanation.reached.replace(/_/g, " ")}{plan.explanation.gave_up ? ` — gave up ${plan.explanation.gave_up}` : " — nothing was given up"}</li>
               <li>Never relaxed: {plan.explanation.never_relaxed.join(" and ")}</li>
               {plan.explanation.products_refused.length > 0 && (
-                <li>{plan.explanation.products_refused.length} products left out because someone avoids what is in them</li>
+                <li>{plan.explanation.products_refused.length} products left out because no one in the household can eat them</li>
               )}
               {plan.explanation.products_not_plannable.length > 0 && (
                 <li>{plan.explanation.products_not_plannable.length} products KOI cannot plan with yet (no price, or a pack it cannot measure)</li>

@@ -22,10 +22,35 @@ const jain = { id: "gran", targets: { protein: 40 }, avoidFlags: [], dietExclude
 const rowNamed = (model, name) => model.rows.find((r) => r.name === name);
 const colNamed = (model, name) => model.columns.find((c) => c.name === name);
 
-test("what one member cannot eat, the household does not buy", () => {
+test("what one member cannot eat is kept from them, not from the household", () => {
   const model = buildPlanModel({ members: [adult, nutFree], catalogue: [almonds, rice], days: 7 });
+  assert.deepEqual(model.meta.skus, ["almonds", "rice"], "almonds can still be bought for the adult");
+  assert.deepEqual(model.excluded, []);
+  assert.deepEqual(model.meta.refusals, { almonds: [{ member: "kid", flag: "tree_nut", rule: "avoided" }] });
+  assert.equal(colNamed(model, nameOf.eats("almonds", "kid")), undefined, "the kid has no share of almonds to be given");
+  assert.ok(colNamed(model, nameOf.eats("almonds", "me")));
+  assert.deepEqual(Object.keys(rowNamed(model, "eaten_almonds").coefficients).sort(), [nameOf.eats("almonds", "me"), nameOf.packs("almonds")].sort());
+  assert.equal(rowNamed(model, "target_kid_protein").coefficients[nameOf.eats("almonds", "kid")], undefined);
+});
+
+test("a wife's gluten-free diet and a kid's nut allergy stay theirs", () => {
+  const me = { id: "me", targets: { protein: 60 }, avoidFlags: [], dietExcludes: [] };
+  const wife = { id: "wife", targets: { protein: 50 }, avoidFlags: ["gluten"], dietExcludes: [] };
+  const kid = { id: "kid", targets: { protein: 30 }, avoidFlags: ["tree_nut"], dietExcludes: [] };
+  const atta = { ...rice, skuId: "atta", contains: ["gluten"] };
+  const model = buildPlanModel({ members: [me, wife, kid], catalogue: [almonds, atta, rice], days: 7 });
+  assert.deepEqual(model.meta.skus, ["almonds", "atta", "rice"]);
+  assert.ok(colNamed(model, nameOf.eats("almonds", "me")) && colNamed(model, nameOf.eats("atta", "me")), "nothing is kept from me");
+  assert.equal(colNamed(model, nameOf.eats("atta", "wife")), undefined);
+  assert.ok(colNamed(model, nameOf.eats("almonds", "wife")));
+  assert.equal(colNamed(model, nameOf.eats("almonds", "kid")), undefined);
+  assert.ok(colNamed(model, nameOf.eats("atta", "kid")));
+});
+
+test("a product no member can eat is left out, and says who refused it", () => {
+  const model = buildPlanModel({ members: [nutFree], catalogue: [almonds, rice], days: 7 });
   assert.deepEqual(model.meta.skus, ["rice"]);
-  assert.deepEqual(model.excluded, [{ skuId: "almonds", reason: "refused", member: "kid", flag: "tree_nut", rule: "avoided" }]);
+  assert.deepEqual(model.excluded, [{ skuId: "almonds", reason: "refused", refusedBy: [{ member: "kid", flag: "tree_nut", rule: "avoided" }] }]);
   assert.equal(colNamed(model, nameOf.packs("almonds")), undefined, "not in the program at all");
 });
 
@@ -33,8 +58,8 @@ test("a diet removes a product the same way an allergen does", () => {
   const potatoChips = { skuId: "chips", price: 150, contains: ["root_veg"], availability: "unknown", perPack: { protein: 25.6, kcal: 1000 } };
   const model = buildPlanModel({ members: [jain], catalogue: [potatoChips, rice], days: 7 });
   assert.deepEqual(model.meta.skus, ["rice"]);
-  assert.equal(model.excluded[0].rule, "diet");
-  assert.equal(model.excluded[0].flag, "root_veg");
+  assert.equal(model.excluded[0].refusedBy[0].rule, "diet");
+  assert.equal(model.excluded[0].refusedBy[0].flag, "root_veg");
 });
 
 test("packs are whole, shares are not, and everything bought is eaten", () => {
@@ -126,7 +151,7 @@ test("nobody is planned more of one product than they could eat", () => {
   assert.equal(colNamed(model, nameOf.packs("rice")).upper, 2, "1.26 + 0.882 packs: two whole ones");
   assert.deepEqual(model.meta.portionCaps.rice.me, { packs: 1.26, basis: "reference_portion", perDay: 180, unit: "g" });
   assert.equal(model.meta.portionRule, PORTION_RULE.version);
-  assert.equal(MODEL_VERSION, "plan-model-v4");
+  assert.equal(MODEL_VERSION, "plan-model-v5");
 });
 
 test("anything but a staple is one serving a day", () => {

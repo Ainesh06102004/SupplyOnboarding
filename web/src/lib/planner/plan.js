@@ -31,7 +31,7 @@ import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
 import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
 import { plannableFrom, memberFor } from "./candidates";
 import { solvePlanModel } from "./solve";
-import { planReport, basketDiff, materiallyShort, atPortionLimit } from "./report";
+import { planReport, basketDiff, materiallyShort, atPortionLimit, whoEatsWhat } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
 import { applyFollowUp } from "./followup";
 import { readFollowUpWithModel } from "./followUpModel";
@@ -190,6 +190,8 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     days,
     budget,
   });
+  // Per person: what in the basket each may eat and how much, and what is not for them.
+  report.whoEatsWhat = whoEatsWhat({ members, catalogue, basket: report.basket, refusals: model.meta.refusals });
 
   const status = solution.usable ? "solved" : "infeasible";
   const explanation = {
@@ -199,6 +201,8 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // Every member's allergens and diet held at every step. Said out loud
     // because it is the one promise the ladder never trades.
     never_relaxed: ["allergens", "diet"],
+    // Products no member can eat. One some members cannot eat stays in the
+    // program for the others, and shows in report.whoEatsWhat.
     products_refused: model.excluded.filter((e) => e.reason === "refused"),
     products_not_plannable: unplannable,
     products_not_candidates: model.excluded.filter((e) => e.reason === "not_a_candidate").length,

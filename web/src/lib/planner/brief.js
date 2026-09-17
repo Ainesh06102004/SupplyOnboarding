@@ -17,22 +17,27 @@
 //     kids" has no age, so the draft asks rather than guesses.
 //   - a diet is kept only if the sentence names it. An unnamed diet is left for
 //     the shopper to choose, never defaulted: a blank diet excludes nothing.
-//   - anything to avoid is put on EVERYONE, whoever it was said about. The
-//     planner already removes a product any member cannot eat for the whole
-//     household (model.js), so this costs the plan nothing, and a restriction
-//     attributed to the wrong person can never be lost.
+//   - anything to avoid goes on the person it was said about ("my son is
+//     allergic to peanuts", "my wife is gluten free"), because the planner
+//     keeps a product only from the people who cannot eat it (model.js). An
+//     avoid said about no one in particular goes on everyone, and the draft
+//     says so; one the rules placed and the model did not is never dropped.
+//     Only avoids the message names in so many words count: "no paneer" is
+//     not "no milk" (avoidWords.js).
 //
-// Labels are roles and numbers ("Adult 1", "Kid 2"), never names: KOI stores
-// no names (migration 00044), so it does not copy one out of a sentence either.
+// Labels are "Me", a relationship word the message used ("Wife", "Son"), or a
+// role and a number ("Adult 1", "Kid 2"), never names: KOI stores no names
+// (migration 00044), so it does not copy one out of a sentence either.
 // ============================================================================
 
 import { z } from "zod";
-import { DIET_TYPES } from "@/lib/recommendation/config";
+import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 import { DIET_KEYS, AVOID_KEYS } from "@/lib/ai/intent/schema";
 import { interpret } from "@/lib/ai/intent";
 import { normalise } from "@/lib/ai/intent/deterministic";
 import { numbersIn } from "@/lib/ai/intent/merge";
 import { nullableEnum, nullableNumber, enumArray, strictObject } from "@/lib/ai/providers/openaiFormat";
+import { avoidKeysNamed } from "./avoidWords";
 
 export const AGE_BANDS = Object.freeze([
   { key: "adult_19_59", label: "Adult (19–59)", min: 19, max: 59 },
@@ -81,6 +86,17 @@ const AGE = String.raw`\b(?:aged?|age|who is|who s|is)\s*(\d{1,2})\b(?!\s*(?:g\b
 
 /** The age band an age falls in, or null. */
 const bandForAge = (age) => AGE_BANDS.find((b) => age >= b.min && age <= b.max) ?? null;
+
+/** Text as bare words, for "did the message say this?": "Me, my wife." is "me my wife". */
+const words = (text, padded = false) => {
+  const bare = normalise(text).replace(/[.,;/+]/g, " ").replace(/\s+/g, " ").trim();
+  return padded ? ` ${bare} ` : bare;
+};
+
+/** The relationship words ("wife", "son") in a piece of text, in order. */
+const singularWordsIn = (clause) => ROLE_KEYS.flatMap((r) => (ROLES[r].singular
+  ? [...normalise(clause).matchAll(new RegExp(`\\b(${ROLES[r].singular})\\b`, "g"))].map((m) => m[1])
+  : []));
 
 const rolesIn = (clause) =>
   ROLE_KEYS.filter((r) => ROLES[r].plural && new RegExp(`\\b(${ROLES[r].plural}|${ROLES[r].singular})\\b`).test(clause));
@@ -147,31 +163,41 @@ function clausesOf(text) {
  * Read a household brief with rules. Always answers; may answer "nobody".
  *
  * @param {string} input
- * @returns {{ groups: Array, days: number|null, budget: number|null, avoidKeys: string[], unresolved: string[] }}
+ * @returns {{ groups: Array, days: number|null, budget: number|null, avoidEveryone: string[], unresolved: string[] }}
+ *   Each group carries its own `avoidKeys`. `avoidEveryone` holds what was said
+ *   about no one in particular.
  */
 export function readBrief(input) {
   const text = normalise(input);
   const clauses = clausesOf(input);
   const groups = [];
 
-  // People, clause by clause, so what a clause says about age sticks to the people it names.
+  // People, clause by clause, so what a clause says about age sticks to the
+  // people it names. Someone named again ("my son is allergic to peanuts",
+  // after "me, my wife and my son") is the same person, not another one.
   const found = clauses.map((clause) => {
     const here = [];
+    const fresh = [];
     const couple = clause.match(new RegExp(`\\b(?:us|we)\\s+${COUNT}\\b|\\b(?:both|the two) of us\\b`));
-    if (couple) here.push({ role: "adult", count: couple[1] ? toCount(couple[1]) : 2, us: true });
+    if (couple) fresh.push({ role: "adult", count: couple[1] ? toCount(couple[1]) : 2, us: true });
     for (const role of ROLE_KEYS.filter((r) => ROLES[r].plural)) {
       const { plural, singular } = ROLES[role];
       for (const m of clause.matchAll(new RegExp(`\\b${COUNT}\\s+(?:${plural})\\b`, "g"))) {
         const count = toCount(m[1]);
-        if (count) here.push({ role, count });
+        if (count) fresh.push({ role, count });
       }
-      const single = new RegExp(`\\b(?:a|an|my|our)\\s+(?:\\d{1,2}\\s*(?:years?|yrs?)\\s*old\\s+)?(?:${singular})\\b`, "g");
-      for (let i = 0, n = [...clause.matchAll(single)].length; i < n; i++) here.push({ role, count: 1, singular: true });
+      const single = new RegExp(`\\b(?:a|an|my|our)\\s+(?:\\d{1,2}\\s*(?:years?|yrs?)\\s*old\\s+)?(${singular})\\b`, "g");
+      for (const m of clause.matchAll(single)) {
+        const known = groups.find((g) => g.word === m[1]);
+        if (known) here.push(known);
+        else fresh.push({ role, count: 1, singular: true, word: m[1] });
+      }
     }
+    here.push(...fresh);
     const age = clause.match(new RegExp(AGE));
     const band = age ? bandForAge(Number(age[1] ?? age[2])) : null;
     if (band) here.forEach((g) => { g.ageBand = band.key; });
-    groups.push(...here);
+    groups.push(...fresh);
     return here;
   });
   // "Me and my husband": the speaker is a person too, unless "two adults" or "us two" already counted them.
@@ -191,22 +217,38 @@ export function readBrief(input) {
     groups.push({ role, count: said - named, ageBand: ROLES[role].ageBand });
   }
 
-  // Targets and diets go to the people named in the same clause; else the
-  // speaker, when the clause is in the first person ("I need 70 g"); else the
-  // kinds of people it mentions ("for the adults"); else everyone.
-  clauses.forEach((clause, i) => {
+  // Who a clause is about: the people it names (as they were first named, or
+  // again: "the son", "my wife and son"); else the speaker, when it is in the
+  // first person ("I need 70 g"); else the kinds of people it mentions ("for
+  // the adults"); else no one in particular (null).
+  const namedIn = (clause, i) => {
+    const words = singularWordsIn(clause);
+    const people = [...new Set([...found[i], ...groups.filter((g) => g.word && words.includes(g.word))])];
+    if (people.length) return people;
     const roles = rolesIn(clause);
-    const firstPerson = me && /\b(i|i m|i am|my|for me)\b/.test(clause) && !roles.length;
-    const targets = found[i].length ? found[i]
-      : firstPerson ? [me]
-      : groups.filter((g) => !roles.length || roles.includes(g.role));
-    const applyTo = (patch) => targets.forEach((g) => Object.assign(g, patch));
+    if (me && !roles.length && /\b(i|i m|i am|my|me|for me)\b/.test(clause)) return [me];
+    if (roles.length) return groups.filter((g) => roles.includes(g.role));
+    return null;
+  };
+
+  // Targets and diets said about no one in particular are everyone's. So is
+  // an avoid, but it is also reported, because it may be one person's.
+  const avoidEveryone = new Set();
+  clauses.forEach((clause, i) => {
+    const people = namedIn(clause, i);
+    const applyTo = (patch) => (people ?? groups).forEach((g) => Object.assign(g, patch));
     const protein = clause.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|gms|grams?)\s*(?:of\s+)?protein/) || clause.match(/protein\s*(?:of\s+)?(\d+(?:\.\d+)?)\s*(?:g|gm|gms|grams?)\b/);
     if (protein) applyTo({ proteinG: Number(protein[1]) });
     const kcal = clause.match(/(\d{3,4})\s*(?:kcal|calories|cals?)\b/);
     if (kcal) applyTo({ kcal: Number(kcal[1]) });
     const [diet] = dietsNamed(clause);
     if (diet) applyTo({ dietType: diet });
+    // Only avoids the clause names in so many words: "no paneer" is not "no milk".
+    const namedKeys = avoidKeysNamed(clause);
+    const avoids = interpret(clause).profile.foodsAvoid.filter((k) => namedKeys.includes(k));
+    if (!avoids.length) return;
+    if (people) people.forEach((g) => { g.avoidKeys = [...new Set([...(g.avoidKeys ?? []), ...avoids])]; });
+    else avoids.forEach((k) => avoidEveryone.add(k));
   });
 
   const reading = interpret(input);
@@ -214,7 +256,7 @@ export function readBrief(input) {
     groups: groups.slice(0, MAX_MEMBERS),
     days: daysIn(input),
     budget: budgetIn(input),
-    avoidKeys: reading.profile.foodsAvoid,
+    avoidEveryone: [...avoidEveryone],
     unresolved: reading.unresolved,
   };
 }
@@ -227,6 +269,7 @@ export const BRIEF_JSON_SCHEMA = Object.freeze(strictObject({
   groups: {
     type: "array",
     items: strictObject({
+      who: { type: "string" },
       role: { type: "string", enum: [...ROLE_KEYS] },
       count: { type: "integer" },
       ageBand: nullableEnum(AGE_BAND_KEYS),
@@ -250,7 +293,8 @@ export const BRIEF_INSTRUCTIONS = [
   "- The person writing (\"me\", \"I\") and a husband, wife or partner are adults unless an age says otherwise.",
   "- ageBand only when the message says it: adults are adult_19_59, grandparents or seniors are senior_60_plus, and a child or teen gets the band containing an age written in the message. Otherwise null.",
   "- dietType only when the message names a diet. A diet said of the whole family or of \"all\" applies to every group. Otherwise null. Never assume vegetarian.",
-  "- avoidKeys: what that group must not eat, from the list. Something to avoid with no key goes in unresolved, copied word for word.",
+  "- who: the words the message uses for that group, copied exactly (\"me\", \"my wife\", \"two kids\").",
+  "- avoidKeys: what that group must not eat, from the list, only on the group it was said about (\"my son is allergic to peanuts\" is the son's alone). Something to avoid with no key goes in unresolved, copied word for word.",
   "- A medical condition is never a diet or a target. Copy its words into unresolved.",
   "- days: 7 for a week, 14 for a fortnight, or the number of days written. Null if not said.",
   "",
@@ -262,6 +306,7 @@ export const BRIEF_INSTRUCTIONS = [
 
 const ModelDraftSchema = z.object({
   groups: z.array(z.object({
+    who: z.string().max(60),
     role: z.enum([...ROLE_KEYS]),
     count: z.number().int().min(1).max(MAX_MEMBERS),
     ageBand: z.enum([...AGE_BAND_KEYS]).nullable(),
@@ -302,20 +347,28 @@ export function groundModelDraft(raw, input) {
     return ages.some((age) => bandForAge(age)?.key === band);
   };
   const weekWords = /\bfortnight\b|\b(two|2)\s*weeks?\b/.test(text) ? 14 : /\bweek(ly)?\b/.test(text) ? 7 : null;
+  // An avoid counts only where the message names it (avoidWords.js).
+  const namedAvoids = new Set(avoidKeysNamed(input));
 
   return {
-    groups: draft.groups.map((g) => ({
-      role: g.role,
-      count: g.count,
-      ageBand: bandAllowed(g.ageBand, g.role) ? g.ageBand : ROLES[g.role].ageBand,
-      dietType: g.dietType && diets.has(g.dietType) ? g.dietType : null,
-      proteinG: g.proteinG !== null && stated.has(g.proteinG) ? g.proteinG : null,
-      kcal: g.kcal !== null && stated.has(g.kcal) ? g.kcal : null,
-      avoidKeys: g.avoidKeys,
-    })),
+    groups: draft.groups.map((g) => {
+      // The group's own words, if they are the message's: "me", or a relationship word for its label.
+      const plainWho = words(g.who);
+      const who = plainWho && words(input, true).includes(` ${plainWho} `) ? plainWho : "";
+      return {
+        role: g.role,
+        count: g.count,
+        me: g.count === 1 && /\b(me|i|myself)\b/.test(who),
+        word: g.count === 1 ? singularWordsIn(who)[0] ?? null : null,
+        ageBand: bandAllowed(g.ageBand, g.role) ? g.ageBand : ROLES[g.role].ageBand,
+        dietType: g.dietType && diets.has(g.dietType) ? g.dietType : null,
+        proteinG: g.proteinG !== null && stated.has(g.proteinG) ? g.proteinG : null,
+        kcal: g.kcal !== null && stated.has(g.kcal) ? g.kcal : null,
+        avoidKeys: g.avoidKeys.filter((k) => namedAvoids.has(k)),
+      };
+    }),
     days: draft.days !== null && (stated.has(draft.days) || draft.days === weekWords) ? draft.days : null,
     budget: draft.budget !== null && numbersIn(input).has(draft.budget) ? draft.budget : null,
-    avoidKeys: [...new Set(draft.groups.flatMap((g) => g.avoidKeys))],
     unresolved: draft.unresolved.filter((w) => w.trim() && text.includes(` ${normalise(w)} `)),
   };
 }
@@ -333,8 +386,12 @@ export function draftFrom(local, model = null) {
   // A diet the rules read for the whole household ("Jain family") fills a gap the model left.
   const localDiets = new Set((local.groups ?? []).map((g) => g.dietType ?? null));
   const householdDiet = localDiets.size === 1 ? [...localDiets][0] : null;
-  // Everything anyone must avoid applies to everyone (see the banner).
-  const avoidKeys = [...new Set([...(local.avoidKeys ?? []), ...(model?.avoidKeys ?? [])])];
+  // Avoids stay with their person. What was said about no one in particular
+  // is everyone's, unless the model placed it; one the rules placed that the
+  // model placed nowhere goes on everyone rather than being lost.
+  const modelKeys = new Set(useModel ? model.groups.flatMap((g) => g.avoidKeys ?? []) : []);
+  const everyone = new Set((local.avoidEveryone ?? []).filter((k) => !modelKeys.has(k)));
+  if (useModel) for (const g of local.groups ?? []) for (const k of g.avoidKeys ?? []) if (!modelKeys.has(k)) everyone.add(k);
 
   const counters = {};
   const members = [];
@@ -342,14 +399,17 @@ export function draftFrom(local, model = null) {
     for (let i = 0; i < group.count && members.length < MAX_MEMBERS; i++) {
       const role = ROLES[group.role] ? group.role : "person";
       const isMe = group.me && i === 0;
-      if (!isMe) counters[role] = (counters[role] ?? 0) + 1;
+      // "Wife", "Son": a relationship word the message used; else a role and a number.
+      const word = !isMe && group.count === 1 && group.word ? group.word[0].toUpperCase() + group.word.slice(1) : null;
+      const key = word ?? ROLES[role].label;
+      if (!isMe) counters[key] = (counters[key] ?? 0) + 1;
       members.push({
-        label: isMe ? "Me" : `${ROLES[role].label} ${counters[role]}`,
+        label: isMe ? "Me" : word ? (counters[key] > 1 ? `${word} ${counters[key]}` : word) : `${key} ${counters[key]}`,
         age_band: group.ageBand ?? ROLES[role].ageBand ?? "",
         diet_type: group.dietType ?? householdDiet ?? "",
         target_protein_g: group.proteinG ?? "",
         target_kcal: group.kcal ?? "",
-        avoidKeys: [...avoidKeys],
+        avoidKeys: [...new Set([...(group.avoidKeys ?? []), ...everyone])],
       });
     }
   }
@@ -359,7 +419,10 @@ export function draftFrom(local, model = null) {
   if (members.some((m) => !m.age_band)) notes.push("Choose an age group where it says so: KOI does not guess ages.");
   if (members.some((m) => !m.diet_type)) notes.push("Choose a diet where it says so: KOI does not assume one.");
   if (members.some((m) => m.target_protein_g === "" && m.target_kcal === "")) notes.push("Give everyone at least one target a day. KOI does not set targets for you.");
-  if (avoidKeys.length) notes.push("What to avoid is on everyone, because the plan leaves out anything one person cannot eat.");
+  if (everyone.size && members.length > 1) {
+    const labels = [...everyone].map((k) => FOODS_AVOID.find((a) => a.key === k)?.label ?? k).join(", ");
+    notes.push(`${labels} ${everyone.size === 1 ? "was" : "were"} not said about anyone in particular, so ${everyone.size === 1 ? "it is" : "they are"} on everyone. Untick it for anyone it does not apply to.`);
+  }
 
   return {
     members,

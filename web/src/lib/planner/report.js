@@ -13,6 +13,62 @@
 // ============================================================================
 
 import { NUTRIENTS } from "./model";
+import { FOODS_AVOID } from "@/lib/recommendation/config";
+
+/** What a diet flag means, in words, when it is why someone cannot eat a product. */
+const DIET_FLAG_WORDS = Object.freeze({
+  meat: "meat", fish: "fish", shellfish: "shellfish", egg: "egg", honey: "honey", root_veg: "root vegetables", dairy: "dairy",
+});
+
+/**
+ * Why a product is not for someone, in words: "contains gluten", "not in their diet: egg".
+ * @param {{ flag: string, rule: "avoided"|"diet" }} refusal
+ * @returns {string}
+ */
+export function refusalReason({ flag, rule }) {
+  if (rule === "diet") return `not in their diet: ${DIET_FLAG_WORDS[flag] ?? flag.replace(/_/g, " ")}`;
+  const entry = FOODS_AVOID.find((a) => a.flag === flag);
+  return `contains ${(entry?.label ?? flag.replace(/_/g, " ")).toLowerCase()}`;
+}
+
+/**
+ * Who eats what (per person): for each member, what in the basket they may eat
+ * and how much of it the plan gives them, and what in it is not for them and
+ * why. A product one person cannot eat is still bought for the others, so a
+ * shopper needs to see which is whose.
+ *
+ * @param {object} input
+ * @param {Array} input.members from memberFor()
+ * @param {Array} input.catalogue rows with packAmount and packUnit
+ * @param {Array} input.basket planReport's basket
+ * @param {object} [input.refusals] model.meta.refusals
+ * @returns {Array<{ member, label, allowed: Array, notForThem: Array }>}
+ */
+export function whoEatsWhat({ members = [], catalogue = [], basket = [], refusals = {} }) {
+  const bySku = new Map(catalogue.map((item) => [String(item.skuId), item]));
+  return members.map((m) => {
+    const allowed = [];
+    const notForThem = [];
+    for (const line of basket) {
+      const refusal = (refusals[line.skuId] ?? []).find((r) => String(r.member) === String(m.id));
+      if (refusal) {
+        notForThem.push({ skuId: line.skuId, name: line.name, because: refusalReason(refusal) });
+        continue;
+      }
+      const item = bySku.get(String(line.skuId));
+      const packs = Math.round((line.shares?.[m.id] ?? 0) * line.packs * 100) / 100;
+      allowed.push({
+        skuId: line.skuId,
+        name: line.name,
+        packs,
+        amount: item?.packAmount ? Math.round(packs * item.packAmount) : null,
+        unit: item?.packUnit ?? null,
+      });
+    }
+    allowed.sort((a, b) => b.packs - a.packs);
+    return { member: m.id, label: m.label ?? null, allowed, notForThem };
+  });
+}
 
 const round1 = (v) => Math.round(v * 10) / 10;
 const isNum = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));

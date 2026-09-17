@@ -14,9 +14,13 @@
 //   over[m][n]     how far they go above it.
 //
 // THE HARD CONSTRAINTS — never traded away, never relaxed:
-//   * a SKU any member cannot eat is not in the program at all. An allergen
-//     they avoid, or a diet their food must respect, removes the SKU rather
-//     than penalising it, and the reason is recorded in `excluded`.
+//   * a member never eats a SKU they cannot eat. An allergen they avoid, or a
+//     diet their food must respect, means there is no eats[s][m] for them at
+//     all — not a penalty — and the reason is recorded in meta.refusals. The
+//     SKU can still be bought for the others: one child's nut allergy used to
+//     take nuts off everyone's plan, and a wife's gluten-free diet her
+//     husband's atta. A SKU no member can eat is not in the program, and
+//     `excluded` says why.
 //   * what is bought is what is eaten: sum over members of eats[s][m] equals
 //     packs[s]. Nothing is planned into a basket and left uneaten.
 //   * budget, when given.
@@ -38,7 +42,7 @@
 // avoid. What is good food is the screening engine's business.
 // ============================================================================
 
-export const MODEL_VERSION = "plan-model-v4";
+export const MODEL_VERSION = "plan-model-v5";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -286,6 +290,8 @@ export function buildPlanModel({
   const excluded = [];
   // skuId -> memberId -> portionCap()
   const portionCaps = {};
+  // skuId -> [{ member, flag, rule }] for the members who cannot eat it
+  const refusals = {};
 
   // The catalogue's typical price of energy and of protein (PRICE_SANITY).
   const prices = catalogue.map(nutritionPrices);
@@ -332,22 +338,29 @@ export function buildPlanModel({
       excluded.push({ skuId: item.skuId, reason: "not_confirmed_available", availability: item.availability ?? "unknown" });
       continue;
     }
-    const refusal = members.map((m) => refusedBy(item, m)).find(Boolean);
-    if (refusal) {
-      excluded.push({ skuId: item.skuId, reason: "refused", ...refusal });
+    // Kept from the members who cannot eat it; out of the program only when that is everyone.
+    const refusedFor = members.map((m) => refusedBy(item, m)).filter(Boolean);
+    if (members.length && refusedFor.length === members.length) {
+      excluded.push({ skuId: item.skuId, reason: "refused", refusedBy: refusedFor });
       continue;
     }
-    // Everything bought is eaten, so a pack bigger than the whole household
-    // may eat in the period cannot be bought at all.
-    const caps = Object.fromEntries(members.map((m) => [m.id, portionCap(item, m, days, portionRelax)]));
+    const refusing = new Set(refusedFor.map((r) => r.member));
+    // Everything bought is eaten, so a pack bigger than the members who may
+    // eat it can finish in the period cannot be bought at all.
+    const caps = Object.fromEntries(members.map((m) => [
+      m.id,
+      refusing.has(m.id) ? { packs: 0, basis: "refused", perDay: 0, unit: null } : portionCap(item, m, days, portionRelax),
+    ]));
     const canEat = round4(Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0));
     if (members.length && canEat < 1) {
       excluded.push({ skuId: item.skuId, reason: "pack_outlasts_the_plan", canEat });
       continue;
     }
     portionCaps[item.skuId] = caps;
+    if (refusedFor.length) refusals[item.skuId] = refusedFor;
     allowed.push(item);
   }
+  const mayEat = (skuId, memberId) => portionCaps[skuId]?.[memberId]?.basis !== "refused";
 
   // Only so many products may enter the program (CANDIDATE_RULE).
   let eligible = allowed;
@@ -370,6 +383,7 @@ export function buildPlanModel({
     columns.push({ name: packsName(item.skuId), lower: 0, upper: packUpper, integer: true, cost: Math.round(packCost * 1e6) / 1e6 });
     const eaten = { name: `eaten_${item.skuId}`, lower: 0, upper: 0, coefficients: { [packsName(item.skuId)]: -1 } };
     for (const m of members) {
+      if (!mayEat(item.skuId, m.id)) continue;
       const upper = Math.min(maxPacksPerSku, caps[m.id]?.packs ?? maxPacksPerSku);
       columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper, integer: false, cost: 0 });
       eaten.coefficients[eatsName(item.skuId, m.id)] = 1;
@@ -386,7 +400,7 @@ export function buildPlanModel({
       const row = { name: `target_${m.id}_${n}`, lower: target, upper: target, coefficients: {} };
       for (const item of eligible) {
         const supplied = Number(item.perPack?.[n] ?? 0);
-        if (supplied) row.coefficients[eatsName(item.skuId, m.id)] = supplied;
+        if (supplied && mayEat(item.skuId, m.id)) row.coefficients[eatsName(item.skuId, m.id)] = supplied;
       }
       columns.push({ name: shortName(m.id, n), lower: 0, upper: Infinity, integer: false, cost: DEVIATION_COST[n].short });
       columns.push({ name: overName(m.id, n), lower: 0, upper: Infinity, integer: false, cost: DEVIATION_COST[n].over });
@@ -447,6 +461,7 @@ export function buildPlanModel({
       portionRule: PORTION_RULE.version,
       portionRelax,
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),
+      refusals: Object.fromEntries(eligible.filter((i) => refusals[i.skuId]).map((i) => [i.skuId, refusals[i.skuId]])),
       fairness: fairFor.length ? fairness : 0,
       fairnessNutrients: fairFor,
     },

@@ -31,6 +31,7 @@ import { normalise } from "@/lib/ai/intent/deterministic";
 import { numbersIn } from "@/lib/ai/intent/merge";
 import { nullableNumber, strictObject } from "@/lib/ai/providers/openaiFormat";
 import { budgetIn, MAX_DAYS } from "./brief";
+import { avoidKeysNamed } from "./avoidWords";
 
 export const MAX_FOLLOWUP_CHARS = 200;
 
@@ -65,29 +66,6 @@ function followUpDays(text) {
   if (/\b(for|make it|plan for|just|only)\s+(a|one)\s+week\b/.test(text)) return 7;
   return null;
 }
-
-/**
- * The words that name an avoid itself, per avoid key. "No nuts" is an avoid;
- * "no paneer" is a product. Search reads "no paneer" as "avoid milk", which is
- * the right tightening for a filter, but in a plan it would take every dairy
- * product out of the week when the shopper only said paneer.
- */
-const AVOID_EXTRA_WORDS = Object.freeze({
-  tree_nuts: ["nut", "nuts"], peanuts: ["peanut", "groundnut", "nuts"], milk: ["dairy"], lactose: ["dairy"],
-  eggs: ["egg"], gluten: ["wheat"], soy: ["soya"], red_meat: ["meat"], refined_sugar: ["sugar"],
-  high_sodium: ["salt", "sodium"], spicy_food: ["spicy"], artificial_sweeteners: ["sweetener", "sweeteners"],
-  preservatives: ["preservative"], artificial_colours: ["colour", "colours", "color", "colors"],
-  artificial_flavours: ["flavour", "flavours", "flavor", "flavors"], caffeine: ["coffee"], shellfish: ["prawn", "prawns", "seafood"],
-});
-const AVOID_WORDS = Object.freeze(Object.fromEntries(FOODS_AVOID.map((a) => [
-  a.key,
-  [...new Set([a.key.replace(/_/g, " "), normalise(a.label), ...(AVOID_EXTRA_WORDS[a.key] ?? [])])],
-])));
-
-/** Avoid keys a sentence names in so many words. */
-const avoidKeysNamed = (text) => Object.entries(AVOID_WORDS)
-  .filter(([, words]) => words.some((w) => ` ${normalise(text)} `.includes(` ${w} `)))
-  .map(([key]) => key);
 
 /** The product words after "no", "swap", "without"… in a sentence. */
 function leaveOutWords(text) {

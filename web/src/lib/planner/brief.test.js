@@ -23,20 +23,37 @@ test("the founder's example drafts four people and asks what it was not told", (
 
 test("targets, diet, budget and days are read where the shopper wrote them", () => {
   const d = draft("Me and my wife, both vegetarian, 60 g protein and 2000 kcal each, budget ₹3,000 for a week");
-  assert.deepEqual(d.members.map((m) => m.label), ["Me", "Adult 1"]);
+  assert.deepEqual(d.members.map((m) => m.label), ["Me", "Wife"]);
   assert.ok(d.members.every((m) => m.diet_type === "vegetarian" && m.target_protein_g === 60 && m.target_kcal === 2000));
   assert.equal(d.budget, 3000);
   assert.equal(d.days, 7);
 });
 
-test("an age sticks to the person it was said about, and an allergy goes on everyone", () => {
+test("an age and an allergy stick to the person they were said about", () => {
   const d = draft("family of four: my grandma, two adults and a son aged 8 who is allergic to peanuts");
-  assert.equal(d.members.length, 4);
+  assert.deepEqual(d.members.map((m) => m.label), ["Grandma", "Adult 1", "Adult 2", "Son"]);
   const byLabel = Object.fromEntries(d.members.map((m) => [m.label, m]));
-  assert.equal(byLabel["Senior 1"].age_band, "senior_60_plus");
-  assert.equal(byLabel["Kid 1"].age_band, "child_7_9");
+  assert.equal(byLabel.Grandma.age_band, "senior_60_plus");
+  assert.equal(byLabel.Son.age_band, "child_7_9");
   assert.equal(byLabel["Adult 1"].age_band, "adult_19_59");
-  assert.ok(d.members.every((m) => m.avoidKeys.includes("peanuts")), "the plan removes it for the household anyway");
+  assert.deepEqual(byLabel.Son.avoidKeys, ["peanuts"]);
+  assert.ok(d.members.filter((m) => m.label !== "Son").every((m) => m.avoidKeys.length === 0), "nobody else's plan loses peanuts");
+});
+
+test("a kid's allergy and a wife's gluten-free diet are not put on me", () => {
+  const d = draft("Me, my wife and my son. My son is allergic to peanuts and my wife is gluten free");
+  assert.deepEqual(d.members.map((m) => m.label), ["Me", "Wife", "Son"], "the son named twice is one son");
+  const byLabel = Object.fromEntries(d.members.map((m) => [m.label, m]));
+  assert.deepEqual(byLabel.Me.avoidKeys, []);
+  assert.deepEqual(byLabel.Wife.avoidKeys, ["gluten"]);
+  assert.deepEqual(byLabel.Son.avoidKeys, ["peanuts"]);
+  assert.ok(!d.notes.some((n) => /not said about anyone/.test(n)));
+});
+
+test("an avoid said about no one in particular is on everyone, and the draft says so", () => {
+  const d = draft("two adults and two kids, no peanuts");
+  assert.ok(d.members.every((m) => m.avoidKeys.includes("peanuts")));
+  assert.ok(d.notes.some((n) => /Peanuts was not said about anyone in particular/.test(n)));
 });
 
 test("a medical condition is reported, never turned into a diet or a target", () => {
@@ -52,8 +69,8 @@ test("non veg is not read as veg", () => {
 
 const modelSays = (patch = {}) => ({
   groups: [
-    { role: "adult", count: 2, ageBand: "adult_19_59", dietType: null, avoidKeys: [], proteinG: 120, kcal: null },
-    { role: "child", count: 2, ageBand: null, dietType: null, avoidKeys: [], proteinG: null, kcal: null },
+    { who: "two adults", role: "adult", count: 2, ageBand: "adult_19_59", dietType: null, avoidKeys: [], proteinG: 120, kcal: null },
+    { who: "two kids", role: "child", count: 2, ageBand: null, dietType: null, avoidKeys: [], proteinG: null, kcal: null },
   ],
   days: null,
   budget: null,
@@ -85,6 +102,26 @@ test("a model cannot add a person, a number, an age, or a diet the shopper did n
   assert.equal(g.budget, null);
 
   assert.equal(groundModelDraft({ groups: "four" }, FOUNDER), null, "not the schema: not used");
+});
+
+test("a model's avoids stay on the person it gave them to, and only if the message names them", () => {
+  const text = "Me, my wife and my son. My son is allergic to peanuts and my wife is gluten free";
+  const said = {
+    groups: [
+      { who: "me", role: "adult", count: 1, ageBand: "adult_19_59", dietType: null, avoidKeys: [], proteinG: null, kcal: null },
+      { who: "my wife", role: "adult", count: 1, ageBand: "adult_19_59", dietType: null, avoidKeys: ["gluten", "soy"], proteinG: null, kcal: null },
+      { who: "my son", role: "child", count: 1, ageBand: null, dietType: null, avoidKeys: ["peanuts"], proteinG: null, kcal: null },
+    ],
+    days: null, budget: null, unresolved: [],
+  };
+  const d = draftFrom(readBrief(text), groundModelDraft(said, text));
+  assert.equal(d.source, "openai");
+  assert.deepEqual(d.members.map((m) => [m.label, m.avoidKeys]), [["Me", []], ["Wife", ["gluten"]], ["Son", ["peanuts"]]], "soy was never said");
+
+  // The model forgets the son's allergy: the rules placed it, so it is kept — on everyone, never dropped.
+  said.groups[2].avoidKeys = [];
+  const forgot = draftFrom(readBrief(text), groundModelDraft(said, text));
+  assert.ok(forgot.members.every((m) => m.avoidKeys.includes("peanuts")));
 });
 
 test("the model's schema offers only KOI's keys, strictly", () => {
