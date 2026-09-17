@@ -15,6 +15,7 @@
 import { NUTRIENTS } from "./model";
 import { FOODS_AVOID } from "@/lib/recommendation/config";
 import { FULL_LIST_EVIDENCE } from "@/lib/recommendation/verification";
+import { ageReason } from "./ageSafety";
 
 /** What a diet flag means, in words, when it is why someone cannot eat a product. */
 const DIET_FLAG_WORDS = Object.freeze({
@@ -22,12 +23,14 @@ const DIET_FLAG_WORDS = Object.freeze({
 });
 
 /**
- * Why a product is not for someone, in words: "contains gluten", "not in their diet: egg".
- * @param {{ flag: string, rule: "avoided"|"diet" }} refusal
+ * Why a product is not for someone, in words: "contains gluten", "not in their
+ * diet: egg", "not for their age: caffeine is not for children".
+ * @param {{ flag: string, rule: "avoided"|"diet"|"age" }} refusal
  * @returns {string}
  */
 export function refusalReason({ flag, rule }) {
   if (rule === "diet") return `not in their diet: ${DIET_FLAG_WORDS[flag] ?? flag.replace(/_/g, " ")}`;
+  if (rule === "age") return ageReason(flag);
   const entry = FOODS_AVOID.find((a) => a.flag === flag);
   return `contains ${(entry?.label ?? flag.replace(/_/g, " ")).toLowerCase()}`;
 }

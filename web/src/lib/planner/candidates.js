@@ -97,6 +97,8 @@ export function plannableFrom(products = []) {
       packAmount: supplied.packSize.value,
       packUnit: supplied.packSize.unit,
       role: product.categoryKey ? nodeInfo(product.categoryKey)?.role ?? null : null,
+      // For the age rules (ageSafety.js): nuts sold whole are a category fact.
+      categoryKey: product.categoryKey ?? null,
       portion: product.portion ?? null,
     });
   }
@@ -115,7 +117,7 @@ export function plannableFrom(products = []) {
  *
  * @param {object} member a household_member row plus its avoid keys
  * @param {{ avoidByKey: object, dietExclusions: object }} catalogues from config
- * @returns {{ id, label, targets, avoidFlags, dietExcludes, softAvoidFlags }}
+ * @returns {{ id, label, ageBand, targets, avoidFlags, dietExcludes, softAvoidFlags }}
  */
 export function memberFor(member, { avoidByKey, dietExclusions }) {
   const keys = member.avoidKeys ?? [];
@@ -129,6 +131,8 @@ export function memberFor(member, { avoidByKey, dietExclusions }) {
   return {
     id: String(member.id),
     label: member.label ?? null,
+    // What the age rules read (ageSafety.js).
+    ageBand: member.age_band ?? null,
     targets: {
       kcal: isNum(member.target_kcal) ? Number(member.target_kcal) : null,
       protein: isNum(member.target_protein_g) ? Number(member.target_protein_g) : null,

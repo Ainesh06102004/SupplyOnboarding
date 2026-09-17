@@ -14,9 +14,11 @@
 //   over[m][n]     how far they go above it.
 //
 // THE HARD CONSTRAINTS — never traded away, never relaxed:
-//   * a member never eats a SKU they cannot eat. An allergen they avoid, or a
-//     diet their food must respect, means there is no eats[s][m] for them at
-//     all — not a penalty — and the reason is recorded in meta.refusals. The
+//   * a member never eats a SKU they cannot eat. An allergen they avoid, a
+//     product unsafe for their age (ageSafety.js: whole nuts under 5, caffeine
+//     for children), or a diet their food must respect, means there is no
+//     eats[s][m] for them at all — not a penalty — and the reason is recorded
+//     in meta.refusals. The
 //     SKU can still be bought for the others: one child's nut allergy used to
 //     take nuts off everyone's plan, and a wife's gluten-free diet her
 //     husband's atta. A SKU no member can eat is not in the program, and
@@ -44,7 +46,10 @@
 // avoid. What is good food is the screening engine's business.
 // ============================================================================
 
-export const MODEL_VERSION = "plan-model-v5";
+import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
+
+// v6: age-band safety refusals (ageSafety.js).
+export const MODEL_VERSION = "plan-model-v6";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -239,14 +244,16 @@ const worstName = (n) => `worst_share_short_${n}`;
  * Why a member cannot eat this product, or null when they can.
  *
  * `contains` is the flag set from extractFacts: allergens, diet flags and the
- * rest. A hard avoid or a diet exclusion is a fact about this pairing, not a
- * preference to be scored.
+ * rest. A hard avoid, an age rule (ageSafety.js) or a diet exclusion is a fact
+ * about this pairing, not a preference to be scored.
  */
 function refusedBy(item, member) {
   const contains = new Set(item.contains ?? []);
   for (const flag of member.avoidFlags ?? []) {
     if (contains.has(flag)) return { member: member.id, flag, rule: "avoided" };
   }
+  const forAge = ageRefusal(item, member.ageBand ?? null);
+  if (forAge) return { member: member.id, ...forAge };
   for (const flag of member.dietExcludes ?? []) {
     if (contains.has(flag)) return { member: member.id, flag, rule: "diet" };
   }
@@ -474,6 +481,7 @@ export function buildPlanModel({
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),
       refusals: Object.fromEntries(eligible.filter((i) => refusals[i.skuId]).map((i) => [i.skuId, refusals[i.skuId]])),
       keepOutFlags: [...keptOut],
+      ageSafety: AGE_SAFETY_VERSION,
       fairness: fairFor.length ? fairness : 0,
       fairnessNutrients: fairFor,
     },

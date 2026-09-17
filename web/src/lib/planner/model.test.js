@@ -66,6 +66,30 @@ test("a product no member can eat is left out, and says who refused it", () => {
   assert.equal(colNamed(model, nameOf.packs("almonds")), undefined, "not in the program at all");
 });
 
+test("whole nuts are kept from an under-5, and caffeine from a child, not from the adults", () => {
+  const toddler = { id: "toddler", ageBand: "child_1_3", targets: { protein: 12.5 }, avoidFlags: [], dietExcludes: [] };
+  const grown = { ...adult, ageBand: "adult_19_59" };
+  const wholeAlmonds = { ...almonds, categoryKey: "nuts_seeds.nuts" };
+  const coffee = { skuId: "coffee", price: 300, contains: ["caffeine"], availability: "unknown", perPack: { kcal: 1000, protein: 20 }, categoryKey: "beverages.drink_mixes" };
+  const model = buildPlanModel({ members: [grown, toddler], catalogue: [wholeAlmonds, coffee, rice], days: 7 });
+  assert.deepEqual(model.meta.refusals, {
+    almonds: [{ member: "toddler", flag: "whole_nuts", rule: "age" }],
+    coffee: [{ member: "toddler", flag: "caffeine", rule: "age" }],
+  });
+  assert.equal(colNamed(model, nameOf.eats("almonds", "toddler")), undefined);
+  assert.ok(colNamed(model, nameOf.eats("almonds", "me")), "still bought for the adult");
+  assert.equal(model.meta.ageSafety, "age-safety-v1");
+
+  const alone = buildPlanModel({ members: [toddler], catalogue: [wholeAlmonds, rice], days: 7 });
+  assert.deepEqual(alone.excluded, [{ skuId: "almonds", reason: "refused", refusedBy: [{ member: "toddler", flag: "whole_nuts", rule: "age" }] }]);
+});
+
+test("an allergen is named before an age rule when both apply", () => {
+  const toddler = { id: "toddler", ageBand: "child_4_6", targets: { protein: 16 }, avoidFlags: ["tree_nut"], dietExcludes: [] };
+  const model = buildPlanModel({ members: [toddler], catalogue: [{ ...almonds, categoryKey: "nuts_seeds.nuts" }, rice], days: 7 });
+  assert.equal(model.excluded[0].refusedBy[0].rule, "avoided");
+});
+
 test("a diet removes a product the same way an allergen does", () => {
   const potatoChips = { skuId: "chips", price: 150, contains: ["root_veg"], availability: "unknown", perPack: { protein: 25.6, kcal: 1000 } };
   const model = buildPlanModel({ members: [jain], catalogue: [potatoChips, rice], days: 7 });
@@ -163,7 +187,7 @@ test("nobody is planned more of one product than they could eat", () => {
   assert.equal(colNamed(model, nameOf.packs("rice")).upper, 2, "1.26 + 0.882 packs: two whole ones");
   assert.deepEqual(model.meta.portionCaps.rice.me, { packs: 1.26, basis: "reference_portion", perDay: 180, unit: "g" });
   assert.equal(model.meta.portionRule, PORTION_RULE.version);
-  assert.equal(MODEL_VERSION, "plan-model-v5");
+  assert.equal(MODEL_VERSION, "plan-model-v6");
 });
 
 test("anything but a staple is one serving a day", () => {

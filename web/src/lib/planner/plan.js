@@ -17,9 +17,10 @@
 //   2. variety     allow twice the portions, and more packs of fewer products
 //   3. macros      admit the shortfall, and name it per member
 //
-// ALLERGENS AND DIET ARE NEVER RELAXED. They are not in this ladder at any
-// step. If a household cannot be fed without giving someone what they avoid,
-// KOI says so and offers nothing rather than quietly feeding them.
+// ALLERGENS, AGE SAFETY AND DIET ARE NEVER RELAXED. They are not in this
+// ladder at any step. If a household cannot be fed without giving someone what
+// they avoid, or what is unsafe at their age, KOI says so and offers nothing
+// rather than quietly feeding them.
 // ============================================================================
 
 import "server-only";
@@ -37,6 +38,9 @@ import { applyFollowUp } from "./followup";
 import { readFollowUpWithModel } from "./followUpModel";
 
 export const PLAN_RULE_VERSION = "plan-v1";
+
+/** What no step of the ladder gives up, in the words the plan page shows. */
+const NEVER_RELAXED = Object.freeze(["allergens", "age safety", "diet"]);
 
 /** How many products may enter the program. See CANDIDATE_RULE. */
 export const CANDIDATE_LIMIT = 120;
@@ -169,6 +173,8 @@ function membersFromSnapshot(snapshot) {
   return (snapshot?.members ?? []).map((m) => ({
     id: m.id,
     label: m.label,
+    // Plans stored before plan-model-v6 have no age band, and so no age rules.
+    ageBand: m.age_band ?? null,
     targets: m.targets ?? {},
     avoidFlags: m.avoid_flags ?? [],
     softAvoidFlags: m.noted_not_enforced ?? [],
@@ -205,9 +211,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     reached: attempt.step,
     gave_up: attempt.gave_up,
     solver_status: solution.status,
-    // Every member's allergens and diet held at every step. Said out loud
-    // because it is the one promise the ladder never trades.
-    never_relaxed: ["allergens", "diet"],
+    // Every member's allergens, age safety and diet held at every step. Said
+    // out loud because it is the one promise the ladder never trades.
+    never_relaxed: NEVER_RELAXED,
     // Products no member can eat. One some members cannot eat stays in the
     // program for the others, and shows in report.whoEatsWhat.
     products_refused: model.excluded.filter((e) => e.reason === "refused"),
@@ -237,6 +243,7 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         members: members.map((m) => ({
           id: m.id,
           label: m.label,
+          age_band: m.ageBand ?? null,
           targets: m.targets,
           avoid_flags: m.avoidFlags,
           // Recorded, and deliberately not enforced: a preference does not get
@@ -385,7 +392,7 @@ export async function planWithout({ planId, skuId }) {
     status: solution.usable ? "solved" : "infeasible",
     reached: attempt.step,
     gave_up: attempt.gave_up,
-    never_relaxed: ["allergens", "diet"],
+    never_relaxed: NEVER_RELAXED,
     budget_blocked: await costToMeetTargets({ base, report }),
     diff,
     report,
