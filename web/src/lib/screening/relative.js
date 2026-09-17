@@ -88,9 +88,10 @@ export function quantileCuts(values) {
  *
  * @param {number} value
  * @param {number[]} cuts 101 cut points
+ * @param {(x: number) => number} [whole] how to make a whole percentage
  * @returns {{ below: number, above: number }}
  */
-export function positionIn(value, cuts) {
+export function positionIn(value, cuts, whole = Math.round) {
   const v = Number(value);
   const c = cuts.map(Number);
   const last = c.length - 1;
@@ -102,7 +103,7 @@ export function positionIn(value, cuts) {
   for (let i = 0; i <= last; i++) if (c[i] <= v) lastAtMost = i;
   const atOrBelow = lastAtMost === -1 ? 0 : lastAtMost === last ? last : c[lastAtMost] === v ? lastAtMost : rankFrom(lastAtMost, lastAtMost + 1);
   const scale = 100 / last;
-  return { below: Math.round(below * scale), above: Math.round((last - atOrBelow) * scale) };
+  return { below: whole(below * scale), above: whole((last - atOrBelow) * scale) };
 }
 
 /**
@@ -153,7 +154,8 @@ export function inContext({ product, row, references = [] }) {
     const direction = diff < 0 ? "less" : "more";
     if (direction !== m.favourable || Math.abs(diff) < m.minAbs) continue;
     if (middle > 0 ? Math.abs(diff) / middle < RELATIVE.minRelativeDiff : Number(value) <= 0) continue;
-    const { below, above } = positionIn(value, r.cuts);
+    // A claim never rounds up, and never says 100%: 101 cut points cannot show it is beyond every product.
+    const { below, above } = positionIn(value, r.cuts, (x) => Math.min(99, Math.floor(x + 1e-9)));
     const percent = direction === "less" ? above : below;
     favourable.push({
       metric: m.metric,

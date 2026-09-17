@@ -74,6 +74,13 @@ test("one wording: of several favourable comparisons, only the strongest is show
   assert.ok(!("rating" in ctx) && !("rank" in ctx), "no rating line and no shelf rank");
 });
 
+test("a line never rounds a percentage up, and never says 100%", () => {
+  const top = inContext({ product: biscuit, row: row({ sugars_g: 15, protein_g: 40 }), references });
+  assert.match(top.line.text, /than 99% of 101/, "beyond the highest cut point still reads 99%");
+  const cuts = quantileCuts(range(0, 100));
+  assert.equal(positionIn(20.6, cuts, Math.floor).below, 20, "20.6 is above 20%, not 21%");
+});
+
 test("no percentile from too few products", () => {
   const small = references.map((r) => ({ ...r, n: RELATIVE.minSample - 1 }));
   assert.equal(referenceFor("snacks.biscuits_cookies", small), null);
