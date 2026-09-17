@@ -51,7 +51,8 @@ test("cut points and positions read the way a percentile should", () => {
 test("every line names what it is compared with, and says it is a comparison", () => {
   const ctx = inContext({ product: biscuit, row: row({}), references });
   assert.equal(ctx.category.label, "biscuits & cookies");
-  assert.deepEqual(ctx.nutrients, [{ metric: "sugars_g", direction: "less", text: "Less sugar per 100 g than 85% of 101 biscuits & cookies." }]);
+  assert.deepEqual(ctx.nutrients, [{ metric: "sugars_g", direction: "less", text: "Less sugar per 100 g than 85% of 101 biscuits & cookies on Open Food Facts." }]);
+  assert.doesNotMatch(JSON.stringify(ctx), /sold in India/, "volunteer listings are not the market");
   assert.match(ctx.attribution, /Open Food Facts.*ODbL.*off-ref-2026-09-17/);
   assert.match(ctx.note, /not a score/);
   assert.equal(ctx.category.referenceVersion, "off-ref-2026-09-17", "the reference is versioned and dated");
@@ -65,8 +66,8 @@ test("a difference under 25% of the middle product is not said at all", () => {
 test("unfavourable differences are said too: a comparison is not a selection", () => {
   const sweet = inContext({ product: biscuit, row: row({ sugars_g: 80, protein_g: 4 }), references });
   assert.deepEqual(sweet.nutrients.map((n) => n.text), [
-    "More sugar per 100 g than 80% of 101 biscuits & cookies.",
-    "Less protein per 100 g than 80% of 101 biscuits & cookies.",
+    "More sugar per 100 g than 80% of 101 biscuits & cookies on Open Food Facts.",
+    "Less protein per 100 g than 80% of 101 biscuits & cookies on Open Food Facts.",
   ]);
 });
 

@@ -470,7 +470,7 @@ export function InContext({ context }) {
   const lines = [context.rating?.text, ...context.nutrients.map((n) => n.text), context.rank?.text].filter(Boolean);
   return (
     <Section id="context" index="05" eyebrow="In context" title="Among its category"
-             subtitle={context.category ? `Compared with ${context.category.label} sold in India, and with what KOI stocks.` : "Compared with what KOI stocks."}>
+             subtitle={context.category ? `Compared with ${context.category.label} listed for India on Open Food Facts, and with what KOI stocks.` : "Compared with what KOI stocks."}>
       <ul className="max-w-3xl space-y-3">
         {lines.map((line) => (
           <li key={line} className="rounded-2xl border border-[#083D2D]/8 bg-white px-5 py-4 text-[15px] leading-relaxed text-[#083D2D]" style={BODY}>{line}</li>

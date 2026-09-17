@@ -166,7 +166,9 @@ export function inContext({ product, row, references = [], stocked = [] }) {
             percentile: below,
             n: Number(ratingRef.n),
             rubricVersion: ratingRef.rubric_version ?? RUBRIC_VERSION,
-            text: `On KOI's nutrition rating, above ${below}% of ${ratingRef.n} ${label} sold in India.`,
+            // "Listed for India on Open Food Facts", not "sold in India": the
+            // reference is volunteer listings, not a census of the market.
+            text: `On KOI's nutrition rating, above ${below}% of ${ratingRef.n} ${label} listed for India on Open Food Facts.`,
           };
         }
       }
@@ -181,8 +183,8 @@ export function inContext({ product, row, references = [], stocked = [] }) {
         if (middle > 0 ? Math.abs(diff) / middle < RELATIVE.minRelativeDiff : Number(value) <= 0) continue;
         const { below, above } = positionIn(value, r.cuts);
         out.nutrients.push(diff < 0
-          ? { metric: m.metric, direction: "less", text: `Less ${m.word} per 100 ${per100.unit} than ${above}% of ${r.n} ${label}.` }
-          : { metric: m.metric, direction: "more", text: `More ${m.word} per 100 ${per100.unit} than ${below}% of ${r.n} ${label}.` });
+          ? { metric: m.metric, direction: "less", text: `Less ${m.word} per 100 ${per100.unit} than ${above}% of ${r.n} ${label} on Open Food Facts.` }
+          : { metric: m.metric, direction: "more", text: `More ${m.word} per 100 ${per100.unit} than ${below}% of ${r.n} ${label} on Open Food Facts.` });
       }
     }
     out.attribution = `Compared with Open Food Facts' Indian listings (© Open Food Facts contributors, ODbL), reference ${out.category.referenceVersion}.`;
