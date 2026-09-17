@@ -28,28 +28,19 @@ import { toPer100 } from "@/lib/nutrition/basis";
 import {
   isHighProtein, isHighFibre, isLowSugar, isSugarFree, rowFromProduct,
 } from "@/lib/nutrition/claims";
+import { servingPanel } from "@/lib/nutrition/panel";
+import { nodeInfo } from "@/lib/food/taxonomy";
 
 const has = (tags, kw) => (tags || []).some((t) => String(t).toLowerCase().includes(kw));
 
 /** A declared figure, rounded for display, or null. Never 0 for missing. */
 const fig = (v) => (v === null || v === undefined || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 10) / 10);
 
-/**
- * Letter grade for a KOI score, or null when there is no score.
- *
- * It used to be called as grade(p.score || 0), which handed an unscored
- * product a confident "C / Mixed" — a verdict manufactured from the absence of
- * one. There is no grade for a product nobody has scored.
- */
-export function grade(score) {
-  if (score === null || score === undefined || score === "" || !Number.isFinite(Number(score))) return null;
-  if (score >= 92) return { g: "A+", label: "Exceptional" };
-  if (score >= 87) return { g: "A", label: "Excellent" };
-  if (score >= 82) return { g: "A-", label: "Very good" };
-  if (score >= 76) return { g: "B+", label: "Good" };
-  if (score >= 70) return { g: "B", label: "Fair" };
-  return { g: "C", label: "Mixed" };
-}
+/** True when the product carries a KOI score. */
+const isScored = (score) => score !== null && score !== undefined && score !== "" && Number.isFinite(Number(score));
+
+// No letter grades (Phase 5.2, plan §11.1). "Grade C · Mixed" was a verdict
+// printed over a product; the score itself stays, with what it is made of.
 
 // ── What an ingredient is ───────────────────────────────────────────────────
 // Descriptions say what the ingredient IS, and flag the allergen it carries.
@@ -90,14 +81,18 @@ function ingredientEntry(name) {
 const splitIngredients = (text) =>
   String(text || "").split(/,(?![^()]*\))/).map((s) => s.replace(/\.$/, "").trim()).filter(Boolean);
 
-const NOT_DECLARED = Object.freeze(["Not declared", 0, "mid"]);
-
-export function buildProductVM(p, all = []) {
+/**
+ * @param {object} p a storefront product
+ * @param {Array} [all] the catalogue
+ * @param {object|null} [profile] the shopper's goal profile (goalStore): `goal`
+ *   and `foodsAvoid` decide which figures the nutrition panel puts first
+ */
+export function buildProductVM(p, all = [], profile = null) {
   if (!p) return null;
   const tags = p.tags || [];
   const category = p.category || "Snacks";
   const brand = p.brand || "the brand";
-  const g = grade(p.score);
+  const scored = isScored(p.score);
 
   // ── Figures, per 100 on the product's own basis ──
   // Converted once, so every figure on the page is comparable with every other
@@ -152,51 +147,20 @@ export function buildProductVM(p, all = []) {
       ? `Meets KOI's high-protein rule on the declared figures: ${THRESHOLDS.proteinHigh} g per 100 g and ${THRESHOLDS.proteinPerServingFloor} g in a realistic serving.`
       : `Declared by ${brand}.`,
   }));
-  const consSource = p.watchouts && p.watchouts.length ? p.watchouts : (p.watchOuts || []).map((w) => w.name || w);
-  const cons = consSource.length
-    ? consSource.slice(0, 2).map((t) => ({ type: "con", title: typeof t === "string" ? t : t.name, detail: `Noted in KOI's screening of ${brand}'s submission.` }))
-    : sugar !== null && !high.lowSugar && sugar > THRESHOLDS.sugarHigh
-      ? [{ type: "con", title: `${sugar} g sugar ${per}`, detail: "Above FSSAI's low-sugar condition. It counts toward your daily sugar." }]
-      : [];
+  // No "watch-out" cards (Phase 5.2). A sugar figure is not a reason against
+  // a product; it is a figure, and it is in the serving panel with the rest.
 
-  // ── Nutrition meters ──
-  const proteinRating = protein === null ? NOT_DECLARED
-    : high.protein ? ["High", 0.9, "good"]
-    : protein >= THRESHOLDS.proteinMin ? ["Moderate", 0.5, "mid"] : ["Light", 0.2, "mid"];
-  const sugarRating = sugar === null ? NOT_DECLARED
-    : high.sugarFree ? ["Sugar free", 0.05, "good"]
-    : high.lowSugar ? ["Low", 0.25, "good"]
-    : sugar <= THRESHOLDS.sugarHigh ? ["Moderate", 0.55, "mid"] : ["High", 0.85, "warn"];
-  const fibreRating = fibre === null ? NOT_DECLARED
-    : high.fibre ? ["High", 0.8, "good"]
-    : fibre >= 3 ? ["Moderate", 0.45, "mid"] : ["Low", 0.2, "mid"];
-
-  const noFigure = "Not on the nutrition panel KOI holds for this product.";
-  const cleanDeclared = has(tags, "no preserv") || has(tags, "no artificial");
-  const meter = (key, label, [rating, fill, tone], value, context) =>
-    ({ key, label, rating, fill, tone, value, unit: value === null ? "" : ` g ${per}`, context });
-
-  const meters = [
-    meter("protein", "Protein", proteinRating, protein, protein === null ? noFigure : high.protein
-      ? `Meets KOI's high-protein rule: ${THRESHOLDS.proteinHigh} g per 100 g and at least ${THRESHOLDS.proteinPerServingFloor} g in a realistic serving.`
-      : `Below KOI's high-protein rule of ${THRESHOLDS.proteinHigh} g per 100 g with ${THRESHOLDS.proteinPerServingFloor} g in a realistic serving.`),
-    meter("sugar", "Sugar", sugarRating, sugar, sugar === null ? noFigure : high.sugarFree
-      ? "0.5 g or less per 100 — FSSAI's condition for \"sugar free\"."
-      : high.lowSugar
-        ? "Within FSSAI's low-sugar condition: 5 g per 100 g, or 2.5 g per 100 ml for drinks."
-        : "Above FSSAI's low-sugar condition. It counts toward your daily sugar."),
-    meter("fibre", "Fibre", fibreRating, fibre, fibre === null ? noFigure : high.fibre
-      ? "Meets FSSAI's high-fibre condition: 6 g per 100 g, or 3 g per 100 kcal."
-      : "Below FSSAI's high-fibre condition of 6 g per 100 g."),
-    {
-      key: "additives", label: "Additives",
-      rating: cleanDeclared ? "None declared" : "Not checked",
-      fill: cleanDeclared ? 0.1 : 0, tone: "mid", value: null, unit: "",
-      context: cleanDeclared
-        ? `${brand} declares no preservatives or artificial additives. KOI hasn't checked the pack yet.`
-        : "KOI hasn't checked this product's additives yet.",
-    },
-  ];
+  // ── What's in a serving (lib/nutrition/panel.js, plan §11.1) ──
+  // Every declared figure, a realistic serving first, no colours and no
+  // High/Low words; the shopper's goal decides the order.
+  const role = p.categoryKey ? nodeInfo(p.categoryKey)?.role ?? null : null;
+  const panel = servingPanel({
+    row: rowFromProduct(p),
+    portion: p.portion ?? null,
+    role,
+    goal: profile?.goal ?? null,
+    avoidKeys: profile?.foodsAvoid ?? [],
+  });
 
   // ── Comparison: only against a real reference ──
   // A comparison needs a reference food. None is held, so none is drawn — the
@@ -212,10 +176,15 @@ export function buildProductVM(p, all = []) {
   const personasFor = high.protein
     ? [{ label: "Gym & fitness", icon: "Dumbbell" }, { label: "Post-workout", icon: "Flame" }]
     : [];
-  const personasNot = [];
-  if (carbs !== null && (carbs > 15 || (sugar !== null && sugar > 8))) personasNot.push({ label: "Strict low-carb / keto", icon: "Ban" });
-  if (sugar !== null && !high.lowSugar && sugar > THRESHOLDS.sugarHigh) personasNot.push({ label: `Watching sugar: ${sugar} g ${per}`, icon: "Ban" });
-  if (ingredients.length) personasNot.push({ label: "Anyone avoiding an ingredient listed above", icon: "Ban" });
+  // "Maybe not for" is gone: a list of who should not buy something is a
+  // verdict. The same facts, said plainly, under "How to enjoy it".
+  const goodToKnow = [
+    panel.frame,
+    panel.servingPhrase && (panel.serving?.source === "reference"
+      ? `The serving on this page is ${panel.servingPhrase}, a typical amount for this kind of food.`
+      : `The serving on this page is the pack's own: ${panel.servingPhrase}.`),
+    ingredients.length > 0 && "If you avoid anything, check the ingredient list above.",
+  ].filter(Boolean);
 
   // ── Transparency: who said what ──
   const declaredBy = (cond, what) => (cond
@@ -257,17 +226,14 @@ export function buildProductVM(p, all = []) {
     tags,
     dietary: p.dietary || [],
     goalTags: p.goalTags || [],
-    grade: g,
     raw: p,
     trust: {
       score: p.score,
-      scored: g !== null,
-      grade: g?.g ?? null,
-      gradeLabel: g?.label ?? null,
+      scored,
       attributes,
       subs,
     },
-    reasons: [...pros, ...cons],
+    reasons: pros,
     verdict: {
       quote: p.verdict?.summary || null,
       confidence: Number.isFinite(Number(p.score)) && p.score !== null ? p.score : null,
@@ -276,9 +242,9 @@ export function buildProductVM(p, all = []) {
     ingredients,
     ingredientsEvidence,
     ingredientTimeline: [],
-    nutrition: { meters, calories: kcal, carbs, fat, basisLabel: per, serving: p.servingSize || null },
+    nutrition: { ...panel, calories: kcal, carbs, fat, declaredServing: p.servingSize || null },
     comparison,
-    personas: { for: personasFor, not: personasNot.slice(0, 3) },
+    personas: { for: personasFor, goodToKnow },
     usage: [],
     pairings: [],
     science: [],

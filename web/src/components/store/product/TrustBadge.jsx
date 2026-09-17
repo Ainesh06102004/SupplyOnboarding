@@ -35,14 +35,16 @@ export default function TrustBadge({ trust }) {
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4" style={{ color: C.lime }} />
                     <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#DDF247]">
-                      {trust.scored ? "KOI Verified" : "In review"}
+                      {trust.scored ? "Scored by KOI" : "In review"}
                     </span>
                   </div>
                   {trust.scored ? (
                     <>
+                      {/* The number, not a letter and a verdict word: "C · Mixed" was a
+                          judgement printed over a product (plan §11.1). */}
                       <div className="mt-2 flex items-baseline gap-2">
-                        <span className="text-[44px] font-extrabold leading-none text-white" style={HEADING}>{trust.grade}</span>
-                        <span className="text-[14px] font-semibold text-white/60">{trust.gradeLabel}</span>
+                        <span className="text-[44px] font-extrabold leading-none text-white" style={HEADING}>{trust.score}</span>
+                        <span className="text-[14px] font-semibold text-white/60">out of 100</span>
                       </div>
                       <p className="mt-2 max-w-[220px] text-[12.5px] leading-snug text-white/50" style={BODY}>
                         Scored across ingredients, nutrition, additives and processing.

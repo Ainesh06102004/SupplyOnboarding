@@ -29,8 +29,11 @@ import { StickyBuyBar } from "@/components/store/product/BuyPanel";
 import {
   WhyEarned, Verdict, IngredientIntelligence, NutritionExplained,
   HealthComparison, Personas, UsageTimeline, ScientificInsights,
-  Transparency, Community, RelatedShelf,
+  Transparency, Community, RelatedShelf, SwapShelf,
 } from "@/components/store/product/ProductStory";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { isTestSku } from "@/lib/data/testCatalogue";
+import { swapsFor } from "@/lib/food/swaps";
 
 function TopBar() {
   const router = useRouter();
@@ -75,7 +78,28 @@ export default function ProductDetailPage({ params }) {
   const { pincode } = useLocation();
   const goalProfile = useGoalStore((s) => s.profile);
   const supply = useProductSupply(base, pincode, pool, goalProfile);
-  const vm = useMemo(() => (base ? buildProductVM(base, pool) : null), [base, pool]);
+  // The shopper's goal decides which figures the serving panel leads with.
+  const vm = useMemo(() => (base ? buildProductVM(base, pool, goalProfile) : null), [base, pool, goalProfile]);
+
+  // Swaps with numbers (Phase 5.1): the recorded edges from this SKU. The
+  // local test catalogue has no edges and its ids are not uuids, so it is skipped.
+  const [edges, setEdges] = useState({ skuId: null, rows: [] });
+  const skuId = base?.skuId ?? null;
+  useEffect(() => {
+    if (!skuId || isTestSku(skuId)) return undefined;
+    let live = true;
+    getSupabaseClient()
+      .schema("food")
+      .from("substitution_edge")
+      .select("to_sku, reason, comparability, basis")
+      .eq("from_sku", skuId)
+      .then(({ data }) => { if (live) setEdges({ skuId, rows: data ?? [] }); });
+    return () => { live = false; };
+  }, [skuId]);
+  const swaps = useMemo(
+    () => (base && edges.skuId === base.skuId ? swapsFor({ product: base, edges: edges.rows, catalogue: pool }) : []),
+    [base, edges, pool],
+  );
 
   const related = useMemo(() => {
     if (!base) return [];
@@ -133,8 +157,9 @@ export default function ProductDetailPage({ params }) {
           <IngredientIntelligence ingredients={vm.ingredients} timeline={vm.ingredientTimeline} evidence={vm.ingredientsEvidence} />
         )}
         <NutritionExplained nutrition={vm.nutrition} />
+        {swaps.length > 0 && <SwapShelf swaps={swaps} onSelect={selectProduct} />}
         {vm.comparison.length > 0 && <HealthComparison comparison={vm.comparison} name={vm.name} />}
-        {(vm.personas.for.length > 0 || vm.personas.not.length > 0) && <Personas personas={vm.personas} />}
+        {(vm.personas.for.length > 0 || vm.personas.goodToKnow.length > 0) && <Personas personas={vm.personas} />}
         {vm.usage.length > 0 && <UsageTimeline usage={vm.usage} pairings={vm.pairings} />}
         {vm.science.length > 0 && <ScientificInsights science={vm.science} />}
         <Transparency items={vm.transparency} />

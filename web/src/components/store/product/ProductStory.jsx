@@ -73,7 +73,7 @@ const tone = { good: { fg: C.emerald, bg: "#EAF8F0" }, mid: { fg: "#9A7B10", bg:
 export function WhyEarned({ reasons }) {
   const [open, setOpen] = useState(0);
   return (
-    <Section id="why" index="01" eyebrow="Why KOI selected this" title="Why it earned its place" subtitle="Nothing gets listed by default. Here's exactly what tipped the balance - and where to stay mindful.">
+    <Section id="why" index="01" eyebrow="Why KOI selected this" title="Why it earned its place" subtitle="What the brand declares that KOI checked against the label figures.">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {reasons.map((r, i) => {
           const isCon = r.type === "con";
@@ -196,46 +196,56 @@ export function IngredientIntelligence({ ingredients, timeline = [], evidence = 
   );
 }
 
-// ── 4. Nutrition, explained ─────────────────────────────────────────────────
-function SegmentMeter({ fill, toneKey }) {
-  const total = 8;
-  const filled = Math.max(1, Math.round(fill * total));
-  const color = toneKey === "warn" ? C.orange : toneKey === "mid" ? "#C9A227" : C.emerald;
-  return (
-    <div className="flex gap-1">
-      {Array.from({ length: total }).map((_, i) => (
-        <span key={i} className="h-4 flex-1 rounded-[3px]" style={{ background: i < filled ? color : "#0000000d" }} />
-      ))}
-    </div>
-  );
-}
-
+// ── 4. What's in a serving ──────────────────────────────────────────────────
+// Phase 5.2 (plan §11.1). It used to be coloured segment meters rated
+// High/Moderate/Low, with sugar in orange. Now: a realistic serving first,
+// every declared figure in plain type, one accent for what KOI checked, and
+// the shopper's goal deciding what comes first. No colour means good or bad.
 export function NutritionExplained({ nutrition }) {
+  const hasServing = nutrition.rows.some((r) => r.perServing !== null);
   return (
-    <Section id="nutrition" index="04" eyebrow="Nutrition explained" title="The numbers, in plain English" subtitle="Not a nutrition panel - what each number actually means for you.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {nutrition.meters.map((m, i) => (
-          <Reveal key={m.key} delay={(i % 2) * 60}>
-            <div className="h-full rounded-[22px] border border-[#083D2D]/8 bg-white p-6">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[13px] font-bold uppercase tracking-[0.12em] text-[#083D2D]/60">{m.label}</span>
-                <span className="flex items-baseline gap-1">
-                  <span className="text-[15px] font-extrabold" style={{ ...HEADING, color: tone[m.tone]?.fg || C.emerald }}>{m.rating}</span>
-                  {m.value != null && <span className="text-[12px] font-semibold text-[#083D2D]/45">· {m.value}{m.unit}</span>}
-                </span>
-              </div>
-              <div className="my-4"><SegmentMeter fill={m.fill} toneKey={m.tone} /></div>
-              <p className="text-[13px] leading-relaxed text-[#101412]/60" style={BODY}>{m.context}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-      {/* The figure is per 100 of the product's own unit. This line used to
-          call it "per serving", which it almost never was. */}
-      {nutrition.calories != null && nutrition.basisLabel && (
-        <p className="mt-6 text-[13px] font-medium text-[#083D2D]/50" style={BODY}>
-          <span className="font-bold text-[#083D2D]">{nutrition.calories} kcal</span> {nutrition.basisLabel}.
-        </p>
+    <Section id="nutrition" index="04" eyebrow="Nutrition" title="What's in a serving"
+             subtitle={nutrition.servingPhrase
+               ? `Figures for ${nutrition.servingPhrase}, and ${nutrition.basisLabel} beside them, from the label.`
+               : "The figures from the label."}>
+      {nutrition.focus && (
+        <p className="mb-5 max-w-2xl text-[16px] font-semibold leading-relaxed text-[#083D2D]" style={BODY}>{nutrition.focus}</p>
+      )}
+      {nutrition.rows.length > 0 ? (
+        <div className="overflow-x-auto rounded-[22px] border border-[#083D2D]/8 bg-white">
+          <table className="w-full min-w-[320px] text-left text-[14px]" style={BODY}>
+            <thead>
+              <tr className="border-b border-[#083D2D]/8 text-[11px] font-bold uppercase tracking-[0.12em] text-[#083D2D]/50">
+                <th className="px-5 py-3 font-bold">Nutrient</th>
+                {hasServing && <th className="px-5 py-3 text-right font-bold">{nutrition.servingPhrase}</th>}
+                <th className="px-5 py-3 text-right font-bold">{nutrition.basisLabel}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nutrition.rows.map((r) => (
+                <tr key={r.key} className="border-b border-[#083D2D]/6 last:border-0">
+                  <td className={`px-5 py-3 ${r.label.startsWith("of which") ? "pl-9 text-[#083D2D]/70" : "font-semibold text-[#083D2D]"}`}>
+                    {r.label}
+                    {r.checked && (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[#EAF8F0] px-2 py-0.5 text-[11px] font-bold text-[#0C6B4C]">
+                        <Check className="h-3 w-3" strokeWidth={3} /> {r.checked}
+                      </span>
+                    )}
+                  </td>
+                  {hasServing && (
+                    <td className="px-5 py-3 text-right tabular-nums text-[#083D2D]">{r.perServing === null ? "—" : `${r.perServing} ${r.unit}`}</td>
+                  )}
+                  <td className="px-5 py-3 text-right tabular-nums text-[#083D2D]/70">{r.per100} {r.unit}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-[14px] text-[#101412]/60" style={BODY}>KOI does not hold this product&apos;s nutrition figures yet.</p>
+      )}
+      {nutrition.notDeclared.length > 0 && nutrition.rows.length > 0 && (
+        <p className="mt-4 text-[13px] text-[#101412]/55" style={BODY}>Not declared on the label KOI holds: {nutrition.notDeclared.join(", ")}.</p>
       )}
     </Section>
   );
@@ -281,11 +291,13 @@ export function HealthComparison({ comparison, name }) {
 
 // ── 6. Who it's for ─────────────────────────────────────────────────────────
 export function Personas({ personas }) {
+  // "Maybe not for", with a ban icon in orange, read as a warning label. The
+  // same facts are now plain lines under "Good to know" (plan §11.1).
   return (
-    <Section id="who" index="06" eyebrow="Who it's for" title="Is this for you?" subtitle="Honest fit - including where it isn't the right pick.">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1.3fr_1fr]">
-        <div className="rounded-[24px] border border-[#083D2D]/8 bg-white p-6 sm:p-8">
-          <div className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0C6B4C]">Great for</div>
+    <Section id="who" index="06" eyebrow="How to enjoy it" title="How to enjoy it" subtitle="What this food is for, and what to know when you eat it.">
+      <div className={`grid grid-cols-1 gap-5 ${personas.for.length > 0 && personas.goodToKnow.length > 0 ? "md:grid-cols-[1.3fr_1fr]" : ""}`}>
+        {personas.for.length > 0 && <div className="rounded-[24px] border border-[#083D2D]/8 bg-white p-6 sm:p-8">
+          <div className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0C6B4C]">Suits</div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {personas.for.map((x, i) => {
               const Icon = PERSONA_ICONS[x.icon] || Leaf;
@@ -301,21 +313,21 @@ export function Personas({ personas }) {
               );
             })}
           </div>
-        </div>
+        </div>}
 
-        <div className="rounded-[24px] border border-[#F36A1D]/20 bg-[#FDEDE2]/50 p-6 sm:p-8">
-          <div className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#F36A1D]">Maybe not for</div>
-          <ul className="space-y-3">
-            {personas.not.map((x) => (
-              <li key={x.label} className="flex items-center gap-3 text-[14px] font-semibold text-[#083D2D]/75">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[#F36A1D]/25">
-                  <Ban className="h-3.5 w-3.5" style={{ color: C.orange }} />
-                </span>
-                {x.label}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {personas.goodToKnow.length > 0 && (
+          <div className="rounded-[24px] border border-[#083D2D]/8 bg-white p-6 sm:p-8">
+            <div className="mb-5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#083D2D]/50">Good to know</div>
+            <ul className="space-y-3">
+              {personas.goodToKnow.map((line) => (
+                <li key={line} className="flex items-start gap-3 text-[14px] leading-relaxed text-[#083D2D]/80" style={BODY}>
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#083D2D]/40" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </Section>
   );
@@ -444,6 +456,34 @@ export function Community({ community }) {
             <p className="mt-4 text-[16px] leading-relaxed text-white/85" style={BODY}>{community.nutritionist.text}</p>
           </div>
         </Reveal>
+      </div>
+    </Section>
+  );
+}
+
+// ── Swaps, with numbers ─────────────────────────────────────────────────────
+// Phase 5.1. KOI's own products with a recorded, at-least-25% difference
+// (food.substitution_edge), said in the figures and the price, never as
+// healthier or better (lib/food/swaps.js).
+export function SwapShelf({ swaps, onSelect }) {
+  return (
+    <Section id="swaps" index="05" eyebrow="Swaps" title="Similar, with different numbers"
+             subtitle="KOI's own products on the same or a nearby shelf, compared on the label figures. A difference is shown only when it is at least a quarter.">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {swaps.map((s, i) => (
+          <Reveal key={s.skuId} delay={i * 60}>
+            <button type="button" onClick={() => onSelect(s)}
+                    className="flex h-full w-full flex-col rounded-[22px] border border-[#083D2D]/8 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(8,61,45,0.08)]">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#083D2D]/50">{s.shelf}</span>
+              <span className="mt-2 text-[16px] font-extrabold leading-tight text-[#083D2D]" style={HEADING}>{s.name}</span>
+              {s.brand && <span className="mt-0.5 text-[12px] text-[#083D2D]/50" style={BODY}>{s.brand}</span>}
+              <ul className="mt-3 space-y-1 text-[13.5px] text-[#083D2D]" style={BODY}>
+                {s.facts.map((f) => <li key={f}>{f}</li>)}
+              </ul>
+              {s.price && <span className="mt-auto pt-3 text-[12.5px] font-semibold text-[#083D2D]/65" style={BODY}>{s.price}</span>}
+            </button>
+          </Reveal>
+        ))}
       </div>
     </Section>
   );

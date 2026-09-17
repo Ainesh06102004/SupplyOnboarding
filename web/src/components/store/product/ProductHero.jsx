@@ -144,11 +144,11 @@ export default function ProductHero({ product }) {
                 11 of 18 listed products with no screening report. */}
             <Reveal delay={140}>
               <div className="mt-6 inline-flex items-center gap-2.5 self-start rounded-full border border-[#083D2D]/10 bg-white/60 py-1.5 pl-1.5 pr-4">
-                {product.grade ? (
+                {product.trust?.scored ? (
                   <>
                     <ScoreRing score={product.score} size={34} stroke={3} label={null} />
                     <span className="text-[12px] font-bold text-[#083D2D]">
-                      KOI Verified · Grade {product.grade.g}
+                      KOI score {product.score} out of 100
                     </span>
                   </>
                 ) : (
