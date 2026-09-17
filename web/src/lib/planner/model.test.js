@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST } from "@/lib/planner/model.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
 const cookies = { skuId: "cookies", price: 120, contains: ["gluten", "dairy", "soy", "peanut"], availability: "unknown", perPack: { kcal: 940, protein: 21.8, carbs: 130, fat: 40 } };
@@ -126,7 +126,7 @@ test("nobody is planned more of one product than they could eat", () => {
   assert.equal(colNamed(model, nameOf.packs("rice")).upper, 2, "1.26 + 0.882 packs: two whole ones");
   assert.deepEqual(model.meta.portionCaps.rice.me, { packs: 1.26, basis: "reference_portion", perDay: 180, unit: "g" });
   assert.equal(model.meta.portionRule, PORTION_RULE.version);
-  assert.equal(MODEL_VERSION, "plan-model-v3");
+  assert.equal(MODEL_VERSION, "plan-model-v4");
 });
 
 test("anything but a staple is one serving a day", () => {
@@ -171,6 +171,40 @@ test("a product whose nutrition is priced far beyond the catalogue's is not plan
     typicalPer100gProtein: 937,
   }]);
   assert.equal(PRICE_SANITY.multiple, 10);
+});
+
+test("the worst-off member's shortfall is charged, so a shortfall is shared", () => {
+  const kid = { id: "kid", targets: { kcal: 1400, protein: 30 }, avoidFlags: [], dietExcludes: [] };
+  const model = buildPlanModel({ members: [adult, kid], catalogue: [rice], days: 7 });
+  // One share of shortfall per nutrient both members have a target for.
+  const worstKcal = colNamed(model, nameOf.worst("kcal"));
+  // Half of (0.02 per kcal x the household's 23,800 kcal for the week).
+  assert.equal(worstKcal.cost, FAIRNESS.weight * DEVIATION_COST.kcal.short * (2000 + 1400) * 7);
+  assert.equal(worstKcal.cost, 238);
+  // short(kid) - 9,800 x worst <= 0: the kid's share of shortfall is at most the worst.
+  assert.deepEqual(rowNamed(model, "fair_kid_kcal"), {
+    name: "fair_kid_kcal",
+    lower: -Infinity,
+    upper: 0,
+    coefficients: { [nameOf.short("kid", "kcal")]: 1, [nameOf.worst("kcal")]: -9800 },
+  });
+  assert.deepEqual(model.meta.fairnessNutrients, ["kcal", "protein"]);
+  assert.equal(model.meta.fairness, FAIRNESS.weight);
+});
+
+test("fairness needs two people to be fair between, and can be turned off", () => {
+  // nutFree has only a protein target, so only protein is shared.
+  const mixed = buildPlanModel({ members: [adult, nutFree], catalogue: [rice], days: 7 });
+  assert.deepEqual(mixed.meta.fairnessNutrients, ["protein"]);
+  assert.equal(colNamed(mixed, nameOf.worst("kcal")), undefined);
+
+  const alone = buildPlanModel({ members: [adult], catalogue: [rice], days: 7 });
+  assert.deepEqual(alone.meta.fairnessNutrients, []);
+  assert.equal(alone.meta.fairness, 0);
+
+  const off = buildPlanModel({ members: [adult, nutFree], catalogue: [rice], days: 7, fairness: 0 });
+  assert.equal(colNamed(off, nameOf.worst("protein")), undefined);
+  assert.equal(rowNamed(off, "fair_kid_protein"), undefined);
 });
 
 test("relaxing variety doubles every portion ceiling", () => {

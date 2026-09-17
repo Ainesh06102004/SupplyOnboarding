@@ -26,6 +26,7 @@ import "server-only";
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
+import { isTestSku } from "@/lib/data/testCatalogue";
 import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
 import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
 import { plannableFrom, memberFor } from "./candidates";
@@ -211,7 +212,15 @@ export async function planForHousehold({
         model_version: model.meta.version,
         catalogue_size: catalogue.length,
       },
-      achieved: { per_member: report.perMember, cost: report.cost, within_budget: report.withinBudget, summary: report.summary },
+      // The whole basket, by name. plan_item holds only catalogue SKUs, so a
+      // line from the local test catalogue is recorded here alone.
+      achieved: {
+        per_member: report.perMember,
+        cost: report.cost,
+        within_budget: report.withinBudget,
+        summary: report.summary,
+        basket: report.basket.map(({ skuId, name, packs, packSize, cost, shares }) => ({ skuId, name, packs, packSize, cost, shares })),
+      },
       explanation,
       solver: solution.solver,
       solver_version: solution.solverVersion,
@@ -221,9 +230,11 @@ export async function planForHousehold({
     .single();
   if (planError) throw planError;
 
-  if (report.basket.length) {
+  // plan_item.sku_id references skus(id); test catalogue SKUs are not there.
+  const catalogueLines = report.basket.filter((line) => !isTestSku(line.skuId));
+  if (catalogueLines.length) {
     const { error: itemError } = await db.from("plan_item").insert(
-      report.basket.map((line) => ({
+      catalogueLines.map((line) => ({
         plan_id: stored.id,
         sku_id: line.skuId,
         packs: line.packs,
@@ -265,7 +276,7 @@ export async function planWithout({ planId, skuId }) {
 
   const { data: plan, error } = await db
     .from("plan")
-    .select("id, days, budget_rupees, constraints, plan_item(sku_id, packs)")
+    .select("id, days, budget_rupees, constraints, achieved, plan_item(sku_id, packs)")
     .eq("id", planId)
     .maybeSingle();
   if (error) throw error;
@@ -316,9 +327,14 @@ export async function planWithout({ planId, skuId }) {
     if (words) why.set(String(e.to_sku), [...(why.get(String(e.to_sku)) ?? []), words]);
   }
 
+  // The stored basket when the plan kept one (it includes test catalogue
+  // lines); plan_item for plans made before it did.
+  const before = Array.isArray(plan.achieved?.basket)
+    ? plan.achieved.basket.map((l) => ({ skuId: l.skuId, name: l.name ?? nameOf.get(String(l.skuId)) ?? null, packs: l.packs }))
+    : (plan.plan_item ?? []).map((i) => ({ skuId: i.sku_id, name: nameOf.get(String(i.sku_id)) ?? null, packs: i.packs }));
   const diff = basketDiff({
     removedSkuId: skuId,
-    before: (plan.plan_item ?? []).map((i) => ({ skuId: i.sku_id, name: nameOf.get(String(i.sku_id)) ?? null, packs: i.packs })),
+    before,
     after: report.basket,
     edges: [...why.entries()].map(([to_sku, words]) => ({ to_sku, why: words.slice(0, 2) })),
   });

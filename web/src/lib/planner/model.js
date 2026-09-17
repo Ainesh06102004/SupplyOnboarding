@@ -38,7 +38,7 @@
 // avoid. What is good food is the screening engine's business.
 // ============================================================================
 
-export const MODEL_VERSION = "plan-model-v3";
+export const MODEL_VERSION = "plan-model-v4";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -120,6 +120,25 @@ function nutritionPrices(item) {
     per100gProtein: price > 0 && protein > 0 ? (100 * price) / protein : null,
   };
 }
+
+/**
+ * Who goes short, when someone has to (plan-model-v4).
+ *
+ * A shortfall costs the same per gram whoever it belongs to, so when a budget
+ * binds the solver does not care who misses: a live ₹4,000 plan left Kid 1
+ * 49% short of energy while Me was 26% short, and one re-plan gave Kid 1
+ * nothing at all. So for each nutrient that two or more members have a target
+ * for, the largest share any of them falls short (shortfall ÷ target) is
+ * charged too — extended goal programming, which weighs the worst miss
+ * against the total (Romero, "Extended lexicographic goal programming: a
+ * unifying approach", Omega 29(1), 2001).
+ *
+ * `weight`: taking one percentage point off the worst-off member's shortfall
+ * is worth half a percentage point of the household's whole target for that
+ * nutrient. Enough to share a shortfall out; not enough to leave the
+ * household much hungrier overall to do it.
+ */
+export const FAIRNESS = Object.freeze({ weight: 0.5 });
 
 /** The nutrients a target may be set for, and their per-pack field. */
 export const NUTRIENTS = Object.freeze(["kcal", "protein", "carbs", "fat"]);
@@ -208,6 +227,7 @@ const packsName = (s) => `packs_${s}`;
 const eatsName = (s, m) => `eats_${s}_${m}`;
 const shortName = (m, n) => `short_${m}_${n}`;
 const overName = (m, n) => `over_${m}_${n}`;
+const worstName = (n) => `worst_share_short_${n}`;
 
 /**
  * Why a member cannot eat this product, or null when they can.
@@ -243,6 +263,7 @@ function refusedBy(item, member) {
  * @param {number|null} [input.candidateLimit] most products to admit (see CANDIDATE_RULE)
  * @param {number} [input.maxPacksPerSku]
  * @param {number} [input.portionRelax] multiplies every portion ceiling (PORTION_RULE)
+ * @param {number} [input.fairness] the weight on the worst-off member's shortfall (FAIRNESS); 0 turns it off
  * @returns {{ columns, rows, meta, excluded }}
  */
 export function buildPlanModel({
@@ -257,6 +278,7 @@ export function buildPlanModel({
   qualityTiebreak = QUALITY_TIEBREAK,
   spendTiebreak = SPEND_TIEBREAK,
   portionRelax = 1,
+  fairness = FAIRNESS.weight,
 }) {
   const removed = new Set((excludeSkus ?? []).map(String));
   const columns = [];
@@ -374,6 +396,29 @@ export function buildPlanModel({
     }
   }
 
+  // The worst-off member's shortfall, per nutrient (FAIRNESS):
+  // short[m][n] - target[m][n] x worst[n] <= 0 for every member with a target.
+  const fairFor = [];
+  if (isNum(fairness) && fairness > 0) {
+    for (const n of NUTRIENTS) {
+      const targeted = members
+        .map((m) => ({ id: m.id, target: isNum(m.targets?.[n]) ? Number(m.targets[n]) * days : 0 }))
+        .filter((m) => m.target > 0);
+      if (targeted.length < 2) continue;
+      const household = targeted.reduce((sum, m) => sum + m.target, 0);
+      columns.push({ name: worstName(n), lower: 0, upper: Infinity, integer: false, cost: round4(fairness * DEVIATION_COST[n].short * household) });
+      for (const m of targeted) {
+        rows.push({
+          name: `fair_${m.id}_${n}`,
+          lower: -Infinity,
+          upper: 0,
+          coefficients: { [shortName(m.id, n)]: 1, [worstName(n)]: -m.target },
+        });
+      }
+      fairFor.push(n);
+    }
+  }
+
   if (isNum(budget)) {
     const row = { name: "budget", lower: -Infinity, upper: Number(budget), coefficients: {} };
     for (const item of eligible) row.coefficients[packsName(item.skuId)] = Number(item.price);
@@ -402,9 +447,11 @@ export function buildPlanModel({
       portionRule: PORTION_RULE.version,
       portionRelax,
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),
+      fairness: fairFor.length ? fairness : 0,
+      fairnessNutrients: fairFor,
     },
   };
 }
 
 /** The names a solution is read back through. */
-export const nameOf = Object.freeze({ packs: packsName, eats: eatsName, short: shortName, over: overName });
+export const nameOf = Object.freeze({ packs: packsName, eats: eatsName, short: shortName, over: overName, worst: worstName });

@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Loader2, ShoppingBasket, TriangleAlert } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
+import { isTestSku } from "@/lib/data/testCatalogue";
 
 const AGE_BANDS = [
   { key: "adult_19_59", label: "Adult (19–59)" },
@@ -377,7 +378,15 @@ export default function PlanPage() {
                 return (
                   <li key={line.skuId} className="text-[13px]">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[#0E4032]">{line.packs} × {line.name} <span className="text-[#5A6B5A]">({line.packSize})</span></span>
+                      <span className="text-[#0E4032]">
+                        {line.packs} × {line.name} <span className="text-[#5A6B5A]">({line.packSize})</span>
+                        {isTestSku(line.skuId) && (
+                          <span className="ml-1.5 rounded-full border border-[#B8860B]/40 px-1.5 py-px text-[10px] font-semibold text-[#8A6508]"
+                                title="From the local Open Food Facts test catalogue; the price is an estimate">
+                            test
+                          </span>
+                        )}
+                      </span>
                       <span className="font-semibold text-[#0E4032]">₹{line.cost}</span>
                     </div>
                     {!w && (

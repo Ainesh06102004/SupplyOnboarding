@@ -18,10 +18,16 @@ import { guardClaims, isClaimSafeText, isHighProtein } from '@/lib/nutrition/cla
 import { isLabelCurrent } from '@/lib/recommendation/verification';
 import { categorise } from '@/lib/food/taxonomy';
 import { latestReport } from '@/lib/score';
+import { testCatalogueRows } from '@/lib/data/testCatalogue';
 
 /** Number, or null when the column is absent. Never coerces missing to 0. */
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
 
+/**
+ * Every approved product, plus the local test catalogue when it is switched on
+ * (lib/data/testCatalogue.js). Test rows go through the same mapping as live
+ * ones, so what the storefront and the planner see is shaped identically.
+ */
 export async function fetchAllProducts() {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -44,11 +50,21 @@ export async function fetchAllProducts() {
 
   if (error) {
     console.error("Error fetching products:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-    return [];
+    return mapProducts(testCatalogueRows());
   }
 
+  return mapProducts([...data, ...testCatalogueRows()]);
+}
+
+/**
+ * Supabase product rows (with brands, skus, sku_nutrition, screening_reports
+ * and sku_label_facts nested) in the shape the storefront renders.
+ * @param {Array<object>} rows
+ * @returns {Array<object>}
+ */
+export function mapProducts(rows) {
   // Map to the complex frontend structure
-  return data.map(p => {
+  return rows.map(p => {
     const sku = p.skus?.[0] || {};
     const nutrition = sku.sku_nutrition?.[0] || {};
     // The report that stands now, not the first row returned: older versions
@@ -253,7 +269,10 @@ export async function fetchAllProducts() {
       watchOuts: [],
       alternatives: [],
       reviews: [],
-      reviewTags: []
+      reviewTags: [],
+      // Set only on the local test catalogue: where it came from, its licence,
+      // and that the price is an estimate. null for every live product.
+      testCatalogue: p._test ?? null,
     };
   });
 }
