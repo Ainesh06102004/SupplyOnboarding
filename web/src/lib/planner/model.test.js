@@ -84,6 +84,10 @@ test("whole nuts are kept from an under-5, and caffeine from a child, not from t
   assert.deepEqual(alone.excluded, [{ skuId: "almonds", reason: "refused", refusedBy: [{ member: "toddler", flag: "whole_nuts", rule: "age" }] }]);
 });
 
+test("a member id that the solution could not be read back for is refused loudly", () => {
+  assert.throws(() => buildPlanModel({ members: [{ ...adult, id: "kid_1" }], catalogue: [rice], days: 7 }), /may not contain "_"/);
+});
+
 test("an allergen is named before an age rule when both apply", () => {
   const toddler = { id: "toddler", ageBand: "child_4_6", targets: { protein: 16 }, avoidFlags: ["tree_nut"], dietExcludes: [] };
   const model = buildPlanModel({ members: [toddler], catalogue: [{ ...almonds, categoryKey: "nuts_seeds.nuts" }, rice], days: 7 });

@@ -106,6 +106,21 @@ export function plannableFrom(products = []) {
 }
 
 /**
+ * What a household keeps out of the house, as contains-flags: hard avoids
+ * only (00047). A preference cannot keep a food out of a home.
+ *
+ * @param {string[]} keys household.keep_out
+ * @param {object} avoidByKey FOODS_AVOID by key
+ * @returns {string[]}
+ */
+export function keepOutFlagsFor(keys = [], avoidByKey = {}) {
+  return (keys ?? [])
+    .map((key) => avoidByKey[key])
+    .filter((entry) => entry?.mode === "hard")
+    .map((entry) => entry.flag);
+}
+
+/**
  * A household member as the model wants them: their targets, the flags that
  * remove a product for them, and nothing else.
  *

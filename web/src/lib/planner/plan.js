@@ -8,19 +8,9 @@
 // household they own. The household id arrives from the request, the identity
 // never does.
 //
-// WHEN NOTHING FITS. A plan that says "impossible" and stops is useless, so
-// the soft constraints are relaxed in a fixed order and the shopper is told
-// which one gave way:
-//
-//   1. budget      the cheapest thing to give up is the ceiling, and a
-//                  shopper can decide to spend more
-//   2. variety     allow twice the portions, and more packs of fewer products
-//   3. macros      admit the shortfall, and name it per member
-//
-// ALLERGENS, AGE SAFETY AND DIET ARE NEVER RELAXED. They are not in this
-// ladder at any step. If a household cannot be fed without giving someone what
-// they avoid, or what is unsafe at their age, KOI says so and offers nothing
-// rather than quietly feeding them.
+// The solving itself, and the relaxation ladder that never gives up
+// allergens, age safety or diet, is solvePlan.js: free of the database, so the
+// reference-household suite runs exactly what this stores.
 // ============================================================================
 
 import "server-only";
@@ -29,18 +19,16 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { isTestSku } from "@/lib/data/testCatalogue";
 import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
-import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
-import { plannableFrom, memberFor } from "./candidates";
+import { buildPlanModel } from "./model";
+import { plannableFrom, memberFor, keepOutFlagsFor } from "./candidates";
 import { solvePlanModel } from "./solve";
-import { planReport, basketDiff, materiallyShort, atPortionLimit, whoEatsWhat, refusalReason } from "./report";
+import { solvePlan, solveWithLadder, NEVER_RELAXED } from "./solvePlan";
+import { planReport, basketDiff, materiallyShort, atPortionLimit, refusalReason } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
 import { applyFollowUp } from "./followup";
 import { readFollowUpWithModel } from "./followUpModel";
 
 export const PLAN_RULE_VERSION = "plan-v1";
-
-/** What no step of the ladder gives up, in the words the plan page shows. */
-const NEVER_RELAXED = Object.freeze(["allergens", "age safety", "diet"]);
 
 /** How many products may enter the program. See CANDIDATE_RULE. */
 export const CANDIDATE_LIMIT = 120;
@@ -48,43 +36,9 @@ export const CANDIDATE_LIMIT = 120;
 const AVOID_BY_KEY = Object.fromEntries(FOODS_AVOID.map((a) => [a.key, a]));
 const CATALOGUES = { avoidByKey: AVOID_BY_KEY, dietExclusions: DIET_EXCLUSIONS };
 
-/**
- * The relaxation ladder, in the order the plan doc fixes.
- *
- * Each step says what it gave up, so the explanation is written from what
- * actually happened rather than from a template.
- */
-const LADDER = [
-  { step: "as_asked", gave_up: null, apply: (base) => base },
-  {
-    step: "budget_raised",
-    gave_up: "the budget",
-    apply: (base) => ({ ...base, budget: null }),
-  },
-  {
-    step: "variety_relaxed",
-    gave_up: "variety: twice the usual portions, and more packs of fewer products",
-    apply: (base) => ({ ...base, budget: null, maxPacksPerSku: MAX_PACKS_PER_SKU * 2, portionRelax: 2 }),
-  },
-];
-
 /** Excluded rows with the product's name, for the page. */
 const named = (rows, catalogue) =>
   rows.map((e) => ({ ...e, name: catalogue.find((i) => i.skuId === e.skuId)?.name ?? null }));
-
-/** Climb the ladder until something can be shown. Allergens and diet are never on it. */
-async function solveWithLadder(base) {
-  let attempt = null;
-  let model = null;
-  let solution = null;
-  for (const rung of LADDER) {
-    model = buildPlanModel(rung.apply(base));
-    solution = await solvePlanModel(model);
-    attempt = rung;
-    if (solution.usable) break;
-  }
-  return { attempt, model, solution };
-}
 
 /**
  * When the budget is what stands between a household and its targets, what
@@ -159,10 +113,7 @@ export async function planForHousehold({
     memberFor({ ...row, avoidKeys: avoidsByMember.get(row.id) ?? [] }, CATALOGUES));
 
   // Kept out of the house (00047): hard avoids only, as their contains-flags.
-  const keepOutFlags = (household.keep_out ?? [])
-    .map((key) => AVOID_BY_KEY[key])
-    .filter((entry) => entry?.mode === "hard")
-    .map((entry) => entry.flag);
+  const keepOutFlags = keepOutFlagsFor(household.keep_out, AVOID_BY_KEY);
 
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
   return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags });
@@ -194,17 +145,7 @@ function membersFromSnapshot(snapshot) {
  */
 async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], keepOutFlags = [], extra = {} }) {
   const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, keepOutFlags };
-  const { attempt, model, solution } = await solveWithLadder(base);
-
-  const report = planReport({
-    members,
-    catalogue: catalogue.filter((item) => model.meta.skus.includes(item.skuId)),
-    solution,
-    days,
-    budget,
-  });
-  // Per person: what in the basket each may eat and how much, and what is not for them.
-  report.whoEatsWhat = whoEatsWhat({ members, catalogue, basket: report.basket, refusals: model.meta.refusals });
+  const { attempt, model, solution, report } = await solvePlan(base);
 
   const status = solution.usable ? "solved" : "infeasible";
   const explanation = {

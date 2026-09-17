@@ -295,6 +295,12 @@ export function buildPlanModel({
   fairness = FAIRNESS.weight,
   keepOutFlags = [],
 }) {
+  // A solution is read back from eats_<sku>_<member>, split at the last "_"
+  // (lp.js). Real member ids are uuids; an id with "_" would be read as a
+  // different member and silently lose everything they eat.
+  const unreadable = members.find((m) => String(m.id).includes("_"));
+  if (unreadable) throw new Error(`A member id may not contain "_": ${unreadable.id}`);
+
   const removed = new Set((excludeSkus ?? []).map(String));
   const keptOut = new Set(keepOutFlags ?? []);
   const columns = [];
