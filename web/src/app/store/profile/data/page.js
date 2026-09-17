@@ -22,6 +22,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { AGE_BANDS } from "@/lib/planner/brief";
+import { ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
 import { DIET_TYPES, FOODS_AVOID, FOODS_LOVE, MEALS, GOAL_PROFILES } from "@/lib/recommendation/config";
 
 const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
@@ -95,7 +96,7 @@ async function readEverything() {
         rows(supabase.from("user_meal_preference").select("meal_key")),
         rows(supabase.from("user_cooking_preference").select("cooking").maybeSingle()),
         rows(supabase.from("user_budget_preference").select("budget").maybeSingle()),
-        rows(supabase.from("household").select("id, label, keep_out, created_at, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, household_member_avoid(avoid_key))").order("created_at")),
+        rows(supabase.from("household").select("id, label, keep_out, created_at, household_member(id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, meals_from_home, target_kcal, target_protein_g, account_profile_id, household_member_avoid(avoid_key, severity), household_member_version(version))").order("created_at")),
         rows(supabase.from("plan").select("id, household_id, days, budget_rupees, created_at, cost:achieved->cost").order("created_at", { ascending: false }).limit(100)),
         rows(supabase.from("delivery_addresses").select("id, label, city, pincode, is_default")),
         rows(supabase.from("fulfilment_intents").select("id, state, marketplace, item_count, created_at").order("created_at", { ascending: false }).limit(20)),
@@ -212,9 +213,17 @@ export default function YourDataPage() {
               </div>
               {(h.household_member ?? []).map((m) => (
                 <p key={m.id}>
-                  {m.label}: {labelOf(AGE_BANDS, m.age_band)}{m.diet_type ? ` · ${labelOf(DIET_TYPES, m.diet_type)}` : ""}
+                  {m.label}{m.relation ? ` (${m.relation})` : ""}{m.account_profile_id ? " · you" : ""}: {labelOf(AGE_BANDS, m.age_band)}
+                  {m.sex ? ` · ${m.sex}` : ""}{m.diet_type ? ` · ${labelOf(DIET_TYPES, m.diet_type)}` : ""}
+                  {m.energy_goal && m.energy_goal !== "maintain" ? ` · ${labelOf(ENERGY_GOALS, m.energy_goal)}` : ""}
+                  {m.eating_pattern && m.eating_pattern !== "balanced" ? ` · ${labelOf(EATING_PATTERNS, m.eating_pattern)}` : ""}
+                  {m.activity_level ? ` · ${m.activity_level} activity` : ""}
+                  {[m.age_years && `${m.age_years} years`, m.weight_kg && `${m.weight_kg} kg`, m.height_cm && `${m.height_cm} cm`].filter(Boolean).map((x) => ` · ${x}`).join("")}
                   {m.target_protein_g ? ` · ${m.target_protein_g} g protein` : ""}{m.target_kcal ? ` · ${m.target_kcal} kcal` : ""}
-                  {(m.household_member_avoid ?? []).length ? ` · avoids ${m.household_member_avoid.map((a) => labelOf(FOODS_AVOID, a.avoid_key)).join(", ")}` : ""}
+                  {(m.household_member_avoid ?? []).length ? ` · avoids ${m.household_member_avoid.map((a) => `${labelOf(FOODS_AVOID, a.avoid_key)}${a.severity ? ` (${a.severity})` : ""}`).join(", ")}` : ""}
+                  {(m.meals_from_home ?? []).length ? ` · eats at home: ${m.meals_from_home.join(", ")}` : ""}
+                  {m.appetite ? ` · ${m.appetite} appetite` : ""}
+                  {(m.household_member_version ?? []).length ? ` · ${m.household_member_version.length} saved ${m.household_member_version.length === 1 ? "version" : "versions"}, deleted with the household` : ""}
                 </p>
               ))}
               {(d.plans ?? []).filter((p) => p.household_id === h.id).slice(0, 5).map((p) => (

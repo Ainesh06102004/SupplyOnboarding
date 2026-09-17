@@ -32,6 +32,10 @@ import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
 import { followUpExamples } from "@/lib/planner/followup";
+import { goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
+import { profileFromRow } from "@/lib/household/profile";
+
+const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
 
 const HARD_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "hard");
 const SOFT_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "soft");
@@ -56,7 +60,7 @@ const shareOf = ({ amount, unit, packs }) => {
   return big && amount >= 1000 ? `${Math.round(amount / 100) / 10} ${big}` : `${amount} ${unit}`;
 };
 
-/** Stored members as form rows, in the order they were added. */
+/** Stored members as form rows, in the order they were added. The full profile is kept alongside, read-only here. */
 const membersFrom = (rows) => [...rows]
   .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.label).localeCompare(String(b.label)))
   .map((row) => ({
@@ -68,7 +72,18 @@ const membersFrom = (rows) => [...rows]
     target_kcal: row.target_kcal ?? "",
     target_protein_g: row.target_protein_g ?? "",
     avoidKeys: (row.household_member_avoid ?? []).map((a) => a.avoid_key),
+    profile: profileFromRow(row),
   }));
+
+/** "Lose weight, keto" for an adult with a goal, else null. */
+const goalWords = (profile) => {
+  if (!profile || !goalsAllowed(profile.age_band)) return null;
+  const words = [
+    profile.energy_goal !== "maintain" ? ENERGY_GOALS.find((g) => g.key === profile.energy_goal)?.label : null,
+    profile.eating_pattern !== "balanced" ? EATING_PATTERNS.find((p) => p.key === profile.eating_pattern)?.label.toLowerCase() : null,
+  ].filter(Boolean);
+  return words.length ? words.join(", ") : null;
+};
 
 /** "Rice (Me 180 g, Partner 162 g)" — what the portion ceiling held, a day. */
 const describeLimit = (limit) =>
@@ -106,33 +121,29 @@ async function saveHousehold(supabase, householdId, members, keepOut = []) {
 
   const saved = [];
   // One at a time, so each new member's created_at keeps the form's order.
+  // Through save_household_member (00050): only the fields this form shows are
+  // sent, so a profile's goal, body data and avoid severities stay as they are,
+  // and each save is a new profile version.
   for (const m of members) {
-    const row = {
-      label: m.label.trim(),
-      age_band: m.age_band,
-      diet_type: m.diet_type,
-      target_kcal: num(m.target_kcal),
-      target_protein_g: num(m.target_protein_g),
-    };
-    if (m.memberId && storedIds.has(m.memberId)) {
-      const { error } = await supabase.from("household_member").update(row).eq("id", m.memberId);
-      if (error) throw error;
-      saved.push({ key: m.key, memberId: m.memberId });
-    } else {
-      const { data, error } = await supabase.from("household_member").insert({ ...row, household_id: id }).select("id").single();
-      if (error) throw error;
-      saved.push({ key: m.key, memberId: data.id });
-    }
-  }
-
-  // Avoids are replaced outright: the form is what the shopper means now.
-  const memberIds = saved.map((s) => s.memberId);
-  const { error: clearError } = await supabase.from("household_member_avoid").delete().in("member_id", memberIds);
-  if (clearError) throw clearError;
-  const avoidRows = members.flatMap((m, i) => m.avoidKeys.map((avoid_key) => ({ member_id: saved[i].memberId, avoid_key })));
-  if (avoidRows.length) {
-    const { error } = await supabase.from("household_member_avoid").insert(avoidRows);
+    const existing = Boolean(m.memberId && storedIds.has(m.memberId));
+    const age_band = m.age_band;
+    const { data, error } = await supabase.rpc("save_household_member", {
+      p_household_id: id,
+      p_member: {
+        ...(existing ? { id: m.memberId } : {}),
+        label: m.label.trim(),
+        age_band,
+        diet_type: m.diet_type,
+        target_kcal: num(m.target_kcal) === null ? null : String(Math.round(num(m.target_kcal))),
+        target_protein_g: num(m.target_protein_g) === null ? null : String(Math.round(num(m.target_protein_g))),
+        // A person moved to a child's age group cannot keep an adult's goal (00050).
+        ...(goalsAllowed(age_band) ? {} : { energy_goal: "maintain", eating_pattern: "balanced", age_years: null, weight_kg: null, height_cm: null }),
+      },
+      // Keys only: a severity set on the profile page is kept.
+      p_avoids: m.avoidKeys.map((key) => ({ key })),
+    });
     if (error) throw error;
+    saved.push({ key: m.key, memberId: data.id });
   }
   return { householdId: id, saved };
 }
@@ -208,7 +219,7 @@ export default function PlanPage() {
         // The latest household this shopper saved, so planning again edits it.
         const { data: household, error: loadError } = await supabase
           .from("household")
-          .select("id, keep_out, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, created_at, household_member_avoid(avoid_key))")
+          .select(`id, keep_out, household_member(${MEMBER_FIELDS})`)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -283,16 +294,18 @@ export default function PlanPage() {
     try {
       const supabase = getSupabaseClient();
       for (const change of turn.householdChanges) {
-        if (Object.keys(change.targets).length) {
-          const { error: updateError } = await supabase.from("household_member").update(change.targets).eq("id", change.memberId);
-          if (updateError) throw updateError;
-        }
-        if (change.addAvoidKeys.length) {
-          const { error: avoidError } = await supabase
-            .from("household_member_avoid")
-            .upsert(change.addAvoidKeys.map((avoid_key) => ({ member_id: change.memberId, avoid_key })), { onConflict: "member_id,avoid_key", ignoreDuplicates: true });
-          if (avoidError) throw avoidError;
-        }
+        const held = members.find((m) => m.memberId === change.memberId)?.avoidKeys ?? [];
+        // One save per person, as a new profile version (00050). Avoids already
+        // held keep their severity; added ones take their default.
+        const { error: saveError } = await supabase.rpc("save_household_member", {
+          p_household_id: householdId,
+          p_member: {
+            id: change.memberId,
+            ...Object.fromEntries(Object.entries(change.targets).map(([k, v]) => [k, v === null ? null : String(Math.round(Number(v)))])),
+          },
+          p_avoids: change.addAvoidKeys.length ? [...new Set([...held, ...change.addAvoidKeys])].map((key) => ({ key })) : null,
+        });
+        if (saveError) throw saveError;
       }
       // The form shows the saved household, so it follows what was saved.
       setMembers((list) => list.map((m) => {
@@ -324,7 +337,14 @@ export default function PlanPage() {
       if (!response.ok) throw new Error(body?.error ?? "The description could not be read.");
       const { draft } = body;
       if (draft.members.length) {
-        setMembers(draft.members.map((m) => ({ ...m, key: crypto.randomUUID(), memberId: null })));
+        // A drafted person with the same label as a saved one is that person:
+        // their profile (goal, body data, severities) is kept, and only what
+        // the description says is changed.
+        const byLabel = new Map(members.filter((m) => m.memberId).map((m) => [m.label.trim().toLowerCase(), m]));
+        setMembers(draft.members.map((m) => {
+          const saved = byLabel.get(String(m.label ?? "").trim().toLowerCase());
+          return { ...m, key: saved?.key ?? crypto.randomUUID(), memberId: saved?.memberId ?? null, profile: saved?.profile ?? null };
+        }));
         setPlan(null);
         setWithout({});
       }
@@ -400,6 +420,8 @@ export default function PlanPage() {
       {householdId && (
         <p className="mt-2 text-[11.5px] text-[#16A06E]">
           This is your saved household. Changes are saved to it each time you plan.{" "}
+          <Link href="/store/household" className="font-semibold underline">Edit everyone&apos;s full profile</Link>
+          {" · "}
           <Link href="/store/profile/data" className="font-semibold underline">See or delete what KOI keeps</Link>
         </p>
       )}
@@ -435,7 +457,11 @@ export default function PlanPage() {
         {members.map((m, i) => (
           <div key={m.key} className="rounded-2xl border border-[#083D2D]/10 p-4">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Person {i + 1}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">
+                Person {i + 1}
+                {goalWords(m.profile) && <span className="ml-2 normal-case tracking-normal text-[#5A6B5A]">· {goalWords(m.profile)}</span>}
+                {m.memberId && <Link href="/store/household" className="ml-2 normal-case tracking-normal text-[#16A06E] underline">Full profile</Link>}
+              </span>
               {members.length > 1 && (
                 <button type="button" onClick={() => setMembers((l) => l.filter((x) => x.key !== m.key))}
                         className="text-[#5A6B5A] hover:text-[#0E4032]" aria-label={`Remove person ${i + 1}`}>
