@@ -28,7 +28,7 @@ const references = [
   ref("protein_g", range(0, 100).map((v) => v / 5)),
   ref("nutrition_rating", range(0, 100)),
 ];
-const biscuit = { skuId: "b", name: "Biscuit", categoryKey: "snacks.biscuits_cookies", score: 40 };
+const biscuit = { skuId: "b", name: "Biscuit", categoryKey: "snacks.biscuits_cookies" };
 const row = (patch) => ({ measurement_basis: "per_100g", sugars_g: 15, protein_g: 10, total_fat_g: 2, saturated_fat_g: 1, sodium_mg: 50, ...patch });
 
 test("cut points and positions read the way a percentile should", () => {
@@ -48,10 +48,10 @@ test("cut points and positions read the way a percentile should", () => {
   assert.equal(quantileCuts([]), null);
 });
 
-test("every line names what it is compared with, and says it is a comparison", () => {
+test("the one line names what it is compared with, and says it is a comparison", () => {
   const ctx = inContext({ product: biscuit, row: row({}), references });
   assert.equal(ctx.category.label, "biscuits & cookies");
-  assert.deepEqual(ctx.nutrients, [{ metric: "sugars_g", direction: "less", text: "Less sugar per 100 g than 85% of 101 biscuits & cookies on Open Food Facts." }]);
+  assert.deepEqual(ctx.line, { metric: "sugars_g", percent: 85, n: 101, text: "Less sugar per 100 g than 85% of 101 biscuits & cookies on Open Food Facts." });
   assert.doesNotMatch(JSON.stringify(ctx), /sold in India/, "volunteer listings are not the market");
   assert.match(ctx.attribution, /Open Food Facts.*ODbL.*off-ref-2026-09-17/);
   assert.match(ctx.note, /not a score/);
@@ -63,22 +63,21 @@ test("a difference under 25% of the middle product is not said at all", () => {
   assert.equal(near, null, "45 g against a middle of 50 is 10% apart: no comparative claim");
 });
 
-test("unfavourable differences are said too: a comparison is not a selection", () => {
+test("favourable lines only (founder decision): an unfavourable product shows nothing", () => {
   const sweet = inContext({ product: biscuit, row: row({ sugars_g: 80, protein_g: 4 }), references });
-  assert.deepEqual(sweet.nutrients.map((n) => n.text), [
-    "More sugar per 100 g than 80% of 101 biscuits & cookies on Open Food Facts.",
-    "Less protein per 100 g than 80% of 101 biscuits & cookies on Open Food Facts.",
-  ]);
+  assert.equal(sweet, null, "more sugar and less protein than most: no line");
 });
 
-test("no percentile from too few products, and never from KOI's own shelf", () => {
+test("one wording: of several favourable comparisons, only the strongest is shown", () => {
+  const ctx = inContext({ product: biscuit, row: row({ sugars_g: 30, protein_g: 18 }), references });
+  assert.equal(ctx.line.text, "More protein per 100 g than 90% of 101 biscuits & cookies on Open Food Facts.", "protein at 90% beats sugar at 70%");
+  assert.ok(!("rating" in ctx) && !("rank" in ctx), "no rating line and no shelf rank");
+});
+
+test("no percentile from too few products", () => {
   const small = references.map((r) => ({ ...r, n: RELATIVE.minSample - 1 }));
   assert.equal(referenceFor("snacks.biscuits_cookies", small), null);
-  const shelf = [{ ...biscuit, skuId: "a", score: 70 }, biscuit, { ...biscuit, skuId: "c", score: 20 }];
-  const ctx = inContext({ product: biscuit, row: row({}), references: small, stocked: shelf });
-  assert.equal(ctx.rating, null);
-  assert.deepEqual(ctx.nutrients, []);
-  assert.deepEqual(ctx.rank, { position: 2, of: 3, text: "#2 of 3 biscuits & cookies KOI stocks, by KOI score." }, "the shelf gets an ordinal, not a percentile");
+  assert.equal(inContext({ product: biscuit, row: row({}), references: small }), null);
 });
 
 test("a category with too few falls back to its aisle, and units must match", () => {

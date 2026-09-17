@@ -6,30 +6,29 @@
 // this places a product among the Indian products Open Food Facts lists in its
 // category — on the four conditions §11.2 sets, all of them enforced here:
 //
-//   1. Never a bare number. Every line says what it is compared with: "above
-//      82% of 728 biscuits & cookies sold in India", "#2 of 4 biscuits &
-//      cookies KOI stocks".
-//   2. Never a percentile against KOI's own shelf. Percentiles come from the
-//      Open Food Facts reference (engine.category_reference), and only with
-//      RELATIVE.minSample products in the category. KOI's own shelf gets an
-//      ordinal rank, which is honest at any size.
+//   1. Never a bare number. The line says what it is compared with: "Less
+//      sugar per 100 g than 81% of 85 biscuits & cookies on Open Food Facts".
+//   2. Never a percentile against KOI's own shelf, and never from fewer than
+//      RELATIVE.minSample products (engine.category_reference).
 //   3. Attribution travels with the sentence (`attribution`).
 //   4. Two numbers, and this one never touches safety. Nothing here changes a
 //      score, an eligibility decision, an allergen or a claim; the reference
 //      version and date are returned with every result.
 //
-// And the legal frame: a relative statement is a comparative claim under the
-// FSS (Advertising and Claims) Regulations, 2018, so a line is made only when
-// the product is at least 25% away from the category's middle product — the
-// same threshold substitution edges use. Lines are made in BOTH directions:
-// a comparison that only ever reports good news is a selection, not a
-// comparison. Whether to show the unfavourable ones is a founder decision
-// (plan §15 item 11), and counsel confirms the wording (item 12); until then
-// the storefront shows none of this (KOI_RELATIVE_SCORES).
+// The legal frame: a relative statement is a comparative claim under the FSS
+// (Advertising and Claims) Regulations, 2018, so a comparison is made only
+// when the product is at least 25% away from the category's middle product —
+// the same threshold substitution edges use.
+//
+// FOUNDER DECISION, 17 September 2026 (plan §11.2): one wording, and
+// favourable lines only, because several cues on one page confuse. So a
+// product shows at most ONE line — its most favourable nutrient comparison:
+// less sugar, saturated fat or sodium, or more protein or fibre — and nothing
+// when it has none. That is a selection by design, recorded as such.
 // ============================================================================
 
 import { toPer100 } from "@/lib/nutrition/basis";
-import { nutritionScore, RUBRIC_VERSION } from "./score";
+import { nutritionScore } from "./score";
 import { nodeInfo } from "@/lib/food/taxonomy";
 
 export const RELATIVE = Object.freeze({
@@ -38,13 +37,13 @@ export const RELATIVE = Object.freeze({
   referencePrefix: "off-ref",
 });
 
-/** The measures phrased per nutrient: `lessIsLighter` says which way reads as "less". */
+/** The measures a line can be about, and which direction is the favourable one. */
 export const MEASURES = Object.freeze([
-  { metric: "sugars_g", word: "sugar", unit: "g", minAbs: 1 },
-  { metric: "saturated_fat_g", word: "saturated fat", unit: "g", minAbs: 1 },
-  { metric: "sodium_mg", word: "sodium", unit: "mg", minAbs: 20 },
-  { metric: "protein_g", word: "protein", unit: "g", minAbs: 1 },
-  { metric: "fibre_g", word: "fibre", unit: "g", minAbs: 1 },
+  { metric: "sugars_g", word: "sugar", unit: "g", minAbs: 1, favourable: "less" },
+  { metric: "saturated_fat_g", word: "saturated fat", unit: "g", minAbs: 1, favourable: "less" },
+  { metric: "sodium_mg", word: "sodium", unit: "mg", minAbs: 20, favourable: "less" },
+  { metric: "protein_g", word: "protein", unit: "g", minAbs: 1, favourable: "more" },
+  { metric: "fibre_g", word: "fibre", unit: "g", minAbs: 1, favourable: "more" },
 ]);
 
 /** Every measure the reference is built for. */
@@ -125,86 +124,52 @@ export function referenceFor(categoryKey, rows = []) {
 }
 
 /**
- * The product in context.
+ * The product in context: its one most favourable comparison, or null.
  *
  * @param {object} input
- * @param {object} input.product storefront product (skuId, name, score, categoryKey)
+ * @param {object} input.product storefront product (skuId, name, categoryKey)
  * @param {object} input.row its nutrition row (rowFromProduct)
  * @param {Array} input.references engine.category_reference rows for one version
- * @param {Array} [input.stocked] storefront products, for the rank among KOI's own shelf
- * @returns {{ category, rating, nutrients, rank, attribution, note }|null}
+ * @returns {{ category, line: { metric, percent, n, text }, attribution, note }|null}
  */
-export function inContext({ product, row, references = [], stocked = [] }) {
-  const categoryKey = product?.categoryKey ?? null;
-  const ref = referenceFor(categoryKey, references);
-  const out = { category: null, rating: null, nutrients: [], rank: null, attribution: null, note: null };
+export function inContext({ product, row, references = [] }) {
+  const ref = referenceFor(product?.categoryKey ?? null, references);
+  if (!ref) return null;
+  const any = ref.byMetric.values().next().value;
+  const per100 = toPer100(row);
+  if (!per100.unit || per100.unit !== any.unit) return null;
 
-  if (ref) {
-    const info = nodeInfo(ref.nodeKey);
-    const label = String(info?.subcategory ?? info?.label ?? ref.nodeKey).toLowerCase();
-    const any = ref.byMetric.values().next().value;
-    out.category = {
-      key: ref.nodeKey,
-      label,
-      referenceVersion: any.reference_version,
-      builtAt: any.built_at,
-      dataThrough: any.off_data_through ?? null,
-    };
-    const per100 = toPer100(row);
-    const sameUnit = per100.unit && per100.unit === any.unit;
+  const info = nodeInfo(ref.nodeKey);
+  const label = String(info?.subcategory ?? info?.label ?? ref.nodeKey).toLowerCase();
 
-    if (sameUnit) {
-      const ratingRef = ref.byMetric.get("nutrition_rating");
-      const rating = nutritionRating(row);
-      if (ratingRef && isNum(rating)) {
-        const middle = Number(ratingRef.cuts[50]);
-        const apart = middle > 0 ? Math.abs(rating - middle) / middle : 0;
-        if (apart >= RELATIVE.minRelativeDiff) {
-          const { below } = positionIn(rating, ratingRef.cuts);
-          out.rating = {
-            rating,
-            percentile: below,
-            n: Number(ratingRef.n),
-            rubricVersion: ratingRef.rubric_version ?? RUBRIC_VERSION,
-            // "Listed for India on Open Food Facts", not "sold in India": the
-            // reference is volunteer listings, not a census of the market.
-            text: `On KOI's nutrition rating, above ${below}% of ${ratingRef.n} ${label} listed for India on Open Food Facts.`,
-          };
-        }
-      }
-
-      for (const m of MEASURES) {
-        const r = ref.byMetric.get(m.metric);
-        const value = per100[m.metric];
-        if (!r || !isNum(value)) continue;
-        const middle = Number(r.cuts[50]);
-        const diff = Number(value) - middle;
-        if (Math.abs(diff) < m.minAbs) continue;
-        if (middle > 0 ? Math.abs(diff) / middle < RELATIVE.minRelativeDiff : Number(value) <= 0) continue;
-        const { below, above } = positionIn(value, r.cuts);
-        out.nutrients.push(diff < 0
-          ? { metric: m.metric, direction: "less", text: `Less ${m.word} per 100 ${per100.unit} than ${above}% of ${r.n} ${label} on Open Food Facts.` }
-          : { metric: m.metric, direction: "more", text: `More ${m.word} per 100 ${per100.unit} than ${below}% of ${r.n} ${label} on Open Food Facts.` });
-      }
-    }
-    out.attribution = `Compared with Open Food Facts' Indian listings (© Open Food Facts contributors, ODbL), reference ${out.category.referenceVersion}.`;
+  // Every favourable comparison at 25% or more from the middle product; the one line shown is the strongest.
+  const favourable = [];
+  for (const m of MEASURES) {
+    const r = ref.byMetric.get(m.metric);
+    const value = per100[m.metric];
+    if (!r || !isNum(value)) continue;
+    const middle = Number(r.cuts[50]);
+    const diff = Number(value) - middle;
+    const direction = diff < 0 ? "less" : "more";
+    if (direction !== m.favourable || Math.abs(diff) < m.minAbs) continue;
+    if (middle > 0 ? Math.abs(diff) / middle < RELATIVE.minRelativeDiff : Number(value) <= 0) continue;
+    const { below, above } = positionIn(value, r.cuts);
+    const percent = direction === "less" ? above : below;
+    favourable.push({
+      metric: m.metric,
+      percent,
+      n: Number(r.n),
+      // "on Open Food Facts", not "sold in India": volunteer listings, not the market.
+      text: `${direction === "less" ? "Less" : "More"} ${m.word} per 100 ${per100.unit} than ${percent}% of ${r.n} ${label} on Open Food Facts.`,
+    });
   }
+  if (!favourable.length) return null;
+  const line = favourable.sort((a, b) => b.percent - a.percent || b.n - a.n)[0];
 
-  // KOI's own shelf: an ordinal, among scored products in the same category.
-  if (categoryKey && isNum(product?.score)) {
-    const shelf = stocked.filter((p) => p.categoryKey === categoryKey && isNum(p.score));
-    if (shelf.length >= 2) {
-      const ranked = [...shelf].sort((a, b) => Number(b.score) - Number(a.score));
-      const position = ranked.findIndex((p) => String(p.skuId) === String(product.skuId)) + 1;
-      if (position > 0) {
-        const info = nodeInfo(categoryKey);
-        const label = String(info?.subcategory ?? info?.label ?? categoryKey).toLowerCase();
-        out.rank = { position, of: shelf.length, text: `#${position} of ${shelf.length} ${label} KOI stocks, by KOI score.` };
-      }
-    }
-  }
-
-  if (!out.rating && !out.nutrients.length && !out.rank) return null;
-  out.note = "A comparison, not a score: the KOI score above is unchanged by it.";
-  return out;
+  return {
+    category: { key: ref.nodeKey, label, referenceVersion: any.reference_version, builtAt: any.built_at, dataThrough: any.off_data_through ?? null },
+    line,
+    attribution: `Compared with Open Food Facts' Indian listings (© Open Food Facts contributors, ODbL), reference ${any.reference_version}.`,
+    note: "A comparison, not a score: the KOI score above is unchanged by it.",
+  };
 }

@@ -1,13 +1,12 @@
 // ============================================================================
 // GET /api/products/relative?skuId= — a product in context (plan §11.2)
 //
-// Off unless KOI_RELATIVE_SCORES=on. It is built, and it waits on three things
-// before it is switched on anywhere real (plan §11.2, §15 items 11 and 12): the
-// founder's decision to show it, counsel's wording for what is a comparative
-// claim, and the attribution line agreed for Open Food Facts.
+// Off unless KOI_RELATIVE_SCORES=on, which is set per environment (plan §11.2).
+// The founder has decided what it shows: one line, the product's most
+// favourable comparison, or nothing.
 //
-// The reference is internal (engine, service role); only the sentences leave,
-// with their attribution, version and date. Nothing here changes a score, an
+// The reference is internal (engine, service role); only the sentence leaves,
+// with its attribution, version and date. Nothing here changes a score, an
 // eligibility decision, an allergen or a claim.
 // ============================================================================
 
@@ -32,7 +31,7 @@ export async function GET(request) {
 
     const nodeKeys = product.categoryKey ? [...new Set([product.categoryKey, product.categoryKey.split(".")[0]])] : [];
     const references = await latestReference(nodeKeys);
-    const context = inContext({ product, row: rowFromProduct(product), references, stocked: products });
+    const context = inContext({ product, row: rowFromProduct(product), references });
     return NextResponse.json({ enabled: true, context }, { headers: { "Cache-Control": "private, max-age=600" } });
   } catch (err) {
     console.error("[products/relative]", err?.message ?? err);

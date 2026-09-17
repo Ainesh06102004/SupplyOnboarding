@@ -462,20 +462,18 @@ export function Community({ community }) {
 }
 
 // ── In context ──────────────────────────────────────────────────────────────
-// Plan §11.2. How the product sits among its category: every line names what
-// it is compared with, the attribution and reference version go with it, and
-// the KOI score is untouched. Rendered only when /api/products/relative is
-// switched on (KOI_RELATIVE_SCORES) and has something to say.
+// Plan §11.2. One line, one wording: the product's most favourable comparison
+// with its category (founder decision). The line names what it is compared
+// with, the attribution and reference version go with it, and the KOI score is
+// untouched. Rendered only when /api/products/relative is switched on
+// (KOI_RELATIVE_SCORES) and has something to say.
 export function InContext({ context }) {
-  const lines = [context.rating?.text, ...context.nutrients.map((n) => n.text), context.rank?.text].filter(Boolean);
   return (
     <Section id="context" index="05" eyebrow="In context" title="Among its category"
-             subtitle={context.category ? `Compared with ${context.category.label} listed for India on Open Food Facts, and with what KOI stocks.` : "Compared with what KOI stocks."}>
-      <ul className="max-w-3xl space-y-3">
-        {lines.map((line) => (
-          <li key={line} className="rounded-2xl border border-[#083D2D]/8 bg-white px-5 py-4 text-[15px] leading-relaxed text-[#083D2D]" style={BODY}>{line}</li>
-        ))}
-      </ul>
+             subtitle={`Compared with ${context.category.label} listed for India on Open Food Facts.`}>
+      <p className="max-w-3xl rounded-2xl border border-[#083D2D]/8 bg-white px-5 py-4 text-[15px] leading-relaxed text-[#083D2D]" style={BODY}>
+        {context.line.text}
+      </p>
       <p className="mt-5 max-w-3xl text-[12.5px] leading-relaxed text-[#101412]/55" style={BODY}>
         {context.note}
         {context.attribution ? ` ${context.attribution}` : ""}
