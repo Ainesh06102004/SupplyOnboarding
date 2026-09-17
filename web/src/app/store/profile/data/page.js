@@ -95,7 +95,7 @@ async function readEverything() {
         rows(supabase.from("user_meal_preference").select("meal_key")),
         rows(supabase.from("user_cooking_preference").select("cooking").maybeSingle()),
         rows(supabase.from("user_budget_preference").select("budget").maybeSingle()),
-        rows(supabase.from("household").select("id, label, created_at, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, household_member_avoid(avoid_key))").order("created_at")),
+        rows(supabase.from("household").select("id, label, keep_out, created_at, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, household_member_avoid(avoid_key))").order("created_at")),
         rows(supabase.from("plan").select("id, household_id, days, budget_rupees, created_at, cost:achieved->cost").order("created_at", { ascending: false }).limit(100)),
         rows(supabase.from("delivery_addresses").select("id, label, city, pincode, is_default")),
         rows(supabase.from("fulfilment_intents").select("id, state, marketplace, item_count, created_at").order("created_at", { ascending: false }).limit(20)),
@@ -204,7 +204,10 @@ export default function YourDataPage() {
           {(d.households ?? []).length ? d.households.map((h) => (
             <div key={h.id} className="rounded-xl bg-[#083D2D]/[0.03] p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-semibold text-[#0E4032]">{h.label || "Household"} · {planCount(h.id)} {planCount(h.id) === 1 ? "plan" : "plans"} · since {date(h.created_at)}</p>
+                <p className="font-semibold text-[#0E4032]">
+                  {h.label || "Household"} · {planCount(h.id)} {planCount(h.id) === 1 ? "plan" : "plans"} · since {date(h.created_at)}
+                  {(h.keep_out ?? []).length > 0 && ` · keeps ${h.keep_out.map((k) => labelOf(FOODS_AVOID, k)).join(", ")} out of the house`}
+                </p>
                 <ConfirmDelete what="this household, its people and its plans" onConfirm={() => remove(supabase.from("household").delete().eq("id", h.id))} />
               </div>
               {(h.household_member ?? []).map((m) => (

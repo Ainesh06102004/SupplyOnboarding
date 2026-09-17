@@ -240,6 +240,53 @@ export function productsNamed(word, catalogue) {
   });
 }
 
+/** Words in a product name that say what kind of pack it is, not what the food is. */
+const NAME_DESCRIPTORS = new Set([
+  "the", "and", "with", "crunch", "crunchy", "creamy", "smooth", "thick", "thin", "natural", "classic", "original",
+  "plus", "mix", "combo", "pack", "pure", "organic", "premium", "super", "unpolished", "split", "superior", "roasted",
+  "instant", "rozana", "healthy", "daily", "added", "sugar", "free",
+]);
+/** A food word that reads better with the word before it: "moong dal", "peanut butter". */
+const PAIRED_HEADS = new Set(["dal", "butter", "rice", "flour", "chana", "oil", "seeds", "chips", "cookies", "biscuits", "milk", "pak"]);
+
+/**
+ * The word a shopper would use to leave this product out ("Split Moong Dal" →
+ * "moong dal", "Natural Peanut Butter Crunch" → "peanut butter"). Used to give
+ * "Change this plan" examples drawn from the plan on screen; productsNamed
+ * finds the product again from it.
+ *
+ * @param {string} name
+ * @returns {string|null}
+ */
+export function productWordFor(name) {
+  const tokens = normalise(String(name ?? "").replace(/\(.*?\)|\s-\s.*$/g, " "))
+    .replace(/[^a-z ]/g, " ")
+    .split(" ")
+    .filter((t) => t.length >= 3 && !NAME_DESCRIPTORS.has(t));
+  if (!tokens.length) return null;
+  const last = tokens[tokens.length - 1];
+  return PAIRED_HEADS.has(last) && tokens.length >= 2 ? `${tokens[tokens.length - 2]} ${last}` : last;
+}
+
+/**
+ * Examples for "Change this plan", from the plan on screen: two of its own
+ * products (never an allergen word, which would read as an avoid), "cheaper",
+ * and a change of days. Nothing is suggested at a number KOI would be choosing
+ * for the shopper's nutrition.
+ *
+ * @param {{ basket: Array<{name}>, days: number }} plan
+ * @returns {string[]}
+ */
+export function followUpExamples({ basket = [], days = 7 } = {}) {
+  const words = [...new Set(basket.map((line) => productWordFor(line.name)).filter((w) => w && !avoidKeysNamed(w).length))];
+  const examples = [];
+  if (words[0]) examples.push(`swap the ${words[0]}`);
+  if (words[1]) examples.push(`no ${words[1]}`);
+  examples.push("cheaper");
+  examples.push(`${Number(days) === 7 ? 10 : 7} days`);
+  return examples;
+}
+
 const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 
 /**

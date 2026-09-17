@@ -31,7 +31,7 @@ import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
 import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
 import { plannableFrom, memberFor } from "./candidates";
 import { solvePlanModel } from "./solve";
-import { planReport, basketDiff, materiallyShort, atPortionLimit, whoEatsWhat } from "./report";
+import { planReport, basketDiff, materiallyShort, atPortionLimit, whoEatsWhat, refusalReason } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
 import { applyFollowUp } from "./followup";
 import { readFollowUpWithModel } from "./followUpModel";
@@ -130,7 +130,7 @@ export async function planForHousehold({
   // RLS does the authorising: no rows means not yours (or not there).
   const { data: household, error: householdError } = await db
     .from("household")
-    .select("id, label, household_member(*)")
+    .select("id, label, keep_out, household_member(*)")
     .eq("id", householdId)
     .maybeSingle();
   if (householdError) throw householdError;
@@ -154,8 +154,14 @@ export async function planForHousehold({
   const members = memberRows.map((row) =>
     memberFor({ ...row, avoidKeys: avoidsByMember.get(row.id) ?? [] }, CATALOGUES));
 
+  // Kept out of the house (00047): hard avoids only, as their contains-flags.
+  const keepOutFlags = (household.keep_out ?? [])
+    .map((key) => AVOID_BY_KEY[key])
+    .filter((entry) => entry?.mode === "hard")
+    .map((entry) => entry.flag);
+
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
-  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget });
+  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags });
 }
 
 /** A plan's stored members, in the shape the model plans with. */
@@ -177,10 +183,11 @@ function membersFromSnapshot(snapshot) {
  * @param {object} input
  * @param {object} input.db the shopper's Supabase client (RLS applies)
  * @param {string[]} [input.excludeSkus] products this plan must do without
+ * @param {string[]} [input.keepOutFlags] contains-flags kept out of the house
  * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
  */
-async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], extra = {} }) {
-  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus };
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], keepOutFlags = [], extra = {} }) {
+  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, keepOutFlags };
   const { attempt, model, solution } = await solveWithLadder(base);
 
   const report = planReport({
@@ -204,6 +211,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // Products no member can eat. One some members cannot eat stays in the
     // program for the others, and shows in report.whoEatsWhat.
     products_refused: model.excluded.filter((e) => e.reason === "refused"),
+    // Kept out of the house for everyone (household.keep_out), with the reason in words.
+    products_kept_out: named(model.excluded.filter((e) => e.reason === "kept_out_of_house"), catalogue)
+      .map((e) => ({ ...e, because: refusalReason({ flag: e.flag, rule: "avoided" }) })),
     products_not_plannable: unplannable,
     products_not_candidates: model.excluded.filter((e) => e.reason === "not_a_candidate").length,
     // Packs bigger than the household can eat in the period (PORTION_RULE).
@@ -243,6 +253,7 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         catalogue_size: catalogue.length,
         // Carried into every follow-up, so "swap the oats" stays swapped.
         excluded_skus: [...new Set(excludeSkus.map(String))],
+        keep_out_flags: [...new Set(keepOutFlags)],
         // For a follow-up: the plan it changed and KOI's words for the change.
         // The shopper's own message is not stored.
         ...(extra.follows ? { follows: extra.follows, change: extra.change ?? [] } : {}),
@@ -333,8 +344,9 @@ export async function planWithout({ planId, skuId }) {
     budget,
     availability: snapshot.availability ?? "allow_unknown",
     candidateLimit: CANDIDATE_LIMIT,
-    // What earlier follow-ups left out stays out.
+    // What earlier follow-ups left out stays out, and so does what the house keeps out.
     excludeSkus: [...(snapshot.excluded_skus ?? []), skuId],
+    keepOutFlags: snapshot.keep_out_flags ?? [],
   };
   const { attempt, model, solution } = await solveWithLadder(base);
   const report = planReport({
@@ -433,6 +445,7 @@ export async function planFollowUp({ planId, text }) {
     days: change.days,
     budget: change.budget,
     excludeSkus: change.excludedSkus,
+    keepOutFlags: snapshot.keep_out_flags ?? [],
     extra: { follows: plan.id, change: change.applied },
   });
 

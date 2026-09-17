@@ -21,6 +21,8 @@
 //     take nuts off everyone's plan, and a wife's gluten-free diet her
 //     husband's atta. A SKU no member can eat is not in the program, and
 //     `excluded` says why.
+//   * what the household keeps out of the house (keepOutFlags: a severe
+//     allergy, a shared kitchen) is not in the program for anyone.
 //   * what is bought is what is eaten: sum over members of eats[s][m] equals
 //     packs[s]. Nothing is planned into a basket and left uneaten.
 //   * budget, when given.
@@ -268,6 +270,7 @@ function refusedBy(item, member) {
  * @param {number} [input.maxPacksPerSku]
  * @param {number} [input.portionRelax] multiplies every portion ceiling (PORTION_RULE)
  * @param {number} [input.fairness] the weight on the worst-off member's shortfall (FAIRNESS); 0 turns it off
+ * @param {string[]} [input.keepOutFlags] contains-flags no product may carry, for anyone (household.keep_out)
  * @returns {{ columns, rows, meta, excluded }}
  */
 export function buildPlanModel({
@@ -283,8 +286,10 @@ export function buildPlanModel({
   spendTiebreak = SPEND_TIEBREAK,
   portionRelax = 1,
   fairness = FAIRNESS.weight,
+  keepOutFlags = [],
 }) {
   const removed = new Set((excludeSkus ?? []).map(String));
+  const keptOut = new Set(keepOutFlags ?? []);
   const columns = [];
   const rows = [];
   const excluded = [];
@@ -336,6 +341,12 @@ export function buildPlanModel({
     }
     if (availability === "require_available" && item.availability !== "available") {
       excluded.push({ skuId: item.skuId, reason: "not_confirmed_available", availability: item.availability ?? "unknown" });
+      continue;
+    }
+    // Kept out of the house: not bought for anyone.
+    const keptOutFlag = (item.contains ?? []).find((flag) => keptOut.has(flag));
+    if (keptOutFlag) {
+      excluded.push({ skuId: item.skuId, reason: "kept_out_of_house", flag: keptOutFlag });
       continue;
     }
     // Kept from the members who cannot eat it; out of the program only when that is everyone.
@@ -462,6 +473,7 @@ export function buildPlanModel({
       portionRelax,
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),
       refusals: Object.fromEntries(eligible.filter((i) => refusals[i.skuId]).map((i) => [i.skuId, refusals[i.skuId]])),
+      keepOutFlags: [...keptOut],
       fairness: fairFor.length ? fairness : 0,
       fairnessNutrients: fairFor,
     },

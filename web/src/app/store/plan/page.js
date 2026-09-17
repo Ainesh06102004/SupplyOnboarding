@@ -31,6 +31,7 @@ import { isTestSku } from "@/lib/data/testCatalogue";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
+import { followUpExamples } from "@/lib/planner/followup";
 
 const HARD_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "hard");
 const SOFT_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "soft");
@@ -78,12 +79,18 @@ const describeLimit = (limit) =>
  * Row-level security ties every row to this account (migration 00044).
  * @returns {Promise<{ householdId: string, saved: Array<{ key, memberId }> }>}
  */
-async function saveHousehold(supabase, householdId, members) {
+async function saveHousehold(supabase, householdId, members, keepOut = []) {
+  // Only what someone in the household still avoids can be kept out of the house.
+  const held = new Set(members.flatMap((m) => m.avoidKeys));
+  const keep_out = keepOut.filter((key) => held.has(key));
   let id = householdId;
   if (!id) {
-    const { data, error } = await supabase.from("household").insert({ label: "My household" }).select("id").single();
+    const { data, error } = await supabase.from("household").insert({ label: "My household", keep_out }).select("id").single();
     if (error) throw error;
     id = data.id;
+  } else {
+    const { error } = await supabase.from("household").update({ keep_out }).eq("id", id);
+    if (error) throw error;
   }
 
   const { data: stored, error: readError } = await supabase.from("household_member").select("id").eq("household_id", id);
@@ -134,6 +141,8 @@ export default function PlanPage() {
   const [session, setSession] = useState(undefined);
   const [householdId, setHouseholdId] = useState(null);
   const [members, setMembers] = useState([blankMember()]);
+  // Allergens kept out of the house for everyone (household.keep_out, 00047).
+  const [keepOut, setKeepOut] = useState([]);
   const [days, setDays] = useState(7);
   const [budget, setBudget] = useState("");
   const [busy, setBusy] = useState(false);
@@ -199,7 +208,7 @@ export default function PlanPage() {
         // The latest household this shopper saved, so planning again edits it.
         const { data: household, error: loadError } = await supabase
           .from("household")
-          .select("id, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, created_at, household_member_avoid(avoid_key))")
+          .select("id, keep_out, household_member(id, label, age_band, diet_type, target_kcal, target_protein_g, created_at, household_member_avoid(avoid_key))")
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -207,6 +216,7 @@ export default function PlanPage() {
         if (loadError) setError("Your saved household could not be loaded. Planning now will save a new one.");
         if (household) {
           setHouseholdId(household.id);
+          setKeepOut(household.keep_out ?? []);
           if (household.household_member?.length) setMembers(membersFrom(household.household_member));
         }
       }
@@ -220,6 +230,14 @@ export default function PlanPage() {
   const ready = useMemo(
     () => members.length > 0 && members.every((m) =>
       m.label.trim() && m.age_band && m.diet_type && (num(m.target_protein_g) || num(m.target_kcal))),
+    [members],
+  );
+
+  // The allergens someone in the household avoids, and who: what could be kept out of the house.
+  const householdAllergens = useMemo(
+    () => HARD_AVOIDS
+      .map((entry) => ({ entry, who: members.filter((m) => m.avoidKeys.includes(entry.key)).map((m) => m.label.trim() || "someone") }))
+      .filter((a) => a.who.length > 0),
     [members],
   );
 
@@ -334,7 +352,7 @@ export default function PlanPage() {
     setWithout({});
     try {
       const supabase = getSupabaseClient();
-      const { householdId: id, saved } = await saveHousehold(supabase, householdId, members);
+      const { householdId: id, saved } = await saveHousehold(supabase, householdId, members, keepOut);
       setHouseholdId(id);
       // Each form row now knows which stored member it is.
       const idOf = new Map(saved.map((s) => [s.key, s.memberId]));
@@ -500,6 +518,29 @@ export default function PlanPage() {
           <Plus className="h-4 w-4" /> Add someone
         </button>
       </section>
+
+      {householdAllergens.length > 0 && (
+        <section className="mt-6 rounded-2xl border border-[#B4453C]/20 bg-[#B4453C]/[0.03] p-4">
+          <p className="text-[12px] font-semibold text-[#0E4032]">Keep out of the house</p>
+          <p className="mt-0.5 text-[11.5px] text-[#5A6B5A]">
+            Normally a product one person cannot eat is still bought for the others. For a serious allergy, switch it on
+            here and nothing containing it is bought for anyone.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {householdAllergens.map(({ entry, who }) => {
+              const on = keepOut.includes(entry.key);
+              return (
+                <button key={entry.key} type="button" aria-pressed={on}
+                        onClick={() => setKeepOut((list) => (on ? list.filter((k) => k !== entry.key) : [...list, entry.key]))}
+                        className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
+                  {entry.emoji} {entry.label} <span className={on ? "text-white/80" : "text-[#5A6B5A]"}>({who.join(", ")})</span>
+                  {on ? " · kept out" : ""}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="block">
@@ -673,6 +714,11 @@ export default function PlanPage() {
               {plan.explanation.products_refused.length > 0 && (
                 <li>{plan.explanation.products_refused.length} products left out because no one in the household can eat them</li>
               )}
+              {(plan.explanation.products_kept_out ?? []).length > 0 && (
+                <li>
+                  Kept out of the house: {plan.explanation.products_kept_out.map((p) => `${p.name ?? "a product"} (${p.because})`).join(", ")}
+                </li>
+              )}
               {plan.explanation.products_not_plannable.length > 0 && (
                 <li>{plan.explanation.products_not_plannable.length} products KOI cannot plan with yet (no price, or a pack it cannot measure)</li>
               )}
@@ -745,7 +791,7 @@ export default function PlanPage() {
             )}
             <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); followUp(); }}>
               <input id="plan-followup" value={followText} onChange={(e) => setFollowText(e.target.value)} maxLength={200}
-                     placeholder="cheaper · no paneer · swap the oats · 60 g protein for Kid 1"
+                     placeholder={followUpExamples({ basket: plan.report.basket, days: plan.days }).join(" · ")}
                      className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
               <button type="submit" disabled={!followText.trim() || followBusy}
                       className="inline-flex items-center gap-1.5 rounded-xl bg-[#0E4032] px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-40">

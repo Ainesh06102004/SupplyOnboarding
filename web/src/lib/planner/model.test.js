@@ -47,6 +47,18 @@ test("a wife's gluten-free diet and a kid's nut allergy stay theirs", () => {
   assert.ok(colNamed(model, nameOf.eats("atta", "kid")));
 });
 
+test("what the household keeps out of the house is bought for no one", () => {
+  const me = { id: "me", targets: { protein: 60 }, avoidFlags: [], dietExcludes: [] };
+  const peanutButter = { ...almonds, skuId: "pb", contains: ["peanut"] };
+  const perPerson = buildPlanModel({ members: [me, { ...nutFree, avoidFlags: ["peanut"] }], catalogue: [peanutButter, rice], days: 7 });
+  assert.ok(perPerson.meta.skus.includes("pb"), "without the switch, it can be bought for me");
+
+  const keptOut = buildPlanModel({ members: [me, { ...nutFree, avoidFlags: ["peanut"] }], catalogue: [peanutButter, rice], days: 7, keepOutFlags: ["peanut"] });
+  assert.deepEqual(keptOut.meta.skus, ["rice"]);
+  assert.deepEqual(keptOut.excluded, [{ skuId: "pb", reason: "kept_out_of_house", flag: "peanut" }]);
+  assert.deepEqual(keptOut.meta.keepOutFlags, ["peanut"]);
+});
+
 test("a product no member can eat is left out, and says who refused it", () => {
   const model = buildPlanModel({ members: [nutFree], catalogue: [almonds, rice], days: 7 });
   assert.deepEqual(model.meta.skus, ["rice"]);

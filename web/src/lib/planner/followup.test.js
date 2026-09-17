@@ -6,7 +6,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { readFollowUp, groundFollowUp, mergeFollowUps, applyFollowUp, membersNamed, productsNamed, CHEAPER_SHARE } from "@/lib/planner/followup.js";
+import { readFollowUp, groundFollowUp, mergeFollowUps, applyFollowUp, membersNamed, productsNamed, productWordFor, followUpExamples, CHEAPER_SHARE } from "@/lib/planner/followup.js";
+
+test("examples for changing a plan come from the plan, and each one would work", () => {
+  const names = [
+    "Gorakhpur Kalanamak Rice", "Split Moong Dal", "Superior MP Atta", "Natural Peanut Butter Crunch",
+    "The Healthy Butter Cookies", "Healthy Snack Combo - Pack of 6", "Golden Milk Mix", "Mango Mysore Pak", "Oats", "Besan",
+  ];
+  assert.deepEqual(names.map(productWordFor), [
+    "kalanamak rice", "moong dal", "atta", "peanut butter", "butter cookies", "snack", "golden milk", "mysore pak", "oats", "besan",
+  ]);
+  const catalogue = names.map((name, i) => ({ skuId: String(i), name }));
+  names.forEach((name, i) => assert.ok(productsNamed(productWordFor(name), catalogue).some((p) => p.skuId === String(i)), `"${productWordFor(name)}" finds ${name}`));
+
+  const examples = followUpExamples({ basket: [{ name: "Natural Peanut Butter Crunch" }, { name: "Split Moong Dal" }, { name: "Superior MP Atta" }], days: 7 });
+  assert.deepEqual(examples, ["swap the moong dal", "no atta", "cheaper", "10 days"], "peanut butter would read as a peanut avoid, so it is not offered");
+  const plan = { members: [{ id: "me", label: "Me", targets: {}, avoidFlags: [], softAvoidFlags: [] }], days: 7, budget: null, excludedSkus: [], cost: 1000 };
+  const dal = applyFollowUp(plan, readFollowUp(examples[0]), [{ skuId: "dal", name: "Split Moong Dal" }]);
+  assert.deepEqual(dal.excludedSkus, ["dal"]);
+});
 
 const member = (label, targets = { protein: 60, kcal: 2000 }) => ({ id: label, label, targets, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] });
 const household = [member("Adult 1"), member("Adult 2"), member("Kid 1", { protein: 30, kcal: 1400 }), member("Kid 2", { protein: 30, kcal: 1400 })];
