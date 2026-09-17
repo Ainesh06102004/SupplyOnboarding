@@ -14,6 +14,7 @@
 
 import { NUTRIENTS } from "./model";
 import { FOODS_AVOID } from "@/lib/recommendation/config";
+import { FULL_LIST_EVIDENCE } from "@/lib/recommendation/verification";
 
 /** What a diet flag means, in words, when it is why someone cannot eat a product. */
 const DIET_FLAG_WORDS = Object.freeze({
@@ -37,6 +38,11 @@ export function refusalReason({ flag, rule }) {
  * why. A product one person cannot eat is still bought for the others, so a
  * shopper needs to see which is whose.
  *
+ * "May eat" is only as good as the label. Without a full ingredient list KOI
+ * can see an allergen that is listed, never that one is absent, so an allowed
+ * item carries `notVerifiedFor` — the person's allergens KOI could not check —
+ * the same caution the storefront shows ("Not verified for peanuts").
+ *
  * @param {object} input
  * @param {Array} input.members from memberFor()
  * @param {Array} input.catalogue rows with packAmount and packUnit
@@ -57,12 +63,16 @@ export function whoEatsWhat({ members = [], catalogue = [], basket = [], refusal
       }
       const item = bySku.get(String(line.skuId));
       const packs = Math.round((line.shares?.[m.id] ?? 0) * line.packs * 100) / 100;
+      const fullList = FULL_LIST_EVIDENCE.includes(item?.ingredientEvidence);
       allowed.push({
         skuId: line.skuId,
         name: line.name,
         packs,
         amount: item?.packAmount ? Math.round(packs * item.packAmount) : null,
         unit: item?.packUnit ?? null,
+        notVerifiedFor: fullList ? [] : [...new Set((m.avoidFlags ?? [])
+          .map((flag) => FOODS_AVOID.find((a) => a.flag === flag && a.kind === "allergen")?.label?.toLowerCase())
+          .filter(Boolean))],
       });
     }
     allowed.sort((a, b) => b.packs - a.packs);

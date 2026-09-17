@@ -77,6 +77,7 @@ export function plannableFrom(products = []) {
       unplannable.push({ skuId, name: product.name ?? null, reason: "cannot_quantify_a_pack" });
       continue;
     }
+    const facts = extractFacts(product);
     catalogue.push({
       skuId,
       name: product.name ?? null,
@@ -84,7 +85,10 @@ export function plannableFrom(products = []) {
       // The latest KOI score, for the quality tiebreak (model.js). null when unscored.
       score: isNum(product.score) ? Number(product.score) : null,
       // The flags the graph found: allergens, diet flags, additive filters.
-      contains: [...extractFacts(product).contains],
+      contains: [...facts.contains],
+      // How much KOI knows about what is in it (productFacts.js). Only a full
+      // list can show an allergen is absent; anything less proves presence only.
+      ingredientEvidence: facts.ingredientEvidence,
       availability: product.availability ?? "unknown",
       perPack: supplied.perPack,
       packSize: `${supplied.packSize.value} ${supplied.packSize.unit}`,

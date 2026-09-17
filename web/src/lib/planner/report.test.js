@@ -9,10 +9,10 @@ import assert from "node:assert/strict";
 import { planReport, basketDiff, materiallyShort, atPortionLimit, whoEatsWhat, refusalReason, TOLERANCE } from "@/lib/planner/report.js";
 
 test("each person sees what in the basket is theirs, and what is not for them and why", () => {
-  const members = [{ id: "me", label: "Me" }, { id: "wife", label: "Wife" }, { id: "kid", label: "Kid 1" }];
+  const members = [{ id: "me", label: "Me" }, { id: "wife", label: "Wife", avoidFlags: ["gluten"] }, { id: "kid", label: "Kid 1", avoidFlags: ["tree_nut"] }];
   const catalogue = [
-    { skuId: "atta", name: "Atta", packAmount: 1000, packUnit: "g" },
-    { skuId: "almonds", name: "Almonds", packAmount: 200, packUnit: "g" },
+    { skuId: "atta", name: "Atta", packAmount: 1000, packUnit: "g", ingredientEvidence: "machine_read" },
+    { skuId: "almonds", name: "Almonds", packAmount: 200, packUnit: "g", ingredientEvidence: "partial" },
   ];
   const basket = [
     { skuId: "atta", name: "Atta", packs: 2, shares: { me: 0.5, kid: 0.5 } },
@@ -26,6 +26,9 @@ test("each person sees what in the basket is theirs, and what is not for them an
   assert.deepEqual(me.allowed.map((a) => [a.name, a.packs, a.amount]), [["Atta", 1, 1000], ["Almonds", 0.6, 120]]);
   assert.deepEqual(me.notForThem, []);
   assert.deepEqual(wife.allowed.map((a) => a.name), ["Almonds"]);
+  assert.deepEqual(wife.allowed[0].notVerifiedFor, ["gluten"], "a partial list cannot show gluten is absent");
+  assert.deepEqual(kid.allowed.find((a) => a.name === "Atta").notVerifiedFor, [], "a full list can");
+  assert.deepEqual(me.allowed[0].notVerifiedFor, [], "nothing to check for someone who avoids nothing");
   assert.deepEqual(wife.notForThem, [{ skuId: "atta", name: "Atta", because: "contains gluten" }]);
   assert.deepEqual(kid.notForThem, [{ skuId: "almonds", name: "Almonds", because: "contains tree nuts" }]);
   assert.equal(refusalReason({ flag: "root_veg", rule: "diet" }), "not in their diet: root vegetables");

@@ -683,14 +683,21 @@ export default function PlanPage() {
                       {planned.length === 0 && <p className="text-[#5A6B5A]">Nothing in this basket is planned for them.</p>}
                       <ul className="mt-1 space-y-0.5">
                         {planned.map((a) => (
-                          <li key={a.skuId} className="flex items-baseline justify-between gap-3">
-                            <span className="text-[#0E4032]">{a.name}</span>
-                            <span className="text-[#5A6B5A]">{shareOf(a)}</span>
+                          <li key={a.skuId}>
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="text-[#0E4032]">{a.name}</span>
+                              <span className="text-[#5A6B5A]">{shareOf(a)}</span>
+                            </div>
+                            {a.notVerifiedFor?.length > 0 && (
+                              <p className="text-[11px] text-[#8A6508]">Not verified for {a.notVerifiedFor.join(", ")}: check the pack</p>
+                            )}
                           </li>
                         ))}
                       </ul>
                       {alsoFine.length > 0 && (
-                        <p className="mt-1 text-[11.5px] text-[#5A6B5A]">Also fine for them: {alsoFine.map((a) => a.name).join(", ")}</p>
+                        <p className="mt-1 text-[11.5px] text-[#5A6B5A]">
+                          Also fine for them: {alsoFine.map((a) => (a.notVerifiedFor?.length ? `${a.name} (not verified for ${a.notVerifiedFor.join(", ")})` : a.name)).join(", ")}
+                        </p>
                       )}
                       {person.notForThem.length > 0 && (
                         <p className="mt-1 text-[11.5px] font-semibold text-[#B4453C]">
