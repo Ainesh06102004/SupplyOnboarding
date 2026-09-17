@@ -58,6 +58,8 @@ test("an allergen is an avoid, for the people named or everyone", () => {
 test("a target changes only at a number written, for the person named", () => {
   const r = apply("45 g protein for Kid 1");
   assert.equal(r.members.find((m) => m.label === "Kid 1").targets.protein, 45);
+  assert.deepEqual(r.householdChanges, [{ memberId: "Kid 1", label: "Kid 1", targets: { target_protein_g: 45 }, addAvoidKeys: [] }], "offered for saving, not saved");
+  assert.deepEqual(apply("cheaper").householdChanges, [], "a budget belongs to the plan, not a person");
   assert.equal(r.members.find((m) => m.label === "Kid 2").targets.protein, 30);
   const vague = apply("more protein for the kids");
   assert.ok(vague.members.every((m, i) => m.targets.protein === household[i].targets.protein), "no number, no change");

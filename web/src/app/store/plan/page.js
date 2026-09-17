@@ -23,10 +23,13 @@
 // ============================================================================
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Plus, Trash2, Loader2, ShoppingBasket, TriangleAlert } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 import { isTestSku } from "@/lib/data/testCatalogue";
+import { fetchAllProducts } from "@/lib/data/productFetcher";
+import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
 
 const HARD_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "hard");
@@ -132,6 +135,37 @@ export default function PlanPage() {
   // skuId -> { busy, result, error }: "what if I can't get this?"
   const [without, setWithout] = useState({});
 
+  // Phase 4.5: the basket into the storefront cart, whose checkout already hands
+  // off to Swiggy. The cart stores references and re-reads prices itself.
+  const [cartResult, setCartResult] = useState(null);
+
+  async function addPlanToCart() {
+    const planId = plan.planId;
+    setCartResult({ planId, busy: true });
+    try {
+      // Restore the saved cart first: adding before it loads would write an
+      // empty cart over it (see store/cartStore.js).
+      await hydrateCart();
+      const products = await fetchAllProducts();
+      const bySku = new Map(products.map((p) => [String(p.skuId), p]));
+      const { addToCart } = useCartStore.getState();
+      let packs = 0;
+      const missing = [];
+      for (const line of plan.report.basket) {
+        const product = bySku.get(String(line.skuId));
+        if (!product) {
+          missing.push(line.name ?? "a product");
+          continue;
+        }
+        for (let i = 0; i < line.packs; i++) addToCart(product);
+        packs += line.packs;
+      }
+      setCartResult({ planId, packs, products: plan.report.basket.length - missing.length, missing });
+    } catch (err) {
+      setCartResult({ planId, error: err?.message ?? "The basket could not be added to the cart." });
+    }
+  }
+
   async function seeWithout(skuId) {
     setWithout((w) => ({ ...w, [skuId]: { busy: true } }));
     try {
@@ -211,6 +245,38 @@ export default function PlanPage() {
       setConversation((turns) => [...turns, { text, changed: false, applied: [], notApplied: [err?.message ?? "Something went wrong."] }]);
     } finally {
       setFollowBusy(false);
+    }
+  }
+
+  // Phase 4.4: a follow-up that changes a person (a target, an avoid) changes
+  // this plan only. It reaches the saved household when the shopper says so.
+  async function saveToHousehold(turnIndex) {
+    const turn = conversation[turnIndex];
+    if (!turn?.householdChanges?.length) return;
+    const mark = (patch) => setConversation((turns) => turns.map((t, i) => (i === turnIndex ? { ...t, ...patch } : t)));
+    mark({ saving: true, saveError: null });
+    try {
+      const supabase = getSupabaseClient();
+      for (const change of turn.householdChanges) {
+        if (Object.keys(change.targets).length) {
+          const { error: updateError } = await supabase.from("household_member").update(change.targets).eq("id", change.memberId);
+          if (updateError) throw updateError;
+        }
+        if (change.addAvoidKeys.length) {
+          const { error: avoidError } = await supabase
+            .from("household_member_avoid")
+            .upsert(change.addAvoidKeys.map((avoid_key) => ({ member_id: change.memberId, avoid_key })), { onConflict: "member_id,avoid_key", ignoreDuplicates: true });
+          if (avoidError) throw avoidError;
+        }
+      }
+      // The form shows the saved household, so it follows what was saved.
+      setMembers((list) => list.map((m) => {
+        const change = turn.householdChanges.find((c) => c.memberId === m.memberId);
+        return change ? { ...m, ...change.targets, avoidKeys: [...new Set([...m.avoidKeys, ...change.addAvoidKeys])] } : m;
+      }));
+      mark({ saving: false, saved: true });
+    } catch (err) {
+      mark({ saving: false, saveError: err?.message ?? "It could not be saved." });
     }
   }
 
@@ -308,7 +374,8 @@ export default function PlanPage() {
       </p>
       {householdId && (
         <p className="mt-2 text-[11.5px] text-[#16A06E]">
-          This is your saved household. Changes are saved to it each time you plan.
+          This is your saved household. Changes are saved to it each time you plan.{" "}
+          <Link href="/store/profile/data" className="font-semibold underline">See or delete what KOI keeps</Link>
         </p>
       )}
 
@@ -459,6 +526,25 @@ export default function PlanPage() {
               {plan.report.withinBudget === false && " · over your budget"}
               {" · "}solved in {plan.solver.ms} ms by {plan.solver.name} {plan.solver.version}
             </p>
+            {plan.report.basket.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px]">
+                <button type="button" onClick={addPlanToCart} disabled={cartResult?.planId === plan.planId && (cartResult.busy || cartResult.packs > 0)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#0E4032] px-3 py-1.5 font-semibold text-[#0E4032] disabled:opacity-40">
+                  {cartResult?.planId === plan.planId && cartResult.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingBasket className="h-3.5 w-3.5" />}
+                  Add all to cart
+                </button>
+                {cartResult?.planId === plan.planId && cartResult.packs > 0 && (
+                  <span className="text-[#16A06E]">
+                    Added {cartResult.packs} packs of {cartResult.products} products. What was already in your cart stays.{" "}
+                    <Link href="/store/cart" className="font-semibold underline">Go to cart</Link>
+                  </span>
+                )}
+                {cartResult?.planId === plan.planId && cartResult.missing?.length > 0 && (
+                  <span className="text-[#8A6508]">Not in the store right now: {cartResult.missing.join(", ")}.</span>
+                )}
+                {cartResult?.planId === plan.planId && cartResult.error && <span className="text-[#B4453C]">{cartResult.error}</span>}
+              </div>
+            )}
             <ul className="mt-3 space-y-1.5">
               {plan.report.basket.map((line) => {
                 const w = without[line.skuId];
@@ -597,6 +683,17 @@ export default function PlanPage() {
                       </div>
                     )}
                     {turn.notApplied?.map((n) => <p key={n} className="text-[#8A6508]">{n}</p>)}
+                    {turn.changed && turn.householdChanges?.length > 0 && !turn.saved && (
+                      <p className="text-[#5A6B5A]">
+                        This changed the plan, not your saved household.{" "}
+                        <button type="button" onClick={() => saveToHousehold(i)} disabled={turn.saving}
+                                className="font-semibold text-[#16A06E] hover:underline disabled:opacity-40">
+                          {turn.saving ? "Saving…" : `Save it for ${turn.householdChanges.map((c) => c.label).join(", ")}`}
+                        </button>
+                      </p>
+                    )}
+                    {turn.saved && <p className="text-[#16A06E]">Saved to your household.</p>}
+                    {turn.saveError && <p className="text-[#B4453C]">{turn.saveError}</p>}
                   </li>
                 ))}
               </ol>

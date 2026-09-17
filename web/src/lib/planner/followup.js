@@ -270,11 +270,21 @@ const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
  * @param {object} plan { members, days, budget, excludedSkus, cost }
  * @param {object} reading from readFollowUp / mergeFollowUps
  * @param {Array} catalogue plannable rows (for leave-out words)
- * @returns {{ members, days, budget, excludedSkus, applied: string[], notApplied: string[] }}
+ * @returns {{ members, days, budget, excludedSkus, applied: string[], notApplied: string[], householdChanges: Array }}
+ *   `householdChanges` are the parts that describe a person rather than this
+ *   plan — a target, an avoid — keyed by the stored member id. They change the
+ *   plan only; the shopper is asked before any is saved (Phase 4.4).
  */
 export function applyFollowUp(plan, reading, catalogue) {
   const applied = [];
   const notApplied = [];
+  const changesByMember = new Map();
+  const noteChange = (m, patch) => {
+    const change = changesByMember.get(m.id) ?? { memberId: m.id, label: m.label, targets: {}, addAvoidKeys: [] };
+    if (patch.targets) Object.assign(change.targets, patch.targets);
+    if (patch.avoidKey && !change.addAvoidKeys.includes(patch.avoidKey)) change.addAvoidKeys.push(patch.avoidKey);
+    changesByMember.set(m.id, change);
+  };
   const members = plan.members.map((m) => ({ ...m, targets: { ...m.targets }, avoidFlags: [...(m.avoidFlags ?? [])], softAvoidFlags: [...(m.softAvoidFlags ?? [])] }));
   let { budget, days } = plan;
   const excluded = new Set(plan.excludedSkus ?? []);
@@ -318,6 +328,7 @@ export function applyFollowUp(plan, reading, catalogue) {
     for (const m of named) {
       const list = entry.mode === "hard" ? m.avoidFlags : m.softAvoidFlags;
       if (!list.includes(entry.flag)) list.push(entry.flag);
+      noteChange(m, { avoidKey: key });
     }
     applied.push(`${entry.label} avoided for ${named.length === members.length ? "everyone" : named.map((m) => m.label).join(", ")}${entry.mode === "hard" ? "" : " (noted as a preference)"}`);
   }
@@ -328,7 +339,10 @@ export function applyFollowUp(plan, reading, catalogue) {
       notApplied.push(`No one called "${t.who}" is in this plan`);
       continue;
     }
-    named.forEach((m) => { m.targets[t.nutrient] = t.perDay; });
+    named.forEach((m) => {
+      m.targets[t.nutrient] = t.perDay;
+      noteChange(m, { targets: { [t.nutrient === "protein" ? "target_protein_g" : "target_kcal"]: t.perDay } });
+    });
     applied.push(`${named.length === members.length ? "Everyone" : named.map((m) => m.label).join(", ")}: ${t.perDay} ${NUTRIENT_UNITS[t.nutrient]} a day`);
   }
 
@@ -345,5 +359,5 @@ export function applyFollowUp(plan, reading, catalogue) {
     notApplied.push("KOI could not find a change in that. Try \"cheaper\", \"no oats\", \"10 days\" or \"60 g protein for Kid 1\".");
   }
 
-  return { members, days, budget, excludedSkus: [...excluded], applied, notApplied };
+  return { members, days, budget, excludedSkus: [...excluded], applied, notApplied, householdChanges: [...changesByMember.values()] };
 }

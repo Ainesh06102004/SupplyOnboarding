@@ -441,6 +441,8 @@ export async function planFollowUp({ planId, text }) {
     follows: plan.id,
     applied: change.applied,
     notApplied: change.notApplied,
+    // Offered to the shopper to save to their household; never saved here.
+    householdChanges: change.householdChanges,
     basketChange: { added, changed, dropped, costBefore: Number(plan.achieved?.cost ?? 0) },
   };
 }
