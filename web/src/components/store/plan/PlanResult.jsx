@@ -47,6 +47,7 @@ const dayCount = (days) => `${days} ${Number(days) === 1 ? "day" : "days"}`;
 export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, cartResult }) {
   const [tab, setTab] = useState("targets");
   const report = plan.report;
+  const conflicts = plan.explanation?.conflicts ?? null;
   const met = report.unmet.length === 0;
   const notes = noteLines(plan);
 
@@ -78,6 +79,34 @@ export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, c
           </div>
         </div>
       </header>
+
+      {/* When a target is missed, the next thing a shopper needs is not the
+          shortfall again — it is which of their own asks to change (C7). */}
+      {conflicts && (conflicts.fixes.length > 0 || conflicts.safety) && (
+        <section className="rounded-3xl bg-[#B8860B]/[0.07] p-6 ring-1 ring-inset ring-[#B8860B]/20">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#8A6508]">
+            {conflicts.fixes.length > 0 ? "What would fix it" : "Why it is short"}
+          </p>
+          {conflicts.fixes.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {conflicts.fixes.map((fix) => (
+                <li key={fix.key} className="text-[13.5px] leading-snug text-[#0E4032]">
+                  {fix.says}
+                  <span className="text-[#8A6508]"> — every target met, at ₹{Number(fix.cost).toLocaleString("en-IN")}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {conflicts.safety && (
+            <p className="mt-2 text-[12.5px] leading-snug text-[#5A6B5A]">
+              {conflicts.safety.says}. KOI will not plan around that — it needs a wider shelf, not a smaller rule.
+            </p>
+          )}
+          <p className="mt-2 text-[11px] text-[#8A6508]/80">
+            Each one was checked by planning again without it.
+          </p>
+        </section>
+      )}
 
       {/* The basket: the thing the shopper came for. */}
       <section className={`${CARD} p-6`}>

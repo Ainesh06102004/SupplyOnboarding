@@ -26,6 +26,7 @@ import { solvePlan, solveWithLadder, NEVER_RELAXED } from "./solvePlan";
 import { planReport, basketDiff, materiallyShort, atPortionLimit, refusalReason } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
 import { applyFollowUp, productsNamed } from "./followup";
+import { findConflicts } from "./conflicts";
 import { readFollowUpWithModel } from "./followUpModel";
 
 export const PLAN_RULE_VERSION = "plan-v1";
@@ -249,6 +250,17 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
   }
   const { attempt, model, solution, report, held } = solved;
 
+  // Which of the shopper's own asks cannot all be had at once, and what one
+  // change would fix it (C7). Proved by re-solving without each ask, never
+  // guessed, and only worth the extra solves when something is actually short.
+  const conflicts = materiallyShort(report)
+    ? await findConflicts({
+      base,
+      solve: (relaxed) => solvePlan(relaxed),
+      stillShort: (r) => materiallyShort(r),
+    })
+    : null;
+
   const status = solution.usable ? "solved" : "infeasible";
   const explanation = {
     reached: attempt.step,
@@ -259,6 +271,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // The household ranked its targets above its budget, so KOI spent what it
     // took to meet them instead of reporting a shortfall (C2).
     budget_raised_for_targets: raisedForTargets,
+    // The asks that are in each other's way, and the smallest change that
+    // clears them (C7). Empty when nothing is short.
+    conflicts,
     solver_status: solution.status,
     // Every member's allergens, age safety and diet held at every step. Said
     // out loud because it is the one promise the ladder never trades.
