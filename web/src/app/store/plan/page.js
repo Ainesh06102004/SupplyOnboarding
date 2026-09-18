@@ -35,6 +35,8 @@ import { goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals
 import { readFollowUp } from "@/lib/planner/followup";
 import { profileFromRow, profileSummary, memberPayload, avoidsPayload, blankProfile, profilesNamedIn, profilesNamed, SEVERITIES } from "@/lib/household/profile";
 import PlanCopilot from "@/components/store/plan/PlanCopilot";
+import WeekBrief from "@/components/store/plan/WeekBrief";
+import PlanResult from "@/components/store/plan/PlanResult";
 
 /** The chat is kept in the shopper's own browser, per household, most recent last. */
 const CHAT_KEY = "koi_plan_chat_v1";
@@ -69,6 +71,11 @@ function categoriesFrom(products) {
   }
   return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
+
+/** What this person must never be given, short enough for one line. */
+const avoidWords = (profile) => (profile.avoids ?? [])
+  .map((a) => `${labelOf(FOODS_AVOID, a.key)} (${(SEVERITIES.find((x) => x.key === a.severity)?.label ?? a.severity).toLowerCase()})`)
+  .join(", ");
 
 /** Goals in words: "Lose weight, high protein", or null when there is no goal. */
 const goalWords = (profile) => {
@@ -137,6 +144,9 @@ export default function PlanPage() {
   // skuId -> { busy, result, error }: "what if I can't get this?"
   const [without, setWithout] = useState({});
   const [cartResult, setCartResult] = useState(null);
+  // Whose week is open. One at a time: a rail of open forms is the page this
+  // replaced.
+  const [openMember, setOpenMember] = useState(null);
 
   const load = useCallback(async () => {
     const { user, household, profiles: saved, last, error: loadError } = await readHousehold();
@@ -606,22 +616,22 @@ export default function PlanPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12 pb-28">
-      <h1 className="text-2xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Plan the week</h1>
-      <p className="mt-2 text-[13px] leading-relaxed text-[#5A6B5A]">
-        Everyone comes from their saved profile. Choose who is eating this week and what they feel like, and KOI plans
-        whole packs from its own screened catalogue: nobody is given something they avoid or something unsafe at their
-        age, nobody is planned more of one food than a realistic day&apos;s servings, and you are told what the plan
-        could not manage.
-      </p>
-      <p className="mt-2 text-[12px]">
-        <Link href="/store/household" className="font-semibold text-[#16A06E] hover:underline">Your household</Link>
-        <span className="text-[#5A6B5A]"> · </span>
-        <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">See or delete what KOI keeps</Link>
-        {keepOut.length > 0 && (
-          <span className="text-[#5A6B5A]"> · kept out of the house: {keepOut.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}</span>
-        )}
-      </p>
+    <main className="mx-auto max-w-6xl px-5 py-10 pb-28">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div>
+          <h1 className="text-[26px] font-bold leading-none tracking-tight text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Plan the week</h1>
+          <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[#5A6B5A]">
+            Whole packs from KOI&apos;s own screened shelf, for the people you pick — nothing anyone avoids, nothing
+            unsafe at their age, and a plain account of whatever it could not manage.
+          </p>
+        </div>
+        <p className="text-[11.5px] text-[#5A6B5A]">
+          <Link href="/store/household" className="font-semibold text-[#16A06E] hover:underline">Your household</Link>
+          <span> · </span>
+          <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">What KOI keeps</Link>
+          {keepOut.length > 0 && <span className="block">Kept out of the house: {keepOut.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}</span>}
+        </p>
+      </header>
       {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
 
       {profiles.length === 0 ? (
@@ -664,338 +674,52 @@ export default function PlanPage() {
           )}
         </section>
       ) : (
-        <section className="mt-8">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[15px] font-bold text-[#0E4032]">Who&apos;s eating this week</h2>
-            <Link href="/store/household" className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#16A06E] hover:underline">
-              <Pencil className="h-3.5 w-3.5" /> Edit profiles
-            </Link>
+        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
+          {/* The brief stays beside the plan, not above it. */}
+          <div className="lg:sticky lg:top-6">
+            <WeekBrief
+              profiles={profiles}
+              picked={picked}
+              onPicked={setPicked}
+              choiceFor={choiceFor}
+              setChoice={setChoice}
+              openMember={openMember}
+              onOpenMember={setOpenMember}
+              categories={categories}
+              dietTypes={DIET_TYPES}
+              labelOf={labelOf}
+              profileSummary={profileSummary}
+              avoidWords={avoidWords}
+              days={days}
+              onDays={setDays}
+              budget={budget}
+              onBudget={setBudget}
+              onPlan={() => makePlan().catch(() => {})}
+              busy={busy}
+              ready={ready}
+              chosenCount={chosen.length}
+            />
           </div>
-          <div className="mt-3 space-y-3">
-            {profiles.map((profile) => {
-              const on = picked.includes(profile.memberId);
-              const choice = choiceFor(profile.memberId);
-              return (
-                <div key={profile.memberId} className={`rounded-2xl border p-4 ${on ? "border-[#083D2D]/15" : "border-[#083D2D]/8 bg-[#083D2D]/[0.02]"}`}>
-                  <label className="flex items-start gap-3">
-                    <input type="checkbox" checked={on} className="mt-1"
-                           onChange={() => setPicked((list) => (on ? list.filter((id) => id !== profile.memberId) : [...list, profile.memberId]))} />
-                    <span>
-                      <span className="text-[14px] font-bold text-[#0E4032]">
-                        {profile.label}
-                        {profile.relation ? <span className="font-normal text-[#5A6B5A]"> · {profile.relation}</span> : null}
-                        {profile.is_account_holder && <span className="ml-2 rounded-full bg-[#16A06E]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[#16A06E]">You</span>}
-                      </span>
-                      <span className="mt-0.5 block text-[12px] text-[#5A6B5A]">{profileSummary(profile)}</span>
-                      {profile.avoids.length > 0 && (
-                        <span className="mt-0.5 block text-[12px] text-[#5A6B5A]">
-                          {profile.avoids.map((a) => `${labelOf(FOODS_AVOID, a.key)} (${(SEVERITIES.find((s) => s.key === a.severity)?.label ?? a.severity).toLowerCase()})`).join(", ")}
-                        </span>
-                      )}
-                    </span>
-                  </label>
 
-                  {on && (
-                    <div className="mt-3 space-y-3 border-t border-[#083D2D]/8 pt-3">
-                      <label className="block md:w-1/2">
-                        <span className="text-[12px] font-semibold text-[#0E4032]">Diet, this week only</span>
-                        <select value={choice.dietType ?? ""} onChange={(e) => setChoice(profile.memberId, { dietType: e.target.value || null })}
-                                className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]">
-                          <option value="">As on their profile ({labelOf(DIET_TYPES, profile.diet_type)})</option>
-                          {DIET_TYPES.map((d) => <option key={d.key} value={d.key}>{d.label} for this plan</option>)}
-                        </select>
-                      </label>
-
-                      {categories.length > 0 && (
-                        <>
-                          <div>
-                            <span className="text-[12px] font-semibold text-[#0E4032]">Feels like</span>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {categories.map((c) => (
-                                <button key={c.key} type="button" aria-pressed={choice.prefer.includes(c.key)}
-                                        onClick={() => toggleCategory(profile.memberId, "prefer", c.key)}
-                                        className={`rounded-full border px-2.5 py-1 text-[11.5px] ${choice.prefer.includes(c.key) ? "border-[#16A06E] bg-[#16A06E] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
-                                  {c.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-[12px] font-semibold text-[#0E4032]">Not this week</span>
-                            <div className="mt-1 flex flex-wrap gap-1.5">
-                              {categories.map((c) => (
-                                <button key={c.key} type="button" aria-pressed={choice.skip.includes(c.key)}
-                                        onClick={() => toggleCategory(profile.memberId, "skip", c.key)}
-                                        className={`rounded-full border px-2.5 py-1 text-[11.5px] ${choice.skip.includes(c.key) ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/10 bg-white text-[#5A6B5A]"}`}>
-                                  {c.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-[11px] text-[#5A6B5A]">
-                            What they feel like is a nudge between products that are otherwise close, never a reason to
-                            miss a target. What they skip is left out for them, and still bought for anyone else who
-                            wants it.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {profiles.length > 0 && (
-        <>
-          <section className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <label className="block">
-              <span className="text-[12px] font-semibold text-[#0E4032]">Days</span>
-              <input value={days} onChange={(e) => setDays(e.target.value)} inputMode="numeric"
-                     className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="text-[12px] font-semibold text-[#0E4032]">Budget (₹, optional)</span>
-              <input value={budget} onChange={(e) => setBudget(e.target.value)} inputMode="numeric" placeholder="No limit"
-                     className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-            </label>
-          </section>
-
-          <button type="button" onClick={() => makePlan().catch(() => {})} disabled={!ready || busy}
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-40">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBasket className="h-4 w-4" />}
-            {busy ? "Working it out…" : `Plan it for ${chosen.length || "nobody"}`}
-          </button>
-          {!ready && <p className="mt-2 text-[11.5px] text-[#5A6B5A]">Choose at least one person.</p>}
-        </>
-      )}
-
-      {plan && (
-        <section className="mt-10 space-y-6">
-          <div className="rounded-2xl border border-[#083D2D]/10 p-5">
-            <h2 className="text-lg font-bold text-[#0E4032]">
-              {plan.report.summary.products > 0 ? "The basket" : "No basket KOI can stand behind"}
-            </h2>
-            <p className="mt-1 text-[12px] text-[#5A6B5A]">
-              {plan.report.summary.packs} packs over {dayCount(plan.days)} · ₹{plan.report.cost}
-              {plan.report.withinBudget === false && " · over your budget"}
-              {" · "}solved in {plan.solver.ms} ms by {plan.solver.name} {plan.solver.version}
-            </p>
-            {plan.report.basket.length > 0 && (
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px]">
-                <button type="button" onClick={addPlanToCart} disabled={cartResult?.planId === plan.planId && (cartResult.busy || cartResult.packs > 0)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#0E4032] px-3 py-1.5 font-semibold text-[#0E4032] disabled:opacity-40">
-                  {cartResult?.planId === plan.planId && cartResult.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingBasket className="h-3.5 w-3.5" />}
-                  Add all to cart
-                </button>
-                {cartResult?.planId === plan.planId && cartResult.packs > 0 && (
-                  <span className="text-[#16A06E]">
-                    Added {cartResult.packs} packs of {cartResult.products} products. What was already in your cart stays.{" "}
-                    <Link href="/store/cart" className="font-semibold underline">Go to cart</Link>
-                  </span>
-                )}
-                {cartResult?.planId === plan.planId && cartResult.missing?.length > 0 && (
-                  <span className="text-[#8A6508]">Not in the store right now: {cartResult.missing.join(", ")}.</span>
-                )}
-                {cartResult?.planId === plan.planId && cartResult.error && <span className="text-[#B4453C]">{cartResult.error}</span>}
+          <div>
+            {plan ? (
+              <PlanResult plan={plan} without={without} onSeeWithout={seeWithout} onAddToCart={addPlanToCart} cartResult={cartResult} />
+            ) : (
+              <div className="rounded-3xl bg-white/50 p-8 ring-1 ring-inset ring-[#083D2D]/8">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#5A6B5A]">Nothing planned yet</p>
+                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-[#0E4032]">
+                  Pick who is eating, say how many days and what you want to spend, and KOI works out the whole packs to
+                  buy — then shows you what each person gets and anything it could not manage.
+                </p>
+                <ul className="mt-4 space-y-1.5 text-[12px] text-[#5A6B5A]">
+                  <li>Nothing anyone avoids, and nothing unsafe at their age.</li>
+                  <li>Nobody is planned more of one food than a day&apos;s servings.</li>
+                  <li>Ask KOI to change it in words once it is on screen.</li>
+                </ul>
               </div>
             )}
-            <ul className="mt-3 space-y-1.5">
-              {plan.report.basket.map((line) => {
-                const w = without[line.skuId];
-                const d = w?.result?.diff;
-                return (
-                  <li key={line.skuId} className="text-[13px]">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[#0E4032]">
-                        {line.packs} × {line.name} <span className="text-[#5A6B5A]">({line.packSize})</span>
-                        {isTestSku(line.skuId) && (
-                          <span className="ml-1.5 rounded-full border border-[#B8860B]/40 px-1.5 py-px text-[10px] font-semibold text-[#8A6508]"
-                                title="From the local Open Food Facts test catalogue; the price is an estimate">
-                            test
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-semibold text-[#0E4032]">₹{line.cost}</span>
-                    </div>
-                    {!w && (
-                      <button type="button" onClick={() => seeWithout(line.skuId)}
-                              className="text-[11.5px] font-semibold text-[#16A06E] hover:underline">
-                        Can&apos;t get this?
-                      </button>
-                    )}
-                    {w?.busy && <p className="text-[11.5px] text-[#5A6B5A]">Re-planning without it…</p>}
-                    {w?.error && <p className="text-[11.5px] text-[#B4453C]">{w.error}</p>}
-                    {d && (
-                      <div className="mt-1 rounded-lg bg-[#083D2D]/[0.04] px-3 py-2 text-[12px] text-[#5A6B5A]">
-                        {w.result.status !== "solved" && <p>No plan fits without it.</p>}
-                        {d.substitutes.map((s) => (
-                          <p key={s.skuId}><span className="font-semibold text-[#0E4032]">Instead: {s.packs} × {s.name}</span> — {s.why.join(" · ")}</p>
-                        ))}
-                        {d.added.map((s) => <p key={s.skuId}>Adds {s.packs} × {s.name}</p>)}
-                        {d.changed.map((c) => <p key={c.skuId}>{c.name}: {c.from} → {c.to} packs</p>)}
-                        {d.dropped.map((s) => <p key={s.skuId}>No longer needs {s.name}</p>)}
-                        <p>
-                          New total ₹{w.result.report.cost}
-                          {w.result.report.unmet.length > 0
-                            ? ` · short: ${w.result.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}`
-                            : " · every target still met"}
-                        </p>
-                        {w.result.budget_blocked && (
-                          <p>Meeting the targets without it would take about ₹{w.result.budget_blocked.cost} (₹{w.result.budget_blocked.extra} over budget).</p>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
           </div>
-
-          <div className="rounded-2xl border border-[#083D2D]/10 p-5">
-            <h2 className="text-lg font-bold text-[#0E4032]">Achieved against asked</h2>
-            <div className="mt-3 space-y-3">
-              {plan.report.perMember.map((m) => (
-                <div key={m.id} className="text-[12.5px]">
-                  <div className="font-bold text-[#0E4032]">{m.label}</div>
-                  {Object.keys(m.asked).length === 0 && <div className="text-[#5A6B5A]">No target set.</div>}
-                  {Object.entries(m.asked).map(([nutrient, asked]) => (
-                    <div key={nutrient} className="flex items-baseline justify-between gap-3">
-                      <span className="text-[#5A6B5A]">{nutrient}</span>
-                      <span className="text-[#0E4032]">
-                        {m.achieved[nutrient] ?? 0} of {asked}
-                        {m.shortfall[nutrient] ? ` · ${m.shortfall[nutrient]} short` : ""}
-                      </span>
-                    </div>
-                  ))}
-                  {m.carbsLimit && (
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[#5A6B5A]">carbs</span>
-                      <span className="text-[#0E4032]">{m.achieved.carbs ?? 0} of at most {m.carbsLimit}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {(plan.report.whoEatsWhat ?? []).length > 0 && (
-            <div className="rounded-2xl border border-[#083D2D]/10 p-5">
-              <h2 className="text-lg font-bold text-[#0E4032]">Who eats what</h2>
-              <p className="mt-1 text-[12px] text-[#5A6B5A]">
-                Each person&apos;s share of this basket over {dayCount(plan.days)}. Something one person cannot eat is still
-                bought for the others, so it is listed here as not for them.
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                {plan.report.whoEatsWhat.map((person) => {
-                  const planned = person.allowed.filter((a) => a.packs > 0);
-                  const alsoFine = person.allowed.filter((a) => !(a.packs > 0));
-                  return (
-                    <div key={person.member} className="rounded-xl bg-[#083D2D]/[0.03] p-3 text-[12.5px]">
-                      <p className="font-bold text-[#0E4032]">{person.label}</p>
-                      {planned.length === 0 && <p className="text-[#5A6B5A]">Nothing in this basket is planned for them.</p>}
-                      <ul className="mt-1 space-y-0.5">
-                        {planned.map((a) => (
-                          <li key={a.skuId}>
-                            <div className="flex items-baseline justify-between gap-3">
-                              <span className="text-[#0E4032]">{a.name}</span>
-                              <span className="text-[#5A6B5A]">{shareOf(a)}</span>
-                            </div>
-                            {a.notVerifiedFor?.length > 0 && (
-                              <p className="text-[11px] text-[#8A6508]">Not verified for {a.notVerifiedFor.join(", ")}: check the pack</p>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                      {alsoFine.length > 0 && (
-                        <p className="mt-1 text-[11.5px] text-[#5A6B5A]">
-                          Also fine for them: {alsoFine.map((a) => (a.notVerifiedFor?.length ? `${a.name} (not verified for ${a.notVerifiedFor.join(", ")})` : a.name)).join(", ")}
-                        </p>
-                      )}
-                      {person.notForThem.length > 0 && (
-                        <p className="mt-1 text-[11.5px] font-semibold text-[#B4453C]">
-                          Not for {person.label}: {person.notForThem.map((n) => `${n.name} (${n.because})`).join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-[#B8860B]/30 bg-[#B8860B]/[0.06] p-5">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-[#0E4032]">
-              <TriangleAlert className="h-4 w-4" style={{ color: "#B8860B" }} /> What this plan could not do
-            </h2>
-            <ul className="mt-2 space-y-1 text-[12.5px] text-[#5A6B5A]">
-              <li>Reached: {plan.explanation.reached.replace(/_/g, " ")}{plan.explanation.gave_up ? ` — gave up ${plan.explanation.gave_up}` : " — nothing was given up"}</li>
-              <li>Never relaxed: {plan.explanation.never_relaxed.join(" and ")}</li>
-              {plan.explanation.budget_raised_for_targets && (
-                <li>
-                  Spent ₹{Math.round(plan.explanation.budget_raised_for_targets.extra).toLocaleString("en-IN")} over the
-                  ₹{Number(plan.explanation.budget_raised_for_targets.from).toLocaleString("en-IN")} asked for, because this
-                  household put its targets above its budget
-                </li>
-              )}
-              {plan.explanation.priority_held && (
-                <li>
-                  Solved for {plan.explanation.priority_held.priority.replace(/_/g, " ")} first, then everything else within
-                  {" "}{Math.round(plan.explanation.priority_held.tolerance * 100)}% of it
-                </li>
-              )}
-              {(plan.explanation.carb_ceilings ?? []).map((c) => (
-                <li key={c.member}>
-                  {c.label} is on {c.pattern === "keto" ? "keto" : "low carb"}: at most {c.perDay} g of carbohydrate a day
-                  {c.undeclared > 0 && `, and ${c.undeclared} ${c.undeclared === 1 ? "product was" : "products were"} left out for them because their carbohydrate isn't declared`}
-                </li>
-              ))}
-              {(plan.explanation.skipped_this_week ?? []).map((s) => (
-                <li key={s.member}>{s.label} asked to skip {s.categories.map((key) => nodeInfo(key)?.subcategory ?? nodeInfo(key)?.label ?? key).join(", ")} this week</li>
-              ))}
-              {plan.explanation.products_refused.length > 0 && (
-                <li>{plan.explanation.products_refused.length} products left out because no one in the household can eat them</li>
-              )}
-              {(plan.explanation.products_kept_out ?? []).length > 0 && (
-                <li>
-                  Kept out of the house: {plan.explanation.products_kept_out.map((p) => `${p.name ?? "a product"} (${p.because})`).join(", ")}
-                </li>
-              )}
-              {plan.explanation.products_not_plannable.length > 0 && (
-                <li>{plan.explanation.products_not_plannable.length} products KOI cannot plan with yet (no price, or a pack it cannot measure)</li>
-              )}
-              {(plan.explanation.products_priced_out ?? []).length > 0 && (
-                <li>
-                  Left out because their nutrition costs far more than the rest of the catalogue:{" "}
-                  {plan.explanation.products_priced_out.map((p) => p.name ?? "a product").join(", ")}
-                </li>
-              )}
-              {(plan.explanation.products_too_big ?? []).length > 0 && (
-                <li>
-                  Packs too big to finish in {dayCount(plan.days)}:{" "}
-                  {plan.explanation.products_too_big.map((p) => p.name ?? "a product").join(", ")}
-                </li>
-              )}
-              {(plan.explanation.portion_limited ?? []).length > 0 && (
-                <li>
-                  Held to a day&apos;s portions: {plan.explanation.portion_limited.map(describeLimit).join("; ")}
-                </li>
-              )}
-              {plan.explanation.unmet.length > 0 && (
-                <li>Short: {plan.explanation.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}</li>
-              )}
-              {plan.explanation.budget_blocked && (
-                <li>
-                  Your budget is what stands in the way: meeting the targets would take about ₹{plan.explanation.budget_blocked.cost}
-                  {" "}(₹{plan.explanation.budget_blocked.extra} more)
-                  {plan.explanation.budget_blocked.unmet.length > 0 && ", and even then some targets stay short"}.
-                </li>
-              )}
-            </ul>
-          </div>
-        </section>
+        </div>
       )}
 
       {/* There from the first visit: with no profiles it sets the household up,
