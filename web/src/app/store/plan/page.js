@@ -406,6 +406,12 @@ export default function PlanPage() {
           `Planned ${dayCount(daysNow)}${budgetNow ? ` on ₹${budgetNow.toLocaleString("en-IN")}` : " with no budget"} for ${people.map((p) => p.label).join(", ")}.`,
           ...saidTargets,
           `${made.report.summary.packs} packs · ₹${made.report.cost}`,
+          // The household ranked its targets above its budget, so KOI spent
+          // what it took. Saying so is the whole point: money was spent that
+          // the shopper did not name.
+          ...(made.explanation?.budget_raised_for_targets
+            ? [`₹${Math.round(made.explanation.budget_raised_for_targets.extra).toLocaleString("en-IN")} over the ₹${Number(made.explanation.budget_raised_for_targets.from).toLocaleString("en-IN")} you said, because you asked KOI to hit the targets first. Say "stay in budget" on your household page to keep the ceiling instead.`]
+            : []),
           made.report.unmet.length
             ? `Short: ${made.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}`
             : "Every target met.",
@@ -927,6 +933,19 @@ export default function PlanPage() {
             <ul className="mt-2 space-y-1 text-[12.5px] text-[#5A6B5A]">
               <li>Reached: {plan.explanation.reached.replace(/_/g, " ")}{plan.explanation.gave_up ? ` — gave up ${plan.explanation.gave_up}` : " — nothing was given up"}</li>
               <li>Never relaxed: {plan.explanation.never_relaxed.join(" and ")}</li>
+              {plan.explanation.budget_raised_for_targets && (
+                <li>
+                  Spent ₹{Math.round(plan.explanation.budget_raised_for_targets.extra).toLocaleString("en-IN")} over the
+                  ₹{Number(plan.explanation.budget_raised_for_targets.from).toLocaleString("en-IN")} asked for, because this
+                  household put its targets above its budget
+                </li>
+              )}
+              {plan.explanation.priority_held && (
+                <li>
+                  Solved for {plan.explanation.priority_held.priority.replace(/_/g, " ")} first, then everything else within
+                  {" "}{Math.round(plan.explanation.priority_held.tolerance * 100)}% of it
+                </li>
+              )}
               {(plan.explanation.carb_ceilings ?? []).map((c) => (
                 <li key={c.member}>
                   {c.label} is on {c.pattern === "keto" ? "keto" : "low carb"}: at most {c.perDay} g of carbohydrate a day
