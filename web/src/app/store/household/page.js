@@ -472,25 +472,30 @@ export default function HouseholdPage() {
   const holder = members.find((m) => m.is_account_holder);
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12">
-      <h1 className="text-2xl font-bold text-[#0E4032]" style={HEADING}>Your household</h1>
-      <p className="mt-2 text-[13px] leading-relaxed text-[#5A6B5A]">
-        A profile for everyone you shop for: what they must never be given, their diet, their goal and their daily
-        targets. Plans read these and never change them. Only you can see them.
-      </p>
-      <p className="mt-2 text-[12px]">
-        <Link href="/store/plan" className="font-semibold text-[#16A06E] hover:underline">Plan the week</Link>
-        <span className="text-[#5A6B5A]"> · </span>
-        <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">See or delete what KOI keeps</Link>
-      </p>
+    <main className="mx-auto max-w-5xl px-5 py-10">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div>
+          <h1 className="text-[26px] font-bold leading-none tracking-tight text-[#0E4032]" style={HEADING}>Your household</h1>
+          <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[#5A6B5A]">
+            Everyone you shop for, and how you shop. Plans read this and never change it. Only you can see it.
+          </p>
+        </div>
+        <p className="text-[11.5px]">
+          <Link href="/store/plan" className="font-semibold text-[#16A06E] hover:underline">Plan the week</Link>
+          <span className="text-[#5A6B5A]"> · </span>
+          <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">What KOI keeps</Link>
+        </p>
+      </header>
       {state.error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{state.error}</p>}
 
-      <section className="mt-8 space-y-3">
+      <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,21rem)]">
+      <div className="min-w-0">
+      <section className="space-y-2.5">
         {members.map((m) => (editing?.memberId === m.memberId ? (
           <MemberEditor key={m.memberId} initial={editing} householdId={householdId} ensureHousehold={ensureHousehold} userId={state.user.id}
                         anotherHolder={Boolean(holder && holder.memberId !== m.memberId)} onCancel={() => setEditing(null)} onSaved={reload} />
         ) : (
-          <div key={m.memberId} className="rounded-2xl border border-[#083D2D]/10 p-4">
+          <div key={m.memberId} className="rounded-2xl bg-white/70 p-4 ring-1 ring-inset ring-[#083D2D]/8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[14px] font-bold text-[#0E4032]">
@@ -539,8 +544,11 @@ export default function HouseholdPage() {
         )}
       </section>
 
+      </div>
+
+      <div className="min-w-0 space-y-6 lg:sticky lg:top-6">
       {refusedAllergens.length > 0 && (
-        <section className="mt-8 rounded-2xl border border-[#B4453C]/20 bg-[#B4453C]/[0.03] p-4">
+        <section className="rounded-3xl bg-[#B4453C]/[0.04] p-5 ring-1 ring-inset ring-[#B4453C]/15">
           <p className="text-[12px] font-semibold text-[#0E4032]">Keep out of the house</p>
           <p className="mt-0.5 text-[11.5px] text-[#5A6B5A]">
             Normally a product one person can&apos;t eat is still bought for the others. For a serious allergy, switch it on
@@ -564,6 +572,8 @@ export default function HouseholdPage() {
         <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} busy={keepOutBusy}
                       onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
       )}
+      </div>
+      </div>
     </main>
   );
 }

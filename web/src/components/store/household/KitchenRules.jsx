@@ -18,7 +18,7 @@ import { Plus, X } from "lucide-react";
 
 const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5A6B5A]";
 const HINT = "mt-1 text-[11.5px] text-[#5A6B5A]";
-const CARD = "mt-8 rounded-2xl border border-[#083D2D]/10 bg-white p-4";
+const CARD = "rounded-3xl bg-white/70 p-5 ring-1 ring-inset ring-[#083D2D]/8";
 
 /**
  * What to protect first (00054, model.js PRIORITY), as answers rather than

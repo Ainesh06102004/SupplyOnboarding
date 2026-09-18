@@ -674,9 +674,9 @@ export default function PlanPage() {
           )}
         </section>
       ) : (
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
+        <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
           {/* The brief stays beside the plan, not above it. */}
-          <div className="lg:sticky lg:top-6">
+          <div className="min-w-0 lg:sticky lg:top-6">
             <WeekBrief
               profiles={profiles}
               picked={picked}
@@ -701,7 +701,7 @@ export default function PlanPage() {
             />
           </div>
 
-          <div>
+          <div className="min-w-0">
             {plan ? (
               <PlanResult plan={plan} without={without} onSeeWithout={seeWithout} onAddToCart={addPlanToCart} cartResult={cartResult} />
             ) : (
