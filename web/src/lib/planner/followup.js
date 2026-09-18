@@ -616,8 +616,10 @@ export function applyFollowUp(plan, reading, catalogue) {
     budget,
     excludedSkus: [...excluded],
     includedSkus: [...included],
-    applied,
-    notApplied,
+    // "no dairy" is milk and lactose, and the rules and the model can each
+    // find the same one: say each change once.
+    applied: [...new Set(applied)],
+    notApplied: [...new Set(notApplied)],
     householdChanges: [...changesByMember.values()],
   };
 }
