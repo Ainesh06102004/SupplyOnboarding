@@ -20,6 +20,8 @@ import { Loader2, MessageSquare, X, ArrowUp } from "lucide-react";
  * @param {object} props
  * @param {boolean} props.open
  * @param {(open: boolean) => void} props.onOpenChange
+ * @param {boolean} [props.hasPlan] false before anything is planned: the panel
+ *   says what to do rather than offering a change to nothing
  * @param {Array} props.conversation turns: { text, applied, notApplied, changed, basketChange, report, householdChanges, saving, saved, saveError }
  * @param {string} props.text the message being typed
  * @param {(text: string) => void} props.onText
@@ -28,7 +30,7 @@ import { Loader2, MessageSquare, X, ArrowUp } from "lucide-react";
  * @param {string[]} props.examples what this plan could be asked, from the plan itself
  * @param {(turnIndex: number) => void} props.onSaveToHousehold
  */
-export default function PlanCopilot({ open, onOpenChange, conversation = [], text, onText, onSend, busy, examples = [], onSaveToHousehold }) {
+export default function PlanCopilot({ open, onOpenChange, hasPlan = true, conversation = [], text, onText, onSend, busy, examples = [], onSaveToHousehold }) {
   const inputRef = useRef(null);
   const endRef = useRef(null);
 
@@ -49,11 +51,12 @@ export default function PlanCopilot({ open, onOpenChange, conversation = [], tex
 
   if (!open) {
     return (
-      // Above the mobile tab bar (StoreNavigation), beside the page on desktop.
+      // Above the mobile tab bar (StoreNavigation, z-[60]), beside the page on
+      // desktop — and over both, so it is never hidden behind a sticky header.
       <button type="button" onClick={() => onOpenChange(true)}
-              className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-[#0E4032] px-4 py-3 text-[13px] font-bold text-white shadow-lg md:bottom-4">
+              className="fixed bottom-24 right-4 z-[70] inline-flex items-center gap-2 rounded-full bg-[#0E4032] px-4 py-3 text-[13px] font-bold text-white shadow-[0_10px_30px_rgba(8,61,45,0.35)] md:bottom-4">
         <MessageSquare className="h-4 w-4" />
-        Change this plan
+        {hasPlan ? "Change this plan" : "Ask KOI"}
         {conversation.length > 0 && (
           <span className="rounded-full bg-white/20 px-1.5 text-[11px]">{conversation.length}</span>
         )}
@@ -63,7 +66,7 @@ export default function PlanCopilot({ open, onOpenChange, conversation = [], tex
 
   return (
     <section role="dialog" aria-label="Change this plan"
-             className="fixed inset-x-3 bottom-24 z-40 flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-[#083D2D]/15 bg-white shadow-xl md:inset-x-auto md:bottom-3 md:right-4 md:max-h-[76vh] md:w-[400px]">
+             className="fixed inset-x-3 bottom-24 z-[70] flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-[#083D2D]/15 bg-white shadow-[0_18px_50px_rgba(8,61,45,0.28)] md:inset-x-auto md:bottom-3 md:right-4 md:max-h-[76vh] md:w-[400px]">
       <header className="flex items-start justify-between gap-3 border-b border-[#083D2D]/10 px-4 py-3">
         <div>
           <p className="text-[13px] font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Change this plan</p>
@@ -75,7 +78,13 @@ export default function PlanCopilot({ open, onOpenChange, conversation = [], tex
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
-        {conversation.length === 0 && (
+        {!hasPlan && (
+          <p className="text-[12px] text-[#5A6B5A]">
+            Choose who is eating and press <span className="font-semibold text-[#0E4032]">Plan it</span>. Then ask for
+            changes here — cheaper, more protein, swap something out — and KOI plans again.
+          </p>
+        )}
+        {hasPlan && conversation.length === 0 && (
           <div className="space-y-2 text-[12px] text-[#5A6B5A]">
             <p>Ask for a change and KOI plans again. For example:</p>
             <ul className="space-y-1">
@@ -130,9 +139,10 @@ export default function PlanCopilot({ open, onOpenChange, conversation = [], tex
       <form className="flex items-center gap-2 border-t border-[#083D2D]/10 px-3 py-2.5"
             onSubmit={(e) => { e.preventDefault(); onSend(); }}>
         <input ref={inputRef} id="plan-followup" value={text} onChange={(e) => onText(e.target.value)} maxLength={200}
-               placeholder={examples[0] ?? "Say what to change"}
-               className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-        <button type="submit" disabled={!text.trim() || busy} aria-label="Send"
+               disabled={!hasPlan}
+               placeholder={hasPlan ? (examples[0] ?? "Say what to change") : "Plan something first"}
+               className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px] disabled:bg-[#083D2D]/[0.04]" />
+        <button type="submit" disabled={!hasPlan || !text.trim() || busy} aria-label="Send"
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0E4032] text-white disabled:opacity-40">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
         </button>

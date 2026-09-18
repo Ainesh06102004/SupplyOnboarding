@@ -756,10 +756,12 @@ export default function PlanPage() {
         </section>
       )}
 
-      {plan && (
-        <PlanCopilot open={copilotOpen} onOpenChange={setCopilotOpen} conversation={conversation}
+      {/* There from the moment there is a household to plan for, so nobody has
+          to finish a plan to discover it. */}
+      {profiles.length > 0 && (
+        <PlanCopilot open={copilotOpen} onOpenChange={setCopilotOpen} hasPlan={Boolean(plan)} conversation={conversation}
                      text={followText} onText={setFollowText} onSend={followUp} busy={followBusy}
-                     examples={followUpExamples({ basket: plan.report.basket, days: plan.days })}
+                     examples={plan ? followUpExamples({ basket: plan.report.basket, days: plan.days }) : []}
                      onSaveToHousehold={saveToHousehold} />
       )}
     </main>
