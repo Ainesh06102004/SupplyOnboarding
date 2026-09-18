@@ -348,6 +348,10 @@ function refusedBy(item, member) {
  * @param {number} [input.portionRelax] multiplies every portion ceiling (PORTION_RULE)
  * @param {number} [input.fairness] the weight on the worst-off member's shortfall (FAIRNESS); 0 turns it off
  * @param {string[]} [input.keepOutFlags] contains-flags no product may carry, for anyone (household.keep_out)
+ * @param {string[]} [input.includeSkus] products the shopper asked for: at least one
+ *   pack of each, when the plan can have it at all ("add oats", "swap the rice
+ *   for atta"). A product nobody in the household may eat cannot be included,
+ *   and `excluded` says so rather than the plan quietly ignoring the ask.
  * @returns {{ columns, rows, meta, excluded }}
  */
 export function buildPlanModel({
@@ -364,6 +368,7 @@ export function buildPlanModel({
   portionRelax = 1,
   fairness = FAIRNESS.weight,
   keepOutFlags = [],
+  includeSkus = [],
 }) {
   // A solution is read back from eats_<sku>_<member>, split at the last "_"
   // (lp.js). Real member ids are uuids; an id with "_" would be read as a
@@ -467,6 +472,14 @@ export function buildPlanModel({
     });
   }
 
+  // What the shopper asked for by name: at least one pack, where it can be had.
+  const wanted = new Set((includeSkus ?? []).map(String));
+  const included = [];
+  for (const skuId of wanted) {
+    if (eligible.some((item) => String(item.skuId) === skuId)) included.push(skuId);
+    else excluded.push({ skuId, reason: "asked_for_but_not_possible" });
+  }
+
   // Packs, and who eats them.
   for (const item of eligible) {
     const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price);
@@ -474,7 +487,8 @@ export function buildPlanModel({
     // No more whole packs than the household can eat between them.
     const canEat = Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0);
     const packUpper = members.length ? Math.min(maxPacksPerSku, Math.floor(canEat + 1e-9)) : maxPacksPerSku;
-    columns.push({ name: packsName(item.skuId), lower: 0, upper: packUpper, integer: true, cost: Math.round(packCost * 1e6) / 1e6 });
+    const askedFor = wanted.has(String(item.skuId)) && packUpper >= 1;
+    columns.push({ name: packsName(item.skuId), lower: askedFor ? 1 : 0, upper: packUpper, integer: true, cost: Math.round(packCost * 1e6) / 1e6 });
     const eaten = { name: `eaten_${item.skuId}`, lower: 0, upper: 0, coefficients: { [packsName(item.skuId)]: -1 } };
     for (const m of members) {
       if (!mayEat(item.skuId, m.id)) continue;
@@ -567,6 +581,8 @@ export function buildPlanModel({
       qualityTiebreak,
       spendTiebreak,
       removedByShopper: [...removed],
+      // Asked for by name, and in the program (the rest are in `excluded`).
+      includedByShopper: included,
       portionRule: PORTION_RULE.version,
       portionRelax,
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),

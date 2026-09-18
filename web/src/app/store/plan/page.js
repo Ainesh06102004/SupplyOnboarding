@@ -32,7 +32,8 @@ import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
 import { followUpExamples } from "@/lib/planner/followup";
 import { goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
-import { profileFromRow, profileSummary, memberPayload, avoidsPayload, blankProfile, SEVERITIES } from "@/lib/household/profile";
+import { readFollowUp } from "@/lib/planner/followup";
+import { profileFromRow, profileSummary, memberPayload, avoidsPayload, blankProfile, profilesNamedIn, profilesNamed, SEVERITIES } from "@/lib/household/profile";
 import PlanCopilot from "@/components/store/plan/PlanCopilot";
 
 /** The chat is kept in the shopper's own browser, per household, most recent last. */
@@ -95,7 +96,28 @@ async function readHousehold() {
   const profiles = [...(household?.household_member ?? [])]
     .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
     .map(profileFromRow);
-  return { user, household: household ?? null, profiles };
+
+  // What the last plan was asked for. "Replan with 75 g protein for my wife,
+  // rest all same params" means the days, the budget and the people from last
+  // time — so the form opens on them rather than on 7 days and no budget.
+  let last = null;
+  if (household?.id) {
+    const { data: plan } = await supabase
+      .from("plan")
+      .select("days, budget_rupees, constraints")
+      .eq("household_id", household.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (plan) {
+      last = {
+        days: plan.days,
+        budget: plan.budget_rupees === null ? "" : String(plan.budget_rupees),
+        memberIds: (plan.constraints?.members ?? []).map((m) => String(m.id)),
+      };
+    }
+  }
+  return { user, household: household ?? null, profiles, last };
 }
 
 export default function PlanPage() {
@@ -117,13 +139,17 @@ export default function PlanPage() {
   const [cartResult, setCartResult] = useState(null);
 
   const load = useCallback(async () => {
-    const { user, household, profiles: saved, error: loadError } = await readHousehold();
+    const { user, household, profiles: saved, last, error: loadError } = await readHousehold();
     setSession(user);
     if (loadError) setError(loadError);
     setHouseholdId(household?.id ?? null);
     setKeepOut(household?.keep_out ?? []);
     setProfiles(saved);
-    setPicked(saved.map((p) => p.memberId));
+    // The last plan's people, days and budget, so planning again keeps them.
+    const kept = (last?.memberIds ?? []).filter((id) => saved.some((p) => p.memberId === id));
+    setPicked(kept.length ? kept : saved.map((p) => p.memberId));
+    if (last?.days) setDays(last.days);
+    if (last?.budget !== undefined && last?.budget !== null) setBudget(last.budget);
     return saved;
   }, []);
 
@@ -157,7 +183,7 @@ export default function PlanPage() {
    * the copilot can read them out of a sentence and plan in the same breath,
    * before React has re-rendered the form.
    */
-  async function makePlan({ daysNow = Number(days), budgetNow = num(budget) } = {}) {
+  async function makePlan({ daysNow = Number(days), budgetNow = num(budget), memberIds = picked, targets = {} } = {}) {
     setBusy(true);
     setError(null);
     setPlan(null);
@@ -170,8 +196,8 @@ export default function PlanPage() {
           householdId,
           days: daysNow,
           budget: budgetNow,
-          memberIds: picked,
-          thisWeek: Object.fromEntries(picked.map((id) => [id, choiceFor(id)])),
+          memberIds,
+          thisWeek: Object.fromEntries(memberIds.map((id) => [id, { ...choiceFor(id), ...(targets[id] ? { targets: targets[id] } : {}) }])),
         }),
       });
       const body = await response.json();
@@ -314,29 +340,56 @@ export default function PlanPage() {
     }
   }
 
-  /** Profiles, no plan: read the days and the budget out of the message, then plan. */
+  /**
+   * Profiles, no plan on screen: read who it is for, the days, the budget and
+   * any target written as a number, plan, and then apply anything left that
+   * only a plan can answer (a product to add, leave out or swap).
+   */
   async function planFromChat(text) {
     setStage("reading");
     try {
       const draft = await draftHousehold(text);
-      const daysNow = draft.days ?? Number(days);
-      const budgetNow = draft.budget ?? num(budget);
-      if (draft.days) setDays(draft.days);
-      if (draft.budget) setBudget(String(draft.budget));
+      const asked = readFollowUp(text);
+      const daysNow = draft.days ?? asked.days ?? Number(days);
+      const budgetNow = draft.budget ?? (asked.budget.change === "set" ? asked.budget.rupees : null) ?? num(budget);
+      if (daysNow !== Number(days)) setDays(daysNow);
+      if (budgetNow !== num(budget)) setBudget(budgetNow === null ? "" : String(budgetNow));
+
+      // "for me and the wife only": the people the message names, if it names any.
+      const named = profilesNamedIn(text, profiles);
+      const planFor = named.length ? named.map((p) => p.memberId) : picked;
+      if (named.length) setPicked(planFor);
+
+      // "75 g protein for my wife": for this plan, not for her profile.
+      const targets = {};
+      for (const t of asked.targets) {
+        for (const profile of profilesNamed(t.who, profiles).filter((p) => planFor.includes(p.memberId))) {
+          targets[profile.memberId] = { ...(targets[profile.memberId] ?? {}), [t.nutrient]: t.perDay };
+        }
+      }
+
       setStage("planning");
-      const made = await makePlan({ daysNow, budgetNow });
+      const made = await makePlan({ daysNow, budgetNow, memberIds: planFor, targets });
+      const people = profiles.filter((p) => planFor.includes(p.memberId));
+      const saidTargets = Object.entries(targets).map(([id, t]) => {
+        const who = profiles.find((p) => p.memberId === id)?.label ?? "them";
+        return `${who}: ${[t.protein && `${t.protein} g protein`, t.kcal && `${t.kcal} kcal`].filter(Boolean).join(", ")} a day, this plan only`;
+      });
       say({
         kind: "ready",
         text,
         lines: [
-          `Planned ${dayCount(daysNow)}${budgetNow ? ` on ₹${budgetNow.toLocaleString("en-IN")}` : " with no budget"} for ${chosen.map((p) => p.label).join(", ")}.`,
+          `Planned ${dayCount(daysNow)}${budgetNow ? ` on ₹${budgetNow.toLocaleString("en-IN")}` : " with no budget"} for ${people.map((p) => p.label).join(", ")}.`,
+          ...saidTargets,
           `${made.report.summary.packs} packs · ₹${made.report.cost}`,
           made.report.unmet.length
             ? `Short: ${made.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}`
             : "Every target met.",
-          ...(draft.members.length ? ["People come from their saved profiles, so I planned for the ones ticked above."] : []),
         ],
       });
+      // Anything about the products themselves needs a plan to change, so it
+      // runs now that there is one.
+      if (asked.leaveOut.length || asked.include.length || asked.swaps.length) await followUp(text, made.planId);
     } catch (err) {
       say({ kind: "ready", text, lines: [err?.message ?? "That could not be planned."] });
     } finally {
@@ -344,15 +397,15 @@ export default function PlanPage() {
     }
   }
 
-  /** A plan on screen: change it. */
-  async function followUp(text) {
-    if (!plan?.planId) return;
+  /** A plan on screen: change it. `planId` is passed when a plan was just made. */
+  async function followUp(text, planId = plan?.planId) {
+    if (!planId) return;
     setStage("reading");
     try {
       const response = await fetch("/api/plan/followup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: plan.planId, text }),
+        body: JSON.stringify({ planId, text }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error ?? "The plan could not be changed.");

@@ -82,7 +82,15 @@ export async function POST(request) {
       .slice(0, MAX_CATEGORIES);
     const prefer = categories(choice.prefer);
     const skip = categories(choice.skip);
-    if (dietType || prefer.length || skip.length) thisWeek[memberId] = { dietType, prefer, skip };
+    // A target for this plan alone. Bounded here; the profile is untouched.
+    const targets = {};
+    const protein = Number(choice.targets?.protein);
+    const kcal = Number(choice.targets?.kcal);
+    if (Number.isFinite(protein) && protein > 0 && protein <= 400) targets.protein = protein;
+    if (Number.isFinite(kcal) && kcal > 0 && kcal <= 6000) targets.kcal = kcal;
+    if (dietType || prefer.length || skip.length || Object.keys(targets).length) {
+      thisWeek[memberId] = { dietType, prefer, skip, targets };
+    }
   }
 
   try {

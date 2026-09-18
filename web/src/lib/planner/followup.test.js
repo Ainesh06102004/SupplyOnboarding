@@ -8,6 +8,71 @@ import assert from "node:assert/strict";
 
 import { readFollowUp, groundFollowUp, mergeFollowUps, applyFollowUp, membersNamed, productsNamed, productWordFor, followUpExamples, CHEAPER_SHARE } from "@/lib/planner/followup.js";
 
+// ── What a live conversation got wrong, 18 September 2026 ───────────────────
+// A shopper asked, and the plan did the opposite or nothing:
+//   "can you add oats?"              → "Left out Oats"
+//   "can you add wheat to the plan?" → nothing applied
+//   "swap the rice for aata please"  → every rice left out, and "nothing is
+//                                      called aata" (Superior MP Atta is)
+//   "can you swap toor dal with oats"→ both left out
+// Each line below is one of those messages.
+const SHOP = [
+  { skuId: "atta", name: "Superior MP Atta", categoryKey: "staples.flours" },
+  { skuId: "rice", name: "Gorakhpur Kalanamak Rice", categoryKey: "staples.rice" },
+  { skuId: "brown", name: "Brown Rice", categoryKey: "staples.rice" },
+  { skuId: "oats", name: "Oats", categoryKey: "staples.breakfast_cereals" },
+  { skuId: "toor", name: "Unpolished Toor Dal", categoryKey: "staples.pulses" },
+  { skuId: "poha", name: "Poha (Thick)", categoryKey: "staples.rice" },
+];
+const PLAN = { members: [{ id: "me", label: "Me", targets: {}, avoidFlags: [], softAvoidFlags: [] }], days: 7, budget: null, excludedSkus: [], includedSkus: [], cost: 1800 };
+const applyText = (text, plan = PLAN) => applyFollowUp(plan, readFollowUp(text), SHOP);
+
+test("\"add oats\" adds oats — it does not leave them out", () => {
+  const r = applyText("can you add oats?");
+  assert.deepEqual(r.includedSkus, ["oats"]);
+  assert.deepEqual(r.excludedSkus, []);
+  assert.deepEqual(r.applied, ["Added Oats"]);
+});
+
+test("\"add wheat\" finds the atta: one food, many spellings", () => {
+  const wheat = applyText("can you add wheat to the plan?");
+  assert.deepEqual(wheat.includedSkus, ["atta"]);
+  // And asking for a food is never read as a restriction on the household.
+  assert.equal(wheat.applied.join(" ").includes("avoided"), false, wheat.applied.join(" "));
+  assert.deepEqual(wheat.householdChanges, []);
+  assert.deepEqual(applyText("add some aata").includedSkus, ["atta"]);
+  assert.deepEqual(productsNamed("aata", SHOP).map((p) => p.skuId), ["atta"]);
+  assert.deepEqual(productsNamed("daal", SHOP).map((p) => p.skuId), ["toor"]);
+});
+
+test("a swap is one change: the rice goes out only because the atta comes in", () => {
+  const r = applyText("swap the rice for aata please");
+  assert.deepEqual(r.includedSkus, ["atta"]);
+  // The rices by name. Poha is flaked rice, but nobody calls it rice.
+  assert.deepEqual(r.excludedSkus.sort(), ["brown", "rice"]);
+  assert.match(r.applied.join(" "), /Superior MP Atta instead of/);
+});
+
+test("a swap KOI cannot complete changes nothing at all", () => {
+  const r = applyText("swap the rice for quinoa");
+  assert.deepEqual(r.excludedSkus, [], "the rice stays");
+  assert.deepEqual(r.includedSkus, []);
+  assert.deepEqual(r.notApplied, ['KOI has nothing called "quinoa" to swap in, so the rice stays']);
+});
+
+test("\"swap toor dal with oats\" takes out the dal and puts in the oats", () => {
+  const r = applyText("can you swap toor dal with oats");
+  assert.deepEqual(r.excludedSkus, ["toor"]);
+  assert.deepEqual(r.includedSkus, ["oats"]);
+  assert.equal(r.notApplied.length, 0);
+});
+
+test("a product asked for is never also left out", () => {
+  const r = applyText("no oats, actually add oats");
+  assert.deepEqual(r.includedSkus, ["oats"]);
+  assert.deepEqual(r.excludedSkus, []);
+});
+
 test("examples for changing a plan come from the plan, and each one would work", () => {
   const names = [
     "Gorakhpur Kalanamak Rice", "Split Moong Dal", "Superior MP Atta", "Natural Peanut Butter Crunch",

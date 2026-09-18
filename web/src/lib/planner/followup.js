@@ -46,7 +46,16 @@ const NO_BUDGET = /\b(no budget|any budget|forget (the )?budget|remove (the )?bu
 const MONEY_WORDS = /\b(budget|cost|money|price|spend|expensive|cheap|paisa|kharcha|rs)\b/;
 const DAY_NAMES = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekends?|weekdays?|today|tomorrow)\b/;
 const LEAVE_OUT = /\b(?:no|without|skip|remove|drop|swap|replace|swap out|instead of|don t want|do not want|dont want|not|less|stop|minus)\s+(?:the|any|all|more|those|these|that|this|my)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
+/** "add oats", "include besan", "with some atta", "more paneer please". */
+const ADD = /\b(?:add|include|buy|get|put in|throw in|more of|also)\s+(?:some|the|a|an|any|more|extra)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
+/** "swap the rice for atta", "replace oats with poha", "atta instead of rice". */
+const SWAP_FOR = /\b(?:swap|replace|change|switch)\s+(?:out\s+)?(?:the|my|some|any)?\s*([a-z]+(?:\s+[a-z]+){0,2}?)\s+(?:for|with|to|by)\s+(?:the|some|any)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
+const SWAP_INSTEAD = /\b([a-z]+(?:\s+[a-z]+){0,2}?)\s+instead\s+of\s+(?:the|my|some|any)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
+/** The cue words that make a product word a removal, and the ones that make it an ask. */
+const REMOVE_CUE = /\b(no|without|skip|remove|drop|swap|replace|switch|instead|don t want|do not want|dont want|less|stop|minus|out)\b/;
+const ADD_CUE = /\b(add|include|buy|get|put in|throw in|also|more|with|want|extra)\b/;
 const STOP = new Set([
+  "to", "the", "my", "our", "your", "instead", "also", "add", "put", "some",
   "on", "for", "in", "at", "please", "and", "but", "it", "them", "anymore", "any", "more", "with", "from", "this", "week",
   "plan", "basket", "one", "ones", "budget", "money", "cost", "price", "protein", "kcal", "calories", "day", "days",
   "too", "so", "very", "much", "sure", "expensive", "costly", "cheap", "that", "so", "a", "an",
@@ -67,19 +76,66 @@ function followUpDays(text) {
   return null;
 }
 
-/** The product words after "no", "swap", "without"… in a sentence. */
-function leaveOutWords(text) {
+/** A product phrase, trimmed of the words that are not food. */
+function foodPhrase(words) {
+  const kept = [];
+  for (const w of String(words ?? "").split(" ")) {
+    if (STOP.has(w) || DAY_NAMES.test(w)) break;
+    kept.push(w);
+  }
+  return kept.join(" ").trim() || null;
+}
+
+/** Product words matched by a pattern, in order, without repeats. */
+function phrasesMatching(text, pattern, group = 1) {
   const words = [];
-  for (const m of text.matchAll(LEAVE_OUT)) {
-    const kept = [];
-    for (const w of m[1].split(" ")) {
-      if (STOP.has(w) || DAY_NAMES.test(w)) break;
-      kept.push(w);
-    }
-    const phrase = kept.join(" ");
-    if (phrase && !avoidKeysNamed(phrase).length) words.push(phrase);
+  for (const m of text.matchAll(pattern)) {
+    const phrase = foodPhrase(m[group]);
+    if (phrase) words.push(phrase);
   }
   return [...new Set(words)];
+}
+
+/**
+ * "Swap the rice for atta": what goes out and what comes in, as one change.
+ *
+ * A swap is read as a pair on purpose. Read as two separate words it becomes
+ * "leave out rice" plus an unusable word, and a live follow-up did exactly
+ * that: "swap the rice for aata" took every rice out of the basket and then
+ * said it had never heard of aata.
+ */
+export function swapsIn(text) {
+  const swaps = [];
+  for (const m of text.matchAll(SWAP_FOR)) {
+    const from = foodPhrase(m[1]);
+    const to = foodPhrase(m[2]);
+    if (from && to) swaps.push({ from, to });
+  }
+  for (const m of text.matchAll(SWAP_INSTEAD)) {
+    const to = foodPhrase(m[1]);
+    const from = foodPhrase(m[2]);
+    if (from && to) swaps.push({ from, to });
+  }
+  return swaps;
+}
+
+/**
+ * The product words the sentence asks to leave out, and the ones it asks for.
+ * A word inside a swap belongs to the swap, not to either list.
+ */
+function productWords(text) {
+  const swaps = swapsIn(text);
+  const inSwap = new Set(swaps.flatMap((s) => [s.from, s.to]));
+  // An asked-for word is a product even when it names an allergen family:
+  // "add wheat" wants the atta, and reading it as "avoid gluten" is how a
+  // request for a food became a restriction on the household.
+  const include = phrasesMatching(text, ADD).filter((w) => !inSwap.has(w));
+  // Where a sentence both refuses and asks for the same food ("no oats,
+  // actually add oats"), the ask is what the shopper settled on. A word that
+  // names an allergen is left to the avoid reading below.
+  const leaveOut = phrasesMatching(text, LEAVE_OUT)
+    .filter((w) => !inSwap.has(w) && !include.includes(w) && !avoidKeysNamed(w).length);
+  return { swaps, leaveOut, include };
 }
 
 /** Daily targets written as numbers, and who they are for, if anyone is named in the clause. */
@@ -108,14 +164,17 @@ export function readFollowUp(input) {
     : CHEAPER.test(text) ? { change: "cheaper", rupees: null }
     : { change: "none", rupees: null };
   // Avoids are read with the product words taken out, so "no paneer" leaves out paneer and nothing else.
-  const leaveOut = leaveOutWords(text);
-  const avoidText = leaveOut.reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text);
+  const { swaps, leaveOut, include } = productWords(text);
+  const avoidText = [...leaveOut, ...include, ...swaps.flatMap((s) => [s.from, s.to])]
+    .reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text);
   const reading = interpret(avoidText);
   const who = text.match(WHO)?.[1] ?? null;
   return {
     budget,
     days: followUpDays(text),
     leaveOut,
+    include,
+    swaps,
     avoid: reading.profile.foodsAvoid.map((key) => ({ key, who })),
     targets: targetsIn(text),
     dayNames: DAY_NAMES.test(text),
@@ -135,6 +194,8 @@ export const FOLLOWUP_JSON_SCHEMA = Object.freeze(strictObject({
   }),
   days: { type: ["integer", "null"] },
   leaveOut: { type: "array", items: { type: "string" } },
+  include: { type: "array", items: { type: "string" } },
+  swaps: { type: "array", items: strictObject({ from: { type: "string" }, to: { type: "string" } }) },
   avoid: { type: "array", items: strictObject({ key: { type: "string", enum: [...AVOID_KEYS] }, who: { type: ["string", "null"] } }) },
   targets: { type: "array", items: strictObject({ who: { type: ["string", "null"] }, nutrient: { type: "string", enum: Object.keys(NUTRIENT_UNITS) }, perDay: { type: "number" } }) },
   unresolved: { type: "array", items: { type: "string" } },
@@ -146,7 +207,9 @@ export const FOLLOWUP_INSTRUCTIONS = [
   "Rules:",
   "- budget.change: \"set\" with rupees only if the message writes a number for the budget; \"cheaper\" if they want it to cost less without a number; \"remove\" if they say the budget does not matter; otherwise \"none\".",
   "- days: the number of days to plan for, only if the message says so (a week is 7, a fortnight 14). Otherwise null.",
-  "- leaveOut: products to leave out or swap out, as the product words copied exactly from the message (\"oats\", \"paneer\"). Not allergens: those go in avoid.",
+  "- leaveOut: products the message asks to take OUT, as the product words copied exactly from it (\"no oats\" → \"oats\"). Never a product the message asks for. Not allergens: those go in avoid.",
+  "- include: products the message asks to put IN, copied exactly (\"add oats\" → \"oats\", \"can you add wheat\" → \"wheat\").",
+  "- swaps: a product to take out paired with the one to put in its place (\"swap the rice for atta\" → from \"rice\", to \"atta\"). Both words copied exactly. A swap goes here, not in leaveOut or include.",
   `- avoid: what someone must not eat, using these keys only: ${AVOID_KEYS.join(", ")}. who is the person's words copied exactly from the message (\"Kid 1\", \"the kids\", \"me\"), or null for everyone.`,
   "- targets: a daily protein (grams) or energy (kcal) target, only at a number written in the message. who as above.",
   "- Never invent a number. Anything you cannot express goes in unresolved, copied word for word.",
@@ -156,6 +219,8 @@ const ModelFollowUpSchema = z.object({
   budget: z.object({ change: z.enum(["none", "set", "cheaper", "remove"]), rupees: z.number().positive().max(1000000).nullable() }),
   days: z.number().int().min(1).max(MAX_DAYS).nullable(),
   leaveOut: z.array(z.string().max(40)).max(8),
+  include: z.array(z.string().max(40)).max(8).default([]),
+  swaps: z.array(z.object({ from: z.string().max(40), to: z.string().max(40) })).max(4).default([]),
   avoid: z.array(z.object({ key: z.enum([...AVOID_KEYS]), who: z.string().max(40).nullable() })).max(8),
   targets: z.array(z.object({ who: z.string().max(40).nullable(), nutrient: z.enum(["protein", "kcal"]), perDay: z.number().positive() })).max(8),
   unresolved: z.array(z.string().max(60)).max(8),
@@ -182,10 +247,27 @@ export function groundFollowUp(raw, input) {
   if (budget.change === "remove" && !MONEY_WORDS.test(text)) budget = { change: "none", rupees: null };
   if (budget.change !== "set") budget = { ...budget, rupees: null };
 
+  // What the sentence does with a product word, not just whether it said it. A
+  // model once read "can you add oats?" as leaveOut: ["oats"], and the plan
+  // took the oats out — grounded on the word alone, the verb went unchecked.
+  const clauseAround = (words) => {
+    const at = text.indexOf(` ${normalise(words)} `);
+    return at === -1 ? "" : text.slice(Math.max(0, at - 40), at + normalise(words).length + 2);
+  };
+  const asksToRemove = (words) => said(words) && REMOVE_CUE.test(clauseAround(words)) && !ADD_CUE.test(clauseAround(words).replace(REMOVE_CUE, " "));
+  const asksFor = (words) => said(words) && ADD_CUE.test(clauseAround(words)) && !REMOVE_CUE.test(clauseAround(words));
+  const swapsSaid = swapsIn(text);
+  const swapPair = (from, to) => swapsSaid.some((s) => s.from === normalise(from) && s.to === normalise(to));
+
   return {
     budget,
     days: r.days !== null && r.days === weekDays ? r.days : null,
-    leaveOut: r.leaveOut.map((w) => normalise(w)).filter((w) => said(w) && !avoidKeysNamed(w).length),
+    leaveOut: r.leaveOut.map((w) => normalise(w)).filter((w) => asksToRemove(w) && !avoidKeysNamed(w).length),
+    include: (r.include ?? []).map((w) => normalise(w)).filter((w) => asksFor(w)),
+    // A swap is kept only when the sentence itself pairs those two words.
+    swaps: (r.swaps ?? [])
+      .map((s) => ({ from: normalise(s.from), to: normalise(s.to) }))
+      .filter((s) => swapPair(s.from, s.to)),
     // An avoid only where the message names it: a model reading "no paneer" as "avoid milk" is not kept.
     avoid: r.avoid.filter((a) => avoidKeysNamed(input).includes(a.key)).map((a) => ({ key: a.key, who: who(a.who) })),
     targets: r.targets.filter((t) => stated.has(t.perDay)).map((t) => ({ ...t, who: who(t.who) })),
@@ -205,6 +287,8 @@ export function mergeFollowUps(local, model) {
     budget: model.budget.change !== "none" ? model.budget : local.budget,
     days: model.days ?? local.days,
     leaveOut: [...new Set([...local.leaveOut, ...model.leaveOut])],
+    include: [...new Set([...(local.include ?? []), ...(model.include ?? [])])],
+    swaps: [...new Map([...(local.swaps ?? []), ...(model.swaps ?? [])].map((s) => [`${s.from}>${s.to}`, s])).values()],
     avoid: byKey([...local.avoid.filter((a) => a.who || !namedByModel.has(a.key)), ...model.avoid]),
     targets: model.targets.length ? model.targets : local.targets,
     dayNames: local.dayNames || model.dayNames,
@@ -229,14 +313,79 @@ export function membersNamed(words, members) {
   return members.filter((m) => normalise(m.label).includes(w));
 }
 
-/** Catalogue rows whose name carries the word (or its singular or plural). */
+/**
+ * How Indian shoppers spell the same food. A live follow-up asked to swap the
+ * rice "for aata" and KOI answered that it had never heard of aata, while
+ * Superior MP Atta sat in the catalogue.
+ */
+const SPELLINGS = Object.freeze({
+  atta: ["aata", "ata", "aatta", "wheat", "wheat flour", "whole wheat", "chakki"],
+  besan: ["gram flour", "chickpea flour"],
+  maida: ["refined flour", "plain flour", "all purpose flour"],
+  dal: ["daal", "dhal", "lentil", "lentils", "pulse", "pulses"],
+  chana: ["channa", "chickpea", "chickpeas", "chole"],
+  moong: ["mung", "green gram"],
+  toor: ["tur", "arhar", "pigeon pea"],
+  poha: ["flaked rice", "beaten rice", "chivda"],
+  rice: ["chawal", "chaval"],
+  oats: ["oat", "oatmeal"],
+  peanut: ["groundnut", "moongphali", "mungfali"],
+  namkeen: ["mixture", "bhujia", "sev", "farsan"],
+  chikki: ["gachak", "gajak"],
+  muesli: ["granola"],
+  ghee: ["clarified butter"],
+  jaggery: ["gud", "gur"],
+  haldi: ["turmeric"],
+  jeera: ["cumin"],
+  masala: ["spice mix", "spice"],
+});
+
+/** Every word that could mean the same food as this one. */
+function spellings(word) {
+  const w = normalise(word);
+  const forms = new Set([w, w.replace(/e?s$/, ""), `${w}s`]);
+  for (const [head, others] of Object.entries(SPELLINGS)) {
+    const family = [head, ...others];
+    if (family.some((f) => f === w || w === `${f}s` || f === `${w}s`)) family.forEach((f) => forms.add(f));
+  }
+  return [...forms].filter((f) => f.length >= 3);
+}
+
+/** One letter out: "aatta" for "atta", "bisuits" for "biscuits". */
+function almost(a, b) {
+  if (Math.abs(a.length - b.length) > 1 || a.length < 5) return false;
+  let i = 0;
+  let j = 0;
+  let slips = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++slips > 1) return false;
+    if (a.length > b.length) i++;
+    else if (a.length < b.length) j++;
+    else { i++; j++; }
+  }
+  return slips + (a.length - i) + (b.length - j) <= 1;
+}
+
+/**
+ * Catalogue rows a shopper's word means: by name first (its spellings, its
+ * singular and plural, and one letter out), and only if nothing is named, by
+ * the category it belongs to — so "rice" finds the rices when no product is
+ * called rice.
+ */
 export function productsNamed(word, catalogue) {
   const w = normalise(word);
   if (w.length < 3) return [];
-  const forms = new Set([w, w.replace(/e?s$/, ""), `${w}s`]);
+  const forms = spellings(w);
+  const named = catalogue.filter((item) => {
+    const tokens = normalise(item.name).split(/[^a-z0-9]+/).filter(Boolean);
+    const name = ` ${tokens.join(" ")} `;
+    return forms.some((f) => name.includes(` ${f} `) || (f.includes(" ") && name.includes(f)) || tokens.some((t) => almost(t, f)));
+  });
+  if (named.length) return named;
   return catalogue.filter((item) => {
-    const name = ` ${normalise(item.name)} `;
-    return [...forms].some((f) => f.length >= 3 && name.includes(` ${f} `));
+    const key = normalise(String(item.categoryKey ?? "")).replace(/[._]/g, " ");
+    return forms.some((f) => ` ${key} `.includes(` ${f} `));
   });
 }
 
@@ -313,6 +462,7 @@ export function applyFollowUp(plan, reading, catalogue) {
   const members = plan.members.map((m) => ({ ...m, targets: { ...m.targets }, avoidFlags: [...(m.avoidFlags ?? [])], softAvoidFlags: [...(m.softAvoidFlags ?? [])] }));
   let { budget, days } = plan;
   const excluded = new Set(plan.excludedSkus ?? []);
+  const included = new Set(plan.includedSkus ?? []);
 
   if (reading.budget.change === "set") {
     budget = reading.budget.rupees;
@@ -333,6 +483,23 @@ export function applyFollowUp(plan, reading, catalogue) {
     applied.push(`${days} ${days === 1 ? "day" : "days"}`);
   }
 
+  // A swap is one change: nothing goes out unless something can come in.
+  for (const swap of reading.swaps ?? []) {
+    const out = productsNamed(swap.from, catalogue);
+    const inTo = productsNamed(swap.to, catalogue).filter((item) => !out.some((o) => o.skuId === item.skuId));
+    if (!out.length) {
+      notApplied.push(`Nothing in this plan is called "${swap.from}"`);
+      continue;
+    }
+    if (!inTo.length) {
+      notApplied.push(`KOI has nothing called "${swap.to}" to swap in, so the ${swap.from} stays`);
+      continue;
+    }
+    out.forEach((h) => excluded.add(h.skuId));
+    inTo.slice(0, 1).forEach((h) => included.add(h.skuId));
+    applied.push(`${inTo[0].name} instead of ${out.map((h) => h.name).join(", ")}`);
+  }
+
   for (const word of reading.leaveOut) {
     const hits = productsNamed(word, catalogue);
     if (!hits.length) {
@@ -341,6 +508,17 @@ export function applyFollowUp(plan, reading, catalogue) {
     }
     hits.forEach((h) => excluded.add(h.skuId));
     applied.push(`Left out ${hits.map((h) => h.name).join(", ")}`);
+  }
+
+  for (const word of reading.include ?? []) {
+    const hits = productsNamed(word, catalogue).filter((item) => !excluded.has(item.skuId));
+    if (!hits.length) {
+      notApplied.push(`KOI has nothing called "${word}" to add`);
+      continue;
+    }
+    // One product, not every match: "add oats" is a pack of oats, not the shelf.
+    included.add(hits[0].skuId);
+    applied.push(`Added ${hits[0].name}`);
   }
 
   for (const { key, who } of reading.avoid) {
@@ -384,5 +562,18 @@ export function applyFollowUp(plan, reading, catalogue) {
     notApplied.push("KOI could not find a change in that. Try \"cheaper\", \"no oats\", \"10 days\" or \"60 g protein for Kid 1\".");
   }
 
-  return { members, days, budget, excludedSkus: [...excluded], applied, notApplied, householdChanges: [...changesByMember.values()] };
+  // What is asked for cannot also be left out: the later word wins, and the
+  // plan never carries an instruction that contradicts itself.
+  for (const skuId of included) excluded.delete(skuId);
+
+  return {
+    members,
+    days,
+    budget,
+    excludedSkus: [...excluded],
+    includedSkus: [...included],
+    applied,
+    notApplied,
+    householdChanges: [...changesByMember.values()],
+  };
 }

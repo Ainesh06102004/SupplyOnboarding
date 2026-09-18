@@ -118,8 +118,13 @@ export async function planForHousehold({
   // this plan, what they feel like eating, and what to leave out for them.
   const members = memberRows.map((row) => {
     const choices = thisWeek?.[String(row.id)] ?? {};
+    const targets = choices.targets ?? {};
     return memberFor({
       ...row,
+      // A target asked for in one plan ("75 g protein for my wife") stands for
+      // that plan; their profile keeps what it had.
+      ...(Number(targets.protein) > 0 ? { target_protein_g: Number(targets.protein) } : {}),
+      ...(Number(targets.kcal) > 0 ? { target_kcal: Number(targets.kcal) } : {}),
       avoids: avoidsByMember.get(row.id) ?? [],
       dietForThisPlan: choices.dietType ?? null,
       preferCategories: choices.prefer ?? [],
@@ -170,8 +175,8 @@ function membersFromSnapshot(snapshot) {
  * @param {string[]} [input.keepOutFlags] contains-flags kept out of the house
  * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
  */
-async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], keepOutFlags = [], extra = {} }) {
-  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, keepOutFlags };
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepOutFlags = [], extra = {} }) {
+  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepOutFlags };
   const { attempt, model, solution, report } = await solvePlan(base);
 
   const status = solution.usable ? "solved" : "infeasible";
@@ -230,6 +235,8 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
           carbs_max: m.carbsMax ?? null,
           // What this plan was asked for, beyond the profile.
           diet_for_this_plan: m.dietType ?? null,
+          // The targets this plan was solved against, whatever the profile says.
+          targets_for_this_plan: m.targets,
           prefer_categories: m.preferCategories ?? [],
           skip_categories: m.skipCategories ?? [],
           appetite: m.appetite ?? null,
@@ -252,6 +259,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         catalogue_size: catalogue.length,
         // Carried into every follow-up, so "swap the oats" stays swapped.
         excluded_skus: [...new Set(excludeSkus.map(String))],
+        // Products the shopper asked for by name: at least one pack each,
+        // carried into every follow-up so "add oats" stays added.
+        included_skus: [...new Set(includeSkus.map(String))],
         keep_out_flags: [...new Set(keepOutFlags)],
         // For a follow-up: the plan it changed and KOI's words for the change.
         // The shopper's own message is not stored.
@@ -345,6 +355,7 @@ export async function planWithout({ planId, skuId }) {
     candidateLimit: CANDIDATE_LIMIT,
     // What earlier follow-ups left out stays out, and so does what the house keeps out.
     excludeSkus: [...(snapshot.excluded_skus ?? []), skuId],
+    includeSkus: (snapshot.included_skus ?? []).filter((id) => String(id) !== String(skuId)),
     keepOutFlags: snapshot.keep_out_flags ?? [],
   };
   const { attempt, model, solution } = await solveWithLadder(base);
@@ -426,6 +437,7 @@ export async function planFollowUp({ planId, text }) {
     days: plan.days,
     budget: plan.budget_rupees === null ? null : Number(plan.budget_rupees),
     excludedSkus: snapshot.excluded_skus ?? [],
+    includedSkus: snapshot.included_skus ?? [],
     cost: Number(plan.achieved?.cost ?? 0),
   }, reading, catalogue);
 
@@ -444,6 +456,7 @@ export async function planFollowUp({ planId, text }) {
     days: change.days,
     budget: change.budget,
     excludeSkus: change.excludedSkus,
+    includeSkus: change.includedSkus,
     keepOutFlags: snapshot.keep_out_flags ?? [],
     extra: { follows: plan.id, change: change.applied },
   });

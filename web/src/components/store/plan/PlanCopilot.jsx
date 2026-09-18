@@ -103,7 +103,8 @@ export default function PlanCopilot({
       <button type="button" onClick={() => onOpenChange(true)}
               className="fixed bottom-24 right-4 z-[70] inline-flex items-center gap-2 rounded-full bg-[#0E4032] px-4 py-3 text-[13px] font-bold text-white shadow-[0_10px_30px_rgba(8,61,45,0.35)] md:bottom-4">
         <MessageSquare className="h-4 w-4" />
-        {mode === "plan" ? "Change this plan" : "Ask KOI"}
+        {/* One name, whatever it will do next: two labels read as two chats. */}
+        Ask KOI
         {conversation.length > 0 && (
           <span className="rounded-full bg-white/20 px-1.5 text-[11px]">{conversation.length}</span>
         )}

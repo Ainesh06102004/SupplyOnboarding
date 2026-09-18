@@ -186,6 +186,68 @@ export function profileSummary(form) {
   ].filter(Boolean).join(" · ");
 }
 
+const words = (text) => ` ${String(text ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim()} `;
+
+/** What a shopper calls a person besides their label: "the wife", "my son". */
+const RELATION_WORDS = Object.freeze({
+  me: ["me", "myself", "i", "my own"],
+  wife: ["wife", "mrs"],
+  husband: ["husband"],
+  partner: ["partner", "spouse"],
+  son: ["son", "boy"],
+  daughter: ["daughter", "girl"],
+  kid: ["kid", "child"],
+  mother: ["mother", "mom", "mum", "ma"],
+  father: ["father", "dad", "papa"],
+});
+
+/** Does this profile answer to that word? Its label, its relation, or "me" for the account holder. */
+function profileAnswersTo(profile, word) {
+  const w = word.trim();
+  if (!w) return false;
+  if (words(profile.label).includes(` ${w} `)) return true;
+  if (profile.relation && words(profile.relation).includes(` ${w} `)) return true;
+  const family = Object.entries(RELATION_WORDS).find(([, names]) => names.includes(w));
+  if (!family) return false;
+  const [head, names] = family;
+  if (head === "me") return Boolean(profile.is_account_holder) || words(profile.label).includes(" me ");
+  return names.some((n) => words(profile.label).includes(` ${n} `) || (profile.relation && words(profile.relation).includes(` ${n} `)));
+}
+
+/**
+ * The people a sentence names — "plan 4 days for me and the wife only" is Me
+ * and Wife, not the whole household. Empty when it names nobody, which means
+ * whoever is ticked on the page.
+ *
+ * @param {string} text
+ * @param {Array} profiles
+ * @returns {Array} the profiles named, in the household's own order
+ */
+export function profilesNamedIn(text, profiles = []) {
+  const said = words(text);
+  return profiles.filter((profile) => {
+    const own = [profile.label, profile.relation].filter(Boolean).map((v) => words(v).trim());
+    if (own.some((name) => name && said.includes(` ${name} `))) return true;
+    return Object.entries(RELATION_WORDS).some(([, names]) => names.some((n) => said.includes(` ${n} `) && profileAnswersTo(profile, n)));
+  });
+}
+
+/**
+ * The people a "for …" clause refers to: a label, a relation, "me", or
+ * everyone when the words name no one in particular.
+ *
+ * @param {string|null} who
+ * @param {Array} profiles
+ * @returns {Array}
+ */
+export function profilesNamed(who, profiles = []) {
+  if (!who) return profiles;
+  const w = words(who).trim().replace(/^(the|my)\s+/, "");
+  if (!w || /^(everyone|everybody|all|us|the family|family)$/.test(w)) return profiles;
+  const named = profiles.filter((profile) => w.split(" ").some((part) => profileAnswersTo(profile, part)));
+  return named;
+}
+
 /** Goal setup's goals as a member's energy goal and pattern (00007 goal keys). */
 const GOAL_SETUP_GOALS = Object.freeze({
   fatloss: { energy_goal: "lose", eating_pattern: "high_protein" },
