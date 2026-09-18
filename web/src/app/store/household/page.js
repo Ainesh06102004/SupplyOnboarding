@@ -490,7 +490,7 @@ export default function HouseholdPage() {
 
       <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,21rem)]">
       <div className="min-w-0">
-      <section className="space-y-2.5">
+      <section className="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
         {members.map((m) => (editing?.memberId === m.memberId ? (
           <MemberEditor key={m.memberId} initial={editing} householdId={householdId} ensureHousehold={ensureHousehold} userId={state.user.id}
                         anotherHolder={Boolean(holder && holder.memberId !== m.memberId)} onCancel={() => setEditing(null)} onSaved={reload} />
@@ -544,6 +544,12 @@ export default function HouseholdPage() {
         )}
       </section>
 
+      {householdId && (
+        <div className="mt-6">
+          <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} busy={keepOutBusy}
+                        onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
+        </div>
+      )}
       </div>
 
       <div className="min-w-0 space-y-6 lg:sticky lg:top-6">
@@ -568,10 +574,6 @@ export default function HouseholdPage() {
         </section>
       )}
 
-      {householdId && (
-        <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} busy={keepOutBusy}
-                      onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
-      )}
       </div>
       </div>
     </main>

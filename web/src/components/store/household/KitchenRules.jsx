@@ -91,7 +91,7 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy, kno
     === String(b).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
   const unknown = known ? words.filter((w) => !known.some((k) => same(k, w.label ?? w))) : [];
   return (
-    <div className="mt-4">
+    <div>
       <span className={LABEL}>{label}</span>
       <p className={HINT}>{hint}</p>
       {words.length > 0 && (
@@ -168,7 +168,8 @@ export default function KitchenRules({ household, pantry = [], brands = [], onSa
         How you shop, rather than what anyone eats. Every plan from here on follows these; the plan on screen is left alone.
       </p>
 
-      <div className="mt-3">
+      <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2">
+      <div>
         <span className={LABEL}>What matters most</span>
         <Choices name="What matters most" options={PRIORITY_PRESETS} busy={busy}
                  value={presetFor(household.priorities)}
@@ -179,13 +180,13 @@ export default function KitchenRules({ household, pantry = [], brands = [], onSa
         </p>
       </div>
 
-      <div className="mt-4">
+      <div>
         <span className={LABEL}>Leftovers</span>
         <Choices name="Leftovers" options={WASTE_TOLERANCES} busy={busy}
                  value={household.waste_tolerance ?? "some"} onChange={(waste_tolerance) => save({ waste_tolerance })} />
       </div>
 
-      <div className="mt-4">
+      <div>
         <span className={LABEL}>Next week</span>
         <Choices name="Next week" options={REPEAT_TOLERANCES} busy={busy}
                  value={household.repeat_tolerance ?? "usual"} onChange={(repeat_tolerance) => save({ repeat_tolerance })} />
@@ -209,6 +210,7 @@ export default function KitchenRules({ household, pantry = [], brands = [], onSa
              placeholder="Rice, atta, oats…"
              onAdd={(label) => onAddPantry(label)}
              onRemove={(word) => onRemovePantry(word.row)} />
+      </div>
     </section>
   );
 }
