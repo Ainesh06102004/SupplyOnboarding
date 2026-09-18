@@ -92,7 +92,11 @@ export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, c
               {conflicts.fixes.map((fix) => (
                 <li key={fix.key} className="text-[13.5px] leading-snug text-[#0E4032]">
                   {fix.says}
-                  <span className="text-[#8A6508]"> — every target met, at ₹{Number(fix.cost).toLocaleString("en-IN")}</span>
+                  {/* The budget fix already says the figure; saying it twice reads as a stutter. */}
+                  <span className="text-[#8A6508]">
+                    {" — every target met"}
+                    {fix.says.includes(`₹${Number(fix.cost).toLocaleString("en-IN")}`) ? "" : `, at ₹${Number(fix.cost).toLocaleString("en-IN")}`}
+                  </span>
                 </li>
               ))}
             </ul>
