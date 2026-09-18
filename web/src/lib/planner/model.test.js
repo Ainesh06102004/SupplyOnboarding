@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, KITCHEN, brandIn, inCategory, occasionsFor } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, KITCHEN, brandIn, PRIORITY, priorityWeights, budgetBeforeTargets, inCategory, occasionsFor } from "@/lib/planner/model.js";
 import { refusalReason } from "@/lib/planner/report.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
@@ -249,7 +249,7 @@ test("this week: what they feel like costs a little less, and what they skip is 
   assert.equal(refusalReason({ flag: "not_this_week", rule: "this_week" }), "not what they feel like this week");
   assert.equal(inCategory("snacks.biscuits_cookies", ["snacks"]), true, "an aisle covers what is under it");
   assert.equal(inCategory("snacks_extra", ["snacks"]), false);
-  assert.equal(MODEL_VERSION, "plan-model-v10");
+  assert.equal(MODEL_VERSION, "plan-model-v11");
 });
 
 test("a change keeps the plan it changes, and what was asked for is always a candidate", () => {
@@ -331,6 +331,57 @@ test("the kitchen's own rules: brands, spice, the pantry, waste and repeats", ()
   const same = buildPlanModel({ members: [adult], catalogue, days: 7, repeatTolerance: "high", lastPlanSkus: ["rice"] });
   assert.equal(colNamed(same, nameOf.packs("rice")).cost, round6(colNamed(plain, nameOf.packs("rice")).cost + KITCHEN.repeat.high));
   assert.equal(colNamed(plain, nameOf.packs("rice")).cost, buildPlanModel({ members: [adult], catalogue, days: 7, lastPlanSkus: ["rice"] }).columns.find((c) => c.name === nameOf.packs("rice")).cost, "usual says nothing");
+});
+
+test("what the household wants protected first changes what a goal is worth", () => {
+  // Nothing said: the plan is exactly the plan KOI made before this rule.
+  assert.deepEqual(priorityWeights([]), { targets: 1, budget: 1, less_processed: 1, familiar: 1, variety: 0 });
+  assert.deepEqual(priorityWeights(["nonsense"]), { targets: 1, budget: 1, less_processed: 1, familiar: 1, variety: 0 });
+
+  // Named priorities rank first; the rest fall in underneath, in KOI's order.
+  const tight = priorityWeights(["budget", "variety"]);
+  assert.equal(tight.budget, PRIORITY.weightByRank[0]);
+  assert.equal(tight.variety, PRIORITY.weightByRank[1]);
+  assert.equal(tight.targets, PRIORITY.weightByRank[2], "unnamed, so it follows in KOI's own order");
+  assert.equal(budgetBeforeTargets(["budget", "targets"]), true);
+  assert.equal(budgetBeforeTargets(["targets", "budget"]), false);
+  assert.equal(budgetBeforeTargets([]), false, "nothing said is not a preference for the budget");
+
+  const catalogue = [rice, { ...rice, skuId: "dal", price: 190, score: 40 }];
+  const plain = buildPlanModel({ members: [adult], catalogue, days: 7 });
+  const budgetFirst = buildPlanModel({ members: [adult], catalogue, days: 7, priorities: ["budget"] });
+  const targetsFirst = buildPlanModel({ members: [adult], catalogue, days: 7, priorities: ["targets"] });
+
+  // A shortfall costs four times as much to the household that ranked targets first.
+  assert.equal(
+    colNamed(targetsFirst, nameOf.short("me", "protein")).cost,
+    colNamed(plain, nameOf.short("me", "protein")).cost * PRIORITY.weightByRank[0],
+  );
+  // ...and half as much to the one that put the budget above it.
+  assert.equal(
+    colNamed(budgetFirst, nameOf.short("me", "protein")).cost,
+    colNamed(plain, nameOf.short("me", "protein")).cost * PRIORITY.weightByRank[1],
+  );
+  assert.deepEqual(budgetFirst.meta.priorities, ["budget"]);
+
+  // The first priority comes back as something a solution can be measured
+  // against: rupees, for a household that ranked the budget first.
+  assert.equal(budgetFirst.firstPriority.name, "budget");
+  assert.equal(budgetFirst.firstPriority.sense, "min");
+  assert.equal(budgetFirst.firstPriority.coefficients[nameOf.packs("dal")], 190);
+  assert.equal(plain.firstPriority, null, "nothing to hold when nothing was asked for");
+
+  // Variety is a cost on the packs past the first, and only when it is ranked.
+  assert.equal(colNamed(plain, "extra_rice"), undefined);
+  // Two eaters, because one adult cannot finish a second pack of rice and a
+  // product that can only be bought once has no "extra" to charge for.
+  const varied = buildPlanModel({ members: [adult, nutFree], catalogue, days: 7, priorities: ["variety"] });
+  const extra = colNamed(varied, "extra_rice");
+  assert.equal(extra.cost, round6(PRIORITY.varietyPerExtraPack * PRIORITY.weightByRank[0]));
+  assert.equal(extra.upper, colNamed(varied, nameOf.packs("rice")).upper - 1);
+  const capped = varied.rows.find((r) => r.name === "variety_rice");
+  assert.deepEqual(capped.coefficients, { [nameOf.packs("rice")]: 1, "extra_rice": -1 });
+  assert.equal(capped.upper, 1, "packs minus extras is at most one");
 });
 
 test("anything but a staple is one serving a day", () => {

@@ -19,7 +19,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { isTestSku } from "@/lib/data/testCatalogue";
 import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config";
-import { buildPlanModel } from "./model";
+import { buildPlanModel, targetsBeforeBudget } from "./model";
 import { plannableFrom, memberFor, keepOutFlagsFor } from "./candidates";
 import { solvePlanModel } from "./solve";
 import { solvePlan, solveWithLadder, NEVER_RELAXED } from "./solvePlan";
@@ -90,7 +90,7 @@ export async function planForHousehold({
   // RLS does the authorising: no rows means not yours (or not there).
   const { data: household, error: householdError } = await db
     .from("household")
-    .select("id, label, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, household_member(*)")
+    .select("id, label, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, household_member(*)")
     .eq("id", householdId)
     .maybeSingle();
   if (householdError) throw householdError;
@@ -177,6 +177,8 @@ async function kitchenRulesFor(db, household, catalogue = []) {
     preferredBrands: household.preferred_brands ?? [],
     wasteTolerance: household.waste_tolerance ?? "some",
     repeatTolerance: household.repeat_tolerance ?? "usual",
+    // What to protect first (00054). Empty is KOI's own order.
+    priorities: household.priorities ?? [],
     // A cupboard is written in words. The same reader that understands "add
     // oats" turns "atta" into the products it would have bought.
     pantrySkus: [...new Set((pantryRows ?? []).flatMap((row) => (
@@ -226,12 +228,37 @@ function membersFromSnapshot(snapshot) {
  */
 async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], kitchen = {}, extra = {} }) {
   const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepSkus, keepOutFlags, ...kitchen };
-  const { attempt, model, solution, report } = await solvePlan(base);
+  let solved = await solvePlan(base);
+
+  // "Hit the targets" means hit them (C2). A budget that leaves someone short
+  // is not a failed plan to goal programming — it is a plan with a miss in it —
+  // so a household that ranked the targets above the budget has KOI find what
+  // meeting them costs and spend it, rather than being handed the shortfall
+  // and told what it would have taken. A household that said the opposite, or
+  // said nothing, keeps its ceiling and is told the difference instead.
+  let raisedForTargets = null;
+  if (targetsBeforeBudget(base.priorities)) {
+    const needed = await costToMeetTargets({ base, report: solved.report });
+    if (needed && needed.extra > 0) {
+      const again = await solvePlan({ ...base, budget: needed.cost });
+      if (again.solution.usable && !materiallyShort(again.report)) {
+        raisedForTargets = { from: Number(budget), to: needed.cost, extra: needed.extra };
+        solved = again;
+      }
+    }
+  }
+  const { attempt, model, solution, report, held } = solved;
 
   const status = solution.usable ? "solved" : "infeasible";
   const explanation = {
     reached: attempt.step,
     gave_up: attempt.gave_up,
+    // What the household asked to be protected first, what it reached, and how
+    // much of that was given back so the rest could improve (C2).
+    priority_held: held ?? null,
+    // The household ranked its targets above its budget, so KOI spent what it
+    // took to meet them instead of reporting a shortfall (C2).
+    budget_raised_for_targets: raisedForTargets,
     solver_status: solution.status,
     // Every member's allergens, age safety and diet held at every step. Said
     // out loud because it is the one promise the ladder never trades.
@@ -271,7 +298,11 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     .insert({
       household_id: householdId,
       days,
-      budget_rupees: budget,
+      // The budget this plan was actually solved under. When the household
+      // ranked its targets first and KOI spent more to meet them, that is the
+      // figure, or a follow-up would re-impose a ceiling this plan already
+      // passed and report itself over budget.
+      budget_rupees: raisedForTargets ? raisedForTargets.to : budget,
       zone_id: zoneId,
       status,
       constraints: {
@@ -316,6 +347,10 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         // The kitchen's standing rules as this plan applied them (00052), so a
         // basket can be explained later even if the rules have since changed.
         kitchen_rules: model.meta.kitchen ?? null,
+        // The order the household asked for, and what each goal was worth
+        // (00054). Stored with the plan, so a follow-up keeps the same order.
+        priorities: model.meta.priorities ?? [],
+        priority_weights: model.meta.priorityWeights ?? null,
         keep_out_flags: [...new Set(keepOutFlags)],
         // For a follow-up: the plan it changed and KOI's words for the change.
         // The shopper's own message is not stored.
@@ -357,7 +392,7 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     createdAt: stored.created_at,
     status,
     days,
-    budget,
+    budget: raisedForTargets ? raisedForTargets.to : budget,
     report,
     explanation,
     solver: { name: solution.solver, version: solution.solverVersion, status: solution.status, ms: solution.ms },
@@ -417,6 +452,7 @@ export async function planWithout({ planId, skuId }) {
     // question about a basket is answered in the terms that basket was built
     // in. Repeats are not charged, because this is the same week.
     ...(snapshot.kitchen_rules ?? {}),
+    priorities: snapshot.priorities ?? [],
     lastPlanSkus: [],
   };
   const { attempt, model, solution } = await solveWithLadder(base);
@@ -548,7 +584,7 @@ export async function planFollowUp({ planId, text }) {
     // The rules this plan was made under. The plan being changed is not last
     // week's plan, so repeats are not charged against it — CONTINUITY above is
     // what decides how much of it stays.
-    kitchen: { ...(snapshot.kitchen_rules ?? {}), lastPlanSkus: [] },
+    kitchen: { ...(snapshot.kitchen_rules ?? {}), priorities: snapshot.priorities ?? [], lastPlanSkus: [] },
     extra: { follows: plan.id, change: change.applied },
   });
 

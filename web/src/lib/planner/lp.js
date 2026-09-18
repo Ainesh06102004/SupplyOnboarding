@@ -95,10 +95,15 @@ export function readSolution(columns = {}, nameOfAlias = null) {
   const eats = {};
   const shortfall = {};
   const excess = {};
+  // Every column by its own name. A plan is read from the four maps above;
+  // this is for measuring an expression over the program in its own solution
+  // (model.js firstPriority, solvePlan.js).
+  const values = {};
 
   for (const [key, column] of Object.entries(columns)) {
     const name = nameOfAlias?.get(key) ?? key;
     const value = valueOf(column);
+    values[name] = value;
     if (name.startsWith("packs_")) {
       const rounded = Math.round(value);
       if (rounded > 0) packs[name.slice("packs_".length)] = rounded;
@@ -122,7 +127,7 @@ export function readSolution(columns = {}, nameOfAlias = null) {
     }
   }
 
-  return { packs, eats, shortfall, excess };
+  return { packs, eats, shortfall, excess, values };
 }
 
 /** Which HiGHS statuses mean KOI has a basket it can show. */

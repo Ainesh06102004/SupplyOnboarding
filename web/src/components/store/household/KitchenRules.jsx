@@ -20,6 +20,27 @@ const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5A6B
 const HINT = "mt-1 text-[11.5px] text-[#5A6B5A]";
 const CARD = "mt-8 rounded-2xl border border-[#083D2D]/10 bg-white p-4";
 
+/**
+ * What to protect first (00054, model.js PRIORITY), as answers rather than
+ * weights. A shopper ranks things by saying what kind of shopper they are; the
+ * numbers underneath are KOI's business, and showing them would only invite
+ * fiddling with a dial nobody can reason about.
+ */
+export const PRIORITY_PRESETS = Object.freeze([
+  { key: "koi", label: "Let KOI decide", hint: "Targets first, then the budget", priorities: [] },
+  { key: "budget", label: "Stay in budget", hint: "Rather go a little short than overspend", priorities: ["budget", "targets", "less_processed", "familiar", "variety"] },
+  { key: "targets", label: "Hit the targets", hint: "Spend more before anyone goes short", priorities: ["targets", "budget", "less_processed", "familiar", "variety"] },
+  { key: "quality", label: "The best food we can afford", hint: "Better-screened food comes first", priorities: ["less_processed", "targets", "budget", "familiar", "variety"] },
+  { key: "familiar", label: "Keep it familiar", hint: "What we already buy, week to week", priorities: ["familiar", "targets", "budget", "less_processed", "variety"] },
+  { key: "variety", label: "Something different", hint: "More products, fewer repeats of each", priorities: ["variety", "targets", "budget", "less_processed", "familiar"] },
+]);
+
+/** Which preset a stored order is, by its first answer. */
+export const presetFor = (priorities = []) => {
+  const first = (priorities ?? [])[0];
+  return PRIORITY_PRESETS.find((p) => p.priorities[0] === first)?.key ?? "koi";
+};
+
 export const WASTE_TOLERANCES = Object.freeze([
   { key: "none", label: "Nothing left over", hint: "Packs sized by what you normally eat" },
   { key: "some", label: "A little", hint: "The usual" },
@@ -148,6 +169,17 @@ export default function KitchenRules({ household, pantry = [], brands = [], onSa
       </p>
 
       <div className="mt-3">
+        <span className={LABEL}>What matters most</span>
+        <Choices name="What matters most" options={PRIORITY_PRESETS} busy={busy}
+                 value={presetFor(household.priorities)}
+                 onChange={(key) => save({ priorities: PRIORITY_PRESETS.find((p) => p.key === key)?.priorities ?? [] })} />
+        <p className={HINT}>
+          {PRIORITY_PRESETS.find((p) => p.key === presetFor(household.priorities))?.hint}. KOI solves for this first and
+          fits everything else underneath it.
+        </p>
+      </div>
+
+      <div className="mt-4">
         <span className={LABEL}>Leftovers</span>
         <Choices name="Leftovers" options={WASTE_TOLERANCES} busy={busy}
                  value={household.waste_tolerance ?? "some"} onChange={(waste_tolerance) => save({ waste_tolerance })} />

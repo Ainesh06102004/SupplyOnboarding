@@ -58,7 +58,9 @@ import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 // v10: the kitchen's own rules (KITCHEN, migration 00052): brands refused and
 //     preferred, spice tolerance, what is already in the pantry, how much of a
 //     pack may go unfinished, and how much of the last plan may come back.
-export const MODEL_VERSION = "plan-model-v10";
+// v11: what the household wants protected first (PRIORITY, migration 00054):
+//     budget, targets, familiar food, less processed, variety, in their order.
+export const MODEL_VERSION = "plan-model-v11";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -276,6 +278,80 @@ export const continuityBonus = (price, spendTiebreak = SPEND_TIEBREAK) =>
   Math.min(CONTINUITY.cap, CONTINUITY.bonusPerPack + spendTiebreak * (Number(price) || 0));
 
 /**
+ * What the household wants protected first (plan-model-v11, migration 00054).
+ *
+ * Every plan trades one thing against another, and until now the trade was
+ * KOI's: the budget a ceiling, the targets goals, the tiebreaks deciding the
+ * rest. The same basket is right or wrong depending on who is shopping, and
+ * how the goals are combined changes the diet that comes out (Gerdessen & de
+ * Vries, EJCN 2015), so the order is the household's answer.
+ *
+ * WHAT EACH ONE MEANS, as something the program can hold:
+ *   budget          the rupees the basket comes to
+ *   targets         everyone's shortfalls and excesses, weighted
+ *   familiar        packs this household already buys (CONTINUITY, repeats)
+ *   less_processed  the quality tiebreak: better-screened food
+ *   variety         packs beyond the first of any one product
+ *
+ * HOW AN ORDER BECOMES ARITHMETIC. Each rank multiplies what that goal already
+ * costs — four times at the top, a quarter at the bottom. The weights are not
+ * separated by orders of magnitude, which is the textbook way to fake a
+ * lexicographic solve and the reliable way to wreck a MIP's numerics. The
+ * order is made true instead by solving twice (solvePlan.js): the first
+ * priority is solved for, then held within LEXICOGRAPHIC.tolerance while the
+ * rest are improved underneath it.
+ *
+ * A household that has said nothing gets multipliers of 1 and no variety term,
+ * which is exactly the plan it would have got before this rule existed.
+ */
+export const PRIORITY = Object.freeze({
+  // KOI's own order, and the order unnamed priorities fall into underneath the
+  // named ones.
+  order: Object.freeze(["targets", "budget", "less_processed", "familiar", "variety"]),
+  weightByRank: Object.freeze([4, 2, 1, 0.5, 0.25]),
+  // What one pack beyond the first of the same product costs when variety is
+  // ranked. Preference-sized at rank 3; four times that at the top.
+  varietyPerExtraPack: 0.05,
+});
+
+/** How much the first priority may give up so the rest can be improved. */
+export const LEXICOGRAPHIC = Object.freeze({ tolerance: 0.05 });
+
+/**
+ * An order of priorities as a multiplier for each goal.
+ *
+ * Named priorities rank first, in the order given; the rest follow in KOI's
+ * own order. Nothing named at all means nothing changes.
+ *
+ * @param {string[]} priorities most important first
+ * @returns {{targets:number, budget:number, less_processed:number, familiar:number, variety:number}}
+ */
+export function priorityWeights(priorities = []) {
+  const named = (priorities ?? []).filter((p) => PRIORITY.order.includes(p));
+  if (!named.length) return { targets: 1, budget: 1, less_processed: 1, familiar: 1, variety: 0 };
+  const ranked = [...new Set([...named, ...PRIORITY.order])];
+  const weights = {};
+  ranked.forEach((name, i) => {
+    weights[name] = PRIORITY.weightByRank[Math.min(i, PRIORITY.weightByRank.length - 1)];
+  });
+  return weights;
+}
+
+/** Is meeting the targets to be protected before the budget is? */
+export const targetsBeforeBudget = (priorities = []) => {
+  const targets = (priorities ?? []).indexOf("targets");
+  const budget = (priorities ?? []).indexOf("budget");
+  return targets >= 0 && (budget < 0 || targets < budget);
+};
+
+/** Is the budget to be protected before the targets are? (It decides the ladder.) */
+export const budgetBeforeTargets = (priorities = []) => {
+  const budget = (priorities ?? []).indexOf("budget");
+  const targets = (priorities ?? []).indexOf("targets");
+  return budget >= 0 && (targets < 0 || budget < targets);
+};
+
+/**
  * The kitchen's own rules (plan-model-v10, migration 00052).
  *
  * These are standing facts about a household rather than about this week, and
@@ -374,6 +450,58 @@ const eatsName = (s, m) => `eats_${s}_${m}`;
 const shortName = (m, n) => `short_${m}_${n}`;
 const overName = (m, n) => `over_${m}_${n}`;
 const worstName = (n) => `worst_share_short_${n}`;
+// Packs of one product beyond the first (PRIORITY, variety). readSolution
+// ignores it: it is a way of writing the objective, not part of the answer.
+const extraName = (s) => `extra_${s}`;
+
+const colUpper = (columns, name) => columns.find((c) => c.name === name)?.upper ?? 0;
+
+/**
+ * The household's first priority, written as something a solution can be
+ * measured against and then held (LEXICOGRAPHIC, solvePlan.js).
+ *
+ * `sense` says which way is better: "min" for money spent, shortfalls, quality
+ * cost and repeats of one product; "max" for packs the household already buys.
+ * The coefficients are over the program's own columns, so the value of a
+ * solution is the dot product of the two, and holding it is one more row.
+ *
+ * @returns {{name: string, sense: "min"|"max", coefficients: object}|null}
+ */
+function firstPriorityOf(priorities, { eligible, members, columns, weight, varietyCost }) {
+  const first = (priorities ?? []).find((p) => PRIORITY.order.includes(p));
+  if (!first) return null;
+  const coefficients = {};
+  if (first === "budget") {
+    for (const item of eligible) coefficients[packsName(item.skuId)] = Number(item.price);
+  } else if (first === "targets") {
+    for (const m of members) {
+      for (const n of NUTRIENTS) {
+        const short = columns.find((c) => c.name === shortName(m.id, n));
+        const over = columns.find((c) => c.name === overName(m.id, n));
+        if (short) coefficients[short.name] = short.cost;
+        if (over && over.upper > 0) coefficients[over.name] = over.cost;
+      }
+    }
+  } else if (first === "less_processed") {
+    for (const item of eligible) {
+      const cost = qualityCost(item.score, QUALITY_TIEBREAK * weight.less_processed);
+      if (cost > 0) coefficients[packsName(item.skuId)] = cost;
+    }
+  } else if (first === "familiar") {
+    // Maximised: the packs this household already buys.
+    for (const item of eligible) {
+      const bonus = columns.find((c) => c.name === packsName(item.skuId));
+      if (bonus) coefficients[bonus.name] = 1;
+    }
+  } else if (first === "variety") {
+    if (!(varietyCost > 0)) return null;
+    for (const item of eligible) {
+      if (columns.some((c) => c.name === extraName(item.skuId))) coefficients[extraName(item.skuId)] = 1;
+    }
+  }
+  if (!Object.keys(coefficients).length) return null;
+  return { name: first, sense: first === "familiar" ? "max" : "min", coefficients };
+}
 
 /**
  * Why a member cannot eat this product, or null when they can.
@@ -434,6 +562,7 @@ function refusedBy(item, member) {
  * @param {"none"|"some"|"any"} [input.wasteTolerance] how much of a pack may go unfinished
  * @param {"low"|"usual"|"high"} [input.repeatTolerance] how much of the last plan may come back
  * @param {string[]} [input.lastPlanSkus] what the last plan bought, for repeatTolerance
+ * @param {string[]} [input.priorities] what to protect first (PRIORITY); empty is KOI's own order
  * @param {string[]} [input.includeSkus] products the shopper asked for: at least one
  *   pack of each, when the plan can have it at all ("add oats", "swap the rice
  *   for atta"). A product nobody in the household may eat cannot be included,
@@ -463,6 +592,8 @@ export function buildPlanModel({
   wasteTolerance = "some",
   repeatTolerance = "usual",
   lastPlanSkus = [],
+  // What the household wants protected first (PRIORITY, migration 00054).
+  priorities = [],
 }) {
   // A solution is read back from eats_<sku>_<member>, split at the last "_"
   // (lp.js). Real member ids are uuids; an id with "_" would be read as a
@@ -570,7 +701,9 @@ export function buildPlanModel({
   const wanted = new Set((includeSkus ?? []).map(String));
   const keep = new Set((keepSkus ?? []).map(String));
   const lastPlan = new Set((lastPlanSkus ?? []).map(String));
-  const repeatCost = KITCHEN.repeat[repeatTolerance] ?? 0;
+  // What the household wants protected first, as a multiplier on each goal.
+  const weight = priorityWeights(priorities);
+  const repeatCost = (KITCHEN.repeat[repeatTolerance] ?? 0) * weight.familiar;
 
   // Only so many products may enter the program (CANDIDATE_RULE) — but never
   // at the cost of the one thing that was asked for by name. Ranking by protein
@@ -599,8 +732,8 @@ export function buildPlanModel({
     // Already in the plan: cheaper to keep than to replace (CONTINUITY). A
     // brand the household likes costs a little less, and last week's packs cost
     // what the household said repeats are worth to them (KITCHEN).
-    const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price)
-      - (keep.has(String(item.skuId)) ? continuityBonus(item.price, spendTiebreak) : 0)
+    const packCost = qualityCost(item.score, qualityTiebreak * weight.less_processed) + spendTiebreak * weight.budget * Number(item.price)
+      - (keep.has(String(item.skuId)) ? continuityBonus(item.price, spendTiebreak) * weight.familiar : 0)
       - (brandIn(item.brand, preferredBrands) ? KITCHEN.preferredBrandBonus : 0)
       + (lastPlan.has(String(item.skuId)) ? repeatCost : 0);
     const caps = portionCaps[item.skuId] ?? {};
@@ -642,10 +775,10 @@ export function buildPlanModel({
       }
       const losing = n === "kcal" && m.energyGoal === "lose";
       const gaining = n === "kcal" && m.energyGoal === "gain";
-      const shortCost = DEVIATION_COST[n].short * (gaining ? GOAL_MODEL.gainShortfallMultiplier : 1);
+      const shortCost = DEVIATION_COST[n].short * (gaining ? GOAL_MODEL.gainShortfallMultiplier : 1) * weight.targets;
       columns.push({ name: shortName(m.id, n), lower: 0, upper: Infinity, integer: false, cost: shortCost });
       // Losing: the energy target is a ceiling. Nothing over it, ever.
-      columns.push({ name: overName(m.id, n), lower: 0, upper: losing ? 0 : Infinity, integer: false, cost: DEVIATION_COST[n].over });
+      columns.push({ name: overName(m.id, n), lower: 0, upper: losing ? 0 : Infinity, integer: false, cost: DEVIATION_COST[n].over * weight.targets });
       row.coefficients[shortName(m.id, n)] = 1;
       row.coefficients[overName(m.id, n)] = -1;
       rows.push(row);
@@ -671,7 +804,7 @@ export function buildPlanModel({
         .filter((m) => m.target > 0);
       if (targeted.length < 2) continue;
       const household = targeted.reduce((sum, m) => sum + m.target, 0);
-      columns.push({ name: worstName(n), lower: 0, upper: Infinity, integer: false, cost: round4(fairness * DEVIATION_COST[n].short * household) });
+      columns.push({ name: worstName(n), lower: 0, upper: Infinity, integer: false, cost: round4(fairness * DEVIATION_COST[n].short * weight.targets * household) });
       for (const m of targeted) {
         rows.push({
           name: `fair_${m.id}_${n}`,
@@ -681,6 +814,24 @@ export function buildPlanModel({
         });
       }
       fairFor.push(n);
+    }
+  }
+
+  // Variety, when the household asked for it: everything past the first pack
+  // of a product costs. extra[s] >= packs[s] - 1, and the cost pushes it down
+  // to exactly that, so nothing has to be made integer.
+  const varietyCost = round4(PRIORITY.varietyPerExtraPack * weight.variety);
+  if (varietyCost > 0) {
+    for (const item of eligible) {
+      const upper = colUpper(columns, packsName(item.skuId));
+      if (!(upper > 1)) continue;
+      columns.push({ name: extraName(item.skuId), lower: 0, upper: upper - 1, integer: false, cost: varietyCost });
+      rows.push({
+        name: `variety_${item.skuId}`,
+        lower: -Infinity,
+        upper: 1,
+        coefficients: { [packsName(item.skuId)]: 1, [extraName(item.skuId)]: -1 },
+      });
     }
   }
 
@@ -694,6 +845,9 @@ export function buildPlanModel({
     columns,
     rows,
     excluded,
+    // What the household asked to be protected first, as something that can be
+    // measured in a solution and then held (solvePlan.js).
+    firstPriority: firstPriorityOf(priorities, { eligible, members, columns, weight, varietyCost }),
     meta: {
       version: MODEL_VERSION,
       days,
@@ -713,6 +867,9 @@ export function buildPlanModel({
       includedByShopper: included,
       // Kept from the plan this one changes (CONTINUITY).
       keptFromLastPlan: [...keep].filter((id) => eligible.some((item) => String(item.skuId) === id)),
+      // The order the household asked for, and what each goal was worth.
+      priorities: [...(priorities ?? [])],
+      priorityWeights: weight,
       // The kitchen's own rules, as this plan applied them (KITCHEN).
       kitchen: {
         refusedBrands: [...(refusedBrands ?? [])],

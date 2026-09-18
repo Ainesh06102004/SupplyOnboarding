@@ -23,7 +23,7 @@
 
 import "server-only";
 
-import { buildPlanModel, MAX_PACKS_PER_SKU } from "./model";
+import { buildPlanModel, MAX_PACKS_PER_SKU, LEXICOGRAPHIC, budgetBeforeTargets } from "./model";
 import { solvePlanModel } from "./solve";
 import { planReport, whoEatsWhat } from "./report";
 
@@ -50,18 +50,70 @@ const LADDER = [
   },
 ];
 
+/**
+ * The ladder for this household.
+ *
+ * A household that asked for the budget to be protected before the targets is
+ * not helped by a step that raises the budget first: it said it would rather
+ * go short than overspend. So for them the cheaper portions are tried first,
+ * and the budget gives way only when there is nothing else left.
+ */
+function ladderFor(base) {
+  if (!budgetBeforeTargets(base.priorities)) return LADDER;
+  const by = Object.fromEntries(LADDER.map((rung) => [rung.step, rung]));
+  return [by.as_asked, by.variety_relaxed, by.budget_raised];
+}
+
+/**
+ * Hold the household's first priority, and improve the rest underneath it.
+ *
+ * This is what makes an order an order rather than a set of weights: the value
+ * the first priority reached is measured in the solution, written back as one
+ * more row with LEXICOGRAPHIC.tolerance of slack, and the program solved again.
+ * Every lower priority is then free to improve, but only within what the first
+ * one allows. Two solves, and only for a household that asked for an order.
+ *
+ * If the second solve cannot be used, the first answer stands: a tolerance is
+ * not worth losing a plan over.
+ */
+async function holdFirstPriority(model, solution, base) {
+  const first = model.firstPriority;
+  if (!first || !solution.usable) return { model, solution, held: null };
+
+  const value = Object.entries(first.coefficients)
+    .reduce((sum, [name, coefficient]) => sum + coefficient * (solution.values?.[name] ?? 0), 0);
+  const slack = Math.abs(value) * LEXICOGRAPHIC.tolerance;
+  const bound = first.sense === "min"
+    ? { lower: -Infinity, upper: value + slack }
+    : { lower: value - slack, upper: Infinity };
+
+  const held = {
+    ...model,
+    rows: [...model.rows, { name: `priority_${first.name}`, ...bound, coefficients: first.coefficients }],
+  };
+  const again = await solvePlanModel(held);
+  if (!again.usable) return { model, solution, held: null };
+  return {
+    model: held,
+    solution: again,
+    held: { priority: first.name, sense: first.sense, reached: Math.round(value * 1000) / 1000, tolerance: LEXICOGRAPHIC.tolerance },
+  };
+}
+
 /** Climb the ladder until something can be shown. Allergens, age safety and diet are never on it. */
 export async function solveWithLadder(base) {
   let attempt = null;
   let model = null;
   let solution = null;
-  for (const rung of LADDER) {
+  for (const rung of ladderFor(base)) {
     model = buildPlanModel(rung.apply(base));
     solution = await solvePlanModel(model);
     attempt = rung;
     if (solution.usable) break;
   }
-  return { attempt, model, solution };
+  // The order the household asked for, made true rather than approximated.
+  const lexicographic = await holdFirstPriority(model, solution, base);
+  return { attempt, model: lexicographic.model, solution: lexicographic.solution, held: lexicographic.held };
 }
 
 /**
@@ -71,7 +123,7 @@ export async function solveWithLadder(base) {
  * @returns {Promise<{ attempt, model, solution, report }>}
  */
 export async function solvePlan(base) {
-  const { attempt, model, solution } = await solveWithLadder(base);
+  const { attempt, model, solution, held } = await solveWithLadder(base);
   const report = planReport({
     members: base.members,
     catalogue: base.catalogue.filter((item) => model.meta.skus.includes(item.skuId)),
@@ -81,5 +133,5 @@ export async function solvePlan(base) {
   });
   // Per person: what in the basket each may eat and how much, and what is not for them.
   report.whoEatsWhat = whoEatsWhat({ members: base.members, catalogue: base.catalogue, basket: report.basket, refusals: model.meta.refusals });
-  return { attempt, model, solution, report };
+  return { attempt, model, solution, report, held };
 }
