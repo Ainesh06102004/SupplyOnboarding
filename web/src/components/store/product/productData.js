@@ -217,6 +217,10 @@ export function buildProductVM(p, all = [], profile = null) {
     weight: p.weight,
     score: p.score,
     image: p.image || {},
+    // Whose photograph it is, when it is not KOI's own: the test catalogue
+    // hot-links Open Food Facts' CC-BY-SA photos, and the credit is the
+    // condition of using them (ProductHero prints it).
+    imageCredit: p.imageCredit ?? null,
     // NOT `|| "Verified"`. That defaulted every product with no screening
     // verdict to "KOI Verified", printed over the product image.
     koiStatus: p.koiStatus || null,
