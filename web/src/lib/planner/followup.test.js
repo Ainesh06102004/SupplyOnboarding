@@ -117,6 +117,20 @@ test("the ways a shopper asks for a change", () => {
   }
 });
 
+test("\"for my wife\" is the wife: a possessive is not part of a name", () => {
+  const people = [{ id: "me", label: "Me", targets: {}, avoidFlags: [], softAvoidFlags: [] }, { id: "wife", label: "Wife", targets: {}, avoidFlags: [], softAvoidFlags: [] }];
+  assert.deepEqual(membersNamed("my wife", people).map((m) => m.id), ["wife"]);
+  assert.deepEqual(membersNamed("the kids", people).map((m) => m.id), []);
+
+  const avoid = applyFollowUp({ ...PLAN, members: people }, readFollowUp("no dairy for my wife"), SHOP);
+  assert.match(avoid.applied.join(" "), /Milk avoided for Wife/);
+  assert.deepEqual(avoid.notApplied, []);
+
+  const target = applyFollowUp({ ...PLAN, members: people }, readFollowUp("75 g protein for my wife"), SHOP);
+  assert.match(target.applied.join(" "), /Wife: 75 g protein a day/);
+  assert.deepEqual(target.householdChanges.map((c) => c.memberId), ["wife"]);
+});
+
 test("what it cannot do, it says plainly", () => {
   const r = applyFollowUp({ ...PLAN, excludedSkus: [], includedSkus: [] }, readFollowUp("swap the oats for quinoa"), SHOP);
   assert.deepEqual(r.excludedSkus, []);

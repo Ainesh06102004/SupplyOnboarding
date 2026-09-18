@@ -80,8 +80,8 @@ const STOP = new Set([
   "too", "so", "very", "much", "sure", "expensive", "costly", "cheap", "that", "so", "a", "an",
 ]);
 
-/** Who a clause is for: "for Kid 1", "for the kids", "for me". */
-const WHO = /\bfor\s+(?:the\s+)?([a-z]+(?:\s+\d+)?)\b/;
+/** Who a clause is for: "for Kid 1", "for the kids", "for my wife", "for me". */
+const WHO = /\bfor\s+(?:(?:the|my|our|your)\s+)?([a-z]+(?:\s+\d+)?)\b/;
 
 /**
  * Days asked for in a follow-up. Stricter than a brief: "no paneer this week"
@@ -341,7 +341,8 @@ export function mergeFollowUps(local, model) {
 /** The members a person's words refer to: a label, a kind ("the kids"), "me", or everyone. */
 export function membersNamed(words, members) {
   if (!words) return members;
-  const w = normalise(words).replace(/^the\s+/, "");
+  // "for my wife" is Wife. The possessive is the shopper's, not a name.
+  const w = normalise(words).replace(/^(?:the|my|our|your)\s+/, "");
   if (/^(everyone|everybody|all|all of us|us|the family|family)$/.test(w)) return members;
   const exact = members.filter((m) => normalise(m.label) === w);
   if (exact.length) return exact;
@@ -349,7 +350,11 @@ export function membersNamed(words, members) {
   const kinds = { kid: ["kid", "child", "children"], adult: ["adult"], senior: ["senior", "grandparent"], teen: ["teen"], person: ["person", "people"] };
   const kind = Object.entries(kinds).find(([, names]) => names.some((n) => singular === n || w === n))?.[0];
   if (kind) return members.filter((m) => normalise(m.label).startsWith(kind));
-  return members.filter((m) => normalise(m.label).includes(w));
+  const contains = members.filter((m) => normalise(m.label).includes(w));
+  if (contains.length) return contains;
+  // Failing the whole phrase, any word of it: "my wife" against "Wife".
+  const parts = w.split(" ").filter((p) => p.length > 1);
+  return members.filter((m) => parts.some((p) => normalise(m.label).includes(p)));
 }
 
 /**
