@@ -83,15 +83,27 @@ test("additives raise the shopper filters they belong to, and only those", () =>
 });
 
 test("the last keyword flags come from the graph: meat, caffeine, root vegetables, spicy", () => {
-  assert.deepEqual(ingredientFlagsIn("Rice Flour, Red Chilli Powder, Salt"), ["spicy"]);
+  assert.deepEqual(ingredientFlagsIn("Rice Flour, Red Chilli Powder, Salt"), ["common_salt", "grain", "spicy"]);
   assert.deepEqual(ingredientFlagsIn("Madras Mixture"), ["spicy"], "a product word");
-  assert.deepEqual(ingredientFlagsIn("Onion, Garlic, Green Tea"), ["caffeine", "root_veg"]);
+  assert.deepEqual(ingredientFlagsIn("Onion, Garlic, Green Tea"), ["allium", "caffeine", "root_veg"]);
   assert.deepEqual(ingredientFlagsIn("Sweet Potato Chips"), ["root_veg"]);
   assert.deepEqual(ingredientFlagsIn("Chicken Tikka"), ["meat"]);
   assert.deepEqual(ingredientFlagsIn("Mutton Keema"), ["meat", "red_meat"]);
   assert.deepEqual(ingredientFlagsIn("Gelatin"), ["meat"]);
   assert.deepEqual(ingredientFlagsIn("Palmolein"), ["palm_oil"]);
   assert.deepEqual(ingredientFlagsIn("Steamed Rice"), [], "whole words: no tea in steamed");
+});
+
+test("a fasting day: what it excludes, and what it must not (00056)", () => {
+  // The whole rule turns on what a vrat day ALLOWS.
+  assert.deepEqual(ingredientFlagsIn("Buckwheat Flour"), [], "kuttu is the flour a fasting household buys");
+  assert.deepEqual(ingredientFlagsIn("Rock Salt"), [], "sendha namak is what replaces common salt");
+  assert.deepEqual(ingredientFlagsIn("Wheat Flour, Salt"), ["common_salt", "grain"]);
+  assert.deepEqual(ingredientFlagsIn("Lentils"), ["pulse"]);
+  // Onion is both: a fasting day excludes it, and so does a Jain diet. Potato
+  // is only the second, which is why they are separate flags.
+  assert.deepEqual(ingredientFlagsIn("Onion"), ["allium", "root_veg"]);
+  assert.deepEqual(ingredientFlagsIn("Potato"), ["root_veg"], "a vrat day eats potato quite happily");
 });
 
 test("statements name groups, and 'peanuts' does not declare tree nuts", () => {

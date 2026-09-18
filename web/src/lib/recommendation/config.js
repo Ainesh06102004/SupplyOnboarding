@@ -192,6 +192,9 @@ export const DIET_TYPES = [
   { key: "jain", label: "Jain", emoji: "🙏" },
   { key: "non_vegetarian", label: "Non-Vegetarian", emoji: "🍗" },
   { key: "pescatarian", label: "Pescatarian", emoji: "🐟" },
+  // A day, not a way of living: offered on the plan page as a diet for this
+  // plan only, never as a saved profile (00056).
+  { key: "fasting", label: "Fasting (vrat)", emoji: "🕉️", forOnePlanOnly: true },
 ];
 
 export const MEALS = [
@@ -245,6 +248,12 @@ export const DIET_EXCLUSIONS = Object.freeze({
   vegetarian: ["meat", "fish", "shellfish", "egg"],
   eggetarian: ["meat", "fish", "shellfish"],
   jain: ["meat", "fish", "shellfish", "egg", "honey", "root_veg"],
+  // A fasting (vrat/phalahar) day, chosen for one plan rather than kept on a
+  // profile. Not "eat less": a different list of permitted foods. Grains,
+  // pulses, common salt, onion and garlic are out — and buckwheat, amaranth,
+  // water chestnut, potato, dairy, fruit, nuts and rock salt are in, which is
+  // why allium is a flag of its own and not folded into root_veg (00056).
+  fasting: ["grain", "pulse", "common_salt", "allium", "meat", "fish", "shellfish", "egg"],
   pescatarian: ["meat"],
   non_vegetarian: [],
 });
@@ -257,7 +266,7 @@ export const DIET_EXCLUSIONS = Object.freeze({
 // list can hide garlic, and "milk solids" can be missing from one entirely, so
 // without a verified list — or the brand's own declaration — KOI says the diet
 // is not verified rather than implying it fits.
-export const LABEL_VERIFIED_DIETS = Object.freeze(["vegan", "jain"]);
+export const LABEL_VERIFIED_DIETS = Object.freeze(["vegan", "jain", "fasting"]);
 
 // Which meal occasions a product serves is no longer a table here: since
 // Phase 2.4 it comes from the product's category (food.category_occasion,
