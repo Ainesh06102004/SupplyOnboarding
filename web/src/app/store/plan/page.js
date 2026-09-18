@@ -32,8 +32,12 @@ import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
 import { followUpExamples } from "@/lib/planner/followup";
 import { goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
-import { profileFromRow, profileSummary, memberPayload, avoidsPayload, SEVERITIES } from "@/lib/household/profile";
+import { profileFromRow, profileSummary, memberPayload, avoidsPayload, blankProfile, SEVERITIES } from "@/lib/household/profile";
 import PlanCopilot from "@/components/store/plan/PlanCopilot";
+
+/** The chat is kept in the shopper's own browser, per household, most recent last. */
+const CHAT_KEY = "koi_plan_chat_v1";
+const CHAT_TURNS = 40;
 
 const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
 
@@ -148,20 +152,24 @@ export default function PlanPage() {
     });
   };
 
-  async function makePlan() {
+  /**
+   * Plan for the people ticked above. Days and budget are passed in, because
+   * the copilot can read them out of a sentence and plan in the same breath,
+   * before React has re-rendered the form.
+   */
+  async function makePlan({ daysNow = Number(days), budgetNow = num(budget) } = {}) {
     setBusy(true);
     setError(null);
     setPlan(null);
     setWithout({});
-    setConversation([]);
     try {
       const response = await fetch("/api/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           householdId,
-          days: Number(days),
-          budget: num(budget),
+          days: daysNow,
+          budget: budgetNow,
           memberIds: picked,
           thisWeek: Object.fromEntries(picked.map((id) => [id, choiceFor(id)])),
         }),
@@ -170,8 +178,10 @@ export default function PlanPage() {
       if (!response.ok) throw new Error(body?.error ?? "The plan could not be built.");
       setPlan(body);
       setCopilotOpen(true);
+      return body;
     } catch (err) {
       setError(err?.message ?? "Something went wrong.");
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -220,16 +230,124 @@ export default function PlanPage() {
     }
   }
 
-  // ── The copilot: follow-ups on the plan on screen (Phase 4.3) ─────────────
+  // ── The copilot: the chat that sets the household up, plans, then changes
+  // the plan (Phase 4.2–4.3). The conversation is kept in this browser only:
+  // KOI stores the plans it produces, never the words.
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [followText, setFollowText] = useState("");
-  const [followBusy, setFollowBusy] = useState(false);
+  // "reading" | "planning" | "saving" | null — what the cue line says.
+  const [stage, setStage] = useState(null);
   const [conversation, setConversation] = useState([]);
+  const [chatLoaded, setChatLoaded] = useState(false);
 
-  async function followUp() {
+  const chatKey = `${CHAT_KEY}:${householdId ?? "new"}`;
+  const mode = profiles.length === 0 ? "setup" : plan ? "plan" : "ready";
+
+  // Read the kept conversation once the household is known (its id is the key).
+  useEffect(() => {
+    if (session === undefined) return;
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(chatKey) ?? "[]");
+      if (Array.isArray(stored)) setConversation(stored);
+    } catch {
+      // A browser that refuses storage, or a half-written entry: start empty.
+    }
+    setChatLoaded(true);
+  }, [chatKey, session]);
+
+  // And keep it, trimmed to what can be shown again: the words, the lines KOI
+  // answered with, and the small objects a button still needs.
+  useEffect(() => {
+    if (!chatLoaded) return;
+    try {
+      const keepable = conversation.slice(-CHAT_TURNS).map(({ text, kind, at, lines, draft, householdChanges, kept, saved }) => ({
+        text, kind, at, lines, draft, householdChanges, kept, saved,
+      }));
+      window.localStorage.setItem(chatKey, JSON.stringify(keepable));
+    } catch {
+      // Not being able to keep the chat is not a reason to break the page.
+    }
+  }, [conversation, chatKey, chatLoaded]);
+
+  const say = (turn) => setConversation((turns) => [...turns, { at: Date.now(), ...turn }]);
+  const markTurn = (index, patch) => setConversation((turns) => turns.map((t, i) => (i === index ? { ...t, ...patch } : t)));
+  const clearChat = () => {
+    setConversation([]);
+    try {
+      window.localStorage.removeItem(chatKey);
+    } catch { /* nothing to clear */ }
+  };
+
+  /** One message. What it does depends on what the shopper has (see PlanCopilot). */
+  async function send() {
     const text = followText.trim();
-    if (!text || !plan?.planId) return;
-    setFollowBusy(true);
+    if (!text || stage) return;
+    setFollowText("");
+    if (mode === "plan") return followUp(text);
+    if (mode === "setup") return setUpFromChat(text);
+    return planFromChat(text);
+  }
+
+  /** No profiles yet: read the message as a household and offer to keep it. */
+  async function setUpFromChat(text) {
+    setStage("reading");
+    try {
+      const draft = await draftHousehold(text);
+      const people = draft.members.map((m) => `${m.label}: ${labelOf(AGE_BANDS, m.age_band)} · ${labelOf(DIET_TYPES, m.diet_type)}${m.target_protein_g ? ` · ${m.target_protein_g} g protein` : ""}${m.target_kcal ? ` · ${m.target_kcal} kcal` : ""}${(m.avoidKeys ?? []).length ? ` · avoids ${m.avoidKeys.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}` : ""}`);
+      say({
+        kind: "setup",
+        text,
+        draft,
+        lines: [
+          draft.members.length
+            ? `Drafted ${draft.members.length} ${draft.members.length === 1 ? "person" : "people"}. Check them, then keep them.`
+            : "Nothing was drafted from that.",
+          ...people,
+          ...draft.notes,
+          ...(draft.unresolved.length ? [`Not applied: ${draft.unresolved.join(", ")}.`] : []),
+        ],
+      });
+    } catch (err) {
+      say({ kind: "setup", text, lines: [err?.message ?? "That could not be read."] });
+    } finally {
+      setStage(null);
+    }
+  }
+
+  /** Profiles, no plan: read the days and the budget out of the message, then plan. */
+  async function planFromChat(text) {
+    setStage("reading");
+    try {
+      const draft = await draftHousehold(text);
+      const daysNow = draft.days ?? Number(days);
+      const budgetNow = draft.budget ?? num(budget);
+      if (draft.days) setDays(draft.days);
+      if (draft.budget) setBudget(String(draft.budget));
+      setStage("planning");
+      const made = await makePlan({ daysNow, budgetNow });
+      say({
+        kind: "ready",
+        text,
+        lines: [
+          `Planned ${dayCount(daysNow)}${budgetNow ? ` on ₹${budgetNow.toLocaleString("en-IN")}` : " with no budget"} for ${chosen.map((p) => p.label).join(", ")}.`,
+          `${made.report.summary.packs} packs · ₹${made.report.cost}`,
+          made.report.unmet.length
+            ? `Short: ${made.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}`
+            : "Every target met.",
+          ...(draft.members.length ? ["People come from their saved profiles, so I planned for the ones ticked above."] : []),
+        ],
+      });
+    } catch (err) {
+      say({ kind: "ready", text, lines: [err?.message ?? "That could not be planned."] });
+    } finally {
+      setStage(null);
+    }
+  }
+
+  /** A plan on screen: change it. */
+  async function followUp(text) {
+    if (!plan?.planId) return;
+    setStage("reading");
     try {
       const response = await fetch("/api/plan/followup", {
         method: "POST",
@@ -242,12 +360,24 @@ export default function PlanPage() {
         setPlan(body);
         setWithout({});
       }
-      setConversation((turns) => [...turns, { text, ...body }]);
-      setFollowText("");
+      const change = body.basketChange;
+      say({
+        kind: "plan",
+        text,
+        householdChanges: body.householdChanges ?? [],
+        lines: [
+          body.applied?.length ? `Changed: ${body.applied.join(" · ")}` : "Nothing in that could be applied.",
+          ...(change?.added ?? []).map((s) => `Adds ${s.packs} × ${s.name}`),
+          ...(change?.changed ?? []).map((c) => `${c.name}: ${c.from} → ${c.to} packs`),
+          ...(change?.dropped ?? []).map((s) => `No longer ${s.name}`),
+          ...(body.changed && change ? [`₹${change.costBefore} → ₹${body.report.cost}${body.report.unmet.length ? ` · short: ${body.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}` : " · every target met"}`] : []),
+          ...(body.notApplied ?? []),
+        ].filter(Boolean),
+      });
     } catch (err) {
-      setConversation((turns) => [...turns, { text, changed: false, applied: [], notApplied: [err?.message ?? "Something went wrong."] }]);
+      say({ kind: "plan", text, lines: [err?.message ?? "Something went wrong."] });
     } finally {
-      setFollowBusy(false);
+      setStage(null);
     }
   }
 
@@ -256,8 +386,9 @@ export default function PlanPage() {
   async function saveToHousehold(turnIndex) {
     const turn = conversation[turnIndex];
     if (!turn?.householdChanges?.length) return;
-    const mark = (patch) => setConversation((turns) => turns.map((t, i) => (i === turnIndex ? { ...t, ...patch } : t)));
+    const mark = (patch) => markTurn(turnIndex, patch);
     mark({ saving: true, saveError: null });
+    setStage("saving");
     try {
       const supabase = getSupabaseClient();
       for (const change of turn.householdChanges) {
@@ -278,29 +409,38 @@ export default function PlanPage() {
       mark({ saving: false, saved: true });
     } catch (err) {
       mark({ saving: false, saveError: err?.message ?? "It could not be saved." });
+    } finally {
+      setStage(null);
     }
   }
 
-  // ── First run: a household in words becomes profiles, once confirmed ──────
+  // ── A household in words becomes profiles, once confirmed ────────────────
+  // Shared by the panel below and the copilot: one reading, one save.
   const [brief, setBrief] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [drafted, setDrafted] = useState(null);
   const [savingDraft, setSavingDraft] = useState(false);
 
+  /** Read a description of a household. Nothing is saved. */
+  async function draftHousehold(text) {
+    const response = await fetch("/api/plan/brief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body?.error ?? "The description could not be read.");
+    return body.draft;
+  }
+
   async function draftFromBrief() {
     setDrafting(true);
     setError(null);
     try {
-      const response = await fetch("/api/plan/brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: brief }),
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body?.error ?? "The description could not be read.");
-      setDrafted(body.draft);
-      if (body.draft.days) setDays(body.draft.days);
-      if (body.draft.budget) setBudget(String(body.draft.budget));
+      const draft = await draftHousehold(brief);
+      setDrafted(draft);
+      if (draft.days) setDays(draft.days);
+      if (draft.budget) setBudget(String(draft.budget));
     } catch (err) {
       setError(err?.message ?? "Something went wrong.");
     } finally {
@@ -308,56 +448,65 @@ export default function PlanPage() {
     }
   }
 
-  /** Save the drafted people as profiles. Nothing is saved until this. */
+  /** Save drafted people as profiles, creating the household if there is none. */
+  async function keepProfiles(draft) {
+    if (!draft?.members?.length) return;
+    const supabase = getSupabaseClient();
+    let id = householdId;
+    if (!id) {
+      const { data, error: createError } = await supabase.from("household").insert({ label: "My household" }).select("id").single();
+      if (createError) throw createError;
+      id = data.id;
+      setHouseholdId(id);
+    }
+    for (const member of draft.members) {
+      const form = {
+        ...blankProfile(),
+        label: member.label,
+        age_band: member.age_band,
+        diet_type: member.diet_type,
+        target_kcal: member.target_kcal ?? "",
+        target_protein_g: member.target_protein_g ?? "",
+        avoids: (member.avoidKeys ?? []).map((key) => ({ key, severity: null })),
+      };
+      const { error: saveError } = await supabase.rpc("save_household_member", {
+        p_household_id: id,
+        p_member: memberPayload(form),
+        p_avoids: avoidsPayload(form),
+      });
+      if (saveError) throw saveError;
+    }
+    await load();
+  }
+
+  /** The panel's own "keep these" button. */
   async function saveDraftedPeople() {
-    if (!drafted?.members?.length) return;
     setSavingDraft(true);
     setError(null);
     try {
-      const supabase = getSupabaseClient();
-      let id = householdId;
-      if (!id) {
-        const { data, error: createError } = await supabase.from("household").insert({ label: "My household" }).select("id").single();
-        if (createError) throw createError;
-        id = data.id;
-        setHouseholdId(id);
-      }
-      for (const member of drafted.members) {
-        const form = {
-          memberId: null,
-          label: member.label,
-          relation: "",
-          age_band: member.age_band,
-          sex: "",
-          activity_level: "",
-          diet_type: member.diet_type,
-          energy_goal: "maintain",
-          eating_pattern: "balanced",
-          age_years: "",
-          weight_kg: "",
-          height_cm: "",
-          appetite: "",
-          meals_from_home: [],
-          target_kcal: member.target_kcal ?? "",
-          target_protein_g: member.target_protein_g ?? "",
-          target_source: "stated",
-          is_account_holder: false,
-          avoids: (member.avoidKeys ?? []).map((key) => ({ key, severity: null })),
-        };
-        const { error: saveError } = await supabase.rpc("save_household_member", {
-          p_household_id: id,
-          p_member: memberPayload(form),
-          p_avoids: avoidsPayload(form),
-        });
-        if (saveError) throw saveError;
-      }
+      await keepProfiles(drafted);
       setDrafted(null);
       setBrief("");
-      await load();
     } catch (err) {
       setError(err?.message ?? "They could not be saved.");
     } finally {
       setSavingDraft(false);
+    }
+  }
+
+  /** The copilot's "keep these profiles", on one of its turns. */
+  async function keepDraft(turnIndex) {
+    const turn = conversation[turnIndex];
+    if (!turn?.draft?.members?.length) return;
+    markTurn(turnIndex, { keeping: true });
+    setStage("saving");
+    try {
+      await keepProfiles(turn.draft);
+      markTurn(turnIndex, { keeping: false, kept: true });
+    } catch (err) {
+      markTurn(turnIndex, { keeping: false, saveError: err?.message ?? "They could not be saved." });
+    } finally {
+      setStage(null);
     }
   }
 
@@ -534,7 +683,7 @@ export default function PlanPage() {
             </label>
           </section>
 
-          <button type="button" onClick={makePlan} disabled={!ready || busy}
+          <button type="button" onClick={() => makePlan().catch(() => {})} disabled={!ready || busy}
                   className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBasket className="h-4 w-4" />}
             {busy ? "Working it out…" : `Plan it for ${chosen.length || "nobody"}`}
@@ -756,14 +905,12 @@ export default function PlanPage() {
         </section>
       )}
 
-      {/* There from the moment there is a household to plan for, so nobody has
-          to finish a plan to discover it. */}
-      {profiles.length > 0 && (
-        <PlanCopilot open={copilotOpen} onOpenChange={setCopilotOpen} hasPlan={Boolean(plan)} conversation={conversation}
-                     text={followText} onText={setFollowText} onSend={followUp} busy={followBusy}
-                     examples={plan ? followUpExamples({ basket: plan.report.basket, days: plan.days }) : []}
-                     onSaveToHousehold={saveToHousehold} />
-      )}
+      {/* There from the first visit: with no profiles it sets the household up,
+          with profiles it plans, and with a plan it changes it. */}
+      <PlanCopilot open={copilotOpen} onOpenChange={setCopilotOpen} mode={mode} conversation={conversation}
+                   text={followText} onText={setFollowText} onSend={send} stage={stage}
+                   examples={plan ? followUpExamples({ basket: plan.report.basket, days: plan.days }) : []}
+                   onSaveToHousehold={saveToHousehold} onKeepDraft={keepDraft} onClear={clearChat} />
     </main>
   );
 }
