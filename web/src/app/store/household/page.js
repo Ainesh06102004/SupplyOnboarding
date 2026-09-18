@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import KitchenRules from "@/components/store/household/KitchenRules";
 import { Plus, Loader2, Pencil, Trash2, Sparkles, UserRound } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { loadGoalProfile } from "@/lib/supabase/goalProfileService";
@@ -25,7 +26,7 @@ import { AGE_BANDS } from "@/lib/planner/brief";
 import { suggestTargets, goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
 import {
   blankProfile, profileFromRow, memberPayload, avoidsPayload, profileProblems, profileSummary,
-  severitiesFor, defaultSeverityFor, fromGoalSetup, ACTIVITY_LEVELS, MEALS_FROM_HOME, APPETITES, SEVERITIES,
+  severitiesFor, defaultSeverityFor, fromGoalSetup, ACTIVITY_LEVELS, MEALS_FROM_HOME, APPETITES, SPICE_TOLERANCES, SEVERITIES,
 } from "@/lib/household/profile";
 
 const HEADING = { fontFamily: "var(--font-koi-heading)" };
@@ -34,7 +35,7 @@ const LABEL = "text-[12px] font-semibold text-[#0E4032]";
 const HINT = "mt-1 block text-[11px] text-[#5A6B5A]";
 const HARD_ALLERGENS = FOODS_AVOID.filter((a) => a.mode === "hard" && a.kind === "allergen");
 
-const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
+const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, spice_tolerance, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
 
 const when = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
 
@@ -46,7 +47,7 @@ async function readHousehold() {
   if (!user) return { user: null, household: null, members: [], versions: {}, error: null };
   const { data: household, error } = await supabase
     .from("household")
-    .select(`id, keep_out, household_member(${MEMBER_FIELDS})`)
+    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -344,7 +345,15 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
           <span className={LABEL}>Appetite</span>
           <Choice name="Appetite" options={APPETITES} value={form.appetite} onChange={(appetite) => set({ appetite: form.appetite === appetite ? "" : appetite })} />
         </div>
-        <p className={HINT}>Saved with their profile. Plans don&apos;t use meals or appetite yet.</p>
+        <div className="mt-2">
+          <span className={LABEL}>Spice</span>
+          <Choice name="Spice" options={SPICE_TOLERANCES} value={form.spice_tolerance}
+                  onChange={(spice) => set({ spice_tolerance: form.spice_tolerance === spice ? "" : spice })} />
+        </div>
+        <p className={HINT}>
+          Plans use all of this: meals and appetite size the packs, and &ldquo;No spice&rdquo; keeps spicy food off their plate
+          while &ldquo;Mild&rdquo; only leaves it for last.
+        </p>
       </fieldset>
 
       {problems.length > 0 && (
@@ -403,6 +412,33 @@ export default function HouseholdPage() {
     const { error } = await getSupabaseClient().from("household").update({ keep_out: next }).eq("id", householdId);
     setKeepOutBusy(false);
     if (error) show({ ...state, error: "Keeping it out of the house could not be saved." });
+    else await reload();
+  }
+
+  // The kitchen's own rules (00052). Each change saves on its own.
+  async function saveKitchen(patch) {
+    if (!householdId) return;
+    setKeepOutBusy(true);
+    const { error } = await getSupabaseClient().from("household").update(patch).eq("id", householdId);
+    setKeepOutBusy(false);
+    if (error) show({ ...state, error: "That could not be saved." });
+    else await reload();
+  }
+
+  async function addPantry(label) {
+    if (!householdId) return;
+    setKeepOutBusy(true);
+    const { error } = await getSupabaseClient().from("household_pantry").insert({ household_id: householdId, label });
+    setKeepOutBusy(false);
+    if (error) show({ ...state, error: "That could not be added to the cupboard." });
+    else await reload();
+  }
+
+  async function removePantry(row) {
+    setKeepOutBusy(true);
+    const { error } = await getSupabaseClient().from("household_pantry").delete().eq("id", row.id);
+    setKeepOutBusy(false);
+    if (error) show({ ...state, error: "That could not be taken off the list." });
     else await reload();
   }
 
@@ -512,6 +548,11 @@ export default function HouseholdPage() {
             })}
           </div>
         </section>
+      )}
+
+      {householdId && (
+        <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} busy={keepOutBusy}
+                      onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
       )}
     </main>
   );

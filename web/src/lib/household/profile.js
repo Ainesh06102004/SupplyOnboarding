@@ -43,6 +43,13 @@ export const APPETITES = Object.freeze([
   { key: "large", label: "Big eater" },
 ]);
 
+/** How much spice they will eat (00052). Nothing said is nothing enforced. */
+export const SPICE_TOLERANCES = Object.freeze([
+  { key: "none", label: "No spice" },
+  { key: "mild", label: "Mild" },
+  { key: "any", label: "Anything" },
+]);
+
 const AVOID_BY_KEY = Object.fromEntries(FOODS_AVOID.map((a) => [a.key, a]));
 const blankToNull = (v) => (v === "" || v === undefined ? null : v);
 const isNum = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
@@ -77,6 +84,7 @@ export function blankProfile() {
     weight_kg: "",
     height_cm: "",
     appetite: "",
+    spice_tolerance: "",
     meals_from_home: [],
     target_kcal: "",
     target_protein_g: "",
@@ -105,6 +113,7 @@ export function profileFromRow(row) {
     weight_kg: text(row.weight_kg),
     height_cm: text(row.height_cm),
     appetite: text(row.appetite),
+    spice_tolerance: text(row.spice_tolerance),
     meals_from_home: row.meals_from_home ?? [],
     target_kcal: text(row.target_kcal),
     target_protein_g: text(row.target_protein_g),
@@ -139,6 +148,7 @@ export function memberPayload(form) {
     weight_kg: adult && isNum(form.weight_kg) ? String(Number(form.weight_kg)) : null,
     height_cm: adult && isNum(form.height_cm) ? String(Number(form.height_cm)) : null,
     appetite: blankToNull(form.appetite),
+    spice_tolerance: blankToNull(form.spice_tolerance),
     meals_from_home: form.meals_from_home ?? [],
     target_kcal: whole(form.target_kcal),
     target_protein_g: whole(form.target_protein_g),

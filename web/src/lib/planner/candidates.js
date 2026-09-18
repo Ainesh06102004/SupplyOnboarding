@@ -82,6 +82,9 @@ export function plannableFrom(products = []) {
     catalogue.push({
       skuId,
       name: product.name ?? null,
+      // For a household's brand rules (model.js KITCHEN). The shelf's Open Food
+      // Facts products carry a brand name and no id, so names are what match.
+      brand: product.brand ?? null,
       price: Number(product.price),
       // The latest KOI score, for the quality tiebreak (model.js). null when unscored.
       score: isNum(product.score) ? Number(product.score) : null,
@@ -174,6 +177,8 @@ export function memberFor(member, { avoidByKey, dietExclusions }) {
     // From their profile: how much they eat, and which meals they eat at home.
     appetite: member.appetite ?? null,
     mealsFromHome: member.meals_from_home ?? [],
+    // How much spice they will eat (00052): none refuses it, mild costs.
+    spiceTolerance: member.spice_tolerance ?? null,
     // This week only: what they feel like, and what to leave out for them.
     preferCategories: member.preferCategories ?? [],
     skipCategories: member.skipCategories ?? [],

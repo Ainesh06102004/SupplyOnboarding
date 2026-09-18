@@ -55,7 +55,10 @@ import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 //     portions that follow a member's appetite and the meals they eat at home.
 // v9: a change keeps the plan it changes (CONTINUITY), and a product asked for
 //     by name is always a candidate.
-export const MODEL_VERSION = "plan-model-v9";
+// v10: the kitchen's own rules (KITCHEN, migration 00052): brands refused and
+//     preferred, spice tolerance, what is already in the pantry, how much of a
+//     pack may go unfinished, and how much of the last plan may come back.
+export const MODEL_VERSION = "plan-model-v10";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -272,6 +275,44 @@ export const CONTINUITY = Object.freeze({ bonusPerPack: 0.05, cap: 0.25 });
 export const continuityBonus = (price, spendTiebreak = SPEND_TIEBREAK) =>
   Math.min(CONTINUITY.cap, CONTINUITY.bonusPerPack + spendTiebreak * (Number(price) || 0));
 
+/**
+ * The kitchen's own rules (plan-model-v10, migration 00052).
+ *
+ * These are standing facts about a household rather than about this week, and
+ * each is the smallest thing that honours what the shopper said:
+ *
+ *   refused brands    a refusal. Nobody is talked into a brand they will not
+ *                     buy, so the product is not in the program at all.
+ *   preferred brands  a bonus the size of a preference. It decides between
+ *                     products that are otherwise close, and never against a
+ *                     target.
+ *   spice tolerance   "none" is a refusal for that member, like an avoid;
+ *                     "mild" is a cost on their eating it, so KOI reaches for
+ *                     it last. The spicy flag is an attribute in the avoid list
+ *                     already (config.js) — this puts it on the profile.
+ *   the pantry        what is in the house is not bought again.
+ *   waste             "none" sizes packs by the normal serving instead of the
+ *                     largest one, so a pack is what the household actually
+ *                     eats rather than what it could eat at a stretch.
+ *   repeats           "low" charges for a pack that was in the last plan;
+ *                     "high" pays for it. It is the opposite end of the same
+ *                     stick as CONTINUITY, which is about one plan being
+ *                     changed rather than the next week being planned.
+ */
+export const KITCHEN = Object.freeze({
+  preferredBrandBonus: 0.05,
+  mildSpiceCost: 0.05,
+  repeat: Object.freeze({ low: 0.08, usual: 0, high: -0.08 }),
+  wasteNoneUsesServing: true,
+});
+
+/** A brand, compared the way a shopper types it. */
+export const sameBrand = (a, b) => normaliseBrand(a) !== "" && normaliseBrand(a) === normaliseBrand(b);
+// "Grand Sweets & Snacks" and "Grand Sweets and Snacks" are one brand.
+const normaliseBrand = (v) => String(v ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+/** Is this product's brand in that list of brand names? */
+export const brandIn = (brand, brands = []) => (brands ?? []).some((b) => sameBrand(b, brand));
+
 /** Does this product sit in that category, or under it ("snacks" covers "snacks.namkeen")? */
 export const inCategory = (categoryKey, wanted = []) =>
   Boolean(categoryKey) && wanted.some((key) => categoryKey === key || String(categoryKey).startsWith(`${key}.`));
@@ -288,7 +329,7 @@ const round4 = (v) => Math.round(v * 10000) / 10000;
  * @param {number} [relax] 1 as asked; the ladder's variety step doubles it
  * @returns {{ packs: number, basis: "reference_portion"|"energy_share"|"one_pack", perDay: number|null, unit: string|null }}
  */
-export function portionCap(item, member, days, relax = 1) {
+export function portionCap(item, member, days, relax = 1, wasteTolerance = "some") {
   const kcalTarget = isNum(member?.targets?.kcal) && Number(member.targets.kcal) > 0 ? Number(member.targets.kcal) : null;
   const appetite = PORTION_RULE.appetiteScale[member?.appetite] ?? 1;
   const portion = item?.portion;
@@ -296,7 +337,10 @@ export function portionCap(item, member, days, relax = 1) {
   if (portion && isNum(portion.max) && packAmount > 0 && portion.unit === item.packUnit) {
     const occasions = occasionsFor(item?.role, member?.mealsFromHome);
     const scale = kcalTarget ? kcalTarget / PORTION_RULE.referenceKcal : 1;
-    const perDay = occasions * Number(portion.max) * scale * appetite * relax;
+    // A household that wants nothing left over is planned by what it normally
+    // eats, not by the most it could (KITCHEN).
+    const serving = wasteTolerance === "none" && isNum(portion.amount) ? Number(portion.amount) : Number(portion.max);
+    const perDay = occasions * serving * scale * appetite * relax;
     return { packs: round4((perDay * days) / packAmount), basis: "reference_portion", perDay: round1(perDay), unit: portion.unit };
   }
   const kcalPerPack = Number(item?.perPack?.kcal);
@@ -353,6 +397,11 @@ function refusedBy(item, member) {
   if (isNum(member.carbsMax) && !isNum(item.perPack?.carbs)) {
     return { member: member.id, flag: "carbs_not_declared", rule: "pattern" };
   }
+  // Spice they will not eat (v10). "mild" is a cost, not a refusal, and is
+  // charged on their eating it rather than kept from them.
+  if (member.spiceTolerance === "none" && contains.has("spicy")) {
+    return { member: member.id, flag: "spicy", rule: "spice" };
+  }
   // Not this week, for them: what they said they don't feel like (v8).
   if (inCategory(item.categoryKey, member.skipCategories ?? [])) {
     return { member: member.id, flag: "not_this_week", rule: "this_week" };
@@ -378,6 +427,13 @@ function refusedBy(item, member) {
  * @param {number} [input.portionRelax] multiplies every portion ceiling (PORTION_RULE)
  * @param {number} [input.fairness] the weight on the worst-off member's shortfall (FAIRNESS); 0 turns it off
  * @param {string[]} [input.keepOutFlags] contains-flags no product may carry, for anyone (household.keep_out)
+ * @param {string[]} [input.keepSkus] the basket a change is changing (CONTINUITY)
+ * @param {string[]} [input.refusedBrands] brand names never to plan with
+ * @param {string[]} [input.preferredBrands] brand names to lean towards
+ * @param {string[]} [input.pantrySkus] already in the house, so not bought again
+ * @param {"none"|"some"|"any"} [input.wasteTolerance] how much of a pack may go unfinished
+ * @param {"low"|"usual"|"high"} [input.repeatTolerance] how much of the last plan may come back
+ * @param {string[]} [input.lastPlanSkus] what the last plan bought, for repeatTolerance
  * @param {string[]} [input.includeSkus] products the shopper asked for: at least one
  *   pack of each, when the plan can have it at all ("add oats", "swap the rice
  *   for atta"). A product nobody in the household may eat cannot be included,
@@ -400,6 +456,13 @@ export function buildPlanModel({
   keepOutFlags = [],
   includeSkus = [],
   keepSkus = [],
+  // The kitchen's own rules (KITCHEN, migration 00052).
+  refusedBrands = [],
+  preferredBrands = [],
+  pantrySkus = [],
+  wasteTolerance = "some",
+  repeatTolerance = "usual",
+  lastPlanSkus = [],
 }) {
   // A solution is read back from eats_<sku>_<member>, split at the last "_"
   // (lp.js). Real member ids are uuids; an id with "_" would be read as a
@@ -429,6 +492,7 @@ export function buildPlanModel({
     return !judged.length || judged.some((k) => own[k] <= PRICE_SANITY.multiple * typical[k]);
   };
 
+  const pantry = new Set((pantrySkus ?? []).map(String));
   const allowed = [];
   for (const item of catalogue) {
     if (!item?.skuId) continue;
@@ -468,6 +532,16 @@ export function buildPlanModel({
       excluded.push({ skuId: item.skuId, reason: "kept_out_of_house", flag: keptOutFlag });
       continue;
     }
+    // A brand the household will not buy (KITCHEN). Nobody is talked into it.
+    if (brandIn(item.brand, refusedBrands)) {
+      excluded.push({ skuId: item.skuId, reason: "brand_refused", brand: item.brand ?? null });
+      continue;
+    }
+    // Already in the house. Buying it again is the waste this is here to stop.
+    if (pantry.has(String(item.skuId))) {
+      excluded.push({ skuId: item.skuId, reason: "already_in_your_kitchen" });
+      continue;
+    }
     // Kept from the members who cannot eat it; out of the program only when that is everyone.
     const refusedFor = members.map((m) => refusedBy(item, m)).filter(Boolean);
     if (members.length && refusedFor.length === members.length) {
@@ -479,7 +553,7 @@ export function buildPlanModel({
     // eat it can finish in the period cannot be bought at all.
     const caps = Object.fromEntries(members.map((m) => [
       m.id,
-      refusing.has(m.id) ? { packs: 0, basis: "refused", perDay: 0, unit: null } : portionCap(item, m, days, portionRelax),
+      refusing.has(m.id) ? { packs: 0, basis: "refused", perDay: 0, unit: null } : portionCap(item, m, days, portionRelax, wasteTolerance),
     ]));
     const canEat = round4(Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0));
     if (members.length && canEat < 1) {
@@ -495,6 +569,8 @@ export function buildPlanModel({
   // What the shopper asked for by name, and what the plan already holds.
   const wanted = new Set((includeSkus ?? []).map(String));
   const keep = new Set((keepSkus ?? []).map(String));
+  const lastPlan = new Set((lastPlanSkus ?? []).map(String));
+  const repeatCost = KITCHEN.repeat[repeatTolerance] ?? 0;
 
   // Only so many products may enter the program (CANDIDATE_RULE) — but never
   // at the cost of the one thing that was asked for by name. Ranking by protein
@@ -520,9 +596,13 @@ export function buildPlanModel({
 
   // Packs, and who eats them.
   for (const item of eligible) {
-    // Already in the plan: cheaper to keep than to replace (CONTINUITY).
+    // Already in the plan: cheaper to keep than to replace (CONTINUITY). A
+    // brand the household likes costs a little less, and last week's packs cost
+    // what the household said repeats are worth to them (KITCHEN).
     const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price)
-      - (keep.has(String(item.skuId)) ? continuityBonus(item.price, spendTiebreak) : 0);
+      - (keep.has(String(item.skuId)) ? continuityBonus(item.price, spendTiebreak) : 0)
+      - (brandIn(item.brand, preferredBrands) ? KITCHEN.preferredBrandBonus : 0)
+      + (lastPlan.has(String(item.skuId)) ? repeatCost : 0);
     const caps = portionCaps[item.skuId] ?? {};
     // No more whole packs than the household can eat between them.
     const canEat = Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0);
@@ -535,7 +615,15 @@ export function buildPlanModel({
       const upper = Math.min(maxPacksPerSku, caps[m.id]?.packs ?? maxPacksPerSku);
       // What they feel like this week costs a little less to give them (PREFERENCE).
       const wanted = inCategory(item.categoryKey, m.preferCategories ?? []);
-      columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper, integer: false, cost: wanted ? -PREFERENCE.bonusPerPack : 0 });
+      // Spicy, for someone who eats mild: reached for last, not kept from them.
+      const tooSpicy = m.spiceTolerance === "mild" && (item.contains ?? []).includes("spicy");
+      columns.push({
+        name: eatsName(item.skuId, m.id),
+        lower: 0,
+        upper,
+        integer: false,
+        cost: (wanted ? -PREFERENCE.bonusPerPack : 0) + (tooSpicy ? KITCHEN.mildSpiceCost : 0),
+      });
       eaten.coefficients[eatsName(item.skuId, m.id)] = 1;
     }
     rows.push(eaten);
@@ -625,6 +713,14 @@ export function buildPlanModel({
       includedByShopper: included,
       // Kept from the plan this one changes (CONTINUITY).
       keptFromLastPlan: [...keep].filter((id) => eligible.some((item) => String(item.skuId) === id)),
+      // The kitchen's own rules, as this plan applied them (KITCHEN).
+      kitchen: {
+        refusedBrands: [...(refusedBrands ?? [])],
+        preferredBrands: [...(preferredBrands ?? [])],
+        pantrySkus: [...pantry],
+        wasteTolerance,
+        repeatTolerance,
+      },
       portionRule: PORTION_RULE.version,
       portionRelax,
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),

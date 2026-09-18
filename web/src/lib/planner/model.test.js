@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, inCategory, occasionsFor } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, KITCHEN, brandIn, inCategory, occasionsFor } from "@/lib/planner/model.js";
 import { refusalReason } from "@/lib/planner/report.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
@@ -249,7 +249,7 @@ test("this week: what they feel like costs a little less, and what they skip is 
   assert.equal(refusalReason({ flag: "not_this_week", rule: "this_week" }), "not what they feel like this week");
   assert.equal(inCategory("snacks.biscuits_cookies", ["snacks"]), true, "an aisle covers what is under it");
   assert.equal(inCategory("snacks_extra", ["snacks"]), false);
-  assert.equal(MODEL_VERSION, "plan-model-v9");
+  assert.equal(MODEL_VERSION, "plan-model-v10");
 });
 
 test("a change keeps the plan it changes, and what was asked for is always a candidate", () => {
@@ -279,6 +279,58 @@ test("a change keeps the plan it changes, and what was asked for is always a can
   assert.equal(asked.meta.skus.includes("oats"), true, "asked for by name, so it is in the program");
   assert.deepEqual(asked.meta.includedByShopper, ["oats"]);
   assert.equal(colNamed(asked, nameOf.packs("oats")).lower, 1, "at least one pack of it");
+});
+
+test("the kitchen's own rules: brands, spice, the pantry, waste and repeats", () => {
+  const spicy = {
+    skuId: "mixture", price: 180, contains: ["spicy"], availability: "unknown", brand: "Grand Sweets & Snacks",
+    perPack: { kcal: 1250, protein: 25, carbs: 120, fat: 70 }, packAmount: 250, packUnit: "g", role: "snack",
+    portion: { amount: 25, unit: "g", max: 50 },
+  };
+  const ricePack = { ...rice, brand: "Gorakhpur" };
+  const catalogue = [ricePack, spicy];
+
+  // A brand the household will not buy is not in the program at all.
+  const refused = buildPlanModel({ members: [adult], catalogue, days: 7, refusedBrands: ["grand sweets & snacks"] });
+  assert.equal(refused.meta.skus.includes("mixture"), false);
+  assert.deepEqual(refused.excluded.find((e) => e.skuId === "mixture"), { skuId: "mixture", reason: "brand_refused", brand: "Grand Sweets & Snacks" });
+  assert.equal(brandIn("Grand Sweets and Snacks", ["grand sweets & snacks"]), true, "typed the way a shopper types it");
+  assert.equal(brandIn(null, ["anything"]), false, "no brand is not every brand");
+
+  // One the household likes costs a little less, like any other preference.
+  const plain = buildPlanModel({ members: [adult], catalogue, days: 7 });
+  const liked = buildPlanModel({ members: [adult], catalogue, days: 7, preferredBrands: ["Gorakhpur"] });
+  assert.equal(
+    colNamed(liked, nameOf.packs("rice")).cost,
+    round6(colNamed(plain, nameOf.packs("rice")).cost - KITCHEN.preferredBrandBonus),
+  );
+
+  // Spice: "none" is a refusal, "mild" is a cost on their eating it.
+  const noSpice = buildPlanModel({ members: [{ ...adult, spiceTolerance: "none" }], catalogue, days: 7 });
+  assert.equal(noSpice.meta.skus.includes("mixture"), false, "no one left who can eat it");
+  assert.deepEqual(noSpice.excluded.find((e) => e.skuId === "mixture").refusedBy, [{ member: "me", flag: "spicy", rule: "spice" }]);
+  const mild = buildPlanModel({ members: [{ ...adult, spiceTolerance: "mild" }], catalogue, days: 7 });
+  assert.equal(colNamed(mild, nameOf.eats("mixture", "me")).cost, KITCHEN.mildSpiceCost, "reached for last, not kept from them");
+
+  // What is in the house is not bought again.
+  const stocked = buildPlanModel({ members: [adult], catalogue, days: 7, pantrySkus: ["rice"] });
+  assert.equal(stocked.meta.skus.includes("rice"), false);
+  assert.equal(stocked.excluded.find((e) => e.skuId === "rice").reason, "already_in_your_kitchen");
+
+  // No leftovers: a pack is sized by the normal serving, not the largest one.
+  assert.equal(portionCap(rice, adult, 7).perDay, 180, "two occasions of the largest serving");
+  assert.equal(portionCap(rice, adult, 7, 1, "none").perDay, 90, "two occasions of the usual one");
+
+  // Last week's packs cost what the household says a repeat is worth.
+  const bored = buildPlanModel({ members: [adult], catalogue, days: 7, repeatTolerance: "low", lastPlanSkus: ["rice"] });
+  assert.equal(bored.meta.kitchen.repeatTolerance, "low");
+  assert.equal(
+    colNamed(bored, nameOf.packs("rice")).cost,
+    round6(colNamed(plain, nameOf.packs("rice")).cost + KITCHEN.repeat.low),
+  );
+  const same = buildPlanModel({ members: [adult], catalogue, days: 7, repeatTolerance: "high", lastPlanSkus: ["rice"] });
+  assert.equal(colNamed(same, nameOf.packs("rice")).cost, round6(colNamed(plain, nameOf.packs("rice")).cost + KITCHEN.repeat.high));
+  assert.equal(colNamed(plain, nameOf.packs("rice")).cost, buildPlanModel({ members: [adult], catalogue, days: 7, lastPlanSkus: ["rice"] }).columns.find((c) => c.name === nameOf.packs("rice")).cost, "usual says nothing");
 });
 
 test("anything but a staple is one serving a day", () => {

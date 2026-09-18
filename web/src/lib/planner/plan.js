@@ -25,7 +25,7 @@ import { solvePlanModel } from "./solve";
 import { solvePlan, solveWithLadder, NEVER_RELAXED } from "./solvePlan";
 import { planReport, basketDiff, materiallyShort, atPortionLimit, refusalReason } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
-import { applyFollowUp } from "./followup";
+import { applyFollowUp, productsNamed } from "./followup";
 import { readFollowUpWithModel } from "./followUpModel";
 
 export const PLAN_RULE_VERSION = "plan-v1";
@@ -90,7 +90,7 @@ export async function planForHousehold({
   // RLS does the authorising: no rows means not yours (or not there).
   const { data: household, error: householdError } = await db
     .from("household")
-    .select("id, label, keep_out, household_member(*)")
+    .select("id, label, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, household_member(*)")
     .eq("id", householdId)
     .maybeSingle();
   if (householdError) throw householdError;
@@ -134,9 +134,56 @@ export async function planForHousehold({
 
   // Kept out of the house (00047): hard avoids only, as their contains-flags.
   const keepOutFlags = keepOutFlagsFor(household.keep_out, AVOID_BY_KEY);
-
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
-  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags });
+  // The kitchen's own standing rules (00052), and what it already has. It
+  // needs the catalogue: a cupboard holds "atta", not a SKU id.
+  const kitchen = await kitchenRulesFor(db, household, catalogue);
+  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags, kitchen });
+}
+
+/**
+ * A household's standing kitchen rules (00052), and what its last basket held.
+ *
+ * The pantry and the last basket are read here rather than carried on the
+ * plan, because both are about the kitchen today: a week-old plan should not
+ * keep buying around a jar that has since been used up. What the plan does
+ * record is which of them it applied, so its basket can always be explained.
+ *
+ * @param {object} db the shopper's Supabase client (RLS applies)
+ * @param {object} household the row, with its rule columns
+ * @param {Array} catalogue the plannable catalogue, to read the pantry's words
+ */
+async function kitchenRulesFor(db, household, catalogue = []) {
+  const { data: pantryRows, error: pantryError } = await db
+    .from("household_pantry")
+    .select("sku_id, label")
+    .eq("household_id", household.id);
+  if (pantryError) throw pantryError;
+
+  // Only the latest counts as a repeat: the week before last is not this
+  // week's sameness, and a household that plans every week would otherwise be
+  // charged for its whole history.
+  const { data: last, error: lastError } = await db
+    .from("plan")
+    .select("achieved")
+    .eq("household_id", household.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (lastError) throw lastError;
+
+  return {
+    refusedBrands: household.refused_brands ?? [],
+    preferredBrands: household.preferred_brands ?? [],
+    wasteTolerance: household.waste_tolerance ?? "some",
+    repeatTolerance: household.repeat_tolerance ?? "usual",
+    // A cupboard is written in words. The same reader that understands "add
+    // oats" turns "atta" into the products it would have bought.
+    pantrySkus: [...new Set((pantryRows ?? []).flatMap((row) => (
+      row.sku_id ? [String(row.sku_id)] : productsNamed(row.label, catalogue).map((item) => String(item.skuId))
+    )))],
+    lastPlanSkus: (last?.achieved?.basket ?? []).map((l) => String(l.skuId)),
+  };
 }
 
 /** A plan's stored members, in the shape the model plans with. */
@@ -174,10 +221,11 @@ function membersFromSnapshot(snapshot) {
  * @param {string[]} [input.excludeSkus] products this plan must do without
  * @param {string[]} [input.keepOutFlags] contains-flags kept out of the house
  * @param {string[]} [input.keepSkus] the basket this plan changes: kept where it can be
+ * @param {object} [input.kitchen] the household's standing rules (00052)
  * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
  */
-async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], extra = {} }) {
-  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepSkus, keepOutFlags };
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], kitchen = {}, extra = {} }) {
+  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepSkus, keepOutFlags, ...kitchen };
   const { attempt, model, solution, report } = await solvePlan(base);
 
   const status = solution.usable ? "solved" : "infeasible";
@@ -265,6 +313,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         included_skus: [...new Set(includeSkus.map(String))],
         // What this plan kept from the one it changes (CONTINUITY).
         kept_skus: model.meta.keptFromLastPlan ?? [],
+        // The kitchen's standing rules as this plan applied them (00052), so a
+        // basket can be explained later even if the rules have since changed.
+        kitchen_rules: model.meta.kitchen ?? null,
         keep_out_flags: [...new Set(keepOutFlags)],
         // For a follow-up: the plan it changed and KOI's words for the change.
         // The shopper's own message is not stored.
@@ -362,6 +413,11 @@ export async function planWithout({ planId, skuId }) {
     // One product could not be had. That is no reason to re-do the rest.
     keepSkus: (plan.plan_item ?? []).map((l) => String(l.sku_id)).filter((id) => id !== String(skuId)),
     keepOutFlags: snapshot.keep_out_flags ?? [],
+    // The rules this plan was made under, not whatever they are now: a
+    // question about a basket is answered in the terms that basket was built
+    // in. Repeats are not charged, because this is the same week.
+    ...(snapshot.kitchen_rules ?? {}),
+    lastPlanSkus: [],
   };
   const { attempt, model, solution } = await solveWithLadder(base);
   const report = planReport({
@@ -489,6 +545,10 @@ export async function planFollowUp({ planId, text }) {
       .map((l) => String(l.skuId))
       .filter((id) => !change.excludedSkus.map(String).includes(id)),
     keepOutFlags: snapshot.keep_out_flags ?? [],
+    // The rules this plan was made under. The plan being changed is not last
+    // week's plan, so repeats are not charged against it — CONTINUITY above is
+    // what decides how much of it stays.
+    kitchen: { ...(snapshot.kitchen_rules ?? {}), lastPlanSkus: [] },
     extra: { follows: plan.id, change: change.applied },
   });
 
