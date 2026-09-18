@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import { GOAL_RULES } from "@/lib/planner/goals";
+
 // ============================================================================
 // KOI — Goal profile store
 // Captures the shopper's goal, body stats and dietary preferences and derives
@@ -65,7 +67,10 @@ export function computeTargets(p) {
   const tdee = bmr * factor;
 
   const def = GOAL_DEFS[p.goal] || GOAL_DEFS.maintenance;
-  const kcal = Math.max(1200, Math.round((tdee * (1 + def.adj)) / 10) * 10);
+  // The same floor the planner uses (lib/planner/goals.js GOAL_RULES): below
+  // it a diet wants a health professional, and it is not the same for everyone.
+  const floor = GOAL_RULES.kcalFloor[p.sex === "female" ? "female" : p.sex === "male" ? "male" : "unknown"];
+  const kcal = Math.max(floor, Math.round((tdee * (1 + def.adj)) / 10) * 10);
 
   const protein = Math.round(kg * def.proteinPerKg);
   const fat = Math.round((kcal * 0.25) / 9);
