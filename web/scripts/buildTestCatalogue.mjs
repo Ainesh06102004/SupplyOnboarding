@@ -9,9 +9,11 @@
 // The storefront and the planner only see them when
 // NEXT_PUBLIC_KOI_TEST_CATALOGUE=open_food_facts (lib/data/testCatalogue.js).
 //
-// PHOTOGRAPHS. Open Food Facts' data is ODbL; its photographs are CC-BY-SA, a
-// different licence, so each row that carries one also carries the credit and
-// the storefront prints it wherever the photo is shown.
+// NO PHOTOGRAPHS. Open Food Facts' pictures are snapshots taken by volunteers
+// of packs in their own kitchens, under CC-BY-SA. They were shown here for a
+// day and taken out again: a storefront that sells food should show the pack a
+// brand stands behind, not a stranger's photo of it. A test product carries no
+// image, and its card falls back to typography.
 //
 // WHY A FILE AND NOT THE DATABASE. The Supabase project is the live catalogue:
 // koinorth.com/store lists every approved product in it. And KOI keeps Open
@@ -36,13 +38,7 @@ const UA = "KOI-test-catalogue/0.1 (internal testing; koinorth.com)";
 const FIELDS = [
   "code", "product_name", "brands", "quantity", "nutriments", "ingredients_text", "ingredients_text_en",
   "allergens_tags", "last_modified_t",
-  // The contributors' photographs: the front of the pack, and where they exist
-  // the nutrition panel and the ingredient list. Unlike the data (ODbL), Open
-  // Food Facts photos are CC-BY-SA, so each row carries that credit.
-  "image_front_url", "image_nutrition_url", "image_ingredients_url",
 ].join(",");
-
-const PHOTO_CREDIT = "Photo: Open Food Facts contributors, CC-BY-SA 3.0";
 
 // barcode, KOI's name, brand, category hints, estimated MRP (₹) for the pack.
 const PICKS = [
@@ -195,20 +191,9 @@ for (const [code, name, brand, l1, l2, price] of PICKS) {
       offName: p.product_name ?? null,
       priceIsEstimate: true,
       fetchedAt,
-      // The contributors' own photographs, hot-linked, so the storefront shows
-      // a pack rather than a placeholder. Nutrition and ingredient shots stand
-      // in for the label and lifestyle slots where they exist.
-      ...(p.image_front_url ? {
-        image: {
-          hero: p.image_front_url,
-          ...(p.image_nutrition_url ? { label: p.image_nutrition_url } : {}),
-          ...(p.image_ingredients_url ? { lifestyle: p.image_ingredients_url } : {}),
-        },
-        imageCredit: PHOTO_CREDIT,
-      } : {}),
     },
   });
-  console.log(`${code} ${brand} ${name}: ${packGrams} g, ${round(num(n["energy-kcal_100g"]))} kcal, ${ingredients.length} ingredients, ${p.image_front_url ? "photo" : "no photo"}`);
+  console.log(`${code} ${brand} ${name}: ${packGrams} g, ${round(num(n["energy-kcal_100g"]))} kcal, ${ingredients.length} ingredients`);
   await sleep(1500);
 }
 

@@ -23,16 +23,9 @@ const nextConfig = {
   images: {
     // Derived from the configured project so a new Supabase ref does not
     // silently break every remote image. Falls back to none when unset.
-    //
-    // images.openfoodfacts.org serves the contributors' pack photographs, which
-    // the local test catalogue hot-links (scripts/buildTestCatalogue.mjs). They
-    // are CC-BY-SA, credited wherever they are shown, and only ever reachable
-    // with NEXT_PUBLIC_KOI_TEST_CATALOGUE=open_food_facts.
-    remotePatterns: [
-      ...(supabaseHost ? [{ protocol: 'https', hostname: supabaseHost }] : []),
-      { protocol: 'https', hostname: 'images.openfoodfacts.org' },
-      { protocol: 'https', hostname: 'world.openfoodfacts.org' },
-    ],
+    remotePatterns: supabaseHost
+      ? [{ protocol: 'https', hostname: supabaseHost }]
+      : [],
   },
 }
 

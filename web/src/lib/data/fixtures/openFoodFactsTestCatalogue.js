@@ -12,7 +12,7 @@
 // ============================================================================
 
 export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
-  "fetchedAt": "2026-09-18T07:24:25.807Z",
+  "fetchedAt": "2026-09-18T07:44:37.689Z",
   "products": [
     {
       "id": "off-8904043926216",
@@ -57,7 +57,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Toor Dal"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -69,12 +69,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8904043926216",
         "offName": "Unpolished Toor Dal",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/404/392/6216/front_en.5.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/404/392/6216/nutrition_en.8.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -120,7 +115,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Split Moong dal"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -132,12 +127,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906009010601",
         "offName": "Parry's Split Moong Dal",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/600/901/0601/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/600/901/0601/nutrition_en.7.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -183,7 +173,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Besan"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -195,12 +185,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8904043926728",
         "offName": "Tata Sampann Besan 500g",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/404/392/6728/front_en.3.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/404/392/6728/ingredients_en.7.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -247,7 +232,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: gluten"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -259,13 +244,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901725016838",
         "offName": "Aashirvaad Superior MP Atta",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/172/501/6838/front_en.7.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/172/501/6838/nutrition_en.11.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/172/501/6838/ingredients_en.9.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -311,7 +290,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "KABULI CHANA"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -323,12 +302,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906002348954",
         "offName": "CHANA KABULI",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/600/234/8954/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/600/234/8954/nutrition_en.7.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -375,7 +349,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: soybeans"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -387,11 +361,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901560600223",
         "offName": "Soya chunks",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/156/060/0223/front_en.3.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -437,7 +407,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Brown Rice"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -449,13 +419,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/0690225106542",
         "offName": "Brown Rice India gate 1 kg",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/069/022/510/6542/front_en.7.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/069/022/510/6542/nutrition_en.14.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/069/022/510/6542/ingredients_en.9.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -501,7 +465,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Basmati Rice"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -513,13 +477,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901537007123",
         "offName": "Dwt rozana supr basmati rice 1 kg",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/153/700/7123/front_en.11.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/153/700/7123/nutrition_en.13.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/153/700/7123/ingredients_en.15.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -565,7 +523,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Rice flakes"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -577,13 +535,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906008812817",
         "offName": "poha (thick)",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/600/881/2817/front_en.7.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/600/881/2817/nutrition_en.5.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/600/881/2817/ingredients_en.3.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -629,7 +581,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Rolled Oats"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -641,12 +593,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901088213608",
         "offName": "Saffola Oats",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/108/821/3608/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/108/821/3608/nutrition_en.4.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -701,7 +648,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: sesame seeds"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -713,13 +660,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8908005144618",
         "offName": "Yoga Bar Super Muesli 0% Added Sugar",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/800/514/4618/front_en.4.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/800/514/4618/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/800/514/4618/ingredients_en.8.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -778,7 +719,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: soybeans"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -790,13 +731,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8904335601890",
         "offName": "Yoga bar High Protein Muesli+",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/433/560/1890/front_en.22.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/433/560/1890/nutrition_en.24.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/433/560/1890/ingredients_en.18.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -843,7 +778,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: peanuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -855,13 +790,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906127550010",
         "offName": "Natural Peanut Butter Crunch",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/612/755/0010/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/612/755/0010/nutrition_en.11.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/612/755/0010/ingredients_en.5.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -907,7 +836,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Bengal Gram"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -919,12 +848,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906055100455",
         "offName": "Roasted Chana",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/605/510/0455/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/605/510/0455/nutrition_en.5.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -971,7 +895,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Refined Cotton Seed Oil & lodised Salt"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -983,13 +907,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8904004403800",
         "offName": "Moong dal",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/400/440/3800/front_en.17.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/400/440/3800/nutrition_en.19.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/400/440/3800/ingredients_en.10.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1036,7 +954,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: gluten"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1048,13 +966,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8902901001730",
         "offName": "Maida",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/290/100/1730/front_en.22.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/290/100/1730/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/290/100/1730/ingredients_en.9.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1104,7 +1016,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "QUINOA FLOUR (6.6%)"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1116,13 +1028,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901725000899",
         "offName": "Multi -Millet Mix",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/172/500/0899/front_en.9.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/172/500/0899/nutrition_en.3.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/172/500/0899/ingredients_en.10.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1172,7 +1078,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: peanuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1184,13 +1090,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8904067700304",
         "offName": "Classic Hand Roasted Peanuts",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/406/770/0304/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/406/770/0304/nutrition_en.13.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/406/770/0304/ingredients_en.8.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1237,7 +1137,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: peanuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1249,11 +1149,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906156485833",
         "offName": "Saurashtra Peanut",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/615/648/5833/front_en.3.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1301,7 +1197,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: nuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1313,13 +1209,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906142774095",
         "offName": "Pistachio",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/614/277/4095/front_en.17.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/614/277/4095/nutrition_en.14.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/614/277/4095/ingredients_en.18.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1366,7 +1256,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: nuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1378,13 +1268,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906081123626",
         "offName": "100% natural premium whole cashew nuts",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/608/112/3626/front_fr.9.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/608/112/3626/nutrition_fr.13.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/608/112/3626/ingredients_fr.7.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1439,7 +1323,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: nuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1451,13 +1335,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906120106320",
         "offName": "Trail Mix",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/612/010/6320/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/612/010/6320/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/612/010/6320/ingredients_en.5.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1513,7 +1391,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: nuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1525,12 +1403,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8908025353090",
         "offName": "Nuts Fusion",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/802/535/3090/front_en.5.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/802/535/3090/nutrition_en.10.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1577,7 +1450,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: peanuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1589,13 +1462,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8908010900049",
         "offName": "Peanut Butter",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/801/090/0049/front_en.23.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/801/090/0049/nutrition_en.27.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/801/090/0049/ingredients_en.25.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1644,7 +1511,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: peanuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1656,13 +1523,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906143890152",
         "offName": "Dark Chocolate Peanut Spread - Crunchy",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/614/389/0152/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/614/389/0152/nutrition_en.5.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/614/389/0152/ingredients_en.8.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1716,7 +1577,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Flavour Enhancers (INS 627& 631) and Natural & Nature Identical Substances"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1728,13 +1589,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8904063240057",
         "offName": "Aloo Bhujia",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/406/324/0057/front_en.16.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/406/324/0057/nutrition_en.18.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/406/324/0057/ingredients_en.17.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1790,7 +1645,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: soybeans"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1802,13 +1657,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8905950003892",
         "offName": "Soya Sticks",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/595/000/3892/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/595/000/3892/nutrition_en.7.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/595/000/3892/ingredients_en.5.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1852,7 +1701,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
               "flags": {
                 "ingredients_partial": []
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1864,12 +1713,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906010500245",
         "offName": "Balaji Wafers Masala Sev Murmura",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/601/050/0245/front_en.20.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/601/050/0245/nutrition_en.22.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1916,7 +1760,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "edible vegetable oil (sunflower oil, corn oil, and/or canola oil)"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1928,13 +1772,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901491101844",
         "offName": "Lay's Potato Chips",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/149/110/1844/front_en.32.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/149/110/1844/nutrition_en.53.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/149/110/1844/ingredients_en.22.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -1981,7 +1819,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "*EDIBLE VEGETABLE OIL AND IODIZED SALT (0.42%)"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -1993,13 +1831,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901725007096",
         "offName": "Potato Chips Salted",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/172/500/7096/front_en.9.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/172/500/7096/nutrition_en.18.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/172/500/7096/ingredients_en.17.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2047,7 +1879,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "EDIBLE COMMON SALT (0.4%)"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2059,13 +1891,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906010503512",
         "offName": "Balaji wafers",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/601/050/3512/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/601/050/3512/nutrition_en.7.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/601/050/3512/ingredients_en.12.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2125,7 +1951,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: milk"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2137,13 +1963,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901063142022",
         "offName": "Britannia Nutrichoice Digestive",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/106/314/2022/front_en.4.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/106/314/2022/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/106/314/2022/ingredients_en.20.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2206,7 +2026,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: milk"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2218,13 +2038,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901725015435",
         "offName": "Sunfeast Marie Light Vita Orange",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/172/501/5435/front_en.10.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/172/501/5435/nutrition_en.12.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/172/501/5435/ingredients_en.5.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2290,7 +2104,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: Cereals"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2302,13 +2116,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906009535159",
         "offName": "7 Grain Breakfast Cookie Choco Almond",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/600/953/5159/front_en.21.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/600/953/5159/nutrition_en.24.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/600/953/5159/ingredients_en.26.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2366,7 +2174,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: soybeans"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2378,13 +2186,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906113491662",
         "offName": "Tata Soulfull Rusk Elaichi",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/611/349/1662/front_en.8.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/611/349/1662/nutrition_en.18.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/611/349/1662/ingredients_en.15.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2436,7 +2238,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: sesame seeds"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2448,13 +2250,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8908005144076",
         "offName": "Multigrain Energy Bar",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/800/514/4076/front_en.12.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/800/514/4076/nutrition_en.14.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/800/514/4076/ingredients_en.27.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2519,7 +2315,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: sesame seeds"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2531,13 +2327,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8908005144366",
         "offName": "Breakfast Protein Bar Apricot Fig",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/800/514/4366/front_en.25.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/800/514/4366/nutrition_en.29.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/800/514/4366/ingredients_en.27.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2590,7 +2380,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: peanuts"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2602,13 +2392,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906060010107",
         "offName": "Crushed peanut chikki",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/606/001/0107/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/606/001/0107/nutrition_en.5.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/606/001/0107/ingredients_en.10.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2660,7 +2444,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Allergen declared: milk"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2672,13 +2456,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/7622202325960",
         "offName": "Bournville Intense 70% Dark",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/762/220/232/5960/front_en.11.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/762/220/232/5960/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/762/220/232/5960/ingredients_en.8.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2727,7 +2505,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "artificial flavouring substances (cocoa, vanilla)"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2739,13 +2517,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901262070836",
         "offName": "Amul Bitter Chocolate",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/126/207/0836/front_en.7.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/126/207/0836/nutrition_en.11.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/126/207/0836/ingredients_en.9.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2793,7 +2565,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Cocoa Butter"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2805,12 +2577,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906091685053",
         "offName": "Dark Chocolate 87%",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/609/168/5053/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/609/168/5053/nutrition_en.5.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2862,7 +2629,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Xanthan Gum (Naturally Extracted)"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2874,13 +2641,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906127551338",
         "offName": "Peanut Protein Dark Chocolate",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/612/755/1338/front_en.4.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/612/755/1338/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/612/755/1338/ingredients_en.9.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -2931,7 +2692,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Monk Fruit Extract 0.3%"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -2943,13 +2704,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8908017087439",
         "offName": "Plant Protein - Mango",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/801/708/7439/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/801/708/7439/nutrition_en.5.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/801/708/7439/ingredients_en.8.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -3002,7 +2757,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "Coriander and Big Cardamom"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -3014,13 +2769,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8901748000852",
         "offName": "Garam Masala",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/174/800/0852/front_en.3.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/174/800/0852/nutrition_en.10.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/174/800/0852/ingredients_en.9.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     },
     {
@@ -3066,7 +2815,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
                   "TURMERIC"
                 ]
               },
-              "created_at": "2026-09-18T07:24:25.807Z"
+              "created_at": "2026-09-18T07:44:37.689Z"
             }
           ],
           "sku_label_facts": []
@@ -3078,13 +2827,7 @@ export const OPEN_FOOD_FACTS_TEST_CATALOGUE = {
         "url": "https://world.openfoodfacts.org/product/8906021123105",
         "offName": "Turmeric Powder/ Haldi",
         "priceIsEstimate": true,
-        "fetchedAt": "2026-09-18T07:24:25.807Z",
-        "image": {
-          "hero": "https://images.openfoodfacts.org/images/products/890/602/112/3105/front_en.16.400.jpg",
-          "label": "https://images.openfoodfacts.org/images/products/890/602/112/3105/nutrition_en.5.400.jpg",
-          "lifestyle": "https://images.openfoodfacts.org/images/products/890/602/112/3105/ingredients_en.14.400.jpg"
-        },
-        "imageCredit": "Photo: Open Food Facts contributors, CC-BY-SA 3.0"
+        "fetchedAt": "2026-09-18T07:44:37.689Z"
       }
     }
   ]

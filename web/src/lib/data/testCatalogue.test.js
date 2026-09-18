@@ -30,13 +30,10 @@ test("every test product says what it is, and none carries a KOI score", () => {
   }
 });
 
-test("a photograph from Open Food Facts is credited, because its licence asks for it", () => {
+test("a test product shows no photograph: Open Food Facts' are volunteers' own snapshots", () => {
   const products = mapProducts(testCatalogueRows(true));
-  const shown = products.filter((p) => p.image?.hero);
-  assert.equal(shown.length, products.length, "every test product has a front photograph");
-  for (const p of shown) {
-    assert.match(p.image.hero, /^https:\/\/images\.openfoodfacts\.org\//, p.name);
-    assert.equal(p.imageCredit, "Photo: Open Food Facts contributors, CC-BY-SA 3.0", p.name);
+  for (const p of products) {
+    assert.equal(p.image?.hero ?? "", "", p.name);
   }
 });
 
