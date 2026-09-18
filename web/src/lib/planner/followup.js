@@ -28,6 +28,7 @@ import { FOODS_AVOID } from "@/lib/recommendation/config";
 import { AVOID_KEYS } from "@/lib/ai/intent/schema";
 import { interpret } from "@/lib/ai/intent";
 import { normalise } from "@/lib/ai/intent/deterministic";
+import { nodeInfo } from "@/lib/food/taxonomy";
 import { numbersIn } from "@/lib/ai/intent/merge";
 import { nullableNumber, strictObject } from "@/lib/ai/providers/openaiFormat";
 import { budgetIn, MAX_DAYS } from "./brief";
@@ -50,7 +51,7 @@ const DAY_NAMES = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|w
 const PHRASE = String.raw`([a-z0-9]+(?:\s+[a-z0-9]+){0,4})`;
 // The article is a whole word: without the boundary, "a" ate the first letter
 // of "add" and KOI went looking for a product called "dd".
-const ARTICLE = String.raw`(?:(?:the|any|all|some|a|an|my|our|those|these|that|this|more|extra|also|just)\s+)*`;
+const ARTICLE = String.raw`(?:(?:the|any|all|some|a|an|my|our|those|these|that|this|more|extra|also|just|another|other|different)\s+)*`;
 const LEAVE_OUT = new RegExp(String.raw`\b(?:no|without|skip|remove|drop|swap|replace|take|leave|get rid of|cut|instead of|don t want|do not want|dont want|don t need|dont need|not|less|stop|minus)\s+(?:out\s+)?${ARTICLE}${PHRASE}`, "g");
 /**
  * "add oats", "include besan", "buy some atta", "put in a jar of honey".
@@ -392,6 +393,16 @@ const SPELLINGS = Object.freeze({
   haldi: ["turmeric"],
   jeera: ["cumin"],
   masala: ["spice mix", "spice"],
+  // Kinds of food, for when a shopper asks for the shelf rather than the pack:
+  // "put another dry fruit in there".
+  "dried fruit": ["dry fruit", "dryfruit", "dry fruits", "dried fruits", "sukha meva"],
+  nuts: ["nut", "dry nuts"],
+  "biscuits & cookies": ["biscuit", "biscuits", "cookie", "cookies"],
+  "chips & crisps": ["chips", "crisps", "wafers"],
+  "nut butters": ["nut butter", "peanut butter"],
+  "protein powder": ["protein powder", "whey"],
+  chocolate: ["chocolates", "dark chocolate"],
+  "breakfast cereals": ["cereal", "cereals", "muesli", "granola"],
 });
 
 /** Every word that could mean the same food as this one. */
@@ -437,9 +448,17 @@ export function productsNamed(word, catalogue) {
     return forms.some((f) => name.includes(` ${f} `) || (f.includes(" ") && name.includes(f)) || tokens.some((t) => almost(t, f)));
   });
   if (named.length) return named;
+  // Nothing is called that, so it is a kind of food: the category's own key and
+  // the words KOI shows for it ("Dried fruit", "Biscuits & cookies").
   return catalogue.filter((item) => {
-    const key = normalise(String(item.categoryKey ?? "")).replace(/[._]/g, " ");
-    return forms.some((f) => ` ${key} `.includes(` ${f} `));
+    const info = item.categoryKey ? nodeInfo(item.categoryKey) : null;
+    // The product's own category, never its aisle: "Nuts, seeds & dried fruit"
+    // would make a peanut butter answer to "dry fruit".
+    const where = [
+      String(item.categoryKey ?? "").replace(/[._]/g, " "),
+      info?.subcategory ?? info?.label ?? "",
+    ].map((v) => ` ${normalise(v)} `);
+    return forms.some((f) => where.some((w) => w.includes(` ${f} `) || (f.includes(" ") && w.includes(f))));
   });
 }
 

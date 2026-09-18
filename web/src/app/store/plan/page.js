@@ -286,8 +286,11 @@ export default function PlanPage() {
   useEffect(() => {
     if (!chatLoaded) return;
     try {
-      const keepable = conversation.slice(-CHAT_TURNS).map(({ text, kind, at, lines, draft, householdChanges, kept, saved }) => ({
+      const keepable = conversation.slice(-CHAT_TURNS).map(({ text, kind, at, lines, draft, householdChanges, kept, saved, proposal }) => ({
         text, kind, at, lines, draft, householdChanges, kept, saved,
+        // A proposal nobody answered cannot be taken after a reload: the plan
+        // it was solved against is no longer on screen.
+        proposal: proposal === "open" ? undefined : proposal,
       }));
       window.localStorage.setItem(chatKey, JSON.stringify(keepable));
     } catch {
@@ -309,9 +312,34 @@ export default function PlanPage() {
     const text = followText.trim();
     if (!text || stage) return;
     setFollowText("");
+    // On screen before KOI starts: a message that vanishes while it thinks
+    // reads as a message that was lost.
+    say({ kind: mode, text, pending: true, lines: [] });
     if (mode === "plan") return followUp(text);
     if (mode === "setup") return setUpFromChat(text);
     return planFromChat(text);
+  }
+
+  /** Fill in the turn the message is already sitting on. */
+  const answer = (patch) => setConversation((turns) => turns.map((t, i) => (i === turns.length - 1 ? { ...t, pending: false, ...patch } : t)));
+
+  /**
+   * A change is a proposal until the shopper takes it (Phase 4.3): the basket
+   * on screen is the one they agreed to. Taking it makes the new plan current;
+   * leaving it deletes the plan KOI solved and asks what to do instead.
+   */
+  async function decide(turnIndex, take) {
+    const turn = conversation[turnIndex];
+    if (!turn?.proposed) return;
+    if (take) {
+      setPlan(turn.proposed);
+      setWithout({});
+      markTurn(turnIndex, { proposal: "taken" });
+      return;
+    }
+    markTurn(turnIndex, { proposal: "dropped" });
+    // Nothing keeps a plan nobody chose.
+    await getSupabaseClient().from("plan").delete().eq("id", turn.proposed.planId);
   }
 
   /** No profiles yet: read the message as a household and offer to keep it. */
@@ -320,9 +348,7 @@ export default function PlanPage() {
     try {
       const draft = await draftHousehold(text);
       const people = draft.members.map((m) => `${m.label}: ${labelOf(AGE_BANDS, m.age_band)} · ${labelOf(DIET_TYPES, m.diet_type)}${m.target_protein_g ? ` · ${m.target_protein_g} g protein` : ""}${m.target_kcal ? ` · ${m.target_kcal} kcal` : ""}${(m.avoidKeys ?? []).length ? ` · avoids ${m.avoidKeys.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}` : ""}`);
-      say({
-        kind: "setup",
-        text,
+      answer({
         draft,
         lines: [
           draft.members.length
@@ -334,7 +360,7 @@ export default function PlanPage() {
         ],
       });
     } catch (err) {
-      say({ kind: "setup", text, lines: [err?.message ?? "That could not be read."] });
+      answer({ lines: [err?.message ?? "That could not be read."] });
     } finally {
       setStage(null);
     }
@@ -375,9 +401,7 @@ export default function PlanPage() {
         const who = profiles.find((p) => p.memberId === id)?.label ?? "them";
         return `${who}: ${[t.protein && `${t.protein} g protein`, t.kcal && `${t.kcal} kcal`].filter(Boolean).join(", ")} a day, this plan only`;
       });
-      say({
-        kind: "ready",
-        text,
+      answer({
         lines: [
           `Planned ${dayCount(daysNow)}${budgetNow ? ` on ₹${budgetNow.toLocaleString("en-IN")}` : " with no budget"} for ${people.map((p) => p.label).join(", ")}.`,
           ...saidTargets,
@@ -391,7 +415,7 @@ export default function PlanPage() {
       // runs now that there is one.
       if (asked.leaveOut.length || asked.include.length || asked.swaps.length) await followUp(text, made.planId);
     } catch (err) {
-      say({ kind: "ready", text, lines: [err?.message ?? "That could not be planned."] });
+      answer({ lines: [err?.message ?? "That could not be planned."] });
     } finally {
       setStage(null);
     }
@@ -409,15 +433,12 @@ export default function PlanPage() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error ?? "The plan could not be changed.");
-      if (body.changed) {
-        setPlan(body);
-        setWithout({});
-      }
       const change = body.basketChange;
-      say({
-        kind: "plan",
-        text,
+      answer({
         householdChanges: body.householdChanges ?? [],
+        // Solved, and shown as a proposal: the basket on screen stays the one
+        // the shopper agreed to until they take this one.
+        ...(body.changed ? { proposal: "open", proposed: body } : {}),
         lines: [
           body.applied?.length ? `Changed: ${body.applied.join(" · ")}` : "Nothing in that could be applied.",
           ...(change?.added ?? []).map((s) => `Adds ${s.packs} × ${s.name}`),
@@ -428,7 +449,7 @@ export default function PlanPage() {
         ].filter(Boolean),
       });
     } catch (err) {
-      say({ kind: "plan", text, lines: [err?.message ?? "Something went wrong."] });
+      answer({ lines: [err?.message ?? "Something went wrong."] });
     } finally {
       setStage(null);
     }
@@ -963,7 +984,7 @@ export default function PlanPage() {
       <PlanCopilot open={copilotOpen} onOpenChange={setCopilotOpen} mode={mode} conversation={conversation}
                    text={followText} onText={setFollowText} onSend={send} stage={stage}
                    examples={plan ? followUpExamples({ basket: plan.report.basket, days: plan.days }) : []}
-                   onSaveToHousehold={saveToHousehold} onKeepDraft={keepDraft} onClear={clearChat} />
+                   onSaveToHousehold={saveToHousehold} onKeepDraft={keepDraft} onClear={clearChat} onDecide={decide} />
     </main>
   );
 }

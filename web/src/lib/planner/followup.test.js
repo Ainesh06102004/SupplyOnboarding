@@ -87,6 +87,8 @@ test("the ways a shopper asks for a change", () => {
     { skuId: "honey", name: "Uttrakhand Honey", categoryKey: "sweeteners.honey" },
     { skuId: "pb", name: "Natural Peanut Butter Crunch", categoryKey: "nuts_seeds.nut_butters" },
     { skuId: "chips", name: "The Healthy Potato Chips", categoryKey: "snacks.chips_crisps" },
+    { skuId: "fruitmix", name: "Daily Fruit Mix", categoryKey: "nuts_seeds.dried_fruit" },
+    { skuId: "biscuit", name: "NutriChoice Digestive", categoryKey: "snacks.biscuits_cookies" },
   ];
   const read = (message) => applyFollowUp({ ...PLAN, excludedSkus: [], includedSkus: [] }, readFollowUp(message), shop);
   const cases = [
@@ -115,6 +117,10 @@ test("the ways a shopper asks for a change", () => {
     ["get rid of the dates", ["dates"], []],
     ["use honey instead of dates", ["dates"], ["honey"]],
     ["swap out the dates, honey please", ["dates"], []],
+    // A kind of food, not a product: the category answers.
+    ["remove the 1 pack of dates and put another dry fruit in there please", ["dates"], ["fruitmix"]],
+    ["add some dry fruit", [], ["dates"]],
+    ["swap the potato chips for a biscuit", ["chips"], ["biscuit"]],
   ];
   for (const [message, out, into] of cases) {
     const r = read(message);

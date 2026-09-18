@@ -22,11 +22,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageSquare, X, ArrowUp, Trash2, UserRoundPlus } from "lucide-react";
 
-/** What KOI says it is doing, by stage. Cycled, so a long wait still reads as work. */
+/**
+ * What KOI says it is doing. One word changes while it works, with the seconds
+ * beside it, so a wait reads as work rather than as a stuck spinner. The pool
+ * is deliberately long: the same three phrases on a loop read as a fake.
+ */
 const CUES = Object.freeze({
-  reading: ["Reading what you wrote", "Working out who is who", "Checking it against your household", "Keeping to what you said"],
-  planning: ["Planning", "Weighing the budget", "Balancing everyone's targets", "Choosing whole packs", "Checking portions", "Solving"],
-  saving: ["Saving", "Recording the version"],
+  reading: [
+    "Reading", "Parsing", "Untangling", "Deciphering", "Working out who is who", "Matching names to people",
+    "Looking words up", "Checking the shelf", "Weighing what you meant", "Disambiguating", "Sanity-checking",
+  ],
+  planning: [
+    "Planning", "Weighing the budget", "Balancing targets", "Choosing whole packs", "Checking portions",
+    "Shuffling the basket", "Counting grams", "Doing the arithmetic", "Solving", "Optimising", "Second-guessing",
+    "Re-solving", "Sharing it out fairly",
+  ],
+  saving: ["Saving", "Recording the version", "Filing it away", "Writing it down"],
 });
 
 const PROMPTS = Object.freeze({
@@ -41,11 +52,12 @@ const PROMPTS = Object.freeze({
  */
 function Cue({ stage }) {
   const phrases = CUES[stage] ?? CUES.planning;
-  const [i, setI] = useState(0);
+  // A different word each time, not the same march down the list.
+  const [i, setI] = useState(() => Math.floor(Math.random() * phrases.length));
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    const phrase = setInterval(() => setI((n) => (n + 1) % phrases.length), 1600);
+    const phrase = setInterval(() => setI((n) => (n + 1 + Math.floor(Math.random() * (phrases.length - 1))) % phrases.length), 2200);
     const clock = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => { clearInterval(phrase); clearInterval(clock); };
   }, [phrases.length]);
@@ -53,7 +65,7 @@ function Cue({ stage }) {
   return (
     <p className="flex items-center gap-2 text-[12px] text-[#5A6B5A]" aria-live="polite">
       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      <span>{phrases[i]}…{seconds > 2 ? ` ${seconds}s` : ""}</span>
+      <span>{phrases[i]} for {seconds}s…</span>
     </p>
   );
 }
@@ -75,7 +87,7 @@ function Cue({ stage }) {
  */
 export default function PlanCopilot({
   open, onOpenChange, mode = "ready", conversation = [], text, onText, onSend, stage = null,
-  examples = [], onSaveToHousehold, onKeepDraft, onClear,
+  examples = [], onSaveToHousehold, onKeepDraft, onClear, onDecide,
 }) {
   const inputRef = useRef(null);
   const endRef = useRef(null);
@@ -154,6 +166,9 @@ export default function PlanCopilot({
         {conversation.map((turn, i) => (
           <div key={`${turn.at ?? i}-${i}`} className="space-y-1.5 text-[12.5px]">
             <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-[#0E4032] px-3 py-1.5 text-white">{turn.text}</p>
+            {turn.pending ? (
+              <Cue key={stage} stage={stage} />
+            ) : (
             <div className="w-fit max-w-[92%] space-y-1 rounded-2xl rounded-bl-sm bg-[#083D2D]/[0.05] px-3 py-2 text-[#5A6B5A]">
               {(turn.lines ?? []).map((line, n) => (
                 <p key={n} className={n === 0 ? "font-semibold text-[#0E4032]" : undefined}>{line}</p>
@@ -177,10 +192,38 @@ export default function PlanCopilot({
               )}
               {turn.saved && <p className="text-[#16A06E]">Saved to their profile.</p>}
               {turn.saveError && <p className="text-[#B4453C]">{turn.saveError}</p>}
+
+              {/* A change is a proposal until the shopper takes it. */}
+              {turn.proposal === "open" && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={() => onDecide(i, true)}
+                          className="rounded-xl bg-[#0E4032] px-3 py-1.5 text-[12px] font-bold text-white">
+                    Use this plan
+                  </button>
+                  <button type="button" onClick={() => onDecide(i, false)}
+                          className="rounded-xl border border-[#083D2D]/20 px-3 py-1.5 text-[12px] font-semibold text-[#0E4032]">
+                    Not quite
+                  </button>
+                </div>
+              )}
+              {turn.proposal === "taken" && <p className="text-[#16A06E]">Taken: this is your plan now.</p>}
+              {turn.proposal === "dropped" && (
+                <>
+                  <p>Left as it was. What can KOI do differently?</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {examples.map((example) => (
+                      <button key={example} type="button" onClick={() => onText(example)}
+                              className="rounded-full border border-[#083D2D]/15 px-2.5 py-1 text-[11.5px] text-[#0E4032]">
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+            )}
           </div>
         ))}
-        {busy && <Cue key={stage} stage={stage} />}
         <div ref={endRef} />
       </div>
 
