@@ -3,7 +3,9 @@
 //
 // Off unless KOI_RELATIVE_SCORES=on, which is set per environment (plan §11.2).
 // The founder has decided what it shows: one line, the product's most
-// favourable comparison, or nothing.
+// favourable comparison, or nothing. A figure Open Food Facts disputes carries
+// no line (disputes.js), and the comparison is only ever with the product's own
+// category, never a whole aisle.
 //
 // The reference is internal (engine, service role); only the sentence leaves,
 // with its attribution, version and date. Nothing here changes a score, an
@@ -15,6 +17,7 @@ import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { rowFromProduct } from "@/lib/nutrition/claims";
 import { inContext } from "@/lib/screening/relative";
 import { latestReference } from "@/lib/screening/categoryReference";
+import { disputedMetrics } from "@/lib/screening/disputes";
 
 export async function GET(request) {
   if (process.env.KOI_RELATIVE_SCORES !== "on") {
@@ -29,9 +32,11 @@ export async function GET(request) {
     const product = products.find((p) => String(p.skuId) === String(skuId));
     if (!product) return NextResponse.json({ error: "No such product" }, { status: 404 });
 
-    const nodeKeys = product.categoryKey ? [...new Set([product.categoryKey, product.categoryKey.split(".")[0]])] : [];
-    const references = await latestReference(nodeKeys);
-    const context = inContext({ product, row: rowFromProduct(product), references });
+    const [references, disputed] = await Promise.all([
+      latestReference(product.categoryKey ? [product.categoryKey] : []),
+      disputedMetrics(skuId),
+    ]);
+    const context = inContext({ product, row: rowFromProduct(product), references, disputed });
     return NextResponse.json({ enabled: true, context }, { headers: { "Cache-Control": "private, max-age=600" } });
   } catch (err) {
     console.error("[products/relative]", err?.message ?? err);

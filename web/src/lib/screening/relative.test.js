@@ -87,11 +87,23 @@ test("no percentile from too few products", () => {
   assert.equal(inContext({ product: biscuit, row: row({}), references: small }), null);
 });
 
-test("a category with too few falls back to its aisle, and units must match", () => {
+test("a category with no reference of its own gets no line: never the whole aisle", () => {
   const aisle = references.map((r) => ({ ...r, node_key: "snacks" }));
-  assert.equal(referenceFor("snacks.biscuits_cookies", aisle).nodeKey, "snacks");
+  assert.equal(referenceFor("snacks.biscuits_cookies", aisle), null, "a savoury namkeen is not compared with the snacks aisle");
+  assert.equal(referenceFor("snacks", aisle).nodeKey, "snacks", "an aisle-level product is compared with its aisle");
+  assert.equal(inContext({ product: biscuit, row: row({}), references: aisle }), null);
+});
+
+test("units must match", () => {
   const drink = inContext({ product: biscuit, row: { measurement_basis: "per_100ml", sugars_g: 5, total_fat_g: 0 }, references });
   assert.equal(drink, null, "per 100 ml is not compared with per 100 g");
+});
+
+test("a figure Open Food Facts disputes carries no line", () => {
+  const ctx = inContext({ product: biscuit, row: row({}), references, disputed: ["sugars_g"] });
+  assert.equal(ctx, null, "sugar was its only favourable figure, and it is disputed");
+  const protein = inContext({ product: biscuit, row: row({ protein_g: 18 }), references, disputed: ["sugars_g"] });
+  assert.equal(protein.line.metric, "protein_g", "an undisputed figure still can");
 });
 
 test("the nutrition rating ignores the serving on both sides", () => {

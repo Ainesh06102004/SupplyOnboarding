@@ -8,8 +8,9 @@
 //
 //   1. Never a bare number. The line says what it is compared with: "Less
 //      sugar per 100 g than 81% of 85 biscuits & cookies on Open Food Facts".
-//   2. Never a percentile against KOI's own shelf, and never from fewer than
-//      RELATIVE.minSample products (engine.category_reference).
+//   2. Never a percentile against KOI's own shelf, never from fewer than
+//      RELATIVE.minSample products (engine.category_reference), and never
+//      against a wider aisle than the product's own category.
 //   3. Attribution travels with the sentence (`attribution`).
 //   4. Two numbers, and this one never touches safety. Nothing here changes a
 //      score, an eligibility decision, an allergen or a claim; the reference
@@ -107,8 +108,15 @@ export function positionIn(value, cuts, whole = Math.round) {
 }
 
 /**
- * The reference rows to compare with: the product's own category if it has
- * enough products, else its aisle. Rows are grouped by node, then metric.
+ * The reference rows to compare with: the product's own category, and only
+ * that. Rows are grouped by metric.
+ *
+ * It used to fall back to the aisle when a category held too few products, and
+ * that made true comparisons that misled: Madras Mixture read "less sugar than
+ * 95% of 225 snacks", which is a savoury namkeen next to biscuits and
+ * chocolate. A comparative claim has to name foods a shopper would recognise as
+ * comparable (FSS Advertising and Claims Regulations, 2018), so a category
+ * without a reference of its own gets no line at all (plan §11.2, action 4).
  *
  * @param {string|null} categoryKey
  * @param {Array} rows engine.category_reference rows (one version)
@@ -116,12 +124,8 @@ export function positionIn(value, cuts, whole = Math.round) {
  */
 export function referenceFor(categoryKey, rows = []) {
   if (!categoryKey) return null;
-  const candidates = [categoryKey, categoryKey.split(".")[0]];
-  for (const nodeKey of [...new Set(candidates)]) {
-    const byMetric = new Map(rows.filter((r) => r.node_key === nodeKey && Number(r.n) >= RELATIVE.minSample).map((r) => [r.metric, r]));
-    if (byMetric.size) return { nodeKey, byMetric };
-  }
-  return null;
+  const byMetric = new Map(rows.filter((r) => r.node_key === categoryKey && Number(r.n) >= RELATIVE.minSample).map((r) => [r.metric, r]));
+  return byMetric.size ? { nodeKey: categoryKey, byMetric } : null;
 }
 
 /**
@@ -131,9 +135,10 @@ export function referenceFor(categoryKey, rows = []) {
  * @param {object} input.product storefront product (skuId, name, categoryKey)
  * @param {object} input.row its nutrition row (rowFromProduct)
  * @param {Array} input.references engine.category_reference rows for one version
+ * @param {string[]} [input.disputed] metrics Open Food Facts disagrees with KOI on
  * @returns {{ category, line: { metric, percent, n, text }, attribution, note }|null}
  */
-export function inContext({ product, row, references = [] }) {
+export function inContext({ product, row, references = [], disputed = [] }) {
   const ref = referenceFor(product?.categoryKey ?? null, references);
   if (!ref) return null;
   const any = ref.byMetric.values().next().value;
@@ -146,6 +151,10 @@ export function inContext({ product, row, references = [] }) {
   // Every favourable comparison at 25% or more from the middle product; the one line shown is the strongest.
   const favourable = [];
   for (const m of MEASURES) {
+    // A figure Open Food Facts disagrees with KOI on cannot carry a claim:
+    // Chocolate Biscuits' sugar is disputed, and its only line was about sugar
+    // (plan §11.2, action 4). The dispute goes to the label re-read queue.
+    if (disputed.includes(m.metric)) continue;
     const r = ref.byMetric.get(m.metric);
     const value = per100[m.metric];
     if (!r || !isNum(value)) continue;
