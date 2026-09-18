@@ -98,6 +98,18 @@ test("severity decides: a dislike is noted, a rule refuses even a soft avoid, an
   assert.deepEqual(member.softAvoidFlags.sort(), ["egg", "spicy"]);
 });
 
+test("a diet chosen for this plan stands in for the saved one, and this week's choices reach the model", () => {
+  const member = memberFor({
+    id: "m4", label: "Me", age_band: "adult_19_59", diet_type: "non_vegetarian", appetite: "large", meals_from_home: ["breakfast", "dinner"],
+    dietForThisPlan: "vegetarian", preferCategories: ["snacks"], skipCategories: ["sweets"], avoidKeys: [],
+  }, catalogues);
+  assert.equal(member.dietType, "vegetarian");
+  assert.deepEqual(member.dietExcludes, DIET_EXCLUSIONS.vegetarian);
+  assert.deepEqual([member.appetite, member.mealsFromHome, member.preferCategories, member.skipCategories], ["large", ["breakfast", "dinner"], ["snacks"], ["sweets"]]);
+  const saved = memberFor({ id: "m5", diet_type: "non_vegetarian", avoidKeys: [] }, catalogues);
+  assert.equal(saved.dietType, "non_vegetarian", "with no choice for this plan, the profile's diet");
+});
+
 test("a goal reaches the model for an adult, and not for a child", () => {
   const adult = memberFor({ id: "a", age_band: "adult_19_59", energy_goal: "lose", eating_pattern: "keto", version: 3, avoidKeys: [] }, catalogues);
   assert.deepEqual([adult.energyGoal, adult.eatingPattern, adult.carbsMax, adult.profileVersion], ["lose", "keto", 50, 3]);

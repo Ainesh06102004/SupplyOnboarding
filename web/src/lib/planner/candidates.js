@@ -159,6 +159,9 @@ export function memberFor(member, { avoidByKey, dietExclusions }) {
     ((severity ?? defaultSeverity(entry)) === "dislike" ? soft : hard).push(entry.flag);
   }
   const { energyGoal, eatingPattern } = effectiveGoal(member);
+  // A diet chosen for this plan alone stands in for the saved one; the saved
+  // profile is never changed by planning (plan §9.10.2).
+  const dietType = member.dietForThisPlan ?? member.diet_type ?? null;
   return {
     id: String(member.id),
     label: member.label ?? null,
@@ -167,6 +170,13 @@ export function memberFor(member, { avoidByKey, dietExclusions }) {
     energyGoal,
     eatingPattern,
     carbsMax: carbCeiling(eatingPattern),
+    dietType,
+    // From their profile: how much they eat, and which meals they eat at home.
+    appetite: member.appetite ?? null,
+    mealsFromHome: member.meals_from_home ?? [],
+    // This week only: what they feel like, and what to leave out for them.
+    preferCategories: member.preferCategories ?? [],
+    skipCategories: member.skipCategories ?? [],
     // The saved profile this plan was made from (household_member_version).
     profileVersion: isNum(member.version) ? Number(member.version) : null,
     targets: {
@@ -177,6 +187,6 @@ export function memberFor(member, { avoidByKey, dietExclusions }) {
     },
     avoidFlags: [...new Set(hard)],
     softAvoidFlags: [...new Set(soft)],
-    dietExcludes: [...(dietExclusions[member.diet_type] ?? [])],
+    dietExcludes: [...(dietExclusions[dietType] ?? [])],
   };
 }

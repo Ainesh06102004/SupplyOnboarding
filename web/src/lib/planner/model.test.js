@@ -6,7 +6,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, inCategory, occasionsFor } from "@/lib/planner/model.js";
+import { refusalReason } from "@/lib/planner/report.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
 const cookies = { skuId: "cookies", price: 120, contains: ["gluten", "dairy", "soy", "peanut"], availability: "unknown", perPack: { kcal: 940, protein: 21.8, carbs: 130, fat: 40 } };
@@ -213,7 +214,40 @@ test("nobody is planned more of one product than they could eat", () => {
   assert.equal(colNamed(model, nameOf.packs("rice")).upper, 2, "1.26 + 0.882 packs: two whole ones");
   assert.deepEqual(model.meta.portionCaps.rice.me, { packs: 1.26, basis: "reference_portion", perDay: 180, unit: "g" });
   assert.equal(model.meta.portionRule, PORTION_RULE.version);
-  assert.equal(MODEL_VERSION, "plan-model-v7");
+  assert.equal(occasionsFor("meal_base", []), 2, "with nothing stated, the rule's own occasions");
+});
+
+test("someone who eats fewer meals at home, or eats less, is planned less", () => {
+  const breakfastOnly = { ...adult, mealsFromHome: ["breakfast"] };
+  const allMeals = { ...adult, mealsFromHome: ["breakfast", "lunch", "dinner", "snacks"] };
+  assert.equal(portionCap(rice, allMeals, 7).perDay, 180, "two occasions, as before");
+  assert.equal(portionCap(rice, breakfastOnly, 7).perDay, 90, "one meal at home, one serving");
+  assert.equal(portionCap(rice, { ...adult, mealsFromHome: ["snacks"] }, 7).perDay, 45, "no main meal at home: half a serving");
+  const snack = { skuId: "snack", price: 90, contains: [], perPack: { kcal: 860 }, packAmount: 200, packUnit: "g", role: "snack", portion: { amount: 30, unit: "g", max: 60 } };
+  assert.equal(portionCap(snack, allMeals, 7).perDay, 60);
+  assert.equal(portionCap(snack, breakfastOnly, 7).perDay, 30, "they don't snack at home");
+  assert.equal(portionCap(rice, { ...allMeals, appetite: "large" }, 7).perDay, 216, "a big eater, a fifth more");
+  assert.equal(portionCap(rice, { ...allMeals, appetite: "small" }, 7).perDay, 144);
+  assert.equal(PORTION_RULE.version, "portion-cap-v2");
+});
+
+test("this week: what they feel like costs a little less, and what they skip is not for them", () => {
+  const biscuits = {
+    skuId: "biscuits", price: 120, contains: [], availability: "unknown", perPack: { kcal: 940, protein: 21.8, carbs: 130, fat: 40 },
+    packAmount: 200, packUnit: "g", role: "snack", portion: { amount: 30, unit: "g", max: 60 }, categoryKey: "snacks.biscuits_cookies",
+  };
+  const wants = { ...adult, id: "wants", preferCategories: ["snacks"] };
+  const skips = { ...adult, id: "skips", skipCategories: ["snacks.biscuits_cookies"] };
+  const model = buildPlanModel({ members: [wants, skips], catalogue: [{ ...rice, categoryKey: "staples.rice" }, biscuits], days: 7 });
+  assert.equal(colNamed(model, nameOf.eats("biscuits", "wants")).cost, -PREFERENCE.bonusPerPack, "a nudge, not a rule");
+  assert.equal(colNamed(model, nameOf.eats("rice", "wants")).cost, 0);
+  assert.equal(colNamed(model, nameOf.eats("biscuits", "skips")), undefined);
+  assert.deepEqual(model.meta.refusals.biscuits, [{ member: "skips", flag: "not_this_week", rule: "this_week" }]);
+  assert.deepEqual(model.meta.thisWeek.wants.prefer, ["snacks"]);
+  assert.equal(refusalReason({ flag: "not_this_week", rule: "this_week" }), "not what they feel like this week");
+  assert.equal(inCategory("snacks.biscuits_cookies", ["snacks"]), true, "an aisle covers what is under it");
+  assert.equal(inCategory("snacks_extra", ["snacks"]), false);
+  assert.equal(MODEL_VERSION, "plan-model-v8");
 });
 
 test("anything but a staple is one serving a day", () => {

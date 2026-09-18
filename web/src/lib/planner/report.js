@@ -32,6 +32,7 @@ export function refusalReason({ flag, rule }) {
   if (rule === "diet") return `not in their diet: ${DIET_FLAG_WORDS[flag] ?? flag.replace(/_/g, " ")}`;
   if (rule === "age") return ageReason(flag);
   if (rule === "pattern") return "carbohydrate not declared, so it can't be shown to fit their carb limit";
+  if (rule === "this_week") return "not what they feel like this week";
   const entry = FOODS_AVOID.find((a) => a.flag === flag);
   return `contains ${(entry?.label ?? flag.replace(/_/g, " ")).toLowerCase()}`;
 }

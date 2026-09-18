@@ -17,9 +17,16 @@
 import { NextResponse } from "next/server";
 import { getVerifiedUser } from "@/lib/auth/verifyRequest";
 import { planForHousehold } from "@/lib/planner/plan";
+import { DIET_TYPES } from "@/lib/recommendation/config";
+import { nodeInfo } from "@/lib/food/taxonomy";
 
 /** A fortnight is the most a plan can be trusted to; the table agrees. */
 const MAX_DAYS = 14;
+/** As many as a household may hold (lib/planner/brief.js MAX_MEMBERS). */
+const MAX_MEMBERS = 12;
+const MAX_CATEGORIES = 10;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DIET_KEYS = DIET_TYPES.map((d) => d.key);
 
 export async function POST(request) {
   const user = await getVerifiedUser(request);
@@ -58,8 +65,28 @@ export async function POST(request) {
     return NextResponse.json({ error: "requireAvailable needs a zoneId" }, { status: 400 });
   }
 
+  // Who is eating, and what they chose for this plan alone. Both are checked
+  // here: a member id only ever narrows the caller's own household (RLS still
+  // decides), a diet must be one KOI knows, and a category must be one in the
+  // tree — anything else is dropped rather than passed to the solver.
+  const memberIds = Array.isArray(body?.memberIds)
+    ? [...new Set(body.memberIds.filter((id) => typeof id === "string" && UUID.test(id)))].slice(0, MAX_MEMBERS)
+    : null;
+
+  const thisWeek = {};
+  for (const [memberId, choice] of Object.entries(body?.thisWeek ?? {})) {
+    if (!UUID.test(String(memberId)) || !choice || typeof choice !== "object") continue;
+    const dietType = DIET_KEYS.includes(choice.dietType) ? choice.dietType : null;
+    const categories = (list) => (Array.isArray(list) ? list : [])
+      .filter((key) => typeof key === "string" && nodeInfo(key))
+      .slice(0, MAX_CATEGORIES);
+    const prefer = categories(choice.prefer);
+    const skip = categories(choice.skip);
+    if (dietType || prefer.length || skip.length) thisWeek[memberId] = { dietType, prefer, skip };
+  }
+
   try {
-    const plan = await planForHousehold({ householdId, days, budget, zoneId, availability });
+    const plan = await planForHousehold({ householdId, days, budget, zoneId, availability, memberIds, thisWeek });
     return NextResponse.json(plan);
   } catch (err) {
     // A household that is not this shopper's reads as absent, which is the

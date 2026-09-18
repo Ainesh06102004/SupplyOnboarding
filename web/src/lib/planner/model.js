@@ -51,7 +51,9 @@ import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 // v6: age-band safety refusals (ageSafety.js).
 // v7: goals (GOAL_MODEL): a deficit as an energy ceiling, a surplus weighted,
 //     keto and low carb as carbohydrate ceilings.
-export const MODEL_VERSION = "plan-model-v7";
+// v8: this week's choices (PREFERENCE: what they feel like, what to skip), and
+//     portions that follow a member's appetite and the meals they eat at home.
+export const MODEL_VERSION = "plan-model-v8";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -195,12 +197,54 @@ export const MAX_PACKS_PER_SKU = 14;
  * built from one cheap product, and a plan held back by them says so.
  */
 export const PORTION_RULE = Object.freeze({
-  version: "portion-cap-v1",
+  version: "portion-cap-v2",
   occasionsPerDay: Object.freeze({ meal_base: 2 }),
   defaultOccasions: 1,
   referenceKcal: 2000,
   unreferencedEnergyShare: 0.1,
+  // Which meals a staple can appear at, and what a member eating fewer of them
+  // from home needs (household_member.meals_from_home, 00050). With nothing
+  // stated the occasions above stand.
+  mainMeals: Object.freeze(["breakfast", "tiffin", "lunch", "dinner"]),
+  fewestOccasions: 0.5,
+  // A big eater is planned a fifth more of a product than a small one
+  // (household_member.appetite). Editorial, and versioned with the rule.
+  appetiteScale: Object.freeze({ small: 0.8, usual: 1, large: 1.2 }),
 });
+
+/**
+ * A day's occasions for this kind of food, given the meals a member eats from
+ * home: a staple at up to two of them, anything else once if they eat from
+ * home at all. Someone who eats only breakfast at home is planned less.
+ *
+ * @param {string|null} role a taxonomy meal role
+ * @param {string[]} [mealsFromHome]
+ * @returns {number}
+ */
+export function occasionsFor(role, mealsFromHome = []) {
+  const stated = (mealsFromHome ?? []).length > 0;
+  const base = PORTION_RULE.occasionsPerDay[role] ?? PORTION_RULE.defaultOccasions;
+  if (!stated) return base;
+  if (role === "meal_base") {
+    const meals = PORTION_RULE.mainMeals.filter((m) => mealsFromHome.includes(m)).length;
+    return Math.min(base, Math.max(PORTION_RULE.fewestOccasions, meals));
+  }
+  return mealsFromHome.includes("snacks") ? base : PORTION_RULE.fewestOccasions;
+}
+
+/**
+ * What a member feels like eating this week, as the model reads it (v8).
+ *
+ * `prefer` takes a little off the cost of a pack that member eats, so a
+ * preference decides between products that are otherwise close and never
+ * against a target: one gram of protein short costs 6, and this costs 0.05.
+ * `skip` is a refusal for that member alone, reported like any other.
+ */
+export const PREFERENCE = Object.freeze({ bonusPerPack: 0.05 });
+
+/** Does this product sit in that category, or under it ("snacks" covers "snacks.namkeen")? */
+export const inCategory = (categoryKey, wanted = []) =>
+  Boolean(categoryKey) && wanted.some((key) => categoryKey === key || String(categoryKey).startsWith(`${key}.`));
 
 const round1 = (v) => Math.round(v * 10) / 10;
 const round4 = (v) => Math.round(v * 10000) / 10000;
@@ -216,17 +260,18 @@ const round4 = (v) => Math.round(v * 10000) / 10000;
  */
 export function portionCap(item, member, days, relax = 1) {
   const kcalTarget = isNum(member?.targets?.kcal) && Number(member.targets.kcal) > 0 ? Number(member.targets.kcal) : null;
+  const appetite = PORTION_RULE.appetiteScale[member?.appetite] ?? 1;
   const portion = item?.portion;
   const packAmount = Number(item?.packAmount);
   if (portion && isNum(portion.max) && packAmount > 0 && portion.unit === item.packUnit) {
-    const occasions = PORTION_RULE.occasionsPerDay[item.role] ?? PORTION_RULE.defaultOccasions;
+    const occasions = occasionsFor(item?.role, member?.mealsFromHome);
     const scale = kcalTarget ? kcalTarget / PORTION_RULE.referenceKcal : 1;
-    const perDay = occasions * Number(portion.max) * scale * relax;
+    const perDay = occasions * Number(portion.max) * scale * appetite * relax;
     return { packs: round4((perDay * days) / packAmount), basis: "reference_portion", perDay: round1(perDay), unit: portion.unit };
   }
   const kcalPerPack = Number(item?.perPack?.kcal);
   if (kcalPerPack > 0) {
-    const perDay = (kcalTarget ?? PORTION_RULE.referenceKcal) * PORTION_RULE.unreferencedEnergyShare * relax;
+    const perDay = (kcalTarget ?? PORTION_RULE.referenceKcal) * PORTION_RULE.unreferencedEnergyShare * appetite * relax;
     return { packs: round4((perDay * days) / kcalPerPack), basis: "energy_share", perDay: round1(perDay), unit: "kcal" };
   }
   return { packs: relax, basis: "one_pack", perDay: null, unit: null };
@@ -277,6 +322,10 @@ function refusedBy(item, member) {
   // carbohydrate is not declared: "no figure, no claim" again.
   if (isNum(member.carbsMax) && !isNum(item.perPack?.carbs)) {
     return { member: member.id, flag: "carbs_not_declared", rule: "pattern" };
+  }
+  // Not this week, for them: what they said they don't feel like (v8).
+  if (inCategory(item.categoryKey, member.skipCategories ?? [])) {
+    return { member: member.id, flag: "not_this_week", rule: "this_week" };
   }
   return null;
 }
@@ -430,7 +479,9 @@ export function buildPlanModel({
     for (const m of members) {
       if (!mayEat(item.skuId, m.id)) continue;
       const upper = Math.min(maxPacksPerSku, caps[m.id]?.packs ?? maxPacksPerSku);
-      columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper, integer: false, cost: 0 });
+      // What they feel like this week costs a little less to give them (PREFERENCE).
+      const wanted = inCategory(item.categoryKey, m.preferCategories ?? []);
+      columns.push({ name: eatsName(item.skuId, m.id), lower: 0, upper, integer: false, cost: wanted ? -PREFERENCE.bonusPerPack : 0 });
       eaten.coefficients[eatsName(item.skuId, m.id)] = 1;
     }
     rows.push(eaten);
@@ -527,6 +578,14 @@ export function buildPlanModel({
         energyGoal: m.energyGoal ?? "maintain",
         eatingPattern: m.eatingPattern ?? "balanced",
         carbsMax: isNum(m.carbsMax) ? Number(m.carbsMax) : null,
+      }])),
+      // What each member chose for this plan alone (v8).
+      thisWeek: Object.fromEntries(members.map((m) => [m.id, {
+        dietType: m.dietType ?? null,
+        prefer: m.preferCategories ?? [],
+        skip: m.skipCategories ?? [],
+        appetite: m.appetite ?? null,
+        mealsFromHome: m.mealsFromHome ?? [],
       }])),
       fairness: fairFor.length ? fairness : 0,
       fairnessNutrients: fairFor,

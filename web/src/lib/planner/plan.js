@@ -81,6 +81,8 @@ export async function planForHousehold({
   budget = null,
   zoneId = null,
   availability = "allow_unknown",
+  memberIds = null,
+  thisWeek = {},
 }) {
   if (!householdId) throw new Error("A household id is required.");
   const db = await getServerSupabase();
@@ -94,7 +96,10 @@ export async function planForHousehold({
   if (householdError) throw householdError;
   if (!household) throw new Error("No such household for this shopper.");
 
-  const memberRows = household.household_member ?? [];
+  // Who is eating this week: the members the shopper picked, or everyone. The
+  // ids are only ever used to narrow this household's own rows.
+  const wanted = Array.isArray(memberIds) && memberIds.length ? new Set(memberIds.map(String)) : null;
+  const memberRows = (household.household_member ?? []).filter((row) => !wanted || wanted.has(String(row.id)));
   if (!memberRows.length) throw new Error("This household has no members yet.");
 
   const { data: avoidRows, error: avoidError } = await db
@@ -109,8 +114,18 @@ export async function planForHousehold({
     avoidsByMember.get(row.member_id).push({ key: row.avoid_key, severity: row.severity ?? null });
   }
 
-  const members = memberRows.map((row) =>
-    memberFor({ ...row, avoids: avoidsByMember.get(row.id) ?? [] }, CATALOGUES));
+  // This plan's own choices, which never reach the saved profile: a diet for
+  // this plan, what they feel like eating, and what to leave out for them.
+  const members = memberRows.map((row) => {
+    const choices = thisWeek?.[String(row.id)] ?? {};
+    return memberFor({
+      ...row,
+      avoids: avoidsByMember.get(row.id) ?? [],
+      dietForThisPlan: choices.dietType ?? null,
+      preferCategories: choices.prefer ?? [],
+      skipCategories: choices.skip ?? [],
+    }, CATALOGUES);
+  });
 
   // Kept out of the house (00047): hard avoids only, as their contains-flags.
   const keepOutFlags = keepOutFlagsFor(household.keep_out, AVOID_BY_KEY);
@@ -124,6 +139,13 @@ function membersFromSnapshot(snapshot) {
   return (snapshot?.members ?? []).map((m) => ({
     id: m.id,
     label: m.label,
+    // This week's choices and the profile's own eating pattern travel with the
+    // plan, so a follow-up changes the basket and not what was asked for.
+    dietType: m.diet_for_this_plan ?? null,
+    appetite: m.appetite ?? null,
+    mealsFromHome: m.meals_from_home ?? [],
+    preferCategories: m.prefer_categories ?? [],
+    skipCategories: m.skip_categories ?? [],
     // Plans stored before plan-model-v6 have no age band, and so no age rules;
     // before v7, no goal.
     ageBand: m.age_band ?? null,
@@ -173,6 +195,19 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // Nutrition priced far beyond the catalogue's (PRICE_SANITY).
     products_priced_out: named(model.excluded.filter((e) => e.reason === "priced_beyond_its_nutrition"), catalogue),
     portion_limited: atPortionLimit({ meta: model.meta, solution, catalogue, members }),
+    // Keto and low carb: the ceiling each member was held to, and how much of
+    // the catalogue could not be shown to fit it. A shortfall next to this is
+    // the catalogue's, not the plan's.
+    carb_ceilings: members.filter((m) => m.carbsMax).map((m) => {
+      const forThem = (refusal) => String(refusal.member) === String(m.id) && refusal.flag === "carbs_not_declared";
+      const inProgram = Object.values(model.meta.refusals ?? {}).filter((rs) => rs.some(forThem)).length;
+      const leftOut = model.excluded.filter((e) => (e.refusedBy ?? []).some(forThem)).length;
+      return { member: m.id, label: m.label, pattern: m.eatingPattern, perDay: m.carbsMax, undeclared: inProgram + leftOut };
+    }),
+    // What each member asked to do without this week (v8).
+    skipped_this_week: members
+      .filter((m) => (m.skipCategories ?? []).length)
+      .map((m) => ({ member: m.id, label: m.label, categories: m.skipCategories })),
     unmet: report.unmet,
     budget_blocked: await costToMeetTargets({ base, report }),
   };
@@ -193,6 +228,12 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
           energy_goal: m.energyGoal ?? "maintain",
           eating_pattern: m.eatingPattern ?? "balanced",
           carbs_max: m.carbsMax ?? null,
+          // What this plan was asked for, beyond the profile.
+          diet_for_this_plan: m.dietType ?? null,
+          prefer_categories: m.preferCategories ?? [],
+          skip_categories: m.skipCategories ?? [],
+          appetite: m.appetite ?? null,
+          meals_from_home: m.mealsFromHome ?? [],
           // The saved profile version this plan was made from (00050).
           profile_version: m.profileVersion ?? null,
           targets: m.targets,
