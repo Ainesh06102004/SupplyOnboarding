@@ -50,8 +50,15 @@ function Choices({ name, options, value, onChange, busy }) {
   );
 }
 
-/** A list of words the shopper adds to and takes from. */
-function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy }) {
+/**
+ * A list of words the shopper adds to and takes from.
+ *
+ * `known` is what KOI can actually match the word against. It is offered as
+ * suggestions, and a word that matches none of it is still saved — with a line
+ * saying so, because a brand rule that quietly does nothing is worse than one
+ * that says it is waiting for a shelf that carries it.
+ */
+function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy, known = null }) {
   const [typed, setTyped] = useState("");
   const add = () => {
     const word = typed.trim();
@@ -59,6 +66,9 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy }) {
     setTyped("");
     onAdd(word);
   };
+  const same = (a, b) => String(a).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim()
+    === String(b).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+  const unknown = known ? words.filter((w) => !known.some((k) => same(k, w.label ?? w))) : [];
   return (
     <div className="mt-4">
       <span className={LABEL}>{label}</span>
@@ -78,10 +88,21 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy }) {
           ))}
         </ul>
       )}
+      {unknown.length > 0 && (
+        <p className="mt-1 text-[11.5px] text-[#8A6D1F]">
+          KOI doesn&apos;t stock {unknown.map((w) => w.label ?? w).join(", ")} yet. Saved, and it applies the day the shop does.
+        </p>
+      )}
       <div className="mt-1.5 flex items-center gap-1.5">
         <input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={placeholder} maxLength={80}
+               list={known ? `${id}-known` : undefined}
                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
                className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-1.5 text-[12.5px]" />
+        {known && (
+          <datalist id={`${id}-known`}>
+            {known.map((brand) => <option key={brand} value={brand} />)}
+          </datalist>
+        )}
         <button type="button" onClick={add} disabled={busy || !typed.trim()}
                 className="inline-flex items-center gap-1 rounded-xl border border-[#083D2D]/15 px-2.5 py-1.5 text-[12px] font-semibold text-[#0E4032] disabled:opacity-40">
           <Plus className="h-3.5 w-3.5" /> Add
@@ -98,9 +119,10 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy }) {
  * @param {(patch: object) => Promise<void>} props.onSaveHousehold
  * @param {(label: string) => Promise<void>} props.onAddPantry
  * @param {(row: object) => Promise<void>} props.onRemovePantry
+ * @param {string[]} props.brands the brand names KOI carries, for suggestions
  * @param {boolean} props.busy
  */
-export default function KitchenRules({ household, pantry = [], onSaveHousehold, onAddPantry, onRemovePantry, busy = false }) {
+export default function KitchenRules({ household, pantry = [], brands = [], onSaveHousehold, onAddPantry, onRemovePantry, busy = false }) {
   if (!household) return null;
   const refused = household.refused_brands ?? [];
   const preferred = household.preferred_brands ?? [];
@@ -139,13 +161,13 @@ export default function KitchenRules({ household, pantry = [], onSaveHousehold, 
 
       <Words id="refused-brands" label="Brands to skip" busy={busy} words={refused}
              hint="Nothing from these is ever planned for you."
-             placeholder="A brand you won't buy"
+             placeholder="A brand you won't buy" known={brands}
              onAdd={(brand) => addBrand("refused_brands", brand)}
              onRemove={(brand) => save({ refused_brands: withoutBrand(refused, brand) })} />
 
       <Words id="preferred-brands" label="Brands you like" busy={busy} words={preferred}
              hint="Chosen where the rest is equal. It never decides against a target."
-             placeholder="A brand you reach for"
+             placeholder="A brand you reach for" known={brands}
              onAdd={(brand) => addBrand("preferred_brands", brand)}
              onRemove={(brand) => save({ preferred_brands: withoutBrand(preferred, brand) })} />
 

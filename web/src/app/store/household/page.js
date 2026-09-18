@@ -391,6 +391,16 @@ export default function HouseholdPage() {
   }, [show]);
 
   const members = useMemo(() => (state.members ?? []).map(profileFromRow), [state.members]);
+  // The brands on the shelf, so a brand rule can be typed with the shop's own
+  // spelling rather than guessed at.
+  const [brands, setBrands] = useState([]);
+  useEffect(() => {
+    let live = true;
+    getSupabaseClient().from("brands").select("brand_name").order("brand_name").then(({ data }) => {
+      if (live) setBrands([...new Set((data ?? []).map((b) => b.brand_name).filter(Boolean))]);
+    });
+    return () => { live = false; };
+  }, []);
   const householdId = state.household?.id ?? null;
   const keepOut = state.household?.keep_out ?? [];
 
@@ -551,7 +561,7 @@ export default function HouseholdPage() {
       )}
 
       {householdId && (
-        <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} busy={keepOutBusy}
+        <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} busy={keepOutBusy}
                       onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
       )}
     </main>
