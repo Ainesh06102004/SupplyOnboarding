@@ -187,9 +187,10 @@ export function scoreProduct(facts, profile = {}) {
   const pop = facts.recommended ? 1 : clamp(facts.betterThan / 100);
   b.popularity = +(pop * WEIGHTS.popularity).toFixed(2);
 
-  // 7 · KOI trust
-  b.trust = +(clamp(facts.trust / 100) * WEIGHTS.trust).toFixed(2);
-  if (facts.trust >= 85) reasons.push(REASONS.trust());
+  // 7 · KOI trust. Unscreened earns nothing: no score is not a low score, and
+  // it is certainly not a good one.
+  b.trust = isNum(facts.trust) ? +(clamp(facts.trust / 100) * WEIGHTS.trust).toFixed(2) : 0;
+  if (isNum(facts.trust) && facts.trust >= 85) reasons.push(REASONS.trust());
 
   // ── penalties ──
   b.penalties = 0;

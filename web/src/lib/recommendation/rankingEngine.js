@@ -52,7 +52,9 @@ export class RuleBasedRankingStrategy {
   rank(scored, ctx = {}) {
     const sorted = [...scored].sort((a, b) => {
       if (b.raw !== a.raw) return b.raw - a.raw;
-      if (b.facts.trust !== a.facts.trust) return b.facts.trust - a.facts.trust; // tie: trust
+      // Tie: the better-screened first, and anything unscreened after both.
+      const trustOf = (f) => (f.trust === null || f.trust === undefined ? -1 : f.trust);
+      if (trustOf(b.facts) !== trustOf(a.facts)) return trustOf(b.facts) - trustOf(a.facts);
       return a.facts.price - b.facts.price; // then cheaper first
     });
     return ctx.diversify === false ? sorted : diversify(sorted, this.options);

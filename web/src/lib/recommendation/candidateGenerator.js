@@ -8,6 +8,15 @@
 // about buying it. Hiding on `unknown` would empty the store, since nothing
 // has a supply source yet.
 //
+// Nor is "KOI has not screened it yet" a reason to hide it. It used to be: the
+// pool required a score above zero, so 45 of the shop's products could be
+// browsed on the shelf and were invisible to every sentence typed at search —
+// a shopper could see a thing and be told KOI had nothing like it. An unscreened
+// product is a candidate; what it is not is *recommended*, and that is the
+// scoring engine's job, not this one's. It carries `screened: false`, earns no
+// trust points, can never be called well-screened, sorts below anything scored,
+// and is refused outright by any view that asks for a minimum score.
+//
 // Deterministic; no scoring, no user context.
 // ============================================================================
 
@@ -26,7 +35,6 @@ export function generateCandidates(products = []) {
     .map(extractFacts)
     .filter((f) =>
       f.availability !== AVAILABILITY.UNAVAILABLE &&
-      VISIBLE_STATUSES.has(f.status) &&
-      f.trust > 0
+      VISIBLE_STATUSES.has(f.status)
     );
 }

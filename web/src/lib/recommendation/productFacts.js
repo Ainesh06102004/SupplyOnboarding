@@ -12,6 +12,7 @@ import { isLabelCurrent } from "./verification";
 const VALID_AVAILABILITY = new Set(Object.values(AVAILABILITY));
 
 const toNum = (v) => (typeof v === "number" ? v : parseFloat(String(v ?? "").replace(/[^\d.]/g, "")) || 0);
+const isNum = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
 
 // A declared macro, or null when there is no figure. Deliberately NOT toNum:
 // `parseFloat("") || 0` is exactly how an undeclared macro became a confident
@@ -200,7 +201,12 @@ export function extractFacts(product) {
     // Live products carry it; anything else is placed the same way here.
     categoryKey: product.categoryKey ?? categorise({ name: product.name, categoryL1: product.category })?.key ?? null,
     price: toNum(product.price),
-    trust: toNum(product.score),
+    // The KOI screening score, or null when KOI has not screened it. NOT
+    // toNum: that turned "never screened" into a score of zero, which reads as
+    // "screened, and it is awful" everywhere a number is read. The two are not
+    // the same thing and the shopper is owed the difference.
+    trust: isNum(product.score) ? Number(product.score) : null,
+    screened: isNum(product.score),
     recommended: !!product.recommended,
     betterThan: toNum(product.betterThanPercentage),
     macros,
