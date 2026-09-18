@@ -41,7 +41,6 @@ import { KoiScoreModal, CompareModal, WhyKoiDrawer } from "@/components/store/sh
 
 const SHOP_LINKS = [
   { label: "Collections", href: "#collections" },
-  { label: "Goals", href: "#goals" },
   { label: "Ingredients", href: "#ingredients" },
   { label: "Shop all", href: "#grid" },
   // The planner and, through the account menu, the household (§9.10.2). This
@@ -138,6 +137,28 @@ export default function ShopPage() {
   );
 
   const intentChips = useMemo(() => describeIntent(intent), [intent]);
+
+  // ── Only what this shop can actually sell ─────────────────────────────────
+  // The ingredient strip and the goal rail were written lists. Tapping one
+  // searched for it, and a word the catalogue cannot answer left the grid
+  // unfiltered — so "A2 Ghee" looked like a shelf and delivered everything.
+  // Each is now kept only when it names something in stock, by the same reading
+  // the tap itself does (interpret + resolveIntent for an ingredient, the
+  // product's own goal tags for a goal).
+  const ingredientsForSale = useMemo(
+    () => INGREDIENTS.filter(({ name }) => {
+      const ids = resolveIntent(products, interpret(name), goalProfile).ids;
+      return ids instanceof Set && ids.size > 0;
+    }),
+    [products, goalProfile],
+  );
+
+  const goalsForSale = useMemo(
+    () => GOALS.filter(({ name }) => products.some((p) => [...(p.goals || []), ...(p.goalTags || []), ...(p.tags || [])]
+      .filter(Boolean)
+      .some((tag) => String(tag).toLowerCase() === name.toLowerCase()))),
+    [products],
+  );
 
   // Preserved filter + sort logic (extended with query + brand + interpreted intent)
   const filteredProducts = useMemo(() => {
@@ -351,7 +372,7 @@ export default function ShopPage() {
           />
 
           {/* Start the journey: set a goal, KOI tunes to you, then keep scrolling */}
-          <GoalRail goals={GOALS} activeGoal={activeGoal} onPick={(g) => { setActiveGoal(g); if (g) scrollToGrid(); }} onOpenGoal={() => setGoalOpen(true)} />
+          <GoalRail goals={goalsForSale} activeGoal={activeGoal} onPick={(g) => { setActiveGoal(g); if (g) scrollToGrid(); }} onOpenGoal={() => setGoalOpen(true)} />
 
           {/* Whether KOI can answer "can I get this" at all. Renders nothing
               when signed out or when no supply source is configured, so the
@@ -395,7 +416,9 @@ export default function ShopPage() {
             background={C.mint}
           />
 
-          <IngredientStrip ingredients={INGREDIENTS} onPick={(name) => applyFromSearch({ query: name })} />
+          {ingredientsForSale.length > 0 && (
+            <IngredientStrip ingredients={ingredientsForSale} onPick={(name) => applyFromSearch({ query: name })} />
+          )}
 
           <Shelf
             eyebrow="Fresh from verification"
