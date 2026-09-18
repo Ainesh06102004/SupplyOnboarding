@@ -1,57 +1,45 @@
 "use client";
 
 // ============================================================================
-// /store/plan — plan the week for a household
+// /store/plan — plan the week for the people who are eating it
 //
-// Phase 3. The founder's example, through a form: four people, their targets,
-// what each of them avoids, a budget — then a basket, what each member
-// actually gets against what was asked, and what the plan had to give up.
+// Phase 3, reworked at §9.10.2: this page no longer edits people. Everyone
+// comes from their saved profile (/store/household), shown as it stands, and
+// the only things editable here are the ones that belong to this week:
 //
-// Every figure on this page comes from the planner (/api/plan), which computes
-// it from declared label figures and the solver's own allocation. Nothing here
-// invents a number, and nothing here calls a food good or bad: a plan is a
-// basket that meets stated targets without feeding anyone what they avoid.
+//   * who is eating (a profile can sit this one out);
+//   * the diet they want for this plan alone;
+//   * what they feel like eating, and what to leave out for them;
+//   * how many days, and the budget.
 //
-// Members are described by the person filling this in: a label they choose, an
-// age band, a diet, what to avoid, and targets they state. No names, no dates
-// of birth, and nothing is tracked against anyone — see migration 00044.
+// Nothing typed here changes a profile. A follow-up in the copilot changes the
+// plan; it reaches a profile only when the shopper says so.
 //
-// ONE HOUSEHOLD. The shopper's latest saved household opens in the form, and
-// "Plan it" saves changes to that same household before planning: members
-// are updated, added or removed, and avoids replaced. It used to insert a new
-// household on every click, so each retry left another copy behind.
+// Every figure comes from the planner (/api/plan), computed from declared label
+// figures and the solver's own allocation. Nothing here invents a number, and
+// nothing calls a food good or bad.
 // ============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, Loader2, ShoppingBasket, TriangleAlert } from "lucide-react";
+import { Loader2, ShoppingBasket, TriangleAlert, UserRoundPlus, Pencil } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 import { isTestSku } from "@/lib/data/testCatalogue";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
+import { nodeInfo } from "@/lib/food/taxonomy";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { AGE_BANDS, MAX_BRIEF_CHARS } from "@/lib/planner/brief";
 import { followUpExamples } from "@/lib/planner/followup";
 import { goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
-import { profileFromRow } from "@/lib/household/profile";
+import { profileFromRow, profileSummary, memberPayload, avoidsPayload, SEVERITIES } from "@/lib/household/profile";
+import PlanCopilot from "@/components/store/plan/PlanCopilot";
 
 const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
 
-const HARD_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "hard");
-const SOFT_AVOIDS = FOODS_AVOID.filter((a) => a.mode === "soft");
-
-const blankMember = () => ({
-  key: crypto.randomUUID(),
-  label: "",
-  age_band: "adult_19_59",
-  diet_type: "vegetarian",
-  target_kcal: "",
-  target_protein_g: "",
-  avoidKeys: [],
-});
-
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 const dayCount = (days) => `${days} ${Number(days) === 1 ? "day" : "days"}`;
+const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
 
 /** A person's share of a product: "1.4 kg", "350 g", or packs when KOI cannot measure the pack. */
 const shareOf = ({ amount, unit, packs }) => {
@@ -60,100 +48,61 @@ const shareOf = ({ amount, unit, packs }) => {
   return big && amount >= 1000 ? `${Math.round(amount / 100) / 10} ${big}` : `${amount} ${unit}`;
 };
 
-/** Stored members as form rows, in the order they were added. The full profile is kept alongside, read-only here. */
-const membersFrom = (rows) => [...rows]
-  .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.label).localeCompare(String(b.label)))
-  .map((row) => ({
-    key: row.id,
-    memberId: row.id,
-    label: row.label ?? "",
-    age_band: row.age_band ?? "adult_19_59",
-    diet_type: row.diet_type ?? "vegetarian",
-    target_kcal: row.target_kcal ?? "",
-    target_protein_g: row.target_protein_g ?? "",
-    avoidKeys: (row.household_member_avoid ?? []).map((a) => a.avoid_key),
-    profile: profileFromRow(row),
-  }));
-
-/** "Lose weight, keto" for an adult with a goal, else null. */
-const goalWords = (profile) => {
-  if (!profile || !goalsAllowed(profile.age_band)) return null;
-  const words = [
-    profile.energy_goal !== "maintain" ? ENERGY_GOALS.find((g) => g.key === profile.energy_goal)?.label : null,
-    profile.eating_pattern !== "balanced" ? EATING_PATTERNS.find((p) => p.key === profile.eating_pattern)?.label.toLowerCase() : null,
-  ].filter(Boolean);
-  return words.length ? words.join(", ") : null;
-};
-
 /** "Rice (Me 180 g, Partner 162 g)" — what the portion ceiling held, a day. */
 const describeLimit = (limit) =>
   `${limit.name ?? "A product"} (${limit.members.map((m) => `${m.label ?? "someone"} ${m.perDay ?? "?"} ${m.unit ?? ""}`.trim()).join(", ")})`;
 
-/**
- * Save the form to the shopper's household, creating it only if there is none.
- * Row-level security ties every row to this account (migration 00044).
- * @returns {Promise<{ householdId: string, saved: Array<{ key, memberId }> }>}
- */
-async function saveHousehold(supabase, householdId, members, keepOut = []) {
-  // Only what someone in the household still avoids can be kept out of the house.
-  const held = new Set(members.flatMap((m) => m.avoidKeys));
-  const keep_out = keepOut.filter((key) => held.has(key));
-  let id = householdId;
-  if (!id) {
-    const { data, error } = await supabase.from("household").insert({ label: "My household", keep_out }).select("id").single();
-    if (error) throw error;
-    id = data.id;
-  } else {
-    const { error } = await supabase.from("household").update({ keep_out }).eq("id", id);
-    if (error) throw error;
+/** The kinds of food KOI actually stocks, as things a person can feel like eating. */
+function categoriesFrom(products) {
+  const byKey = new Map();
+  for (const product of products) {
+    const key = product?.categoryKey;
+    if (!key || byKey.has(key)) continue;
+    const info = nodeInfo(key);
+    const label = info?.subcategory ?? info?.label ?? key;
+    byKey.set(key, { key, label: String(label) });
   }
+  return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
 
-  const { data: stored, error: readError } = await supabase.from("household_member").select("id").eq("household_id", id);
-  if (readError) throw readError;
-  const storedIds = new Set((stored ?? []).map((r) => r.id));
-  const kept = new Set(members.map((m) => m.memberId).filter(Boolean));
-  const gone = [...storedIds].filter((memberId) => !kept.has(memberId));
-  if (gone.length) {
-    // Their avoids go with them (ON DELETE CASCADE). Past plans keep their own snapshot.
-    const { error } = await supabase.from("household_member").delete().in("id", gone);
-    if (error) throw error;
-  }
+/** Goals in words: "Lose weight, high protein", or null when there is no goal. */
+const goalWords = (profile) => {
+  if (!goalsAllowed(profile.age_band)) return null;
+  const words = [
+    profile.energy_goal !== "maintain" ? labelOf(ENERGY_GOALS, profile.energy_goal) : null,
+    profile.eating_pattern !== "balanced" ? labelOf(EATING_PATTERNS, profile.eating_pattern).toLowerCase() : null,
+  ].filter(Boolean);
+  return words.length ? words.join(", ") : null;
+};
 
-  const saved = [];
-  // One at a time, so each new member's created_at keeps the form's order.
-  // Through save_household_member (00050): only the fields this form shows are
-  // sent, so a profile's goal, body data and avoid severities stay as they are,
-  // and each save is a new profile version.
-  for (const m of members) {
-    const existing = Boolean(m.memberId && storedIds.has(m.memberId));
-    const age_band = m.age_band;
-    const { data, error } = await supabase.rpc("save_household_member", {
-      p_household_id: id,
-      p_member: {
-        ...(existing ? { id: m.memberId } : {}),
-        label: m.label.trim(),
-        age_band,
-        diet_type: m.diet_type,
-        target_kcal: num(m.target_kcal) === null ? null : String(Math.round(num(m.target_kcal))),
-        target_protein_g: num(m.target_protein_g) === null ? null : String(Math.round(num(m.target_protein_g))),
-        // A person moved to a child's age group cannot keep an adult's goal (00050).
-        ...(goalsAllowed(age_band) ? {} : { energy_goal: "maintain", eating_pattern: "balanced", age_years: null, weight_kg: null, height_cm: null }),
-      },
-      // Keys only: a severity set on the profile page is kept.
-      p_avoids: m.avoidKeys.map((key) => ({ key })),
-    });
-    if (error) throw error;
-    saved.push({ key: m.key, memberId: data.id });
-  }
-  return { householdId: id, saved };
+/** Everything a plan needs to know about this shopper's household. */
+async function readHousehold() {
+  const supabase = getSupabaseClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user ?? null;
+  if (!user) return { user: null, household: null, profiles: [] };
+  const { data: household, error } = await supabase
+    .from("household")
+    .select(`id, keep_out, household_member(${MEMBER_FIELDS})`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return { user, household: null, profiles: [], error: "Your household could not be loaded." };
+  const profiles = [...(household?.household_member ?? [])]
+    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+    .map(profileFromRow);
+  return { user, household: household ?? null, profiles };
 }
 
 export default function PlanPage() {
   const [session, setSession] = useState(undefined);
   const [householdId, setHouseholdId] = useState(null);
-  const [members, setMembers] = useState([blankMember()]);
-  // Allergens kept out of the house for everyone (household.keep_out, 00047).
   const [keepOut, setKeepOut] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  // This week: who is eating, and what each of them chose for this plan alone.
+  const [picked, setPicked] = useState([]);
+  const [thisWeek, setThisWeek] = useState({});
+  const [categories, setCategories] = useState([]);
   const [days, setDays] = useState(7);
   const [budget, setBudget] = useState("");
   const [busy, setBusy] = useState(false);
@@ -161,10 +110,72 @@ export default function PlanPage() {
   const [plan, setPlan] = useState(null);
   // skuId -> { busy, result, error }: "what if I can't get this?"
   const [without, setWithout] = useState({});
-
-  // Phase 4.5: the basket into the storefront cart, whose checkout already hands
-  // off to Swiggy. The cart stores references and re-reads prices itself.
   const [cartResult, setCartResult] = useState(null);
+
+  const load = useCallback(async () => {
+    const { user, household, profiles: saved, error: loadError } = await readHousehold();
+    setSession(user);
+    if (loadError) setError(loadError);
+    setHouseholdId(household?.id ?? null);
+    setKeepOut(household?.keep_out ?? []);
+    setProfiles(saved);
+    setPicked(saved.map((p) => p.memberId));
+    return saved;
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      await load();
+      const products = await fetchAllProducts().catch(() => []);
+      if (live) setCategories(categoriesFrom(products));
+    })();
+    return () => { live = false; };
+  }, [load]);
+
+  const chosen = useMemo(() => profiles.filter((p) => picked.includes(p.memberId)), [profiles, picked]);
+  const ready = chosen.length > 0;
+
+  const choiceFor = (memberId) => thisWeek[memberId] ?? { dietType: null, prefer: [], skip: [] };
+  const setChoice = (memberId, patch) => setThisWeek((all) => ({ ...all, [memberId]: { ...choiceFor(memberId), ...patch } }));
+  const toggleCategory = (memberId, field, key) => {
+    const choice = choiceFor(memberId);
+    const other = field === "prefer" ? "skip" : "prefer";
+    setChoice(memberId, {
+      [field]: choice[field].includes(key) ? choice[field].filter((k) => k !== key) : [...choice[field], key],
+      // A person cannot both feel like something and skip it.
+      [other]: choice[other].filter((k) => k !== key),
+    });
+  };
+
+  async function makePlan() {
+    setBusy(true);
+    setError(null);
+    setPlan(null);
+    setWithout({});
+    setConversation([]);
+    try {
+      const response = await fetch("/api/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          householdId,
+          days: Number(days),
+          budget: num(budget),
+          memberIds: picked,
+          thisWeek: Object.fromEntries(picked.map((id) => [id, choiceFor(id)])),
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "The plan could not be built.");
+      setPlan(body);
+      setCopilotOpen(true);
+    } catch (err) {
+      setError(err?.message ?? "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function addPlanToCart() {
     const planId = plan.planId;
@@ -209,51 +220,8 @@ export default function PlanPage() {
     }
   }
 
-  useEffect(() => {
-    const supabase = getSupabaseClient();
-    let live = true;
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user ?? null;
-      if (user) {
-        // The latest household this shopper saved, so planning again edits it.
-        const { data: household, error: loadError } = await supabase
-          .from("household")
-          .select(`id, keep_out, household_member(${MEMBER_FIELDS})`)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!live) return;
-        if (loadError) setError("Your saved household could not be loaded. Planning now will save a new one.");
-        if (household) {
-          setHouseholdId(household.id);
-          setKeepOut(household.keep_out ?? []);
-          if (household.household_member?.length) setMembers(membersFrom(household.household_member));
-        }
-      }
-      if (live) setSession(user);
-    })();
-    return () => { live = false; };
-  }, []);
-
-  // A drafted person can arrive without an age group or a diet; both are chosen
-  // by the shopper before anything is planned, because a blank diet excludes nothing.
-  const ready = useMemo(
-    () => members.length > 0 && members.every((m) =>
-      m.label.trim() && m.age_band && m.diet_type && (num(m.target_protein_g) || num(m.target_kcal))),
-    [members],
-  );
-
-  // The allergens someone in the household avoids, and who: what could be kept out of the house.
-  const householdAllergens = useMemo(
-    () => HARD_AVOIDS
-      .map((entry) => ({ entry, who: members.filter((m) => m.avoidKeys.includes(entry.key)).map((m) => m.label.trim() || "someone") }))
-      .filter((a) => a.who.length > 0),
-    [members],
-  );
-
-  // Phase 4.3: follow-ups on the plan on screen. The conversation is kept in
-  // this page for the session; the server stores only the plans it produces.
+  // ── The copilot: follow-ups on the plan on screen (Phase 4.3) ─────────────
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const [followText, setFollowText] = useState("");
   const [followBusy, setFollowBusy] = useState(false);
   const [conversation, setConversation] = useState([]);
@@ -262,7 +230,6 @@ export default function PlanPage() {
     const text = followText.trim();
     if (!text || !plan?.planId) return;
     setFollowBusy(true);
-    setError(null);
     try {
       const response = await fetch("/api/plan/followup", {
         method: "POST",
@@ -284,8 +251,8 @@ export default function PlanPage() {
     }
   }
 
-  // Phase 4.4: a follow-up that changes a person (a target, an avoid) changes
-  // this plan only. It reaches the saved household when the shopper says so.
+  // Phase 4.4: a follow-up that changes a person changes this plan only. It
+  // reaches their saved profile when the shopper says so, as a new version.
   async function saveToHousehold(turnIndex) {
     const turn = conversation[turnIndex];
     if (!turn?.householdChanges?.length) return;
@@ -294,35 +261,31 @@ export default function PlanPage() {
     try {
       const supabase = getSupabaseClient();
       for (const change of turn.householdChanges) {
-        const held = members.find((m) => m.memberId === change.memberId)?.avoidKeys ?? [];
-        // One save per person, as a new profile version (00050). Avoids already
-        // held keep their severity; added ones take their default.
+        const held = profiles.find((p) => p.memberId === change.memberId)?.avoids ?? [];
         const { error: saveError } = await supabase.rpc("save_household_member", {
           p_household_id: householdId,
           p_member: {
             id: change.memberId,
             ...Object.fromEntries(Object.entries(change.targets).map(([k, v]) => [k, v === null ? null : String(Math.round(Number(v)))])),
           },
-          p_avoids: change.addAvoidKeys.length ? [...new Set([...held, ...change.addAvoidKeys])].map((key) => ({ key })) : null,
+          p_avoids: change.addAvoidKeys.length
+            ? [...held.map((a) => ({ key: a.key, severity: a.severity })), ...change.addAvoidKeys.filter((key) => !held.some((a) => a.key === key)).map((key) => ({ key }))]
+            : null,
         });
         if (saveError) throw saveError;
       }
-      // The form shows the saved household, so it follows what was saved.
-      setMembers((list) => list.map((m) => {
-        const change = turn.householdChanges.find((c) => c.memberId === m.memberId);
-        return change ? { ...m, ...change.targets, avoidKeys: [...new Set([...m.avoidKeys, ...change.addAvoidKeys])] } : m;
-      }));
+      await load();
       mark({ saving: false, saved: true });
     } catch (err) {
       mark({ saving: false, saveError: err?.message ?? "It could not be saved." });
     }
   }
 
-  // Phase 4.2: a household in words becomes a draft of this form. Nothing is
-  // saved or planned until "Plan it", which is the confirmation.
+  // ── First run: a household in words becomes profiles, once confirmed ──────
   const [brief, setBrief] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [drafted, setDrafted] = useState(null);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   async function draftFromBrief() {
     setDrafting(true);
@@ -335,22 +298,9 @@ export default function PlanPage() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error ?? "The description could not be read.");
-      const { draft } = body;
-      if (draft.members.length) {
-        // A drafted person with the same label as a saved one is that person:
-        // their profile (goal, body data, severities) is kept, and only what
-        // the description says is changed.
-        const byLabel = new Map(members.filter((m) => m.memberId).map((m) => [m.label.trim().toLowerCase(), m]));
-        setMembers(draft.members.map((m) => {
-          const saved = byLabel.get(String(m.label ?? "").trim().toLowerCase());
-          return { ...m, key: saved?.key ?? crypto.randomUUID(), memberId: saved?.memberId ?? null, profile: saved?.profile ?? null };
-        }));
-        setPlan(null);
-        setWithout({});
-      }
-      if (draft.days) setDays(draft.days);
-      if (draft.budget) setBudget(String(draft.budget));
-      setDrafted(draft);
+      setDrafted(body.draft);
+      if (body.draft.days) setDays(body.draft.days);
+      if (body.draft.budget) setBudget(String(body.draft.budget));
     } catch (err) {
       setError(err?.message ?? "Something went wrong.");
     } finally {
@@ -358,44 +308,61 @@ export default function PlanPage() {
     }
   }
 
-  const update = (key, patch) => setMembers((list) => list.map((m) => (m.key === key ? { ...m, ...patch } : m)));
-  const toggleAvoid = (key, avoidKey) => update(key, {
-    avoidKeys: members.find((m) => m.key === key).avoidKeys.includes(avoidKey)
-      ? members.find((m) => m.key === key).avoidKeys.filter((k) => k !== avoidKey)
-      : [...members.find((m) => m.key === key).avoidKeys, avoidKey],
-  });
-
-  async function makePlan() {
-    setBusy(true);
+  /** Save the drafted people as profiles. Nothing is saved until this. */
+  async function saveDraftedPeople() {
+    if (!drafted?.members?.length) return;
+    setSavingDraft(true);
     setError(null);
-    setPlan(null);
-    setWithout({});
     try {
       const supabase = getSupabaseClient();
-      const { householdId: id, saved } = await saveHousehold(supabase, householdId, members, keepOut);
-      setHouseholdId(id);
-      // Each form row now knows which stored member it is.
-      const idOf = new Map(saved.map((s) => [s.key, s.memberId]));
-      setMembers((list) => list.map((m) => (idOf.has(m.key) ? { ...m, memberId: idOf.get(m.key) } : m)));
-
-      const response = await fetch("/api/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ householdId: id, days: Number(days), budget: num(budget) }),
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body?.error ?? "The plan could not be built.");
-      setPlan(body);
-      setConversation([]);
+      let id = householdId;
+      if (!id) {
+        const { data, error: createError } = await supabase.from("household").insert({ label: "My household" }).select("id").single();
+        if (createError) throw createError;
+        id = data.id;
+        setHouseholdId(id);
+      }
+      for (const member of drafted.members) {
+        const form = {
+          memberId: null,
+          label: member.label,
+          relation: "",
+          age_band: member.age_band,
+          sex: "",
+          activity_level: "",
+          diet_type: member.diet_type,
+          energy_goal: "maintain",
+          eating_pattern: "balanced",
+          age_years: "",
+          weight_kg: "",
+          height_cm: "",
+          appetite: "",
+          meals_from_home: [],
+          target_kcal: member.target_kcal ?? "",
+          target_protein_g: member.target_protein_g ?? "",
+          target_source: "stated",
+          is_account_holder: false,
+          avoids: (member.avoidKeys ?? []).map((key) => ({ key, severity: null })),
+        };
+        const { error: saveError } = await supabase.rpc("save_household_member", {
+          p_household_id: id,
+          p_member: memberPayload(form),
+          p_avoids: avoidsPayload(form),
+        });
+        if (saveError) throw saveError;
+      }
+      setDrafted(null);
+      setBrief("");
+      await load();
     } catch (err) {
-      setError(err?.message ?? "Something went wrong.");
+      setError(err?.message ?? "They could not be saved.");
     } finally {
-      setBusy(false);
+      setSavingDraft(false);
     }
   }
 
   if (session === undefined) {
-    return <main className="mx-auto max-w-3xl px-5 py-16 text-[#5A6B5A]">Loading…</main>;
+    return <main className="mx-auto max-w-3xl px-5 py-16 text-[#5A6B5A]"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</main>;
   }
 
   if (!session) {
@@ -410,184 +377,171 @@ export default function PlanPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12">
+    <main className="mx-auto max-w-3xl px-5 py-12 pb-28">
       <h1 className="text-2xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>Plan the week</h1>
       <p className="mt-2 text-[13px] leading-relaxed text-[#5A6B5A]">
-        Who is eating, what each of them is aiming at, and what to avoid. KOI plans whole packs from its own screened
-        catalogue: nobody is given something they avoid, nobody is planned more of one food than a realistic day&apos;s
-        servings, and you are told exactly what the plan could not manage.
+        Everyone comes from their saved profile. Choose who is eating this week and what they feel like, and KOI plans
+        whole packs from its own screened catalogue: nobody is given something they avoid or something unsafe at their
+        age, nobody is planned more of one food than a realistic day&apos;s servings, and you are told what the plan
+        could not manage.
       </p>
-      {householdId && (
-        <p className="mt-2 text-[11.5px] text-[#16A06E]">
-          This is your saved household. Changes are saved to it each time you plan.{" "}
-          <Link href="/store/household" className="font-semibold underline">Edit everyone&apos;s full profile</Link>
-          {" · "}
-          <Link href="/store/profile/data" className="font-semibold underline">See or delete what KOI keeps</Link>
-        </p>
-      )}
-
-      <section className="mt-6 rounded-2xl border border-[#083D2D]/10 bg-[#083D2D]/[0.02] p-4">
-        <label htmlFor="household-brief" className="text-[12px] font-semibold text-[#0E4032]">Or describe your household</label>
-        <textarea id="household-brief" value={brief} onChange={(e) => setBrief(e.target.value)} maxLength={MAX_BRIEF_CHARS} rows={2}
-                  placeholder="We're four, two adults and two kids, 120 g protein each for the adults, ₹4,000 for a week"
-                  className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <button type="button" onClick={draftFromBrief} disabled={!brief.trim() || drafting}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#0E4032] px-3 py-1.5 text-[12.5px] font-semibold text-[#0E4032] disabled:opacity-40">
-            {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            {drafting ? "Reading it…" : "Fill the form from this"}
-          </button>
-          <span className="text-[11px] text-[#5A6B5A]">Fills the form below for you to check. Nothing is planned until you press Plan it.</span>
-        </div>
-        {drafted && (
-          <div className="mt-3 space-y-1 text-[12px] text-[#5A6B5A]">
-            <p className="font-semibold text-[#0E4032]">
-              {drafted.members.length
-                ? `Drafted ${drafted.members.length} ${drafted.members.length === 1 ? "person" : "people"} from what you wrote${drafted.source === "openai" ? " (read with OpenAI)" : ""}. Check each one.`
-                : "Nothing was drafted."}
-              {drafted.members.length > 0 && householdId ? " Planning will replace the people saved in your household." : ""}
-            </p>
-            {drafted.notes.map((note) => <p key={note}>{note}</p>)}
-            {drafted.unresolved.length > 0 && <p>Not applied: {drafted.unresolved.join(", ")}.</p>}
-          </div>
+      <p className="mt-2 text-[12px]">
+        <Link href="/store/household" className="font-semibold text-[#16A06E] hover:underline">Your household</Link>
+        <span className="text-[#5A6B5A]"> · </span>
+        <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">See or delete what KOI keeps</Link>
+        {keepOut.length > 0 && (
+          <span className="text-[#5A6B5A]"> · kept out of the house: {keepOut.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}</span>
         )}
-      </section>
+      </p>
+      {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
 
-      <section className="mt-8 space-y-4">
-        {members.map((m, i) => (
-          <div key={m.key} className="rounded-2xl border border-[#083D2D]/10 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">
-                Person {i + 1}
-                {goalWords(m.profile) && <span className="ml-2 normal-case tracking-normal text-[#5A6B5A]">· {goalWords(m.profile)}</span>}
-                {m.memberId && <Link href="/store/household" className="ml-2 normal-case tracking-normal text-[#16A06E] underline">Full profile</Link>}
-              </span>
-              {members.length > 1 && (
-                <button type="button" onClick={() => setMembers((l) => l.filter((x) => x.key !== m.key))}
-                        className="text-[#5A6B5A] hover:text-[#0E4032]" aria-label={`Remove person ${i + 1}`}>
-                  <Trash2 className="h-4 w-4" />
+      {profiles.length === 0 ? (
+        <section className="mt-8 rounded-2xl border border-[#083D2D]/10 bg-[#083D2D]/[0.02] p-4">
+          <h2 className="text-[15px] font-bold text-[#0E4032]">Who are you shopping for?</h2>
+          <p className="mt-1 text-[12px] text-[#5A6B5A]">
+            Describe your household and KOI drafts a profile for each person, for you to check and keep. Or{" "}
+            <Link href="/store/household" className="font-semibold text-[#16A06E] underline">add them one at a time</Link>.
+          </p>
+          <textarea id="household-brief" value={brief} onChange={(e) => setBrief(e.target.value)} maxLength={MAX_BRIEF_CHARS} rows={2}
+                    placeholder="We're four, two adults and two kids, 120 g protein each for the adults, ₹4,000 for a week"
+                    className="mt-2 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={draftFromBrief} disabled={!brief.trim() || drafting}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#0E4032] px-3 py-1.5 text-[12.5px] font-semibold text-[#0E4032] disabled:opacity-40">
+              {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {drafting ? "Reading it…" : "Draft their profiles"}
+            </button>
+            <span className="text-[11px] text-[#5A6B5A]">Nothing is saved until you keep them.</span>
+          </div>
+          {drafted && (
+            <div className="mt-3 space-y-2 text-[12px] text-[#5A6B5A]">
+              {drafted.members.map((m, i) => (
+                <p key={`${m.label}-${i}`} className="text-[#0E4032]">
+                  <span className="font-semibold">{m.label}</span>: {labelOf(AGE_BANDS, m.age_band)} · {labelOf(DIET_TYPES, m.diet_type)}
+                  {m.target_protein_g ? ` · ${m.target_protein_g} g protein` : ""}{m.target_kcal ? ` · ${m.target_kcal} kcal` : ""}
+                  {(m.avoidKeys ?? []).length ? ` · avoids ${m.avoidKeys.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}` : ""}
+                </p>
+              ))}
+              {drafted.notes.map((note) => <p key={note}>{note}</p>)}
+              {drafted.unresolved.length > 0 && <p>Not applied: {drafted.unresolved.join(", ")}.</p>}
+              {drafted.members.length > 0 && (
+                <button type="button" onClick={saveDraftedPeople} disabled={savingDraft}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#0E4032] px-3 py-1.5 text-[12.5px] font-bold text-white disabled:opacity-40">
+                  {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserRoundPlus className="h-3.5 w-3.5" />}
+                  {savingDraft ? "Saving…" : `Keep ${drafted.members.length === 1 ? "this profile" : "these profiles"}`}
                 </button>
               )}
             </div>
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="text-[12px] font-semibold text-[#0E4032]">What to call them</span>
-                <input value={m.label} onChange={(e) => update(m.key, { label: e.target.value })}
-                       placeholder="Me, Partner, Kid 1"
-                       className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-                <span className="mt-1 block text-[11px] text-[#5A6B5A]">A label, not a name. KOI stores no names.</span>
-              </label>
-
-              <label className="block">
-                <span className="text-[12px] font-semibold text-[#0E4032]">Age</span>
-                <select value={m.age_band} onChange={(e) => update(m.key, { age_band: e.target.value })}
-                        className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]">
-                  {!m.age_band && <option value="">Choose an age group</option>}
-                  {AGE_BANDS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="text-[12px] font-semibold text-[#0E4032]">Diet</span>
-                <select value={m.diet_type} onChange={(e) => update(m.key, { diet_type: e.target.value })}
-                        className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]">
-                  {!m.diet_type && <option value="">Choose a diet</option>}
-                  {DIET_TYPES.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
-                </select>
-              </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="text-[12px] font-semibold text-[#0E4032]">Protein a day</span>
-                  <input value={m.target_protein_g} onChange={(e) => update(m.key, { target_protein_g: e.target.value })}
-                         inputMode="numeric" placeholder="g"
-                         className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-                </label>
-                <label className="block">
-                  <span className="text-[12px] font-semibold text-[#0E4032]">Energy a day</span>
-                  <input value={m.target_kcal} onChange={(e) => update(m.key, { target_kcal: e.target.value })}
-                         inputMode="numeric" placeholder="kcal"
-                         className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-                </label>
-              </div>
-            </div>
-
-            <fieldset className="mt-3">
-              <legend className="text-[12px] font-semibold text-[#0E4032]">Never give them</legend>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {HARD_AVOIDS.map((a) => (
-                  <button key={a.key} type="button" onClick={() => toggleAvoid(m.key, a.key)}
-                          className={`rounded-full border px-2.5 py-1 text-[11.5px] ${m.avoidKeys.includes(a.key) ? "border-[#0E4032] bg-[#0E4032] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
-                    {a.emoji} {a.label}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {SOFT_AVOIDS.map((a) => (
-                  <button key={a.key} type="button" onClick={() => toggleAvoid(m.key, a.key)}
-                          className={`rounded-full border px-2.5 py-1 text-[11.5px] ${m.avoidKeys.includes(a.key) ? "border-[#16A06E] bg-[#16A06E]/10 text-[#0E4032]" : "border-[#083D2D]/10 bg-white text-[#5A6B5A]"}`}>
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1.5 text-[11px] text-[#5A6B5A]">
-                The first row is never traded away. The second is a preference: KOI records it and will not starve the
-                plan for it.
-              </p>
-            </fieldset>
+          )}
+        </section>
+      ) : (
+        <section className="mt-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-[15px] font-bold text-[#0E4032]">Who&apos;s eating this week</h2>
+            <Link href="/store/household" className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#16A06E] hover:underline">
+              <Pencil className="h-3.5 w-3.5" /> Edit profiles
+            </Link>
           </div>
-        ))}
-
-        <button type="button" onClick={() => setMembers((l) => [...l, blankMember()])}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#083D2D]/15 px-3 py-2 text-[12.5px] font-semibold text-[#0E4032]">
-          <Plus className="h-4 w-4" /> Add someone
-        </button>
-      </section>
-
-      {householdAllergens.length > 0 && (
-        <section className="mt-6 rounded-2xl border border-[#B4453C]/20 bg-[#B4453C]/[0.03] p-4">
-          <p className="text-[12px] font-semibold text-[#0E4032]">Keep out of the house</p>
-          <p className="mt-0.5 text-[11.5px] text-[#5A6B5A]">
-            Normally a product one person cannot eat is still bought for the others. For a serious allergy, switch it on
-            here and nothing containing it is bought for anyone.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {householdAllergens.map(({ entry, who }) => {
-              const on = keepOut.includes(entry.key);
+          <div className="mt-3 space-y-3">
+            {profiles.map((profile) => {
+              const on = picked.includes(profile.memberId);
+              const choice = choiceFor(profile.memberId);
               return (
-                <button key={entry.key} type="button" aria-pressed={on}
-                        onClick={() => setKeepOut((list) => (on ? list.filter((k) => k !== entry.key) : [...list, entry.key]))}
-                        className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
-                  {entry.emoji} {entry.label} <span className={on ? "text-white/80" : "text-[#5A6B5A]"}>({who.join(", ")})</span>
-                  {on ? " · kept out" : ""}
-                </button>
+                <div key={profile.memberId} className={`rounded-2xl border p-4 ${on ? "border-[#083D2D]/15" : "border-[#083D2D]/8 bg-[#083D2D]/[0.02]"}`}>
+                  <label className="flex items-start gap-3">
+                    <input type="checkbox" checked={on} className="mt-1"
+                           onChange={() => setPicked((list) => (on ? list.filter((id) => id !== profile.memberId) : [...list, profile.memberId]))} />
+                    <span>
+                      <span className="text-[14px] font-bold text-[#0E4032]">
+                        {profile.label}
+                        {profile.relation ? <span className="font-normal text-[#5A6B5A]"> · {profile.relation}</span> : null}
+                        {profile.is_account_holder && <span className="ml-2 rounded-full bg-[#16A06E]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[#16A06E]">You</span>}
+                      </span>
+                      <span className="mt-0.5 block text-[12px] text-[#5A6B5A]">{profileSummary(profile)}</span>
+                      {profile.avoids.length > 0 && (
+                        <span className="mt-0.5 block text-[12px] text-[#5A6B5A]">
+                          {profile.avoids.map((a) => `${labelOf(FOODS_AVOID, a.key)} (${(SEVERITIES.find((s) => s.key === a.severity)?.label ?? a.severity).toLowerCase()})`).join(", ")}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+
+                  {on && (
+                    <div className="mt-3 space-y-3 border-t border-[#083D2D]/8 pt-3">
+                      <label className="block md:w-1/2">
+                        <span className="text-[12px] font-semibold text-[#0E4032]">Diet, this week only</span>
+                        <select value={choice.dietType ?? ""} onChange={(e) => setChoice(profile.memberId, { dietType: e.target.value || null })}
+                                className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]">
+                          <option value="">As on their profile ({labelOf(DIET_TYPES, profile.diet_type)})</option>
+                          {DIET_TYPES.map((d) => <option key={d.key} value={d.key}>{d.label} for this plan</option>)}
+                        </select>
+                      </label>
+
+                      {categories.length > 0 && (
+                        <>
+                          <div>
+                            <span className="text-[12px] font-semibold text-[#0E4032]">Feels like</span>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {categories.map((c) => (
+                                <button key={c.key} type="button" aria-pressed={choice.prefer.includes(c.key)}
+                                        onClick={() => toggleCategory(profile.memberId, "prefer", c.key)}
+                                        className={`rounded-full border px-2.5 py-1 text-[11.5px] ${choice.prefer.includes(c.key) ? "border-[#16A06E] bg-[#16A06E] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
+                                  {c.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[12px] font-semibold text-[#0E4032]">Not this week</span>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {categories.map((c) => (
+                                <button key={c.key} type="button" aria-pressed={choice.skip.includes(c.key)}
+                                        onClick={() => toggleCategory(profile.memberId, "skip", c.key)}
+                                        className={`rounded-full border px-2.5 py-1 text-[11.5px] ${choice.skip.includes(c.key) ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/10 bg-white text-[#5A6B5A]"}`}>
+                                  {c.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-[#5A6B5A]">
+                            What they feel like is a nudge between products that are otherwise close, never a reason to
+                            miss a target. What they skip is left out for them, and still bought for anyone else who
+                            wants it.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
         </section>
       )}
 
-      <section className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <label className="block">
-          <span className="text-[12px] font-semibold text-[#0E4032]">Days</span>
-          <input value={days} onChange={(e) => setDays(e.target.value)} inputMode="numeric"
-                 className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-        </label>
-        <label className="block md:col-span-2">
-          <span className="text-[12px] font-semibold text-[#0E4032]">Budget (₹, optional)</span>
-          <input value={budget} onChange={(e) => setBudget(e.target.value)} inputMode="numeric" placeholder="No limit"
-                 className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-        </label>
-      </section>
+      {profiles.length > 0 && (
+        <>
+          <section className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <label className="block">
+              <span className="text-[12px] font-semibold text-[#0E4032]">Days</span>
+              <input value={days} onChange={(e) => setDays(e.target.value)} inputMode="numeric"
+                     className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="text-[12px] font-semibold text-[#0E4032]">Budget (₹, optional)</span>
+              <input value={budget} onChange={(e) => setBudget(e.target.value)} inputMode="numeric" placeholder="No limit"
+                     className="mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
+            </label>
+          </section>
 
-      <button type="button" onClick={makePlan} disabled={!ready || busy}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-40">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBasket className="h-4 w-4" />}
-        {busy ? "Working it out…" : "Plan it"}
-      </button>
-      {!ready && <p className="mt-2 text-[11.5px] text-[#5A6B5A]">Give everyone a label, an age group, a diet and at least one target.</p>}
-      {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
+          <button type="button" onClick={makePlan} disabled={!ready || busy}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0E4032] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-40">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBasket className="h-4 w-4" />}
+            {busy ? "Working it out…" : `Plan it for ${chosen.length || "nobody"}`}
+          </button>
+          {!ready && <p className="mt-2 text-[11.5px] text-[#5A6B5A]">Choose at least one person.</p>}
+        </>
+      )}
 
       {plan && (
         <section className="mt-10 space-y-6">
@@ -687,6 +641,12 @@ export default function PlanPage() {
                       </span>
                     </div>
                   ))}
+                  {m.carbsLimit && (
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[#5A6B5A]">carbs</span>
+                      <span className="text-[#0E4032]">{m.achieved.carbs ?? 0} of at most {m.carbsLimit}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -744,6 +704,15 @@ export default function PlanPage() {
             <ul className="mt-2 space-y-1 text-[12.5px] text-[#5A6B5A]">
               <li>Reached: {plan.explanation.reached.replace(/_/g, " ")}{plan.explanation.gave_up ? ` — gave up ${plan.explanation.gave_up}` : " — nothing was given up"}</li>
               <li>Never relaxed: {plan.explanation.never_relaxed.join(" and ")}</li>
+              {(plan.explanation.carb_ceilings ?? []).map((c) => (
+                <li key={c.member}>
+                  {c.label} is on {c.pattern === "keto" ? "keto" : "low carb"}: at most {c.perDay} g of carbohydrate a day
+                  {c.undeclared > 0 && `, and ${c.undeclared} ${c.undeclared === 1 ? "product was" : "products were"} left out for them because their carbohydrate isn't declared`}
+                </li>
+              ))}
+              {(plan.explanation.skipped_this_week ?? []).map((s) => (
+                <li key={s.member}>{s.label} asked to skip {s.categories.map((key) => nodeInfo(key)?.subcategory ?? nodeInfo(key)?.label ?? key).join(", ")} this week</li>
+              ))}
               {plan.explanation.products_refused.length > 0 && (
                 <li>{plan.explanation.products_refused.length} products left out because no one in the household can eat them</li>
               )}
@@ -784,56 +753,14 @@ export default function PlanPage() {
               )}
             </ul>
           </div>
-
-          <div className="rounded-2xl border border-[#083D2D]/10 p-5">
-            <h2 className="text-lg font-bold text-[#0E4032]">Change this plan</h2>
-            <p className="mt-1 text-[12px] text-[#5A6B5A]">
-              Say what to change and KOI plans again. What you type stays on this page; only the new plan is saved.
-            </p>
-            {conversation.length > 0 && (
-              <ol className="mt-3 space-y-3">
-                {conversation.map((turn, i) => (
-                  <li key={i} className="text-[12.5px]">
-                    <p className="font-semibold text-[#0E4032]">&ldquo;{turn.text}&rdquo;</p>
-                    {turn.applied?.length > 0 && <p className="text-[#16A06E]">Changed: {turn.applied.join(" · ")}</p>}
-                    {turn.changed && turn.basketChange && (
-                      <div className="text-[#5A6B5A]">
-                        {turn.basketChange.added.map((s) => <p key={`a-${s.skuId}`}>Adds {s.packs} × {s.name}</p>)}
-                        {turn.basketChange.changed.map((c) => <p key={`c-${c.skuId}`}>{c.name}: {c.from} → {c.to} packs</p>)}
-                        {turn.basketChange.dropped.map((s) => <p key={`d-${s.skuId}`}>No longer {s.name}</p>)}
-                        <p>₹{turn.basketChange.costBefore} → ₹{turn.report.cost}
-                          {turn.report.unmet.length > 0 ? ` · short: ${turn.report.unmet.map((u) => `${u.label} ${u.short} ${u.nutrient}`).join(", ")}` : " · every target met"}
-                        </p>
-                      </div>
-                    )}
-                    {turn.notApplied?.map((n) => <p key={n} className="text-[#8A6508]">{n}</p>)}
-                    {turn.changed && turn.householdChanges?.length > 0 && !turn.saved && (
-                      <p className="text-[#5A6B5A]">
-                        This changed the plan, not your saved household.{" "}
-                        <button type="button" onClick={() => saveToHousehold(i)} disabled={turn.saving}
-                                className="font-semibold text-[#16A06E] hover:underline disabled:opacity-40">
-                          {turn.saving ? "Saving…" : `Save it for ${turn.householdChanges.map((c) => c.label).join(", ")}`}
-                        </button>
-                      </p>
-                    )}
-                    {turn.saved && <p className="text-[#16A06E]">Saved to your household.</p>}
-                    {turn.saveError && <p className="text-[#B4453C]">{turn.saveError}</p>}
-                  </li>
-                ))}
-              </ol>
-            )}
-            <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); followUp(); }}>
-              <input id="plan-followup" value={followText} onChange={(e) => setFollowText(e.target.value)} maxLength={200}
-                     placeholder={followUpExamples({ basket: plan.report.basket, days: plan.days }).join(" · ")}
-                     className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]" />
-              <button type="submit" disabled={!followText.trim() || followBusy}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#0E4032] px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-40">
-                {followBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {followBusy ? "Planning…" : "Change it"}
-              </button>
-            </form>
-          </div>
         </section>
+      )}
+
+      {plan && (
+        <PlanCopilot open={copilotOpen} onOpenChange={setCopilotOpen} conversation={conversation}
+                     text={followText} onText={setFollowText} onSend={followUp} busy={followBusy}
+                     examples={followUpExamples({ basket: plan.report.basket, days: plan.days })}
+                     onSaveToHousehold={saveToHousehold} />
       )}
     </main>
   );

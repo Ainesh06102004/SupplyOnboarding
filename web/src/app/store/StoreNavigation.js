@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { Home, Store, ShoppingCart, Package, User } from "lucide-react";
+import { Home, Store, ShoppingCart, Package, User, CalendarCheck } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginSheet from "@/components/auth/LoginSheet";
@@ -61,6 +61,8 @@ function NavigationContent() {
   const NAV_ITEMS = [
     { label: "Home", href: "/store", icon: Home },
     { label: "Store", href: "/store/shop", icon: Store },
+    // The planner, and through it the household's profiles (Phase 3, §9.10.2).
+    { label: "Plan", href: "/store/plan", icon: CalendarCheck },
     { label: "Cart", href: "/store/cart", icon: ShoppingCart },
     { label: "Orders", href: "/store/orders", icon: Package },
     { label: "Profile", href: "/store/profile", icon: User },
@@ -78,6 +80,7 @@ function NavigationContent() {
              </Link>
              <div className="flex items-center gap-6 mt-1">
                 <Link href="/store/shop" className={`text-[13px] font-bold transition-colors uppercase tracking-wider ${pathname === "/store/shop" ? "text-[#0E4032]" : "text-[#5A6B5A] hover:text-[#0E4032]"}`}>Store</Link>
+                <Link href="/store/plan" className={`text-[13px] font-bold transition-colors uppercase tracking-wider ${pathname === "/store/plan" || pathname === "/store/household" ? "text-[#0E4032]" : "text-[#5A6B5A] hover:text-[#0E4032]"}`}>Plan</Link>
                 <Link href="/store/orders" className={`text-[13px] font-bold transition-colors uppercase tracking-wider flex items-center gap-1.5 ${pathname === "/store/orders" ? "text-[#0E4032]" : "text-[#5A6B5A] hover:text-[#0E4032]"}`}>
                   Orders
                   {hasActiveOrder && <span className="w-1.5 h-1.5 rounded-full bg-[#C8F23E] shadow-[0_0_8px_rgba(200,242,62,0.8)]" />}
