@@ -51,15 +51,18 @@ const PHRASE = String.raw`([a-z0-9]+(?:\s+[a-z0-9]+){0,4})`;
 // The article is a whole word: without the boundary, "a" ate the first letter
 // of "add" and KOI went looking for a product called "dd".
 const ARTICLE = String.raw`(?:(?:the|any|all|some|a|an|my|our|those|these|that|this|more|extra|also|just)\s+)*`;
-const LEAVE_OUT = new RegExp(String.raw`\b(?:no|without|skip|remove|drop|swap|replace|swap out|take out|leave out|get rid of|cut out|cut|instead of|don t want|do not want|dont want|don t need|dont need|not|less|stop|minus)\s+${ARTICLE}${PHRASE}`, "g");
+const LEAVE_OUT = new RegExp(String.raw`\b(?:no|without|skip|remove|drop|swap|replace|take|leave|get rid of|cut|instead of|don t want|do not want|dont want|don t need|dont need|not|less|stop|minus)\s+(?:out\s+)?${ARTICLE}${PHRASE}`, "g");
 /**
  * "add oats", "include besan", "buy some atta", "put in a jar of honey".
  * "also" is filler, not a trigger: as a trigger it matched before the "add"
  * in "can you also add some peanut butter" and swallowed the verb.
  */
-const ADD = new RegExp(String.raw`\b(?:add|include|buy|get|put in|throw in|more of)\s+${ARTICLE}${PHRASE}`, "g");
+const ADD = new RegExp(String.raw`\b(?:add|include|buy|put in|put|throw in|more of|use)\s+${ARTICLE}${PHRASE}`, "g");
 /** "swap the rice for atta", "replace oats with poha", "atta instead of rice". */
-const SWAP_FOR = new RegExp(String.raw`\b(?:swap|replace|change|switch)\s+(?:out\s+)?${ARTICLE}([a-z0-9]+(?:\s+[a-z0-9]+){0,4}?)\s+(?:for|with|to|by)\s+${ARTICLE}${PHRASE}`, "g");
+// The thing being replaced may not be said at all: "take out chikki and
+// replace with almonds". The from side is optional, and when it is missing
+// (or a pronoun) it means the food the sentence has just named.
+const SWAP_FOR = new RegExp(String.raw`\b(?:swap|replace|change|switch)\s+(?:out\s+)?(?:${ARTICLE}([a-z0-9]+(?:\s+[a-z0-9]+){0,4}?)\s+)?(?:for|with|to|by)\s+${ARTICLE}${PHRASE}`, "g");
 const SWAP_INSTEAD = new RegExp(String.raw`\b([a-z0-9]+(?:\s+[a-z0-9]+){0,4}?)\s+instead\s+of\s+${ARTICLE}${PHRASE}`, "g");
 
 /** How much of it: a count, a weight, a pack. None of it is the food's name. */
@@ -70,6 +73,11 @@ const PACK_WORDS = new Set([
 ]);
 /** "swap IT with honey": the thing just named, not a product called "it". */
 const PRONOUNS = new Set(["it", "that", "this", "them", "those", "these", "one", "ones"]);
+/** A verb that leaked into a phrase: "use honey instead of dates" is honey. */
+const VERBS = new Set([
+  "use", "add", "put", "buy", "include", "swap", "replace", "switch", "change", "take", "remove", "drop",
+  "get", "want", "need", "give", "make", "keep", "leave", "skip", "cut", "rid", "out",
+]);
 /** The cue words that make a product word a removal, and the ones that make it an ask. */
 const REMOVE_CUE = /\b(no|without|skip|remove|drop|swap|replace|switch|instead|don t want|do not want|dont want|less|stop|minus|out)\b/;
 const ADD_CUE = /\b(add|include|buy|get|put in|throw in|also|more|with|want|extra)\b/;
@@ -106,6 +114,8 @@ function foodPhrase(words) {
     // How much comes first: "one" is both a count and a stop word, and reading
     // it as the end of the clause lost "one 250 g pack of dates" entirely.
     if (QUANTITY.test(w) || PACK_WORDS.has(w)) continue;
+    // A verb before the food is the asking, not the food: "use honey" is honey.
+    if (!kept.length && VERBS.has(w)) continue;
     if (STOP.has(w) || DAY_NAMES.test(w)) break;
     kept.push(w);
   }

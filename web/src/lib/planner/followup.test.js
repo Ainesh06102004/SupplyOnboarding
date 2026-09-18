@@ -109,6 +109,12 @@ test("the ways a shopper asks for a change", () => {
     ["swap the aata for brown rice", ["atta"], ["brown"]],
     ["no daal", ["toor"], []],
     ["add channa", [], []],
+    // The thing being replaced is often not said twice.
+    ["take out the dates and replace with honey", ["dates"], ["honey"]],
+    ["remove the oats and put poha instead", ["oats"], ["poha"]],
+    ["get rid of the dates", ["dates"], []],
+    ["use honey instead of dates", ["dates"], ["honey"]],
+    ["swap out the dates, honey please", ["dates"], []],
   ];
   for (const [message, out, into] of cases) {
     const r = read(message);
