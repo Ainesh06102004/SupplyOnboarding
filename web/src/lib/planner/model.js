@@ -253,13 +253,24 @@ export const PREFERENCE = Object.freeze({ bonusPerPack: 0.05 });
  * right and the answer was useless: a follow-up has to leave alone what it was
  * not asked about.
  *
- * So a pack already in the plan costs a little less to buy again. It is the
- * same size as a preference (0.05, against 6 for a gram of protein short), so
- * it settles which of two equally good baskets to hand back and never holds a
- * target hostage. It cannot buy a pack nobody eats either: everything bought is
- * eaten, and eating past a target costs far more than this saves.
+ * So a pack already in the plan is not re-priced. What it saves is exactly
+ * what the tiebreaks would charge to buy it again — its rupees (SPEND_TIEBREAK)
+ * plus a preference-sized 0.05 — because the tiebreaks are how KOI picks
+ * between baskets that are equally good, and a basket the shopper already has
+ * is the better of two equally good baskets. A flat bonus was not enough: at
+ * 0.05 a pack, dropping a ₹899 chocolate still paid, and the first version of
+ * this rule re-did the basket anyway.
+ *
+ * It is capped, so continuity can never outweigh a real miss: at most 0.25 a
+ * pack, against 6 for a gram of protein short. And it cannot buy a pack nobody
+ * eats — everything bought is eaten, and eating past a target costs far more
+ * than this saves.
  */
-export const CONTINUITY = Object.freeze({ bonusPerPack: 0.05 });
+export const CONTINUITY = Object.freeze({ bonusPerPack: 0.05, cap: 0.25 });
+
+/** What keeping this pack is worth against the tiebreaks that would replace it. */
+export const continuityBonus = (price, spendTiebreak = SPEND_TIEBREAK) =>
+  Math.min(CONTINUITY.cap, CONTINUITY.bonusPerPack + spendTiebreak * (Number(price) || 0));
 
 /** Does this product sit in that category, or under it ("snacks" covers "snacks.namkeen")? */
 export const inCategory = (categoryKey, wanted = []) =>
@@ -511,7 +522,7 @@ export function buildPlanModel({
   for (const item of eligible) {
     // Already in the plan: cheaper to keep than to replace (CONTINUITY).
     const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price)
-      - (keep.has(String(item.skuId)) ? CONTINUITY.bonusPerPack : 0);
+      - (keep.has(String(item.skuId)) ? continuityBonus(item.price, spendTiebreak) : 0);
     const caps = portionCaps[item.skuId] ?? {};
     // No more whole packs than the household can eat between them.
     const canEat = Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0);

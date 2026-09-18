@@ -408,6 +408,27 @@ export async function planWithout({ planId, skuId }) {
 }
 
 /**
+ * Why a product the shopper asked for by name is not in the basket.
+ *
+ * The model already recorded the reason; this is that reason in the shopper's
+ * words. Anything it cannot account for is reported as exactly that, because a
+ * product that quietly went missing is worse than an awkward sentence.
+ *
+ * @param {{ skuId: string, name: string }} want
+ * @param {object} explanation the new plan's own explanation
+ * @param {number} days
+ */
+export function whyNotPlanned(want, explanation = {}, days = 0) {
+  const is = (entry) => String(entry?.skuId) === String(want.skuId);
+  const keptOut = (explanation.products_kept_out ?? []).find(is);
+  if (keptOut) return `${want.name} is kept out of your house: ${keptOut.because}`;
+  if ((explanation.products_refused ?? []).find(is)) return `No one in this plan can eat ${want.name}`;
+  if ((explanation.products_too_big ?? []).find(is)) return `A pack of ${want.name} is more than this household can eat in ${days} days`;
+  if ((explanation.products_priced_out ?? []).find(is)) return `${want.name} costs far more for what it feeds than the rest of the shelf, so KOI does not plan with it`;
+  return `KOI could not fit ${want.name} into this plan`;
+}
+
+/**
  * A follow-up on a stored plan (Phase 4.3): "cheaper", "swap the oats".
  *
  * The message is read (followup.js, with a model when configured), applied to
@@ -472,11 +493,13 @@ export async function planFollowUp({ planId, text }) {
   });
 
   // KOI said "Added Oats" before the solver had a say, and the basket came back
-  // without any. A promise the plan does not keep is not reported as kept.
+  // without any. A promise the plan does not keep is not reported as kept — and
+  // the shopper is told why, because "could not fit" hid the real answer: oats
+  // have gluten in them, and this household keeps gluten out of the house.
   const inBasket = new Set((next.report.basket ?? []).map((l) => String(l.skuId)));
   const broken = (change.wants ?? []).filter((w) => !inBasket.has(String(w.skuId)));
   const applied = change.applied.filter((line) => !broken.some((w) => w.line === line));
-  const notApplied = [...change.notApplied, ...broken.map((w) => `KOI could not fit ${w.name} into this plan`)];
+  const notApplied = [...change.notApplied, ...broken.map((w) => whyNotPlanned(w, next.explanation, change.days))];
 
   const before = (plan.achieved?.basket ?? []).map((l) => ({ skuId: l.skuId, name: l.name ?? null, packs: l.packs }));
   const { added, changed, dropped } = basketDiff({ removedSkuId: null, before, after: next.report.basket, edges: [] });

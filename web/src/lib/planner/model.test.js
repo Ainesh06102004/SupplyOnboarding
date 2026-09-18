@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, inCategory, occasionsFor } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, inCategory, occasionsFor } from "@/lib/planner/model.js";
 import { refusalReason } from "@/lib/planner/report.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
@@ -264,9 +264,11 @@ test("a change keeps the plan it changes, and what was asked for is always a can
   const kept = buildPlanModel({ members: [adult], catalogue: [rice, dal], days: 7, keepSkus: ["dal"] });
   assert.equal(
     colNamed(kept, nameOf.packs("dal")).cost,
-    round6(colNamed(plain, nameOf.packs("dal")).cost - CONTINUITY.bonusPerPack),
-    "a pack already in the plan is cheaper to keep",
+    round6(colNamed(plain, nameOf.packs("dal")).cost - continuityBonus(dal.price)),
+    "a pack already in the plan is not re-priced",
   );
+  assert.equal(round6(continuityBonus(899)), 0.1399, "an expensive pack is worth more to keep, because dropping it saves more");
+  assert.equal(continuityBonus(1e9), CONTINUITY.cap, "and never more than the cap");
   assert.equal(colNamed(kept, nameOf.packs("rice")).cost, colNamed(plain, nameOf.packs("rice")).cost, "the rest is priced as ever");
   assert.deepEqual(kept.meta.keptFromLastPlan, ["dal"]);
 
