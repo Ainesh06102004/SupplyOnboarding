@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import KitchenRules from "@/components/store/household/KitchenRules";
+import PhraseLog from "@/components/store/household/PhraseLog";
 import { Plus, Loader2, Pencil, Trash2, Sparkles, UserRound } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { loadGoalProfile } from "@/lib/supabase/goalProfileService";
@@ -47,7 +48,7 @@ async function readHousehold() {
   if (!user) return { user: null, household: null, members: [], versions: {}, error: null };
   const { data: household, error } = await supabase
     .from("household")
-    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
+    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, log_failed_phrases, followup_miss(id, said, not_applied, created_at), household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -452,6 +453,25 @@ export default function HouseholdPage() {
     else await reload();
   }
 
+  // What KOI could not understand, kept only if asked (00055).
+  async function togglePhraseLog(on) {
+    if (!householdId) return;
+    setKeepOutBusy(true);
+    const { error } = await getSupabaseClient().from("household").update({ log_failed_phrases: on }).eq("id", householdId);
+    setKeepOutBusy(false);
+    if (error) show({ ...state, error: "That could not be saved." });
+    else await reload();
+  }
+
+  async function forgetPhrases(id) {
+    setKeepOutBusy(true);
+    const query = getSupabaseClient().from("followup_miss").delete();
+    const { error } = id ? await query.eq("id", id) : await query.eq("household_id", householdId);
+    setKeepOutBusy(false);
+    if (error) show({ ...state, error: "That could not be deleted." });
+    else await reload();
+  }
+
   async function remove(memberId) {
     const { error } = await getSupabaseClient().from("household_member").delete().eq("id", memberId);
     setRemoving(null);
@@ -543,6 +563,14 @@ export default function HouseholdPage() {
           </button>
         )}
       </section>
+
+      {householdId && (
+        <div className="mt-6">
+          <PhraseLog on={state.household?.log_failed_phrases} busy={keepOutBusy}
+                     misses={[...(state.household?.followup_miss ?? [])].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))}
+                     onToggle={togglePhraseLog} onForget={forgetPhrases} />
+        </div>
+      )}
 
       {householdId && (
         <div className="mt-6">

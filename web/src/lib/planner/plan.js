@@ -515,6 +515,39 @@ export async function planWithout({ planId, skuId }) {
 }
 
 /**
+ * Keep the wording of a follow-up KOI could not fully apply (00055).
+ *
+ * Only for a household that switched it on, and only when something was not
+ * applied: a message KOI understood is nobody's business but the shopper's.
+ * The plan's own record still holds KOI's words for the change and never the
+ * shopper's, so this is the one place a sentence is stored, by request.
+ *
+ * It never fails a plan. A shopper asking for a change does not care that a
+ * diagnostic table was unreachable, and losing a plan over one would be worse
+ * than losing the row.
+ */
+async function keepTheWording({ db, plan, text, applied, notApplied }) {
+  if (!notApplied?.length) return;
+  try {
+    const { data: household } = await db
+      .from("household")
+      .select("log_failed_phrases")
+      .eq("id", plan.household_id)
+      .maybeSingle();
+    if (!household?.log_failed_phrases) return;
+    await db.from("followup_miss").insert({
+      household_id: plan.household_id,
+      plan_id: plan.id,
+      said: String(text).slice(0, 600),
+      applied,
+      not_applied: notApplied,
+    });
+  } catch (err) {
+    console.error("[followup_miss]", err?.message ?? err);
+  }
+}
+
+/**
  * Why a product the shopper asked for by name is not in the basket.
  *
  * The model already recorded the reason; this is that reason in the shopper's
@@ -575,6 +608,7 @@ export async function planFollowUp({ planId, text }) {
   }, reading, catalogue);
 
   if (!change.applied.length) {
+    await keepTheWording({ db, plan, text, applied: [], notApplied: change.notApplied });
     return { planId: plan.id, changed: false, applied: [], notApplied: change.notApplied };
   }
 
@@ -614,6 +648,8 @@ export async function planFollowUp({ planId, text }) {
 
   const before = (plan.achieved?.basket ?? []).map((l) => ({ skuId: l.skuId, name: l.name ?? null, packs: l.packs }));
   const { added, changed, dropped } = basketDiff({ removedSkuId: null, before, after: next.report.basket, edges: [] });
+
+  await keepTheWording({ db, plan, text, applied, notApplied });
 
   return {
     ...next,
