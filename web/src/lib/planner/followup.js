@@ -517,7 +517,7 @@ const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
  * @param {object} plan { members, days, budget, excludedSkus, cost }
  * @param {object} reading from readFollowUp / mergeFollowUps
  * @param {Array} catalogue plannable rows (for leave-out words)
- * @returns {{ members, days, budget, excludedSkus, applied: string[], notApplied: string[], householdChanges: Array }}
+ * @returns {{ members, days, budget, excludedSkus, includedSkus, wants, applied: string[], notApplied: string[], householdChanges: Array }}
  *   `householdChanges` are the parts that describe a person rather than this
  *   plan — a target, an avoid — keyed by the stored member id. They change the
  *   plan only; the shopper is asked before any is saved (Phase 4.4).
@@ -525,6 +525,9 @@ const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 export function applyFollowUp(plan, reading, catalogue) {
   const applied = [];
   const notApplied = [];
+  // What a line of `applied` promised to put in the basket. The solver has the
+  // last word: a promise it cannot keep is walked back, not left standing.
+  const wants = [];
   const changesByMember = new Map();
   const noteChange = (m, patch) => {
     const change = changesByMember.get(m.id) ?? { memberId: m.id, label: m.label, targets: {}, addAvoidKeys: [] };
@@ -570,7 +573,9 @@ export function applyFollowUp(plan, reading, catalogue) {
     }
     out.forEach((h) => excluded.add(h.skuId));
     inTo.slice(0, 1).forEach((h) => included.add(h.skuId));
-    applied.push(`${inTo[0].name} instead of ${out.map((h) => h.name).join(", ")}`);
+    const line = `${inTo[0].name} instead of ${out.map((h) => h.name).join(", ")}`;
+    applied.push(line);
+    wants.push({ skuId: inTo[0].skuId, name: inTo[0].name, line });
   }
 
   for (const word of reading.leaveOut) {
@@ -591,7 +596,9 @@ export function applyFollowUp(plan, reading, catalogue) {
     }
     // One product, not every match: "add oats" is a pack of oats, not the shelf.
     included.add(hits[0].skuId);
-    applied.push(`Added ${hits[0].name}`);
+    const line = `Added ${hits[0].name}`;
+    applied.push(line);
+    wants.push({ skuId: hits[0].skuId, name: hits[0].name, line });
   }
 
   for (const { key, who } of reading.avoid) {
@@ -645,6 +652,7 @@ export function applyFollowUp(plan, reading, catalogue) {
     budget,
     excludedSkus: [...excluded],
     includedSkus: [...included],
+    wants,
     // "no dairy" is milk and lactose, and the rules and the model can each
     // find the same one: say each change once.
     applied: [...new Set(applied)],

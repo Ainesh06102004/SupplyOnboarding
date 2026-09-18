@@ -53,7 +53,9 @@ import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 //     keto and low carb as carbohydrate ceilings.
 // v8: this week's choices (PREFERENCE: what they feel like, what to skip), and
 //     portions that follow a member's appetite and the meals they eat at home.
-export const MODEL_VERSION = "plan-model-v8";
+// v9: a change keeps the plan it changes (CONTINUITY), and a product asked for
+//     by name is always a candidate.
+export const MODEL_VERSION = "plan-model-v9";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -242,6 +244,23 @@ export function occasionsFor(role, mealsFromHome = []) {
  */
 export const PREFERENCE = Object.freeze({ bonusPerPack: 0.05 });
 
+/**
+ * A change is a change, not a new plan (plan-model-v9).
+ *
+ * "Take out the brown rice and add oats" used to re-solve from nothing, and
+ * came back having also dropped the chocolate, the cashews and the chikki —
+ * every one of them a product the shopper had already agreed to. The solver was
+ * right and the answer was useless: a follow-up has to leave alone what it was
+ * not asked about.
+ *
+ * So a pack already in the plan costs a little less to buy again. It is the
+ * same size as a preference (0.05, against 6 for a gram of protein short), so
+ * it settles which of two equally good baskets to hand back and never holds a
+ * target hostage. It cannot buy a pack nobody eats either: everything bought is
+ * eaten, and eating past a target costs far more than this saves.
+ */
+export const CONTINUITY = Object.freeze({ bonusPerPack: 0.05 });
+
 /** Does this product sit in that category, or under it ("snacks" covers "snacks.namkeen")? */
 export const inCategory = (categoryKey, wanted = []) =>
   Boolean(categoryKey) && wanted.some((key) => categoryKey === key || String(categoryKey).startsWith(`${key}.`));
@@ -369,6 +388,7 @@ export function buildPlanModel({
   fairness = FAIRNESS.weight,
   keepOutFlags = [],
   includeSkus = [],
+  keepSkus = [],
 }) {
   // A solution is read back from eats_<sku>_<member>, split at the last "_"
   // (lp.js). Real member ids are uuids; an id with "_" would be read as a
@@ -461,19 +481,26 @@ export function buildPlanModel({
   }
   const mayEat = (skuId, memberId) => portionCaps[skuId]?.[memberId]?.basis !== "refused";
 
-  // Only so many products may enter the program (CANDIDATE_RULE).
+  // What the shopper asked for by name, and what the plan already holds.
+  const wanted = new Set((includeSkus ?? []).map(String));
+  const keep = new Set((keepSkus ?? []).map(String));
+
+  // Only so many products may enter the program (CANDIDATE_RULE) — but never
+  // at the cost of the one thing that was asked for by name. Ranking by protein
+  // per rupee, a jar of oats loses to the dals, and "add oats" then came back
+  // saying KOI could not get any.
   let eligible = allowed;
   if (isNum(candidateLimit) && allowed.length > candidateLimit) {
     const perRupee = (item) => (Number(item.perPack?.protein ?? 0) || 0) / Number(item.price);
-    const ranked = [...allowed].sort((a, b) => perRupee(b) - perRupee(a) || String(a.skuId).localeCompare(String(b.skuId)));
+    const asked = (item) => wanted.has(String(item.skuId));
+    const ranked = [...allowed].sort((a, b) => (asked(b) ? 1 : 0) - (asked(a) ? 1 : 0) || perRupee(b) - perRupee(a) || String(a.skuId).localeCompare(String(b.skuId)));
     eligible = ranked.slice(0, candidateLimit);
     ranked.slice(candidateLimit).forEach((item, i) => {
       excluded.push({ skuId: item.skuId, reason: "not_a_candidate", rule: CANDIDATE_RULE, rank: candidateLimit + i + 1 });
     });
   }
 
-  // What the shopper asked for by name: at least one pack, where it can be had.
-  const wanted = new Set((includeSkus ?? []).map(String));
+  // At least one pack of it, where it can be had.
   const included = [];
   for (const skuId of wanted) {
     if (eligible.some((item) => String(item.skuId) === skuId)) included.push(skuId);
@@ -482,7 +509,9 @@ export function buildPlanModel({
 
   // Packs, and who eats them.
   for (const item of eligible) {
-    const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price);
+    // Already in the plan: cheaper to keep than to replace (CONTINUITY).
+    const packCost = qualityCost(item.score, qualityTiebreak) + spendTiebreak * Number(item.price)
+      - (keep.has(String(item.skuId)) ? CONTINUITY.bonusPerPack : 0);
     const caps = portionCaps[item.skuId] ?? {};
     // No more whole packs than the household can eat between them.
     const canEat = Object.values(caps).reduce((sum, cap) => sum + cap.packs, 0);
@@ -583,6 +612,8 @@ export function buildPlanModel({
       removedByShopper: [...removed],
       // Asked for by name, and in the program (the rest are in `excluded`).
       includedByShopper: included,
+      // Kept from the plan this one changes (CONTINUITY).
+      keptFromLastPlan: [...keep].filter((id) => eligible.some((item) => String(item.skuId) === id)),
       portionRule: PORTION_RULE.version,
       portionRelax,
       portionCaps: Object.fromEntries(eligible.map((i) => [i.skuId, portionCaps[i.skuId] ?? {}])),

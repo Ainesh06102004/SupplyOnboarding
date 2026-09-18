@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, inCategory, occasionsFor } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, inCategory, occasionsFor } from "@/lib/planner/model.js";
 import { refusalReason } from "@/lib/planner/report.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
@@ -22,6 +22,8 @@ const jain = { id: "gran", targets: { protein: 40 }, avoidFlags: [], dietExclude
 
 const rowNamed = (model, name) => model.rows.find((r) => r.name === name);
 const colNamed = (model, name) => model.columns.find((c) => c.name === name);
+// The model rounds a pack's cost to six places; a test that subtracts must too.
+const round6 = (v) => Math.round(v * 1e6) / 1e6;
 
 test("what one member cannot eat is kept from them, not from the household", () => {
   const model = buildPlanModel({ members: [adult, nutFree], catalogue: [almonds, rice], days: 7 });
@@ -247,7 +249,34 @@ test("this week: what they feel like costs a little less, and what they skip is 
   assert.equal(refusalReason({ flag: "not_this_week", rule: "this_week" }), "not what they feel like this week");
   assert.equal(inCategory("snacks.biscuits_cookies", ["snacks"]), true, "an aisle covers what is under it");
   assert.equal(inCategory("snacks_extra", ["snacks"]), false);
-  assert.equal(MODEL_VERSION, "plan-model-v8");
+  assert.equal(MODEL_VERSION, "plan-model-v9");
+});
+
+test("a change keeps the plan it changes, and what was asked for is always a candidate", () => {
+  const oats = {
+    skuId: "oats", price: 260, contains: [], availability: "unknown", perPack: { kcal: 1700, protein: 50, carbs: 300, fat: 30 },
+    packAmount: 500, packUnit: "g", role: "meal_base", portion: { amount: 40, unit: "g", max: 80 }, score: 70,
+  };
+  const dal = { ...rice, skuId: "dal", price: 190, score: 70 };
+
+  // Nothing was asked for: the basket KOI already handed over costs less to buy again.
+  const plain = buildPlanModel({ members: [adult], catalogue: [rice, dal], days: 7 });
+  const kept = buildPlanModel({ members: [adult], catalogue: [rice, dal], days: 7, keepSkus: ["dal"] });
+  assert.equal(
+    colNamed(kept, nameOf.packs("dal")).cost,
+    round6(colNamed(plain, nameOf.packs("dal")).cost - CONTINUITY.bonusPerPack),
+    "a pack already in the plan is cheaper to keep",
+  );
+  assert.equal(colNamed(kept, nameOf.packs("rice")).cost, colNamed(plain, nameOf.packs("rice")).cost, "the rest is priced as ever");
+  assert.deepEqual(kept.meta.keptFromLastPlan, ["dal"]);
+
+  // Ranked by protein per rupee, oats lose to both dals — but "add oats" means oats.
+  const cut = buildPlanModel({ members: [adult], catalogue: [rice, dal, oats], days: 7, candidateLimit: 2 });
+  assert.equal(cut.meta.skus.includes("oats"), false, "without the ask, the limit cuts it");
+  const asked = buildPlanModel({ members: [adult], catalogue: [rice, dal, oats], days: 7, candidateLimit: 2, includeSkus: ["oats"] });
+  assert.equal(asked.meta.skus.includes("oats"), true, "asked for by name, so it is in the program");
+  assert.deepEqual(asked.meta.includedByShopper, ["oats"]);
+  assert.equal(colNamed(asked, nameOf.packs("oats")).lower, 1, "at least one pack of it");
 });
 
 test("anything but a staple is one serving a day", () => {

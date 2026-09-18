@@ -173,10 +173,11 @@ function membersFromSnapshot(snapshot) {
  * @param {object} input.db the shopper's Supabase client (RLS applies)
  * @param {string[]} [input.excludeSkus] products this plan must do without
  * @param {string[]} [input.keepOutFlags] contains-flags kept out of the house
+ * @param {string[]} [input.keepSkus] the basket this plan changes: kept where it can be
  * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
  */
-async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepOutFlags = [], extra = {} }) {
-  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepOutFlags };
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], extra = {} }) {
+  const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepSkus, keepOutFlags };
   const { attempt, model, solution, report } = await solvePlan(base);
 
   const status = solution.usable ? "solved" : "infeasible";
@@ -262,6 +263,8 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         // Products the shopper asked for by name: at least one pack each,
         // carried into every follow-up so "add oats" stays added.
         included_skus: [...new Set(includeSkus.map(String))],
+        // What this plan kept from the one it changes (CONTINUITY).
+        kept_skus: model.meta.keptFromLastPlan ?? [],
         keep_out_flags: [...new Set(keepOutFlags)],
         // For a follow-up: the plan it changed and KOI's words for the change.
         // The shopper's own message is not stored.
@@ -356,6 +359,8 @@ export async function planWithout({ planId, skuId }) {
     // What earlier follow-ups left out stays out, and so does what the house keeps out.
     excludeSkus: [...(snapshot.excluded_skus ?? []), skuId],
     includeSkus: (snapshot.included_skus ?? []).filter((id) => String(id) !== String(skuId)),
+    // One product could not be had. That is no reason to re-do the rest.
+    keepSkus: (plan.plan_item ?? []).map((l) => String(l.sku_id)).filter((id) => id !== String(skuId)),
     keepOutFlags: snapshot.keep_out_flags ?? [],
   };
   const { attempt, model, solution } = await solveWithLadder(base);
@@ -457,9 +462,21 @@ export async function planFollowUp({ planId, text }) {
     budget: change.budget,
     excludeSkus: change.excludedSkus,
     includeSkus: change.includedSkus,
+    // A change is a change, not a new plan: what the shopper did not ask about
+    // stays (CONTINUITY), minus anything this change takes out.
+    keepSkus: (plan.achieved?.basket ?? [])
+      .map((l) => String(l.skuId))
+      .filter((id) => !change.excludedSkus.map(String).includes(id)),
     keepOutFlags: snapshot.keep_out_flags ?? [],
     extra: { follows: plan.id, change: change.applied },
   });
+
+  // KOI said "Added Oats" before the solver had a say, and the basket came back
+  // without any. A promise the plan does not keep is not reported as kept.
+  const inBasket = new Set((next.report.basket ?? []).map((l) => String(l.skuId)));
+  const broken = (change.wants ?? []).filter((w) => !inBasket.has(String(w.skuId)));
+  const applied = change.applied.filter((line) => !broken.some((w) => w.line === line));
+  const notApplied = [...change.notApplied, ...broken.map((w) => `KOI could not fit ${w.name} into this plan`)];
 
   const before = (plan.achieved?.basket ?? []).map((l) => ({ skuId: l.skuId, name: l.name ?? null, packs: l.packs }));
   const { added, changed, dropped } = basketDiff({ removedSkuId: null, before, after: next.report.basket, edges: [] });
@@ -468,8 +485,8 @@ export async function planFollowUp({ planId, text }) {
     ...next,
     changed: true,
     follows: plan.id,
-    applied: change.applied,
-    notApplied: change.notApplied,
+    applied,
+    notApplied,
     // Offered to the shopper to save to their household; never saved here.
     householdChanges: change.householdChanges,
     basketChange: { added, changed, dropped, costBefore: Number(plan.achieved?.cost ?? 0) },
