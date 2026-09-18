@@ -472,7 +472,7 @@ export default function HouseholdPage() {
   const holder = members.find((m) => m.is_account_holder);
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-10">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
           <h1 className="text-[26px] font-bold leading-none tracking-tight text-[#0E4032]" style={HEADING}>Your household</h1>
@@ -490,7 +490,7 @@ export default function HouseholdPage() {
 
       <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,21rem)]">
       <div className="min-w-0">
-      <section className="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
+      <section className="space-y-2.5">
         {members.map((m) => (editing?.memberId === m.memberId ? (
           <MemberEditor key={m.memberId} initial={editing} householdId={householdId} ensureHousehold={ensureHousehold} userId={state.user.id}
                         anotherHolder={Boolean(holder && holder.memberId !== m.memberId)} onCancel={() => setEditing(null)} onSaved={reload} />
@@ -538,7 +538,7 @@ export default function HouseholdPage() {
                         anotherHolder={Boolean(holder)} onCancel={() => setEditing(null)} onSaved={reload} />
         ) : (
           <button type="button" onClick={() => setEditing({ ...blankProfile(), label: members.length ? "" : "Me", is_account_holder: !members.length })}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#083D2D]/15 px-3 py-2 text-[12.5px] font-semibold text-[#0E4032]">
+                  className="inline-flex w-fit items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-semibold text-[#0E4032] ring-1 ring-inset ring-[#083D2D]/15 hover:bg-white/60">
             <Plus className="h-4 w-4" /> Add someone
           </button>
         )}
