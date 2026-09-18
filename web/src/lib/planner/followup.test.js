@@ -67,6 +67,64 @@ test("\"swap toor dal with oats\" takes out the dal and puts in the oats", () =>
   assert.equal(r.notApplied.length, 0);
 });
 
+test("a count and a pack word are not the food's name", () => {
+  const shop = [...SHOP, { skuId: "dates", name: "Dates", categoryKey: "nuts_seeds.dried_fruit" }, { skuId: "honey", name: "Uttrakhand Honey", categoryKey: "sweeteners.honey" }];
+  // "Nothing KOI can plan with is called 'date pack'", and "one 250g pack" left over.
+  for (const message of ["can you remove 1 date pack and swap it with honey instead?", "can you remove one 250g pack of dates and swap it with honey instead?"]) {
+    const r = applyFollowUp({ ...PLAN, excludedSkus: [], includedSkus: [] }, readFollowUp(message), shop);
+    assert.deepEqual(r.excludedSkus, ["dates"], message);
+    assert.deepEqual(r.includedSkus, ["honey"], message);
+    assert.equal(r.notApplied.length, 0, `${message}: ${r.notApplied.join(" · ")}`);
+  }
+});
+
+// How people actually type, each line a message and what it must do. Added to
+// whenever a live conversation finds one KOI reads wrongly.
+test("the ways a shopper asks for a change", () => {
+  const shop = [
+    ...SHOP,
+    { skuId: "dates", name: "Dates", categoryKey: "nuts_seeds.dried_fruit" },
+    { skuId: "honey", name: "Uttrakhand Honey", categoryKey: "sweeteners.honey" },
+    { skuId: "pb", name: "Natural Peanut Butter Crunch", categoryKey: "nuts_seeds.nut_butters" },
+    { skuId: "chips", name: "The Healthy Potato Chips", categoryKey: "snacks.chips_crisps" },
+  ];
+  const read = (message) => applyFollowUp({ ...PLAN, excludedSkus: [], includedSkus: [] }, readFollowUp(message), shop);
+  const cases = [
+    // [message, products out, products in]
+    ["no dates", ["dates"], []],
+    ["remove the dates please", ["dates"], []],
+    ["i don t want dates", ["dates"], []],
+    ["drop 2 packs of dates", ["dates"], []],
+    ["take out the potato chips", ["chips"], []],
+    ["add honey", [], ["honey"]],
+    ["can you also add some peanut butter", [], ["pb"]],
+    ["include 1 jar of honey", [], ["honey"]],
+    ["add 500g atta", [], ["atta"]],
+    ["swap dates for honey", ["dates"], ["honey"]],
+    ["replace the dates with honey", ["dates"], ["honey"]],
+    ["honey instead of dates", ["dates"], ["honey"]],
+    ["switch out the oats for poha", ["oats"], ["poha"]],
+    ["remove 1 date pack and swap it with honey instead", ["dates"], ["honey"]],
+    ["remove one 250g pack of dates and swap it with honey", ["dates"], ["honey"]],
+    ["swap the aata for brown rice", ["atta"], ["brown"]],
+    ["no daal", ["toor"], []],
+    ["add channa", [], []],
+  ];
+  for (const [message, out, into] of cases) {
+    const r = read(message);
+    assert.deepEqual(r.excludedSkus.sort(), [...out].sort(), `${message} — out`);
+    assert.deepEqual(r.includedSkus.sort(), [...into].sort(), `${message} — in`);
+  }
+});
+
+test("what it cannot do, it says plainly", () => {
+  const r = applyFollowUp({ ...PLAN, excludedSkus: [], includedSkus: [] }, readFollowUp("swap the oats for quinoa"), SHOP);
+  assert.deepEqual(r.excludedSkus, []);
+  assert.match(r.notApplied.join(" "), /nothing called "quinoa"/);
+  const nothing = applyFollowUp({ ...PLAN }, readFollowUp("hello"), SHOP);
+  assert.match(nothing.notApplied.join(" "), /could not find a change/);
+});
+
 test("a product asked for is never also left out", () => {
   const r = applyText("no oats, actually add oats");
   assert.deepEqual(r.includedSkus, ["oats"]);

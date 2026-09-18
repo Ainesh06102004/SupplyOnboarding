@@ -45,12 +45,31 @@ const CHEAPER = /\b(cheaper|less expensive|too expensive|too costly|costs? less|
 const NO_BUDGET = /\b(no budget|any budget|forget (the )?budget|remove (the )?budget|budget (does not|doesn t|dont) matter|(money|cost|price) (is )?(no|not an?) (issue|problem|concern)|don t worry about (the )?(money|cost|price|budget))\b/;
 const MONEY_WORDS = /\b(budget|cost|money|price|spend|expensive|cheap|paisa|kharcha|rs)\b/;
 const DAY_NAMES = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekends?|weekdays?|today|tomorrow)\b/;
-const LEAVE_OUT = /\b(?:no|without|skip|remove|drop|swap|replace|swap out|instead of|don t want|do not want|dont want|not|less|stop|minus)\s+(?:the|any|all|more|those|these|that|this|my)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
-/** "add oats", "include besan", "with some atta", "more paneer please". */
-const ADD = /\b(?:add|include|buy|get|put in|throw in|more of|also)\s+(?:some|the|a|an|any|more|extra)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
+// A phrase may carry a count and a pack word ("one 250 g pack of dates"), so
+// the captures take digits and up to five words; foodPhrase strips the rest.
+const PHRASE = String.raw`([a-z0-9]+(?:\s+[a-z0-9]+){0,4})`;
+// The article is a whole word: without the boundary, "a" ate the first letter
+// of "add" and KOI went looking for a product called "dd".
+const ARTICLE = String.raw`(?:(?:the|any|all|some|a|an|my|our|those|these|that|this|more|extra|also|just)\s+)*`;
+const LEAVE_OUT = new RegExp(String.raw`\b(?:no|without|skip|remove|drop|swap|replace|swap out|take out|leave out|get rid of|cut out|cut|instead of|don t want|do not want|dont want|don t need|dont need|not|less|stop|minus)\s+${ARTICLE}${PHRASE}`, "g");
+/**
+ * "add oats", "include besan", "buy some atta", "put in a jar of honey".
+ * "also" is filler, not a trigger: as a trigger it matched before the "add"
+ * in "can you also add some peanut butter" and swallowed the verb.
+ */
+const ADD = new RegExp(String.raw`\b(?:add|include|buy|get|put in|throw in|more of)\s+${ARTICLE}${PHRASE}`, "g");
 /** "swap the rice for atta", "replace oats with poha", "atta instead of rice". */
-const SWAP_FOR = /\b(?:swap|replace|change|switch)\s+(?:out\s+)?(?:the|my|some|any)?\s*([a-z]+(?:\s+[a-z]+){0,2}?)\s+(?:for|with|to|by)\s+(?:the|some|any)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
-const SWAP_INSTEAD = /\b([a-z]+(?:\s+[a-z]+){0,2}?)\s+instead\s+of\s+(?:the|my|some|any)?\s*([a-z]+(?:\s+[a-z]+){0,2})/g;
+const SWAP_FOR = new RegExp(String.raw`\b(?:swap|replace|change|switch)\s+(?:out\s+)?${ARTICLE}([a-z0-9]+(?:\s+[a-z0-9]+){0,4}?)\s+(?:for|with|to|by)\s+${ARTICLE}${PHRASE}`, "g");
+const SWAP_INSTEAD = new RegExp(String.raw`\b([a-z0-9]+(?:\s+[a-z0-9]+){0,4}?)\s+instead\s+of\s+${ARTICLE}${PHRASE}`, "g");
+
+/** How much of it: a count, a weight, a pack. None of it is the food's name. */
+const QUANTITY = /^(?:\d+(?:\.\d+)?(?:g|gm|gms|kg|ml|l|ltr|pcs)?|one|two|three|four|five|six|seven|eight|nine|ten|half|couple|few)$/;
+const PACK_WORDS = new Set([
+  "pack", "packs", "packet", "packets", "box", "boxes", "bottle", "bottles", "jar", "jars",
+  "tin", "tins", "bag", "bags", "piece", "pieces", "unit", "units", "kg", "gm", "gms", "ml", "of",
+]);
+/** "swap IT with honey": the thing just named, not a product called "it". */
+const PRONOUNS = new Set(["it", "that", "this", "them", "those", "these", "one", "ones"]);
 /** The cue words that make a product word a removal, and the ones that make it an ask. */
 const REMOVE_CUE = /\b(no|without|skip|remove|drop|swap|replace|switch|instead|don t want|do not want|dont want|less|stop|minus|out)\b/;
 const ADD_CUE = /\b(add|include|buy|get|put in|throw in|also|more|with|want|extra)\b/;
@@ -76,10 +95,17 @@ function followUpDays(text) {
   return null;
 }
 
-/** A product phrase, trimmed of the words that are not food. */
+/**
+ * A product phrase, trimmed of everything that is not the food: the clause
+ * ends at a stop word, and counts, weights and pack words are dropped along
+ * the way. "one 250 g pack of dates" is "dates"; "1 date pack" is "date".
+ */
 function foodPhrase(words) {
   const kept = [];
-  for (const w of String(words ?? "").split(" ")) {
+  for (const w of String(words ?? "").split(" ").filter(Boolean)) {
+    // How much comes first: "one" is both a count and a stop word, and reading
+    // it as the end of the clause lost "one 250 g pack of dates" entirely.
+    if (QUANTITY.test(w) || PACK_WORDS.has(w)) continue;
     if (STOP.has(w) || DAY_NAMES.test(w)) break;
     kept.push(w);
   }
@@ -106,17 +132,30 @@ function phrasesMatching(text, pattern, group = 1) {
  */
 export function swapsIn(text) {
   const swaps = [];
-  for (const m of text.matchAll(SWAP_FOR)) {
-    const from = foodPhrase(m[1]);
-    const to = foodPhrase(m[2]);
-    if (from && to) swaps.push({ from, to });
-  }
+  const pair = (from, to) => {
+    if (!to) return;
+    // "remove one pack of dates and swap IT with honey": the pronoun is the
+    // food the sentence has just named, not a product called "it".
+    const named = from && !PRONOUNS.has(from) ? from : lastFoodBefore(text, to);
+    if (named) swaps.push({ from: named, to });
+  };
+  for (const m of text.matchAll(SWAP_FOR)) pair(foodPhrase(m[1]), foodPhrase(m[2]));
   for (const m of text.matchAll(SWAP_INSTEAD)) {
     const to = foodPhrase(m[1]);
-    const from = foodPhrase(m[2]);
-    if (from && to) swaps.push({ from, to });
+    pair(foodPhrase(m[2]), to);
   }
   return swaps;
+}
+
+/** The last food word the sentence named before this one, for a pronoun to mean. */
+function lastFoodBefore(text, to) {
+  const before = text.slice(0, text.indexOf(to));
+  const named = [];
+  for (const m of before.matchAll(LEAVE_OUT)) {
+    const phrase = foodPhrase(m[1]);
+    if (phrase && !PRONOUNS.has(phrase)) named.push(phrase);
+  }
+  return named.length ? named[named.length - 1] : null;
 }
 
 /**
