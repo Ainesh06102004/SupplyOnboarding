@@ -209,7 +209,11 @@ export function mapProducts(rows) {
       categoryKey: taxonomy?.key ?? null,
       portion,
       goalTags: claims,
-      image: image || { hero: '', label: '', lifestyle: '' },
+      // A product from the local test catalogue brings its own photographs from
+      // Open Food Facts (CC-BY-SA), so `imageCredit` travels with them and is
+      // printed wherever they are shown.
+      image: p._test?.image ?? image ?? { hero: '', label: '', lifestyle: '' },
+      imageCredit: p._test?.imageCredit ?? null,
       price: sku.mrp || 0,
       weight: sku.net_weight || "N/A",
       // null, not a default. An unscored product shows no score.

@@ -3,11 +3,15 @@
 //
 //   node scripts/buildTestCatalogue.mjs
 //
-// Writes src/lib/data/fixtures/openFoodFactsTestCatalogue.js: fifteen Indian
-// staples and protein foods, shaped like the rows fetchAllProducts reads from
-// Supabase, so they pass through the same mapping. The storefront and the
-// planner only see them when NEXT_PUBLIC_KOI_TEST_CATALOGUE=open_food_facts
-// (lib/data/testCatalogue.js).
+// Writes src/lib/data/fixtures/openFoodFactsTestCatalogue.js: Indian staples,
+// snacks, sweets, nuts, spices and supplements, shaped like the rows
+// fetchAllProducts reads from Supabase, so they pass through the same mapping.
+// The storefront and the planner only see them when
+// NEXT_PUBLIC_KOI_TEST_CATALOGUE=open_food_facts (lib/data/testCatalogue.js).
+//
+// PHOTOGRAPHS. Open Food Facts' data is ODbL; its photographs are CC-BY-SA, a
+// different licence, so each row that carries one also carries the credit and
+// the storefront prints it wherever the photo is shown.
 //
 // WHY A FILE AND NOT THE DATABASE. The Supabase project is the live catalogue:
 // koinorth.com/store lists every approved product in it. And KOI keeps Open
@@ -32,7 +36,13 @@ const UA = "KOI-test-catalogue/0.1 (internal testing; koinorth.com)";
 const FIELDS = [
   "code", "product_name", "brands", "quantity", "nutriments", "ingredients_text", "ingredients_text_en",
   "allergens_tags", "last_modified_t",
+  // The contributors' photographs: the front of the pack, and where they exist
+  // the nutrition panel and the ingredient list. Unlike the data (ODbL), Open
+  // Food Facts photos are CC-BY-SA, so each row carries that credit.
+  "image_front_url", "image_nutrition_url", "image_ingredients_url",
 ].join(",");
+
+const PHOTO_CREDIT = "Photo: Open Food Facts contributors, CC-BY-SA 3.0";
 
 // barcode, KOI's name, brand, category hints, estimated MRP (₹) for the pack.
 const PICKS = [
@@ -51,6 +61,43 @@ const PICKS = [
   ["8906127550010", "Natural Peanut Butter Crunch", "Alpino", "Nuts & Seeds", "Nut Butters", 549],
   ["8906055100455", "Roasted Chana", "Rajdhani", "Snacks", "Namkeen", 60],
   ["8904004403800", "Moong Dal Namkeen", "Haldiram's", "Snacks", "Namkeen", 120],
+
+  // ── Added 18 September 2026 ───────────────────────────────────────────────
+  // Chosen from the Indian products staged in engine.off_products that have a
+  // front photograph, per-100 figures and a pack size, across the categories
+  // the planner and the storefront were thinnest in. Figures that read as
+  // obviously wrong for the food (a muesli at 756 kcal, a dal at 104) were left
+  // out: a test catalogue that plans against nonsense teaches nothing.
+  ["8902901001730", "Maida", "Good Life", "Staples", "Flours", 55],
+  ["8901725000899", "Multi-Millet Mix", "Aashirvaad", "Staples", "Millets", 60],
+  ["8904067700304", "Hand Roasted Peanuts", "Jabsons", "Nuts & Seeds", "Nuts", 60],
+  ["8906156485833", "Saurashtra Peanuts", "Khetika", "Nuts & Seeds", "Nuts", 160],
+  ["8906142774095", "Pistachios", "Bolas", "Nuts & Seeds", "Nuts", 420],
+  ["8906081123626", "Whole Cashews", "Happilo", "Nuts & Seeds", "Nuts", 699],
+  ["8906120106320", "Trail Mix", "Farmley", "Nuts & Seeds", "Mixes", 299],
+  ["8908025353090", "Nuts Fusion", "Greenfinity", "Nuts & Seeds", "Mixes", 549],
+  ["8908010900049", "Peanut Butter Creamy", "Pintola", "Nuts & Seeds", "Nut Butters", 349],
+  ["8906143890152", "Dark Chocolate Peanut Spread", "The Whole Truth", "Nuts & Seeds", "Nut Butters", 425],
+  ["8904063240057", "Aloo Bhujia", "Haldiram's", "Snacks", "Namkeen", 20],
+  ["8905950003892", "Soya Sticks", "Bikaji", "Snacks", "Namkeen", 90],
+  ["8906010500245", "Masala Sev Murmura", "Balaji Wafers", "Snacks", "Namkeen", 20],
+  ["8901491101844", "Potato Chips", "Lay's", "Snacks", "Chips", 20],
+  ["8901725007096", "Potato Chips Salted", "Bingo", "Snacks", "Chips", 10],
+  ["8906010503512", "Wafers", "Balaji", "Snacks", "Chips", 55],
+  ["8901063142022", "NutriChoice Digestive", "Britannia", "Snacks", "Biscuits", 70],
+  ["8901725015435", "Marie Light Vita Orange", "Sunfeast", "Snacks", "Biscuits", 25],
+  ["8906009535159", "7 Grain Breakfast Cookie", "Max Protein", "Snacks", "Biscuits", 80],
+  ["8906113491662", "Rusk Elaichi", "Tata Soulfull", "Snacks", "Biscuits", 50],
+  ["8908005144076", "Multigrain Energy Bar", "Yoga Bar", "Snacks", "Bars", 45],
+  ["8908005144366", "Breakfast Protein Bar Apricot Fig", "Yoga Bar", "Snacks", "Bars", 60],
+  ["8906060010107", "Peanut Chikki", "Maganlal's", "Snacks", "Bars", 260],
+  ["7622202325960", "Bournville Intense 70% Dark", "Cadbury", "Sweets", "Chocolate", 130],
+  ["8901262070836", "Bitter Chocolate", "Amul", "Sweets", "Chocolate", 130],
+  ["8906091685053", "Dark Chocolate 87%", "Paul and Mike", "Sweets", "Chocolate", 199],
+  ["8906127551338", "Peanut Protein Dark Chocolate", "Alpino", "Supplements", "Protein Powder", 899],
+  ["8908017087439", "Plant Protein Mango", "Happy Cultures", "Supplements", "Protein Powder", 1299],
+  ["8901748000852", "Garam Masala", "Ruchi", "Spices", "Spices", 25],
+  ["8906021123105", "Turmeric Powder", "Aachi", "Spices", "Spices", 10],
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -148,9 +195,20 @@ for (const [code, name, brand, l1, l2, price] of PICKS) {
       offName: p.product_name ?? null,
       priceIsEstimate: true,
       fetchedAt,
+      // The contributors' own photographs, hot-linked, so the storefront shows
+      // a pack rather than a placeholder. Nutrition and ingredient shots stand
+      // in for the label and lifestyle slots where they exist.
+      ...(p.image_front_url ? {
+        image: {
+          hero: p.image_front_url,
+          ...(p.image_nutrition_url ? { label: p.image_nutrition_url } : {}),
+          ...(p.image_ingredients_url ? { lifestyle: p.image_ingredients_url } : {}),
+        },
+        imageCredit: PHOTO_CREDIT,
+      } : {}),
     },
   });
-  console.log(`${code} ${brand} ${name}: ${packGrams} g, ${round(num(n["energy-kcal_100g"]))} kcal, ${ingredients.length} ingredients`);
+  console.log(`${code} ${brand} ${name}: ${packGrams} g, ${round(num(n["energy-kcal_100g"]))} kcal, ${ingredients.length} ingredients, ${p.image_front_url ? "photo" : "no photo"}`);
   await sleep(1500);
 }
 

@@ -120,6 +120,11 @@ export default function ProductHero({ product }) {
                 })}
               </div>
             )}
+            {/* Whose photograph this is, when it is not KOI's own. Open Food
+                Facts photos are CC-BY-SA, and a credit is the condition. */}
+            {product.imageCredit && (
+              <p className="mt-3 text-[11px] text-[#5A6B5A]">{product.imageCredit}</p>
+            )}
           </Reveal>
 
           {/* Info */}

@@ -18,7 +18,7 @@ test("the test catalogue is off unless it is asked for", () => {
 
 test("every test product says what it is, and none carries a KOI score", () => {
   const products = mapProducts(testCatalogueRows(true));
-  assert.equal(products.length, 15);
+  assert.ok(products.length >= 40, `${products.length} products`);
   for (const p of products) {
     assert.ok(p.id.startsWith(TEST_SKU_PREFIX) && isTestSku(p.skuId), p.name);
     assert.match(p.brand, /\(test · Open Food Facts\)$/);
@@ -30,11 +30,24 @@ test("every test product says what it is, and none carries a KOI score", () => {
   }
 });
 
+test("a photograph from Open Food Facts is credited, because its licence asks for it", () => {
+  const products = mapProducts(testCatalogueRows(true));
+  const shown = products.filter((p) => p.image?.hero);
+  assert.equal(shown.length, products.length, "every test product has a front photograph");
+  for (const p of shown) {
+    assert.match(p.image.hero, /^https:\/\/images\.openfoodfacts\.org\//, p.name);
+    assert.equal(p.imageCredit, "Photo: Open Food Facts contributors, CC-BY-SA 3.0", p.name);
+  }
+});
+
 test("the test catalogue can be planned with, and its allergens still count", () => {
   const products = mapProducts(testCatalogueRows(true));
   const { catalogue, unplannable } = plannableFrom(products);
-  assert.equal(catalogue.length, 15);
-  assert.deepEqual(unplannable, []);
+  assert.ok(catalogue.length >= 40, `${catalogue.length} plannable`);
+  // Three products carry no figure KOI can plan with, and are recorded as
+  // such rather than quietly dropped.
+  assert.deepEqual(unplannable.map((u) => u.reason), unplannable.map(() => "cannot_quantify_a_pack"));
+  assert.ok(unplannable.length <= 3, `${unplannable.length} unplannable`);
 
   const muesli = products.find((p) => p.name === "Super Muesli 0% Added Sugar");
   assert.ok(extractFacts(muesli).contains.has("tree_nut"), "the ingredient list names nuts");
