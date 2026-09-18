@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { readBrief, groundModelDraft, draftFrom, dietsNamed, BRIEF_JSON_SCHEMA, AGE_BAND_KEYS } from "@/lib/planner/brief.js";
+import { readBrief, groundModelDraft, draftFrom, dietsNamed, budgetIn, BRIEF_JSON_SCHEMA, AGE_BAND_KEYS } from "@/lib/planner/brief.js";
 
 const draft = (text, model = null) => draftFrom(readBrief(text), model);
 
@@ -19,6 +19,16 @@ test("the founder's example drafts four people and asks what it was not told", (
   assert.equal(d.source, "rules");
   assert.ok(d.notes.some((n) => /age group/.test(n)));
   assert.ok(d.notes.some((n) => /diet/.test(n)));
+});
+
+test("a budget written without a currency: \"on 4000\", \"5k\"", () => {
+  assert.equal(budgetIn("plan 4 days on 4000"), 4000);
+  assert.equal(budgetIn("plan for me and the wife on 5k"), 5000);
+  assert.equal(budgetIn("for 2500 please"), 2500);
+  assert.equal(budgetIn("plan for 4 days"), null, "days are not money");
+  assert.equal(budgetIn("120 g protein for me"), null, "grams are not money");
+  assert.equal(budgetIn("2000 kcal a day"), null, "kcal are not money");
+  assert.equal(budgetIn("for 6 people"), null);
 });
 
 test("targets, diet, budget and days are read where the shopper wrote them", () => {

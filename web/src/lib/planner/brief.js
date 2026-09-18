@@ -138,6 +138,12 @@ export function budgetIn(text) {
   const patterns = [
     new RegExp(String.raw`\b(?:budget|spend|spending|within|under|upto|up to|max|maximum)\s*(?:of|is|around|about)?\s*(?:rs|inr)?\s*(\d+(?:\.\d+)?)\s*(k\b)?${unit}`),
     new RegExp(String.raw`\brs\s*(\d+(?:\.\d+)?)\s*(k\b)?`),
+    // "plan 4 days on 4000", "for 2500": a bare number after "on" or "for" is
+    // money when it is too large to be anything else here, and carries no unit
+    // of its own. "for 4 days" and "60 g protein" are excluded by `unit`.
+    new RegExp(String.raw`\b(?:on|for|in)\s*(?:rs|inr)?\s*(\d{3,6}(?:\.\d+)?)\s*(k\b)?${unit}`),
+    // "4k", "5 k": a thousand of something is a budget in this form.
+    new RegExp(String.raw`\b(\d+(?:\.\d+)?)\s*(k)\b${unit}`),
   ];
   for (const pattern of patterns) {
     const m = t.match(pattern);
