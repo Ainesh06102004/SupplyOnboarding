@@ -48,6 +48,7 @@ export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, c
   const [tab, setTab] = useState("targets");
   const report = plan.report;
   const conflicts = plan.explanation?.conflicts ?? null;
+  const groups = plan.explanation?.food_groups ?? null;
   const met = report.unmet.length === 0;
   const notes = noteLines(plan);
 
@@ -109,6 +110,43 @@ export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, c
           <p className="mt-2 text-[11px] text-[#8A6508]/80">
             Each one was checked by planning again without it.
           </p>
+        </section>
+      )}
+
+      {/* A week of packets can meet every target and still not be a balanced
+          week. KOI is the only one placed to say so (C6). */}
+      {groups && (
+        <section className={`${CARD} p-6`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <span className={EYEBROW}>On the plate</span>
+            <span className="text-[12px] text-[#5A6B5A]">
+              {groups.covered.length} of {groups.of} food groups · ICMR-NIN
+            </span>
+          </div>
+          <ul className="mt-3 flex flex-wrap gap-1.5">
+            {groups.covered.map((g) => (
+              <li key={g.key} className="rounded-full bg-[#16A06E]/10 px-2.5 py-1 text-[11.5px] font-semibold text-[#0E7A52]">
+                {g.label}{g.onlyAs ? ` (${g.onlyAs})` : ""}
+              </li>
+            ))}
+            {groups.missing.map((g) => (
+              <li key={g.key} className="rounded-full bg-white px-2.5 py-1 text-[11.5px] text-[#5A6B5A] ring-1 ring-inset ring-[#083D2D]/10">
+                {g.label}
+              </li>
+            ))}
+          </ul>
+          {groups.missing.length > 0 && (
+            <p className="mt-2 text-[12px] text-[#5A6B5A]">
+              KOI stocks {groups.missing.map((g) => g.label.toLowerCase()).join(" and ")} — ask for them and the next plan
+              will have them.
+            </p>
+          )}
+          {groups.cannotSupply.length > 0 && (
+            <p className="mt-2 text-[12px] leading-relaxed text-[#8A6508]">
+              {groups.cannotSupply.map((g) => g.label.toLowerCase()).join(", ")} are not things KOI sells. Buy them fresh:
+              a week of packets can meet every target and still not be a balanced week.
+            </p>
+          )}
         </section>
       )}
 

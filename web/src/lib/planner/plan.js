@@ -27,6 +27,7 @@ import { planReport, basketDiff, materiallyShort, atPortionLimit, refusalReason 
 import { describeEdge } from "@/lib/food/substitutions";
 import { applyFollowUp, productsNamed } from "./followup";
 import { findConflicts } from "./conflicts";
+import { coverageOf } from "./foodGroups";
 import { readFollowUpWithModel } from "./followUpModel";
 
 export const PLAN_RULE_VERSION = "plan-v1";
@@ -274,6 +275,10 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // The household ranked its targets above its budget, so KOI spent what it
     // took to meet them instead of reporting a shortfall (C2).
     budget_raised_for_targets: raisedForTargets,
+    // What the basket covers of ICMR-NIN's plate, and the three groups KOI has
+    // no aisle for (C6). A week of packets that meets every macro is still not
+    // a balanced week, and KOI is the only one placed to say so.
+    food_groups: coverageOf(report.basket, catalogue),
     // The asks that are in each other's way, and the smallest change that
     // clears them (C7). Empty when nothing is short.
     conflicts,
