@@ -14,6 +14,7 @@
 // ============================================================================
 
 import "server-only";
+import { nodeInfo } from "@/lib/food/taxonomy";
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
@@ -580,6 +581,18 @@ async function keepTheWording({ db, plan, text, applied, notApplied }) {
   }
 }
 
+/** The kinds of food this shop shelves, in the words KOI shows for them. */
+function categoriesOf(catalogue = []) {
+  const byKey = new Map();
+  for (const item of catalogue) {
+    const key = item?.categoryKey;
+    if (!key || byKey.has(key)) continue;
+    const info = nodeInfo(key);
+    byKey.set(key, { key, label: String(info?.subcategory ?? info?.label ?? key) });
+  }
+  return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
 /**
  * Why a product the shopper asked for by name is not in the basket.
  *
@@ -630,7 +643,13 @@ export async function planFollowUp({ planId, text }) {
   if (!members.length) throw new Error("This plan has no members to plan for.");
 
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
-  const reading = await readFollowUpWithModel(text);
+  // What the model is allowed to answer with: who is eating this plan, and the
+  // kinds of food this shop actually shelves. Giving it the lists is what lets
+  // "my wife" reach a member and "another dry fruit" a category (C-interpreter).
+  const reading = await readFollowUpWithModel(text, {
+    members: members.map((m) => ({ id: String(m.id), label: m.label ?? "someone" })),
+    categories: categoriesOf(catalogue),
+  });
   const change = applyFollowUp({
     members,
     days: plan.days,

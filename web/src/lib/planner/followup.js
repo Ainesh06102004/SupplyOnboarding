@@ -249,6 +249,11 @@ export const FOLLOWUP_JSON_SCHEMA = Object.freeze(strictObject({
   avoid: { type: "array", items: strictObject({ key: { type: "string", enum: [...AVOID_KEYS] }, who: { type: ["string", "null"] } }) },
   targets: { type: "array", items: strictObject({ who: { type: ["string", "null"] }, nutrient: { type: "string", enum: Object.keys(NUTRIENT_UNITS) }, perDay: { type: "number" } }) },
   unresolved: { type: "array", items: { type: "string" } },
+  // Answers in KOI's own words: ids from the lists the model was given, not
+  // words copied out of the sentence. See WHY IDS below.
+  dropMembers: { type: "array", items: { type: "string" } },
+  leaveOutCategories: { type: "array", items: { type: "string" } },
+  includeCategories: { type: "array", items: { type: "string" } },
 }));
 
 export const FOLLOWUP_INSTRUCTIONS = [
@@ -263,7 +268,44 @@ export const FOLLOWUP_INSTRUCTIONS = [
   `- avoid: what someone must not eat, using these keys only: ${AVOID_KEYS.join(", ")}. who is the person's words copied exactly from the message (\"Kid 1\", \"the kids\", \"me\"), or null for everyone.`,
   "- targets: a daily protein (grams) or energy (kcal) target, only at a number written in the message. who as above.",
   "- Never invent a number. Anything you cannot express goes in unresolved, copied word for word.",
+  "",
+  "You are also given who is eating and the kinds of food this shop sells. Where the message means one of them, answer with its id rather than the shopper's words — those are checked against the lists and are the only way to reach something the shopper did not name exactly:",
+  "- dropMembers: member ids for anyone the message takes out of the plan (\"replan without my wife\").",
+  "- leaveOutCategories: category keys for a kind of food to take out (\"no dals this week\").",
+  "- includeCategories: category keys for a kind of food to put in (\"put another dry fruit in\").",
+  "Use a category only where the message means the kind and not one product. \"No almonds\" is a product; \"no nuts at all\" is a category.",
 ].join("\n");
+
+/**
+ * What the model is told about this shopper, so it can answer in ids.
+ *
+ * WHY IDS. The model used to be handed the message and nothing else, and its
+ * reading was then held to words appearing verbatim in that message. It could
+ * not know this household has a member labelled Wife, or that KOI shelves
+ * "dried fruit" under nuts_seeds.dried_fruit, so it guessed names blind and
+ * grounding threw away anything it got right in KOI's vocabulary rather than
+ * the shopper's. Both halves were the same mistake.
+ *
+ * Given the lists, it answers with ids, and grounding becomes "is this a real
+ * id?" — an exact check against what exists, which is a stronger guarantee than
+ * "is this word in the sentence?" and stops discarding correct readings. It is
+ * about 300 tokens.
+ *
+ * @param {{members?: Array, categories?: Array}} context
+ * @returns {string} lines to append to FOLLOWUP_INSTRUCTIONS
+ */
+export function contextInstructions({ members = [], categories = [] } = {}) {
+  const lines = [];
+  if (members.length) {
+    lines.push("", "Who is eating this plan (id — label):");
+    for (const m of members) lines.push(`- ${m.id} — ${m.label ?? "someone"}`);
+  }
+  if (categories.length) {
+    lines.push("", "The kinds of food this shop sells (key — name):");
+    for (const c of categories) lines.push(`- ${c.key} — ${c.label}`);
+  }
+  return lines.join("\n");
+}
 
 const ModelFollowUpSchema = z.object({
   budget: z.object({ change: z.enum(["none", "set", "cheaper", "remove"]), rupees: z.number().positive().max(1000000).nullable() }),
@@ -274,6 +316,9 @@ const ModelFollowUpSchema = z.object({
   avoid: z.array(z.object({ key: z.enum([...AVOID_KEYS]), who: z.string().max(40).nullable() })).max(8),
   targets: z.array(z.object({ who: z.string().max(40).nullable(), nutrient: z.enum(["protein", "kcal"]), perDay: z.number().positive() })).max(8),
   unresolved: z.array(z.string().max(60)).max(8),
+  dropMembers: z.array(z.string().max(64)).max(8).default([]),
+  leaveOutCategories: z.array(z.string().max(64)).max(8).default([]),
+  includeCategories: z.array(z.string().max(64)).max(8).default([]),
 });
 
 /**
@@ -281,7 +326,7 @@ const ModelFollowUpSchema = z.object({
  * @param {unknown} raw
  * @param {string} input
  */
-export function groundFollowUp(raw, input) {
+export function groundFollowUp(raw, input, context = {}) {
   const parsed = ModelFollowUpSchema.safeParse(raw);
   if (!parsed.success) return null;
   const r = parsed.data;
@@ -323,8 +368,22 @@ export function groundFollowUp(raw, input) {
     targets: r.targets.filter((t) => stated.has(t.perDay)).map((t) => ({ ...t, who: who(t.who) })),
     dayNames: DAY_NAMES.test(text),
     unresolved: r.unresolved.filter((w) => said(w)),
+    // Ids are held to what exists, not to what the sentence spells. This is
+    // the whole point of giving the model the lists: "my wife" reaches a member
+    // and "another dry fruit" a category, neither of which the shopper typed in
+    // KOI's words, and neither of which a verbatim check could ever have let
+    // through. An id that is not on the list is dropped exactly as firmly.
+    dropMembers: onlyReal(r.dropMembers, (context.members ?? []).map((m) => String(m.id))),
+    leaveOutCategories: onlyReal(r.leaveOutCategories, (context.categories ?? []).map((c) => c.key)),
+    includeCategories: onlyReal(r.includeCategories, (context.categories ?? []).map((c) => c.key)),
   };
 }
+
+/** The ids that are real, in the order given, without repeats. */
+const onlyReal = (said, real) => {
+  const known = new Set(real.map(String));
+  return [...new Set((said ?? []).map(String).filter((id) => known.has(id)))];
+};
 
 /** Rules and model together: the model's reading where it has one, and every restriction either found. */
 export function mergeFollowUps(local, model) {
@@ -343,11 +402,22 @@ export function mergeFollowUps(local, model) {
     targets: model.targets.length ? model.targets : local.targets,
     dayNames: local.dayNames || model.dayNames,
     unresolved: [...new Set([...local.unresolved, ...model.unresolved])],
+    // Only the model answers in ids: the rules have never been shown the lists.
+    dropMembers: model.dropMembers ?? [],
+    leaveOutCategories: model.leaveOutCategories ?? [],
+    includeCategories: model.includeCategories ?? [],
     message: local.message,
   };
 }
 
 // ── Applying it ──────────────────────────────────────────────────────────────
+
+/** Is this product shelved under that category, or under something below it? */
+const inThisCategory = (categoryKey, wanted) =>
+  Boolean(categoryKey) && (String(categoryKey) === wanted || String(categoryKey).startsWith(`${wanted}.`));
+
+/** A category in the words KOI shows for it, never its key. */
+const categoryWords = (key) => nodeInfo(key)?.subcategory ?? nodeInfo(key)?.label ?? String(key).split(".").pop().replace(/_/g, " ");
 
 /** The members a person's words refer to: a label, a kind ("the kids"), "me", or everyone. */
 export function membersNamed(words, members) {
@@ -576,6 +646,43 @@ export function applyFollowUp(plan, reading, catalogue) {
     const line = `${inTo[0].name} instead of ${out.map((h) => h.name).join(", ")}`;
     applied.push(line);
     wants.push({ skuId: inTo[0].skuId, name: inTo[0].name, line });
+  }
+
+  // What the model resolved against the lists it was given. These are ids, so
+  // there is nothing left to guess: no spelling to match, no verb to read off
+  // the sentence. They run before the word-matching below, and the words then
+  // add whatever they find on top.
+  for (const memberId of reading.dropMembers ?? []) {
+    const gone = members.find((m) => String(m.id) === String(memberId));
+    if (!gone) continue;
+    if (members.length <= 1) {
+      notApplied.push("A plan needs someone to eat it, so KOI cannot leave everyone out");
+      continue;
+    }
+    members.splice(members.indexOf(gone), 1);
+    applied.push(`Planned without ${gone.label}`);
+  }
+
+  for (const key of reading.leaveOutCategories ?? []) {
+    const hits = catalogue.filter((item) => inThisCategory(item.categoryKey, key));
+    if (!hits.length) {
+      notApplied.push(`KOI has nothing shelved under ${categoryWords(key)}`);
+      continue;
+    }
+    hits.forEach((h) => excluded.add(h.skuId));
+    applied.push(`Left out ${categoryWords(key)}`);
+  }
+
+  for (const key of reading.includeCategories ?? []) {
+    const hits = catalogue.filter((item) => inThisCategory(item.categoryKey, key) && !excluded.has(item.skuId));
+    if (!hits.length) {
+      notApplied.push(`KOI has nothing shelved under ${categoryWords(key)} to add`);
+      continue;
+    }
+    included.add(hits[0].skuId);
+    const line = `Added ${hits[0].name}`;
+    applied.push(line);
+    wants.push({ skuId: hits[0].skuId, name: hits[0].name, line });
   }
 
   for (const word of reading.leaveOut) {

@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { readFollowUp, groundFollowUp, mergeFollowUps, applyFollowUp, membersNamed, productsNamed, productWordFor, followUpExamples, CHEAPER_SHARE } from "@/lib/planner/followup.js";
+import { readFollowUp, groundFollowUp, contextInstructions, mergeFollowUps, applyFollowUp, membersNamed, productsNamed, productWordFor, followUpExamples, CHEAPER_SHARE } from "@/lib/planner/followup.js";
 
 // ── What a live conversation got wrong, 18 September 2026 ───────────────────
 // A shopper asked, and the plan did the opposite or nothing:
@@ -296,4 +296,47 @@ test("someone can leave the week: \"replan without my wife\"", () => {
   const empty = applyFollowUp(alone, readFollowUp("remove wife"), SHOP);
   assert.deepEqual(empty.applied, []);
   assert.match(empty.notApplied[0], /needs someone to eat it/);
+});
+
+test("the model is given the lists, and its ids are held to them", () => {
+  const context = {
+    members: [{ id: "m-1", label: "Me" }, { id: "m-2", label: "Wife" }],
+    categories: [{ key: "nuts_seeds.dried_fruit", label: "Dried fruit" }, { key: "staples.pulses", label: "Dals & pulses" }],
+  };
+  const told = contextInstructions(context);
+  assert.match(told, /m-2 — Wife/, "it cannot resolve a person it has never been shown");
+  assert.match(told, /nuts_seeds\.dried_fruit — Dried fruit/);
+  assert.equal(contextInstructions({}), "", "nothing to say when there is nothing to tell it");
+
+  const reading = (raw) => groundFollowUp({
+    budget: { change: "none", rupees: null }, days: null,
+    leaveOut: [], include: [], swaps: [], avoid: [], targets: [], unresolved: [],
+    ...raw,
+  }, "replan without my wife and put another dry fruit in", context);
+
+  // The shopper typed "my wife", never "m-2". A verbatim check could never have
+  // let this through, which is exactly why ids exist.
+  assert.deepEqual(reading({ dropMembers: ["m-2"] }).dropMembers, ["m-2"]);
+  assert.deepEqual(reading({ includeCategories: ["nuts_seeds.dried_fruit"] }).includeCategories, ["nuts_seeds.dried_fruit"]);
+
+  // An id that is not on the list is dropped just as firmly as an invented word.
+  assert.deepEqual(reading({ dropMembers: ["m-9"] }).dropMembers, []);
+  assert.deepEqual(reading({ leaveOutCategories: ["sweets.cake"] }).leaveOutCategories, []);
+  assert.deepEqual(reading({ dropMembers: ["m-2", "m-2"] }).dropMembers, ["m-2"], "and said once");
+});
+
+test("a change that came back as an id needs no word to match", () => {
+  const members = [
+    { id: "m-1", label: "Me", targets: { protein: 144 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
+    { id: "m-2", label: "Wife", targets: { protein: 50 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
+  ];
+  const plan = { members, days: 7, budget: 4000, excludedSkus: [], includedSkus: [], cost: 2856 };
+  const reading = { ...readFollowUp("do that thing"), dropMembers: ["m-2"], leaveOutCategories: ["staples.rice"], includeCategories: ["staples.breakfast_cereals"] };
+
+  const change = applyFollowUp(plan, reading, SHOP);
+  assert.ok(change.applied.includes("Planned without Wife"));
+  assert.deepEqual(change.members.map((m) => m.id), ["m-1"]);
+  // Every rice in the shop, by its shelf rather than by its name.
+  assert.deepEqual([...change.excludedSkus].sort(), ["brown", "poha", "rice"]);
+  assert.ok(change.includedSkus.includes("oats"), "and one product from the shelf asked for");
 });
