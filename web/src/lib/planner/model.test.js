@@ -6,7 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, KITCHEN, brandIn, PRIORITY, priorityWeights, budgetBeforeTargets, inCategory, occasionsFor } from "@/lib/planner/model.js";
+import { buildPlanModel, nameOf, NUTRIENTS, MAX_PACKS_PER_SKU, MODEL_VERSION, QUALITY_TIEBREAK, SPEND_TIEBREAK, qualityCost, portionCap, PORTION_RULE, PRICE_SANITY, FAIRNESS, DEVIATION_COST, GOAL_MODEL, PREFERENCE, CONTINUITY, continuityBonus, KITCHEN, brandIn, ROBUST, isUncertain, PRIORITY, priorityWeights, budgetBeforeTargets, inCategory, occasionsFor } from "@/lib/planner/model.js";
 import { refusalReason } from "@/lib/planner/report.js";
 
 const almonds = { skuId: "almonds", price: 450, contains: ["tree_nut"], availability: "unknown", perPack: { kcal: 1312, protein: 34, carbs: 44, fat: 100 } };
@@ -24,6 +24,7 @@ const rowNamed = (model, name) => model.rows.find((r) => r.name === name);
 const colNamed = (model, name) => model.columns.find((c) => c.name === name);
 // The model rounds a pack's cost to six places; a test that subtracts must too.
 const round6 = (v) => Math.round(v * 1e6) / 1e6;
+const round4 = (v) => Math.round(v * 1e4) / 1e4;
 
 test("what one member cannot eat is kept from them, not from the household", () => {
   const model = buildPlanModel({ members: [adult, nutFree], catalogue: [almonds, rice], days: 7 });
@@ -249,7 +250,7 @@ test("this week: what they feel like costs a little less, and what they skip is 
   assert.equal(refusalReason({ flag: "not_this_week", rule: "this_week" }), "not what they feel like this week");
   assert.equal(inCategory("snacks.biscuits_cookies", ["snacks"]), true, "an aisle covers what is under it");
   assert.equal(inCategory("snacks_extra", ["snacks"]), false);
-  assert.equal(MODEL_VERSION, "plan-model-v11");
+  assert.equal(MODEL_VERSION, "plan-model-v12");
 });
 
 test("a change keeps the plan it changes, and what was asked for is always a candidate", () => {
@@ -414,6 +415,37 @@ test("a processing ceiling and a cold chain refuse only what KOI actually knows"
   assert.equal(cupboard.meta.skus.includes("chilled"), false);
   assert.deepEqual(cupboard.meta.skus, ["ambient", "unsaid"], "an unrecorded pack is not assumed to need a fridge, nor assumed not to");
   assert.equal(cupboard.meta.kitchen.shelfStableOnly, true);
+});
+
+test("a target holds when a few unverified labels fall short (C4)", () => {
+  const verified = { ...rice, skuId: "verified", ingredientEvidence: "verified" };
+  const guess = { ...rice, skuId: "guess" };
+  assert.equal(isUncertain(guess), true, "a list KOI has not read is a guess");
+  assert.equal(isUncertain(verified), false);
+
+  const model = buildPlanModel({ members: [adult], catalogue: [verified, guess], days: 7 });
+  const target = model.rows.find((r) => r.name === "target_me_protein");
+
+  // Bertsimas & Sim, written out: supply minus (budget x z + sum p).
+  assert.equal(target.coefficients.robustz_me_protein, -ROBUST.budget);
+  assert.equal(target.coefficients["robustp_me_protein_guess"], -1);
+  assert.equal(target.coefficients["robustp_me_protein_verified"], undefined, "a verified label is not protected against");
+
+  // z + p >= margin x supplied x eats, for the uncertain one only.
+  const guard = model.rows.find((r) => r.name === "robust_me_protein_guess");
+  assert.equal(guard.lower, 0);
+  assert.equal(guard.coefficients.robustz_me_protein, 1);
+  assert.equal(guard.coefficients["robustp_me_protein_guess"], 1);
+  assert.equal(guard.coefficients[nameOf.eats("guess", "me")], -round4(ROBUST.margin * rice.perPack.protein));
+  assert.equal(model.rows.some((r) => r.name === "robust_me_protein_verified"), false);
+
+  // What it protected against, for the shopper to be told.
+  assert.deepEqual(model.meta.robust, { budget: 2, margin: 0.1, uncertainProducts: 1, ofProducts: 2 });
+
+  // And it can be turned off, which is how the plan before it is reproducible.
+  const off = buildPlanModel({ members: [adult], catalogue: [verified, guess], days: 7, robustBudget: 0 });
+  assert.equal(off.rows.some((r) => r.name.startsWith("robust_")), false);
+  assert.equal(off.columns.some((c) => c.name.startsWith("robustz_")), false);
 });
 
 test("anything but a staple is one serving a day", () => {

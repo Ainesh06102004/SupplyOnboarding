@@ -581,6 +581,24 @@ export function applyFollowUp(plan, reading, catalogue) {
   for (const word of reading.leaveOut) {
     const hits = productsNamed(word, catalogue);
     if (!hits.length) {
+      // Not a food. "Replan without my wife" is a person leaving the week, not
+      // a product KOI could not find, and answering it with "nothing KOI can
+      // plan with is called wife" was both useless and faintly rude.
+      //
+      // Products are tried first, so a household with someone labelled Honey
+      // still gets honey when they ask for it: this only ever runs where the
+      // old answer was that nothing matched at all.
+      const who = normalise(word) ? membersNamed(word, members) : [];
+      if (who.length && who.length < members.length) {
+        const gone = new Set(who.map((m) => m.id));
+        for (let i = members.length - 1; i >= 0; i -= 1) if (gone.has(members[i].id)) members.splice(i, 1);
+        applied.push(`Planned without ${who.map((m) => m.label).join(", ")}`);
+        continue;
+      }
+      if (who.length && who.length >= members.length) {
+        notApplied.push("A plan needs someone to eat it, so KOI cannot leave everyone out");
+        continue;
+      }
       notApplied.push(`Nothing KOI can plan with is called "${word}"`);
       continue;
     }

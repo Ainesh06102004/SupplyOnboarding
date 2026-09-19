@@ -60,7 +60,8 @@ import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 //     pack may go unfinished, and how much of the last plan may come back.
 // v11: what the household wants protected first (PRIORITY, migration 00054):
 //     budget, targets, familiar food, less processed, variety, in their order.
-export const MODEL_VERSION = "plan-model-v11";
+// v12: targets that hold when a few unverified labels under-deliver (ROBUST).
+export const MODEL_VERSION = "plan-model-v12";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -276,6 +277,47 @@ export const CONTINUITY = Object.freeze({ bonusPerPack: 0.05, cap: 0.25 });
 /** What keeping this pack is worth against the tiebreaks that would replace it. */
 export const continuityBonus = (price, spendTiebreak = SPEND_TIEBREAK) =>
   Math.min(CONTINUITY.cap, CONTINUITY.bonusPerPack + spendTiebreak * (Number(price) || 0));
+
+/**
+ * Targets that survive a label being wrong (plan-model-v12).
+ *
+ * Every gram in a plan comes from a number printed on a pack. KOI has verified
+ * the ingredient list of none of the 63 products it sells, so "1,008 of 1,008 g
+ * protein" is exactly as true as labels nobody has checked — and a plan built
+ * to the declared figure to three decimal places is precise about a number it
+ * cannot vouch for.
+ *
+ * The fix is not to assume every label is wrong at once. That is the classic
+ * over-conservative robust model: it would price the week as if the whole shop
+ * short-changed the shopper, and nobody would buy that basket. Bertsimas and
+ * Sim's budget of uncertainty (Operations Research 52(1), 2004) asks the
+ * honest question instead — protect the plan against at most `budget` of the
+ * unverified products falling `margin` short, not all of them.
+ *
+ * Written into the program by their linearisation: one protection variable z
+ * per member and nutrient, one p per uncertain product, and
+ *
+ *     supply - (budget x z + sum p) + short - over = target
+ *     z + p_s >= margin x supplied_s x eats_s          for each uncertain s
+ *
+ * Nothing pushes protection down except that it makes the target harder to
+ * meet, and a shortfall costs, so the solver settles at exactly the worst case
+ * over any `budget` products and no more.
+ *
+ * A verified label is not uncertain and gets no p at all, so this rule quietly
+ * relaxes itself as the label engine catches up — which is the behaviour you
+ * want from a rule about not knowing things.
+ */
+export const ROBUST = Object.freeze({
+  // How far short one pack may fall of what it says. 10% is inside what
+  // rounding on a panel can hide, before anyone is accused of anything.
+  margin: 0.1,
+  // How many may do it at once. Two is a bad batch, not a conspiracy.
+  budget: 2,
+});
+
+/** A label KOI has read in full is not a guess; anything else is (ROBUST). */
+export const isUncertain = (item) => item?.ingredientEvidence !== "verified";
 
 /**
  * What the household wants protected first (plan-model-v11, migration 00054).
@@ -595,6 +637,9 @@ export function buildPlanModel({
   // (KITCHEN, migration 00057).
   processingCeiling = null,
   shelfStableOnly = false,
+  // Protect the targets against a few unverified labels (ROBUST). 0 turns it off.
+  robustBudget = ROBUST.budget,
+  robustMargin = ROBUST.margin,
   lastPlanSkus = [],
   // What the household wants protected first (PRIORITY, migration 00054).
   priorities = [],
@@ -787,9 +832,39 @@ export function buildPlanModel({
       if (!isNum(perDay)) continue;
       const target = Number(perDay) * days;
       const row = { name: `target_${m.id}_${n}`, lower: target, upper: target, coefficients: {} };
+      const uncertain = [];
       for (const item of eligible) {
         const supplied = Number(item.perPack?.[n] ?? 0);
-        if (supplied && mayEat(item.skuId, m.id)) row.coefficients[eatsName(item.skuId, m.id)] = supplied;
+        if (!supplied || !mayEat(item.skuId, m.id)) continue;
+        row.coefficients[eatsName(item.skuId, m.id)] = supplied;
+        if (isUncertain(item)) uncertain.push({ item, supplied });
+      }
+
+      // Hold the target against `robustBudget` of those labels falling short
+      // (ROBUST). Nothing pushes the protection down but the cost of a
+      // shortfall, so it settles at the worst case over any `robustBudget`
+      // products and no further.
+      // Never a ceiling. For someone losing weight the energy target is a limit,
+      // not a goal, and protection buys *more* of the nutrient so a short label
+      // still reaches it — which is precisely how the reference suite caught
+      // this: gym_cutting and senior_losing came back over their deficit. A
+      // floor can be defended by buying more; a ceiling cannot.
+      const isCeiling = n === "kcal" && m.energyGoal === "lose";
+      if (!isCeiling && robustBudget > 0 && robustMargin > 0 && uncertain.length) {
+        const z = `robustz_${m.id}_${n}`;
+        columns.push({ name: z, lower: 0, upper: Infinity, integer: false, cost: 0 });
+        row.coefficients[z] = -robustBudget;
+        for (const { item, supplied } of uncertain) {
+          const pName = `robustp_${m.id}_${n}_${item.skuId}`;
+          columns.push({ name: pName, lower: 0, upper: Infinity, integer: false, cost: 0 });
+          row.coefficients[pName] = -1;
+          rows.push({
+            name: `robust_${m.id}_${n}_${item.skuId}`,
+            lower: 0,
+            upper: Infinity,
+            coefficients: { [z]: 1, [pName]: 1, [eatsName(item.skuId, m.id)]: -round4(robustMargin * supplied) },
+          });
+        }
       }
       const losing = n === "kcal" && m.energyGoal === "lose";
       const gaining = n === "kcal" && m.energyGoal === "gain";
@@ -885,6 +960,14 @@ export function buildPlanModel({
       includedByShopper: included,
       // Kept from the plan this one changes (CONTINUITY).
       keptFromLastPlan: [...keep].filter((id) => eligible.some((item) => String(item.skuId) === id)),
+      // What the targets were protected against (ROBUST): this many unverified
+      // labels falling this far short, and how many products were uncertain.
+      robust: {
+        budget: robustBudget,
+        margin: robustMargin,
+        uncertainProducts: eligible.filter(isUncertain).length,
+        ofProducts: eligible.length,
+      },
       // The order the household asked for, and what each goal was worth.
       priorities: [...(priorities ?? [])],
       priorityWeights: weight,

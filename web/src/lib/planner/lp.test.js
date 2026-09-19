@@ -36,7 +36,9 @@ test("every name the solver reads is safe for LP format, whatever a SKU id looks
 });
 
 test("the model becomes an LP with the packs declared integer", () => {
-  const model = buildPlanModel({ members: [adult], catalogue: [rice], days: 7, budget: 1500 });
+  // robustBudget 0: this is about how a program is written as LP text, and the
+  // protection variables (ROBUST) would only add rows to read past.
+  const model = buildPlanModel({ members: [adult], catalogue: [rice], days: 7, budget: 1500, robustBudget: 0 });
   const { text, nameOfAlias } = toLp(model);
   const aliasOf = new Map([...nameOfAlias].map(([alias, name]) => [name, alias]));
   const packs = aliasOf.get(nameOf.packs("rice"));

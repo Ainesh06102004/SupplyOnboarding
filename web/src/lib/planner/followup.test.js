@@ -271,3 +271,29 @@ test("a model's follow-up is held to the sentence", () => {
   assert.equal(merged.budget.change, "cheaper");
   assert.deepEqual(merged.leaveOut, ["oats"]);
 });
+
+test("someone can leave the week: \"replan without my wife\"", () => {
+  // Live: both of these came back "Nothing KOI can plan with is called wife".
+  const members = [
+    { id: "me", label: "Me", targets: { protein: 144 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
+    { id: "wife", label: "Wife", targets: { protein: 50 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
+  ];
+  const plan = { members, days: 7, budget: 4000, excludedSkus: [], includedSkus: [], cost: 2856 };
+
+  for (const said of ["replan without my wife", "remove wife"]) {
+    const change = applyFollowUp(plan, readFollowUp(said), SHOP);
+    assert.deepEqual(change.applied, ["Planned without Wife"], said);
+    assert.deepEqual(change.members.map((m) => m.id), ["me"], "and she is not in the plan that follows");
+    assert.deepEqual(change.notApplied, [], said);
+  }
+
+  // A food is still a food: a person is only tried where nothing matched.
+  const food = applyFollowUp(plan, readFollowUp("no rice"), SHOP);
+  assert.equal(food.members.length, 2, "nobody left the week");
+
+  // And a plan needs somebody to eat it.
+  const alone = { ...plan, members: [members[1]] };
+  const empty = applyFollowUp(alone, readFollowUp("remove wife"), SHOP);
+  assert.deepEqual(empty.applied, []);
+  assert.match(empty.notApplied[0], /needs someone to eat it/);
+});

@@ -275,6 +275,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // The household ranked its targets above its budget, so KOI spent what it
     // took to meet them instead of reporting a shortfall (C2).
     budget_raised_for_targets: raisedForTargets,
+    // What the targets were protected against (C4): this many unverified
+    // labels falling this far short of what they declare.
+    robust: model.meta.robust ?? null,
     // What the basket covers of ICMR-NIN's plate, and the three groups KOI has
     // no aisle for (C6). A week of packets that meets every macro is still not
     // a balanced week, and KOI is the only one placed to say so.

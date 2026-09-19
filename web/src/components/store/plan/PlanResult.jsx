@@ -49,6 +49,7 @@ export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, c
   const report = plan.report;
   const conflicts = plan.explanation?.conflicts ?? null;
   const groups = plan.explanation?.food_groups ?? null;
+  const robust = plan.explanation?.robust ?? null;
   const met = report.unmet.length === 0;
   const notes = noteLines(plan);
 
@@ -249,6 +250,14 @@ export default function PlanResult({ plan, without, onSeeWithout, onAddToCart, c
         </div>
 
         <div className="p-6">
+          {tab === "targets" && robust?.budget > 0 && robust?.uncertainProducts > 0 && (
+            <p className="mb-4 text-[12px] leading-relaxed text-[#5A6B5A]">
+              Every gram here comes from a number printed on a pack, and KOI has read the full ingredient list of{" "}
+              {robust.ofProducts - robust.uncertainProducts} of the {robust.ofProducts} products it considered. So these
+              targets are planned to hold even if {robust.budget} of the rest deliver{" "}
+              {Math.round(robust.margin * 100)}% less than they say.
+            </p>
+          )}
           {tab === "targets" && (
             <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
               {report.perMember.map((m) => (
