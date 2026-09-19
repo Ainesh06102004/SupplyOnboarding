@@ -5,204 +5,321 @@
 // 39 categories, 246 names, 24 reference portions.
 // ============================================================================
 
-export const TAXONOMY_VERSION = "c5cdc763920b";
+export const TAXONOMY_VERSION = "61aab59829bc";
 
 // key -> { label, parent, role }: role is set on aisles and inherited
 export const NODES = {
   "beverages": {
     "label": "Drinks",
     "parent": null,
-    "role": "drink"
+    "role": "drink",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "beverages.drink_mixes": {
     "label": "Drink mixes",
     "parent": "beverages",
-    "role": null
+    "role": null,
+    "form": "instant",
+    "box": false,
+    "cuisine": null
   },
   "beverages.ready_to_drink": {
     "label": "Juices & ready-to-drink",
     "parent": "beverages",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": false,
+    "cuisine": null
   },
   "beverages.tea_coffee": {
     "label": "Tea & coffee",
     "parent": "beverages",
-    "role": null
+    "role": null,
+    "form": "instant",
+    "box": false,
+    "cuisine": null
   },
   "fats_oils": {
     "label": "Oils & ghee",
     "parent": null,
-    "role": "cooking"
+    "role": "cooking",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "fats_oils.ghee": {
     "label": "Ghee",
     "parent": "fats_oils",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": null
   },
   "fats_oils.oils": {
     "label": "Cooking oils",
     "parent": "fats_oils",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": null
   },
   "nuts_seeds": {
     "label": "Nuts, seeds & dried fruit",
     "parent": null,
-    "role": "snack"
+    "role": "snack",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "nuts_seeds.dried_fruit": {
     "label": "Dried fruit",
     "parent": "nuts_seeds",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "nuts_seeds.mixes": {
     "label": "Nut & dried fruit mixes",
     "parent": "nuts_seeds",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "nuts_seeds.nut_butters": {
     "label": "Nut butters",
     "parent": "nuts_seeds",
-    "role": "spread"
+    "role": "spread",
+    "form": "ready_to_eat",
+    "box": false,
+    "cuisine": null
   },
   "nuts_seeds.nuts": {
     "label": "Nuts",
     "parent": "nuts_seeds",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "nuts_seeds.seeds": {
     "label": "Seeds",
     "parent": "nuts_seeds",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "snacks": {
     "label": "Snacks",
     "parent": null,
-    "role": "snack"
+    "role": "snack",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "snacks.assortments": {
     "label": "Assortments & combos",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "snacks.bars": {
     "label": "Snack bars",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "snacks.biscuits_cookies": {
     "label": "Biscuits & cookies",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "snacks.cakes": {
     "label": "Cakes & muffins",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "snacks.chips_crisps": {
     "label": "Chips & crisps",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "snacks.namkeen": {
     "label": "Namkeen & mixtures",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": "indian"
   },
   "snacks.puffs": {
     "label": "Puffs, crispies & makhana",
     "parent": "snacks",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": null
   },
   "spices": {
     "label": "Spices & condiments",
     "parent": null,
-    "role": "cooking"
+    "role": "cooking",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "spices.pickles_sauces": {
     "label": "Pickles, chutneys & sauces",
     "parent": "spices",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": null
   },
   "spices.spices": {
     "label": "Spices & masalas",
     "parent": "spices",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": "indian"
   },
   "staples": {
     "label": "Staples",
     "parent": null,
-    "role": "meal_base"
+    "role": "meal_base",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "staples.breakfast_cereals": {
     "label": "Oats & breakfast cereals",
     "parent": "staples",
-    "role": null
+    "role": null,
+    "form": "instant",
+    "box": false,
+    "cuisine": "global"
   },
   "staples.flours": {
     "label": "Flours & atta",
     "parent": "staples",
-    "role": null
+    "role": null,
+    "form": "needs_cooking",
+    "box": false,
+    "cuisine": null
   },
   "staples.millets": {
     "label": "Millets & other grains",
     "parent": "staples",
-    "role": null
+    "role": null,
+    "form": "needs_cooking",
+    "box": false,
+    "cuisine": null
   },
   "staples.pulses": {
     "label": "Dals & pulses",
     "parent": "staples",
-    "role": null
+    "role": null,
+    "form": "needs_cooking",
+    "box": false,
+    "cuisine": null
   },
   "staples.rice": {
     "label": "Rice & poha",
     "parent": "staples",
-    "role": null
+    "role": null,
+    "form": "needs_cooking",
+    "box": false,
+    "cuisine": null
   },
   "supplements": {
     "label": "Protein & supplements",
     "parent": null,
-    "role": "supplement"
+    "role": "supplement",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "supplements.protein_powder": {
     "label": "Protein powders",
     "parent": "supplements",
-    "role": null
+    "role": null,
+    "form": "instant",
+    "box": false,
+    "cuisine": null
   },
   "sweeteners": {
     "label": "Honey, jaggery & sugar",
     "parent": null,
-    "role": "cooking"
+    "role": "cooking",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "sweeteners.honey": {
     "label": "Honey",
     "parent": "sweeteners",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": null
   },
   "sweeteners.jaggery": {
     "label": "Jaggery",
     "parent": "sweeteners",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": "indian"
   },
   "sweeteners.sugar": {
     "label": "Sugar",
     "parent": "sweeteners",
-    "role": null
+    "role": null,
+    "form": "ingredient",
+    "box": false,
+    "cuisine": null
   },
   "sweets": {
     "label": "Sweets & chocolate",
     "parent": null,
-    "role": "sweet"
+    "role": "sweet",
+    "form": null,
+    "box": null,
+    "cuisine": null
   },
   "sweets.chocolate": {
     "label": "Chocolate",
     "parent": "sweets",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": "global"
   },
   "sweets.indian_sweets": {
     "label": "Indian sweets",
     "parent": "sweets",
-    "role": null
+    "role": null,
+    "form": "ready_to_eat",
+    "box": true,
+    "cuisine": "indian"
   }
 };
 

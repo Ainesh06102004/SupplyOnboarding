@@ -48,7 +48,7 @@ async function readHousehold() {
   if (!user) return { user: null, household: null, members: [], versions: {}, error: null };
   const { data: household, error } = await supabase
     .from("household")
-    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, processing_ceiling, shelf_stable_only, log_failed_phrases, followup_miss(id, said, not_applied, created_at), household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
+    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, processing_ceiling, shelf_stable_only, cuisine_leaning, log_failed_phrases, followup_miss(id, said, not_applied, created_at), household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

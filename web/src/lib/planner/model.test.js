@@ -250,7 +250,7 @@ test("this week: what they feel like costs a little less, and what they skip is 
   assert.equal(refusalReason({ flag: "not_this_week", rule: "this_week" }), "not what they feel like this week");
   assert.equal(inCategory("snacks.biscuits_cookies", ["snacks"]), true, "an aisle covers what is under it");
   assert.equal(inCategory("snacks_extra", ["snacks"]), false);
-  assert.equal(MODEL_VERSION, "plan-model-v12");
+  assert.equal(MODEL_VERSION, "plan-model-v13");
 });
 
 test("a change keeps the plan it changes, and what was asked for is always a candidate", () => {
@@ -446,6 +446,28 @@ test("a target holds when a few unverified labels fall short (C4)", () => {
   const off = buildPlanModel({ members: [adult], catalogue: [verified, guess], days: 7, robustBudget: 0 });
   assert.equal(off.rows.some((r) => r.name.startsWith("robust_")), false);
   assert.equal(off.columns.some((c) => c.name.startsWith("robustz_")), false);
+});
+
+test("a household leans towards a kitchen; it never refuses the other (00061)", () => {
+  const namkeen = { ...rice, skuId: "namkeen", cuisine: "indian", categoryKey: "snacks.namkeen" };
+  const crisps = { ...rice, skuId: "crisps", cuisine: null, categoryKey: "snacks.chips_crisps" };
+  const cereal = { ...rice, skuId: "cereal", cuisine: "global", categoryKey: "staples.breakfast_cereals" };
+  const catalogue = [namkeen, crisps, cereal];
+
+  const plain = buildPlanModel({ members: [adult], catalogue, days: 7 });
+  const indian = buildPlanModel({ members: [adult], catalogue, days: 7, cuisineLeaning: "indian" });
+
+  assert.equal(
+    colNamed(indian, nameOf.packs("namkeen")).cost,
+    round6(colNamed(plain, nameOf.packs("namkeen")).cost - KITCHEN.cuisineBonus),
+  );
+  // A shelf belonging to no kitchen is untouched, which is most of a shop.
+  assert.equal(colNamed(indian, nameOf.packs("crisps")).cost, colNamed(plain, nameOf.packs("crisps")).cost);
+  // And the other kitchen is not punished, only not preferred.
+  assert.equal(colNamed(indian, nameOf.packs("cereal")).cost, colNamed(plain, nameOf.packs("cereal")).cost);
+  assert.equal(indian.meta.skus.includes("cereal"), true, "never a refusal");
+  assert.equal(indian.meta.kitchen.cuisineLeaning, "indian");
+  assert.equal(plain.meta.kitchen.cuisineLeaning, null);
 });
 
 test("anything but a staple is one serving a day", () => {

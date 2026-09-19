@@ -105,6 +105,9 @@ export function plannableFrom(products = []) {
       packAmount: supplied.packSize.value,
       packUnit: supplied.packSize.unit,
       role: product.categoryKey ? nodeInfo(product.categoryKey)?.role ?? null : null,
+      // The kitchen this shelf belongs to, where it belongs to one (00061).
+      // Null for rice, dal and atta, which are food rather than Indian food.
+      cuisine: product.categoryKey ? nodeInfo(product.categoryKey)?.cuisine ?? null : null,
       // For the age rules (ageSafety.js): nuts sold whole are a category fact.
       categoryKey: product.categoryKey ?? null,
       portion: product.portion ?? null,

@@ -45,7 +45,7 @@ async function read(query) {
 }
 
 const [nodes, terms, portions, occasions] = await Promise.all([
-  read("taxonomy_node?select=key,parent_key,label,meal_role&order=key"),
+  read("taxonomy_node?select=key,parent_key,label,meal_role,food_form,lunchbox_ok,cuisine&order=key"),
   read("taxonomy_term?select=term,node_key,kind&order=term"),
   read("portion_norm?select=node_key,reference_amount,unit,plausible_max,household_measure&order=node_key"),
   read("category_occasion?select=node_key,occasion&order=node_key,occasion"),
@@ -74,7 +74,16 @@ if (problems.length) {
   process.exit(1);
 }
 
-const NODES = Object.fromEntries(nodes.map((n) => [n.key, { label: n.label, parent: n.parent_key, role: n.meal_role }]));
+const NODES = Object.fromEntries(nodes.map((n) => [n.key, {
+  label: n.label,
+  parent: n.parent_key,
+  role: n.meal_role,
+  // Tier 2 (00061): how much work before it is food, whether it travels in a
+  // box, and the kitchen it belongs to where a shelf truly belongs to one.
+  form: n.food_form,
+  box: n.lunchbox_ok,
+  cuisine: n.cuisine,
+}]));
 const OCCASIONS = {};
 for (const { node_key: key, occasion } of occasions) (OCCASIONS[key] ??= []).push(occasion);
 const TERMS = [...owners.entries()]

@@ -86,6 +86,14 @@ export function nodeInfo(key) {
     subcategory: key === aisleKey ? null : node.label,
     // What it is in a meal (snack, meal_base, drink...), set on aisles.
     role: node.role ?? NODES[aisleKey]?.role ?? null,
+    // Tier 2 (00061). Facts about the shelf, not the pack: rice needs cooking
+    // whoever sells it. `cuisine` is null wherever a shelf belongs to no one
+    // kitchen, which is most of a staples aisle — rice and dal are food, not
+    // Indian food — and it is a soft preference that can never refuse a
+    // product.
+    form: node.form ?? NODES[aisleKey]?.form ?? null,
+    lunchbox: node.box ?? NODES[aisleKey]?.box ?? null,
+    cuisine: node.cuisine ?? NODES[aisleKey]?.cuisine ?? null,
     occasions: occasionsOf(key),
     // { amount, unit, max, measure } or null: 21 CFR 101.12 reference amounts,
     // recorded only where one exists for the category.

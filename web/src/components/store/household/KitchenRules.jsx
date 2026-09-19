@@ -54,6 +54,19 @@ export const WASTE_TOLERANCES = Object.freeze([
  * means nothing to a shopper, and a number they cannot reason about is a dial,
  * not a setting.
  */
+/**
+ * Which kitchen a household leans towards (00061).
+ *
+ * A nudge between shelves that belong to one, never a refusal — and most
+ * shelves belong to neither, because rice and dal are food rather than Indian
+ * food. Saying "no leaning" is the commonest honest answer.
+ */
+export const CUISINE_LEANINGS = Object.freeze([
+  { key: "", label: "No leaning", hint: "KOI does not favour either" },
+  { key: "indian", label: "Indian", hint: "Namkeen, Indian sweets, masalas" },
+  { key: "global", label: "Continental", hint: "Cereals, chocolate, pasta" },
+]);
+
 export const PROCESSING_CEILINGS = Object.freeze([
   { key: "", label: "No limit", hint: "KOI does not rule anything out for being processed" },
   { key: "1", label: "Whole foods only", hint: "NOVA 1: unprocessed or minimally processed" },
@@ -218,6 +231,17 @@ export default function KitchenRules({ household, pantry = [], brands = [], know
              placeholder="A brand you reach for" known={brands}
              onAdd={(brand) => addBrand("preferred_brands", brand)}
              onRemove={(brand) => save({ preferred_brands: withoutBrand(preferred, brand) })} />
+
+      <div>
+        <span className={LABEL}>Kitchen</span>
+        <Choices name="Kitchen" options={CUISINE_LEANINGS} busy={busy}
+                 value={household.cuisine_leaning ?? ""}
+                 onChange={(key) => save({ cuisine_leaning: key === "" ? null : key })} />
+        <p className={HINT}>
+          Only tips the balance between shelves that belong to one kitchen. Rice, dal and atta belong to neither, so
+          most of a basket is untouched — and nothing is ever refused for being the wrong cuisine.
+        </p>
+      </div>
 
       <div>
         <span className={LABEL}>How processed</span>

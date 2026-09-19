@@ -61,7 +61,8 @@ import { ageRefusal, AGE_SAFETY_VERSION } from "./ageSafety";
 // v11: what the household wants protected first (PRIORITY, migration 00054):
 //     budget, targets, familiar food, less processed, variety, in their order.
 // v12: targets that hold when a few unverified labels under-deliver (ROBUST).
-export const MODEL_VERSION = "plan-model-v12";
+// v13: the kitchen a household leans towards (KITCHEN.cuisineBonus, 00061).
+export const MODEL_VERSION = "plan-model-v13";
 
 /**
  * A tiebreak toward food KOI screened better (plan-model-v2).
@@ -419,6 +420,11 @@ export const budgetBeforeTargets = (priorities = []) => {
  */
 export const KITCHEN = Object.freeze({
   preferredBrandBonus: 0.05,
+  // A shelf that belongs to the kitchen this household leans towards costs a
+  // preference less. Never a refusal: the plan doc is explicit that cuisine is
+  // soft, and most shelves belong to no kitchen at all, so this decides between
+  // a namkeen and a crisp and touches nothing else (00061).
+  cuisineBonus: 0.05,
   mildSpiceCost: 0.05,
   repeat: Object.freeze({ low: 0.08, usual: 0, high: -0.08 }),
   wasteNoneUsesServing: true,
@@ -637,6 +643,8 @@ export function buildPlanModel({
   // (KITCHEN, migration 00057).
   processingCeiling = null,
   shelfStableOnly = false,
+  // Which kitchen this household leans towards (00061). Null is no leaning.
+  cuisineLeaning = null,
   // Protect the targets against a few unverified labels (ROBUST). 0 turns it off.
   robustBudget = ROBUST.budget,
   robustMargin = ROBUST.margin,
@@ -798,6 +806,7 @@ export function buildPlanModel({
     const packCost = qualityCost(item.score, qualityTiebreak * weight.less_processed) + spendTiebreak * weight.budget * Number(item.price)
       - (keep.has(String(item.skuId)) ? continuityBonus(item.price, spendTiebreak) * weight.familiar : 0)
       - (brandIn(item.brand, preferredBrands) ? KITCHEN.preferredBrandBonus : 0)
+      - (cuisineLeaning && item.cuisine === cuisineLeaning ? KITCHEN.cuisineBonus : 0)
       + (lastPlan.has(String(item.skuId)) ? repeatCost : 0);
     const caps = portionCaps[item.skuId] ?? {};
     // No more whole packs than the household can eat between them.
@@ -973,6 +982,7 @@ export function buildPlanModel({
       priorityWeights: weight,
       // The kitchen's own rules, as this plan applied them (KITCHEN).
       kitchen: {
+        cuisineLeaning: cuisineLeaning ?? null,
         processingCeiling: isNum(processingCeiling) ? Number(processingCeiling) : null,
         // How many products KOI could even apply that ceiling to, counted over
         // everything it looked at rather than everything that survived — the
