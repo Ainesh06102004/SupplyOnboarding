@@ -58,7 +58,10 @@ const LEAVE_OUT = new RegExp(String.raw`\b(?:no|without|skip|remove|drop|swap|re
  * "also" is filler, not a trigger: as a trigger it matched before the "add"
  * in "can you also add some peanut butter" and swallowed the verb.
  */
-const ADD = new RegExp(String.raw`\b(?:add|include|buy|put in|put|throw in|more of|use)\s+${ARTICLE}${PHRASE}`, "g");
+// "plan for" and "cook for" bring a person in rather than a food: "can you
+// plan for my wife too" is the way somebody actually asks, and without the cue
+// it read as nothing at all.
+const ADD = new RegExp(String.raw`\b(?:add|include|buy|put in|put|throw in|more of|use|plan for|cook for)\s+${ARTICLE}${PHRASE}`, "g");
 /** "swap the rice for atta", "replace oats with poha", "atta instead of rice". */
 // The thing being replaced may not be said at all: "take out chikki and
 // replace with almonds". The from side is optional, and when it is missing
@@ -81,7 +84,7 @@ const VERBS = new Set([
 ]);
 /** The cue words that make a product word a removal, and the ones that make it an ask. */
 const REMOVE_CUE = /\b(no|without|skip|remove|drop|swap|replace|switch|instead|don t want|do not want|dont want|less|stop|minus|out)\b/;
-const ADD_CUE = /\b(add|include|buy|get|put in|throw in|also|more|with|want|extra)\b/;
+const ADD_CUE = /\b(add|include|buy|get|put in|throw in|also|more|with|want|extra|plan for|cook for|too|as well)\b/;
 const STOP = new Set([
   "to", "the", "my", "our", "your", "instead", "also", "add", "put", "some",
   "on", "for", "in", "at", "please", "and", "but", "it", "them", "anymore", "any", "more", "with", "from", "this", "week",
@@ -252,6 +255,7 @@ export const FOLLOWUP_JSON_SCHEMA = Object.freeze(strictObject({
   // Answers in KOI's own words: ids from the lists the model was given, not
   // words copied out of the sentence. See WHY IDS below.
   dropMembers: { type: "array", items: { type: "string" } },
+  addMembers: { type: "array", items: { type: "string" } },
   leaveOutCategories: { type: "array", items: { type: "string" } },
   includeCategories: { type: "array", items: { type: "string" } },
 }));
@@ -271,6 +275,7 @@ export const FOLLOWUP_INSTRUCTIONS = [
   "",
   "You are also given who is eating and the kinds of food this shop sells. Where the message means one of them, answer with its id rather than the shopper's words — those are checked against the lists and are the only way to reach something the shopper did not name exactly:",
   "- dropMembers: member ids for anyone the message takes out of the plan (\"replan without my wife\").",
+  "- addMembers: member ids for anyone the message brings into it (\"can you plan for my wife too\", \"add wife\"). They may be someone the plan does not currently feed.",
   "- leaveOutCategories: category keys for a kind of food to take out (\"no dals this week\").",
   "- includeCategories: category keys for a kind of food to put in (\"put another dry fruit in\").",
   "Use a category only where the message means the kind and not one product. \"No almonds\" is a product; \"no nuts at all\" is a category.",
@@ -294,11 +299,15 @@ export const FOLLOWUP_INSTRUCTIONS = [
  * @param {{members?: Array, categories?: Array}} context
  * @returns {string} lines to append to FOLLOWUP_INSTRUCTIONS
  */
-export function contextInstructions({ members = [], categories = [] } = {}) {
+export function contextInstructions({ members = [], absent = [], categories = [] } = {}) {
   const lines = [];
   if (members.length) {
     lines.push("", "Who is eating this plan (id — label):");
     for (const m of members) lines.push(`- ${m.id} — ${m.label ?? "someone"}`);
+  }
+  if (absent.length) {
+    lines.push("", "Also in this household, but not eating this plan (id — label):");
+    for (const m of absent) lines.push(`- ${m.id} — ${m.label ?? "someone"}`);
   }
   if (categories.length) {
     lines.push("", "The kinds of food this shop sells (key — name):");
@@ -317,6 +326,7 @@ const ModelFollowUpSchema = z.object({
   targets: z.array(z.object({ who: z.string().max(40).nullable(), nutrient: z.enum(["protein", "kcal"]), perDay: z.number().positive() })).max(8),
   unresolved: z.array(z.string().max(60)).max(8),
   dropMembers: z.array(z.string().max(64)).max(8).default([]),
+  addMembers: z.array(z.string().max(64)).max(8).default([]),
   leaveOutCategories: z.array(z.string().max(64)).max(8).default([]),
   includeCategories: z.array(z.string().max(64)).max(8).default([]),
 });
@@ -374,6 +384,9 @@ export function groundFollowUp(raw, input, context = {}) {
     // KOI's words, and neither of which a verbatim check could ever have let
     // through. An id that is not on the list is dropped exactly as firmly.
     dropMembers: onlyReal(r.dropMembers, (context.members ?? []).map((m) => String(m.id))),
+    // Somebody joining is checked against everyone this household shops for,
+    // not against who is already eating — the whole point is that they are not.
+    addMembers: onlyReal(r.addMembers, [...(context.members ?? []), ...(context.absent ?? [])].map((m) => String(m.id))),
     leaveOutCategories: onlyReal(r.leaveOutCategories, (context.categories ?? []).map((c) => c.key)),
     includeCategories: onlyReal(r.includeCategories, (context.categories ?? []).map((c) => c.key)),
   };
@@ -404,6 +417,7 @@ export function mergeFollowUps(local, model) {
     unresolved: [...new Set([...local.unresolved, ...model.unresolved])],
     // Only the model answers in ids: the rules have never been shown the lists.
     dropMembers: model.dropMembers ?? [],
+    addMembers: model.addMembers ?? [],
     leaveOutCategories: model.leaveOutCategories ?? [],
     includeCategories: model.includeCategories ?? [],
     message: local.message,
@@ -663,6 +677,14 @@ export function applyFollowUp(plan, reading, catalogue) {
     applied.push(`Planned without ${gone.label}`);
   }
 
+  for (const memberId of reading.addMembers ?? []) {
+    if (members.some((m) => String(m.id) === String(memberId))) continue;
+    const joining = (plan.roster ?? []).find((m) => String(m.id) === String(memberId));
+    if (!joining) continue;
+    members.push({ ...joining, targets: { ...joining.targets }, avoidFlags: [...(joining.avoidFlags ?? [])], softAvoidFlags: [...(joining.softAvoidFlags ?? [])] });
+    applied.push(`Planned for ${joining.label} as well`);
+  }
+
   for (const key of reading.leaveOutCategories ?? []) {
     const hits = catalogue.filter((item) => inThisCategory(item.categoryKey, key));
     if (!hits.length) {
@@ -716,6 +738,20 @@ export function applyFollowUp(plan, reading, catalogue) {
   for (const word of reading.include ?? []) {
     const hits = productsNamed(word, catalogue).filter((item) => !excluded.has(item.skuId));
     if (!hits.length) {
+      // Not a food, so the same question the removal side asks: is it a person?
+      // "Can you plan for my wife too" is somebody joining the week, and the
+      // roster is the only place they can be found — by definition they are not
+      // among the members this plan already feeds.
+      const joining = normalise(word)
+        ? membersNamed(word, (plan.roster ?? []).filter((r) => !members.some((m) => String(m.id) === String(r.id))))
+        : [];
+      if (joining.length && joining.length < (plan.roster ?? []).length) {
+        for (const m of joining) {
+          members.push({ ...m, targets: { ...m.targets }, avoidFlags: [...(m.avoidFlags ?? [])], softAvoidFlags: [...(m.softAvoidFlags ?? [])] });
+        }
+        applied.push(`Planned for ${joining.map((m) => m.label).join(", ")} as well`);
+        continue;
+      }
       notApplied.push(`KOI has nothing called "${word}" to add`);
       continue;
     }

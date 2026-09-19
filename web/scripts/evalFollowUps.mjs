@@ -14,17 +14,21 @@
 // ============================================================================
 
 import { readFollowUp, applyFollowUp } from "@/lib/planner/followup.js";
-import { FOLLOW_UP_CORPUS, CORPUS_SHOP, CORPUS_MEMBERS } from "@/lib/planner/eval/followUpCorpus.js";
+import { FOLLOW_UP_CORPUS, CORPUS_SHOP, CORPUS_MEMBERS, CORPUS_ABSENT } from "@/lib/planner/eval/followUpCorpus.js";
 
 const withModel = process.argv.includes("--model");
 
-const plan = () => ({
-  members: CORPUS_MEMBERS.map((m) => ({ ...m, targets: { ...m.targets } })),
+const everyone = [...CORPUS_MEMBERS, ...CORPUS_ABSENT];
+const plan = (starts) => ({
+  members: everyone.filter((m) => (starts ? starts.includes(m.id) : CORPUS_MEMBERS.some((c) => c.id === m.id)))
+    .map((m) => ({ ...m, targets: { ...m.targets } })),
   days: 7,
   budget: 4000,
   excludedSkus: [],
   includedSkus: [],
   cost: 2560,
+  // Everyone this household shops for, including whoever is sitting this week out.
+  roster: everyone.map((m) => ({ ...m, targets: { ...m.targets } })),
 });
 
 /** Every way one case can be wrong, in the words a reader of the report needs. */
@@ -60,6 +64,7 @@ async function readingFor(said) {
   const { readFollowUpWithModel } = await import("@/lib/planner/followUpModel.js");
   return readFollowUpWithModel(said, {
     members: CORPUS_MEMBERS.map((m) => ({ id: m.id, label: m.label })),
+    absent: CORPUS_ABSENT.map((m) => ({ id: m.id, label: m.label })),
     categories: [...new Set(CORPUS_SHOP.map((p) => p.categoryKey))].map((key) => ({ key, label: key.split(".").pop().replace(/_/g, " ") })),
   });
 }
@@ -70,7 +75,7 @@ let failed = 0;
 for (const c of FOLLOW_UP_CORPUS) {
   let wrong;
   try {
-    wrong = check(c, applyFollowUp(plan(), await readingFor(c.said), CORPUS_SHOP));
+    wrong = check(c, applyFollowUp(plan(c.starts), await readingFor(c.said), CORPUS_SHOP));
   } catch (err) {
     wrong = [`threw: ${err?.message ?? err}`];
   }

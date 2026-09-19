@@ -581,6 +581,43 @@ async function keepTheWording({ db, plan, text, applied, notApplied }) {
   }
 }
 
+/**
+ * Everyone this household shops for, in the shape a plan needs them.
+ *
+ * A follow-up reads its members from the plan's own snapshot, which is who was
+ * eating — so somebody left out of this week is invisible to it, and "can you
+ * plan for my wife too" had nowhere to look. This reads the household itself.
+ *
+ * The plan's own snapshot still wins for anyone already in it: that member was
+ * planned against a profile version, with this week's diet and cravings, and a
+ * follow-up must not quietly re-read them from a profile that has since moved.
+ *
+ * @returns {Promise<Array>} the plan's members, plus everyone else, planner-shaped
+ */
+async function rosterFor(db, householdId, planned) {
+  if (!householdId) return planned;
+  const { data: household, error } = await db
+    .from("household")
+    .select("id, household_member(*)")
+    .eq("id", householdId)
+    .maybeSingle();
+  if (error || !household) return planned;
+
+  const rows = (household.household_member ?? []).filter((row) => !planned.some((m) => String(m.id) === String(row.id)));
+  if (!rows.length) return planned;
+
+  const { data: avoidRows } = await db
+    .from("household_member_avoid")
+    .select("member_id, avoid_key, severity")
+    .in("member_id", rows.map((r) => r.id));
+  const avoidsByMember = new Map();
+  for (const row of avoidRows ?? []) {
+    if (!avoidsByMember.has(row.member_id)) avoidsByMember.set(row.member_id, []);
+    avoidsByMember.get(row.member_id).push({ key: row.avoid_key, severity: row.severity ?? null });
+  }
+  return [...planned, ...rows.map((row) => memberFor({ ...row, avoids: avoidsByMember.get(row.id) ?? [] }, CATALOGUES))];
+}
+
 /** The kinds of food this shop shelves, in the words KOI shows for them. */
 function categoriesOf(catalogue = []) {
   const byKey = new Map();
@@ -643,11 +680,19 @@ export async function planFollowUp({ planId, text }) {
   if (!members.length) throw new Error("This plan has no members to plan for.");
 
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
-  // What the model is allowed to answer with: who is eating this plan, and the
-  // kinds of food this shop actually shelves. Giving it the lists is what lets
-  // "my wife" reach a member and "another dry fruit" a category (C-interpreter).
+  // Everyone in the household, not only everyone in this plan. "Can you plan
+  // for my wife too" is about somebody who is deliberately not here, so a
+  // follow-up that can only see the plan's own members can never answer it.
+  const roster = await rosterFor(db, plan.household_id, members);
+
+  // What the model is allowed to answer with: who is eating this plan, who else
+  // could, and the kinds of food this shop actually shelves. Giving it the
+  // lists is what lets "my wife" reach a member and "another dry fruit" a
+  // category (C-interpreter).
   const reading = await readFollowUpWithModel(text, {
     members: members.map((m) => ({ id: String(m.id), label: m.label ?? "someone" })),
+    absent: roster.filter((r) => !members.some((m) => String(m.id) === String(r.id)))
+      .map((r) => ({ id: String(r.id), label: r.label ?? "someone" })),
     categories: categoriesOf(catalogue),
   });
   const change = applyFollowUp({
@@ -657,6 +702,8 @@ export async function planFollowUp({ planId, text }) {
     excludedSkus: snapshot.excluded_skus ?? [],
     includedSkus: snapshot.included_skus ?? [],
     cost: Number(plan.achieved?.cost ?? 0),
+    // Who could join this plan, in the shape the planner needs them.
+    roster,
   }, reading, catalogue);
 
   if (!change.applied.length) {

@@ -29,6 +29,11 @@ export const CORPUS_SHOP = Object.freeze([
   { skuId: "honey", name: "Raw Forest Honey", categoryKey: "sweeteners.honey" },
 ]);
 
+/** Somebody this household shops for who is not eating this plan. */
+export const CORPUS_ABSENT = Object.freeze([
+  { id: "son", label: "Son", targets: { protein: 30 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
+]);
+
 export const CORPUS_MEMBERS = Object.freeze([
   { id: "me", label: "Me", targets: { protein: 144 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
   { id: "wife", label: "Wife", targets: { protein: 50 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] },
@@ -43,6 +48,7 @@ export const CORPUS_MEMBERS = Object.freeze([
  * @property {string[]} [excludes] sku ids the change must leave out
  * @property {string[]} [includes] sku ids the change must ask for
  * @property {string[]} [includesAny] any one of these is right (a kind of food)
+ * @property {string[]} [starts] who is eating before the message (default: CORPUS_MEMBERS)
  * @property {string[]} [members] who is left in the plan
  * @property {number} [days]
  * @property {number|null} [budget]
@@ -67,5 +73,9 @@ export const FOLLOW_UP_CORPUS = Object.freeze([
   { said: "cheaper", pins: "cheaper without a number", budget: 2300 },
   { said: "replan without my wife", pins: "a person can leave the week", members: ["me"] },
   { said: "remove wife", pins: "and by their label alone", members: ["me"] },
+  // Somebody joining starts from a week they are not in, which is the only
+  // state the question makes sense in.
+  { said: "add wife", pins: "and somebody can join it", starts: ["me"], members: ["me", "wife"] },
+  { said: "can you plan for my wife too", pins: "the way a person actually asks", starts: ["me"], members: ["me", "wife"] },
   { said: "75 g protein for my wife", pins: "a target for one person", applied: ["Wife: 75 g protein a day"] },
 ]);
