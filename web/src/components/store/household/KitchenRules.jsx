@@ -47,6 +47,20 @@ export const WASTE_TOLERANCES = Object.freeze([
   { key: "any", label: "Doesn't matter", hint: "Buy what fits the targets" },
 ]);
 
+/**
+ * How processed a household will go (NOVA, 00057).
+ *
+ * The groups are named by what they are rather than by their number: "group 3"
+ * means nothing to a shopper, and a number they cannot reason about is a dial,
+ * not a setting.
+ */
+export const PROCESSING_CEILINGS = Object.freeze([
+  { key: "", label: "No limit", hint: "KOI does not rule anything out for being processed" },
+  { key: "1", label: "Whole foods only", hint: "NOVA 1: unprocessed or minimally processed" },
+  { key: "2", label: "Add basic ingredients", hint: "NOVA 2: oils, flours, sugar, salt" },
+  { key: "3", label: "Nothing ultra-processed", hint: "NOVA 3: processed, but not formulations" },
+]);
+
 export const REPEAT_TOLERANCES = Object.freeze([
   { key: "low", label: "Something different", hint: "Last week's packs cost more" },
   { key: "usual", label: "No preference", hint: "The usual" },
@@ -141,9 +155,10 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy, kno
  * @param {(label: string) => Promise<void>} props.onAddPantry
  * @param {(row: object) => Promise<void>} props.onRemovePantry
  * @param {string[]} props.brands the brand names KOI carries, for suggestions
+ * @param {number|null} props.knownProcessing how many products KOI knows the processing of
  * @param {boolean} props.busy
  */
-export default function KitchenRules({ household, pantry = [], brands = [], onSaveHousehold, onAddPantry, onRemovePantry, busy = false }) {
+export default function KitchenRules({ household, pantry = [], brands = [], knownProcessing = null, onSaveHousehold, onAddPantry, onRemovePantry, busy = false }) {
   if (!household) return null;
   const refused = household.refused_brands ?? [];
   const preferred = household.preferred_brands ?? [];
@@ -203,6 +218,30 @@ export default function KitchenRules({ household, pantry = [], brands = [], onSa
              placeholder="A brand you reach for" known={brands}
              onAdd={(brand) => addBrand("preferred_brands", brand)}
              onRemove={(brand) => save({ preferred_brands: withoutBrand(preferred, brand) })} />
+
+      <div>
+        <span className={LABEL}>How processed</span>
+        <Choices name="How processed" options={PROCESSING_CEILINGS} busy={busy}
+                 value={household.processing_ceiling === null || household.processing_ceiling === undefined ? "" : String(household.processing_ceiling)}
+                 onChange={(key) => save({ processing_ceiling: key === "" ? null : Number(key) })} />
+        <p className={HINT}>
+          KOI can only rule out a product whose ingredient list it has read in full — {knownProcessing ?? "few"} of the
+          shop so far. The rest are neither refused nor called clean, and every plan says how many it could not tell.
+        </p>
+      </div>
+
+      <div>
+        <span className={LABEL}>Cold storage</span>
+        <label className="mt-1.5 flex items-center gap-2.5 text-[12.5px] text-[#0E4032]">
+          <input type="checkbox" checked={Boolean(household.shelf_stable_only)} disabled={busy}
+                 onChange={(e) => save({ shelf_stable_only: e.target.checked })}
+                 className="h-3.5 w-3.5 accent-[#0E4032]" />
+          Nothing that needs a fridge
+        </label>
+        <p className={HINT}>
+          Everything KOI sells today is ambient, so this changes nothing yet. It will the day chilled or frozen arrives.
+        </p>
+      </div>
 
       <Words id="pantry" label="Already in the cupboard" busy={busy}
              words={pantry.map((row) => ({ key: row.id, label: row.label ?? row.name ?? "Something", row }))}

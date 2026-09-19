@@ -48,7 +48,7 @@ async function readHousehold() {
   if (!user) return { user: null, household: null, members: [], versions: {}, error: null };
   const { data: household, error } = await supabase
     .from("household")
-    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, log_failed_phrases, followup_miss(id, said, not_applied, created_at), household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
+    .select(`id, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, processing_ceiling, shelf_stable_only, log_failed_phrases, followup_miss(id, said, not_applied, created_at), household_pantry(id, label, sku_id), household_member(${MEMBER_FIELDS})`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -395,10 +395,22 @@ export default function HouseholdPage() {
   // The brands on the shelf, so a brand rule can be typed with the shop's own
   // spelling rather than guessed at.
   const [brands, setBrands] = useState([]);
+  // How many products KOI has read a full enough ingredient list for to know
+  // how processed they are. The processing rule says so rather than implying
+  // it reaches the whole shop.
+  const [knownProcessing, setKnownProcessing] = useState(null);
   useEffect(() => {
     let live = true;
     getSupabaseClient().from("brands").select("brand_name").order("brand_name").then(({ data }) => {
       if (live) setBrands([...new Set((data ?? []).map((b) => b.brand_name).filter(Boolean))]);
+    });
+    return () => { live = false; };
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    getSupabaseClient().from("sku_processing").select("sku_id", { count: "exact", head: true }).then(({ count }) => {
+      if (live) setKnownProcessing(count ?? null);
     });
     return () => { live = false; };
   }, []);
@@ -574,7 +586,7 @@ export default function HouseholdPage() {
 
       {householdId && (
         <div className="mt-6">
-          <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} busy={keepOutBusy}
+          <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} knownProcessing={knownProcessing} busy={keepOutBusy}
                         onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
         </div>
       )}

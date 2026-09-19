@@ -591,6 +591,10 @@ export function buildPlanModel({
   pantrySkus = [],
   wasteTolerance = "some",
   repeatTolerance = "usual",
+  // How processed a household will go, and whether it can keep things cold
+  // (KITCHEN, migration 00057).
+  processingCeiling = null,
+  shelfStableOnly = false,
   lastPlanSkus = [],
   // What the household wants protected first (PRIORITY, migration 00054).
   priorities = [],
@@ -671,6 +675,20 @@ export function buildPlanModel({
     // Already in the house. Buying it again is the waste this is here to stop.
     if (pantry.has(String(item.skuId))) {
       excluded.push({ skuId: item.skuId, reason: "already_in_your_kitchen" });
+      continue;
+    }
+    // More processed than this household buys. Only a product KOI has actually
+    // established a group for can break the rule: "KOI has not read the list"
+    // is not "it is fine", and the count of those is reported beside the plan
+    // so nobody reads this basket as a clean one.
+    if (isNum(processingCeiling) && isNum(item.novaGroup) && Number(item.novaGroup) > Number(processingCeiling)) {
+      excluded.push({ skuId: item.skuId, reason: "too_processed", novaGroup: Number(item.novaGroup), ceiling: Number(processingCeiling) });
+      continue;
+    }
+    // Needs a fridge, in a house that asked for nothing that does. Again only
+    // when the pack actually says so.
+    if (shelfStableOnly && item.keepRefrigerated === true) {
+      excluded.push({ skuId: item.skuId, reason: "needs_cold_storage" });
       continue;
     }
     // Kept from the members who cannot eat it; out of the program only when that is everyone.
@@ -872,6 +890,14 @@ export function buildPlanModel({
       priorityWeights: weight,
       // The kitchen's own rules, as this plan applied them (KITCHEN).
       kitchen: {
+        processingCeiling: isNum(processingCeiling) ? Number(processingCeiling) : null,
+        // How many products KOI could even apply that ceiling to, counted over
+        // everything it looked at rather than everything that survived — the
+        // figure must not shrink because the rule worked. A rule that reaches
+        // a twelfth of the shop has to say so.
+        processingKnownFor: catalogue.filter((item) => isNum(item?.novaGroup)).length,
+        processingUnknownFor: catalogue.filter((item) => item?.skuId && !isNum(item?.novaGroup)).length,
+        shelfStableOnly: Boolean(shelfStableOnly),
         refusedBrands: [...(refusedBrands ?? [])],
         preferredBrands: [...(preferredBrands ?? [])],
         pantrySkus: [...pantry],

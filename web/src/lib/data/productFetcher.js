@@ -40,10 +40,11 @@ export async function fetchAllProducts() {
       brand_id,
       brands (brand_name),
       skus (
-        id, variant_name, mrp, net_weight,
+        id, variant_name, mrp, net_weight, keep_refrigerated,
         sku_nutrition (*),
         screening_reports (*),
-        sku_label_facts (*)
+        sku_label_facts (*),
+        sku_processing (*)
       )
     `)
     .eq('status', 'approved');
@@ -201,6 +202,11 @@ export function mapProducts(rows) {
       // lookups key on this, and marketplace_sku_map references skus(id).
       skuId: sku.id ?? null,
       brand: p.brands?.brand_name || "Unknown",
+    // How processed KOI knows this to be (NOVA, 00057), and whether the pack
+    // has to be kept cold. Both are null when nobody has established them, and
+    // null is never read as "minimally processed" or "ambient".
+    novaGroup: sku?.sku_processing?.[0]?.nova_group ?? sku?.sku_processing?.nova_group ?? null,
+    keepRefrigerated: sku?.keep_refrigerated ?? null,
       name: p.product_name,
       // null when the name and the brand's category name nothing KOI knows:
       // an unplaced product is shown under "All", never under a made-up aisle.

@@ -384,6 +384,38 @@ test("what the household wants protected first changes what a goal is worth", ()
   assert.equal(capped.upper, 1, "packs minus extras is at most one");
 });
 
+test("a processing ceiling and a cold chain refuse only what KOI actually knows", () => {
+  const knownUltra = { ...rice, skuId: "ultra", novaGroup: 4 };
+  const knownMinimal = { ...rice, skuId: "minimal", novaGroup: 1 };
+  const unknown = { ...rice, skuId: "unknown" };
+  const catalogue = [knownUltra, knownMinimal, unknown];
+
+  const strict = buildPlanModel({ members: [adult], catalogue, days: 7, processingCeiling: 2 });
+  assert.equal(strict.meta.skus.includes("ultra"), false, "group 4 is over a ceiling of 2");
+  assert.equal(strict.meta.skus.includes("minimal"), true);
+  assert.equal(strict.meta.skus.includes("unknown"), true, "not read is not a verdict, so it is not refused either");
+  assert.deepEqual(
+    strict.excluded.find((e) => e.skuId === "ultra"),
+    { skuId: "ultra", reason: "too_processed", novaGroup: 4, ceiling: 2 },
+  );
+  // The count is what stops a shopper reading this basket as "nothing ultra-processed".
+  assert.equal(strict.meta.kitchen.processingKnownFor, 2, "KOI could apply the rule to two of the three");
+  assert.equal(strict.meta.kitchen.processingCeiling, 2);
+
+  // No ceiling: nothing is refused for being processed.
+  const open = buildPlanModel({ members: [adult], catalogue, days: 7 });
+  assert.equal(open.excluded.some((e) => e.reason === "too_processed"), false);
+
+  // A fridge, only when the pack says so.
+  const chilled = { ...rice, skuId: "chilled", keepRefrigerated: true };
+  const ambient = { ...rice, skuId: "ambient", keepRefrigerated: false };
+  const unsaid = { ...rice, skuId: "unsaid" };
+  const cupboard = buildPlanModel({ members: [adult], catalogue: [chilled, ambient, unsaid], days: 7, shelfStableOnly: true });
+  assert.equal(cupboard.meta.skus.includes("chilled"), false);
+  assert.deepEqual(cupboard.meta.skus, ["ambient", "unsaid"], "an unrecorded pack is not assumed to need a fridge, nor assumed not to");
+  assert.equal(cupboard.meta.kitchen.shelfStableOnly, true);
+});
+
 test("anything but a staple is one serving a day", () => {
   const snack = { skuId: "snack", price: 90, contains: [], perPack: { kcal: 860 }, packAmount: 200, packUnit: "g", role: "snack", portion: { amount: 30, unit: "g", max: 60 } };
   assert.deepEqual(portionCap(snack, adult, 7), { packs: 2.1, basis: "reference_portion", perDay: 60, unit: "g" });

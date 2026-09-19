@@ -85,6 +85,10 @@ export function plannableFrom(products = []) {
       // For a household's brand rules (model.js KITCHEN). The shelf's Open Food
       // Facts products carry a brand name and no id, so names are what match.
       brand: product.brand ?? null,
+      // How processed, and whether it needs a fridge (00057). Null is unknown
+      // and is never treated as a pass.
+      novaGroup: product.novaGroup ?? null,
+      keepRefrigerated: product.keepRefrigerated ?? null,
       price: Number(product.price),
       // The latest KOI score, for the quality tiebreak (model.js). null when unscored.
       score: isNum(product.score) ? Number(product.score) : null,

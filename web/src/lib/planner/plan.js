@@ -91,7 +91,7 @@ export async function planForHousehold({
   // RLS does the authorising: no rows means not yours (or not there).
   const { data: household, error: householdError } = await db
     .from("household")
-    .select("id, label, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, household_member(*)")
+    .select("id, label, keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, processing_ceiling, shelf_stable_only, household_member(*)")
     .eq("id", householdId)
     .maybeSingle();
   if (householdError) throw householdError;
@@ -180,6 +180,9 @@ async function kitchenRulesFor(db, household, catalogue = []) {
     repeatTolerance: household.repeat_tolerance ?? "usual",
     // What to protect first (00054). Empty is KOI's own order.
     priorities: household.priorities ?? [],
+    // How processed, and whether anything may need a fridge (00057).
+    processingCeiling: household.processing_ceiling ?? null,
+    shelfStableOnly: Boolean(household.shelf_stable_only),
     // A cupboard is written in words. The same reader that understands "add
     // oats" turns "atta" into the products it would have bought.
     pantrySkus: [...new Set((pantryRows ?? []).flatMap((row) => (
