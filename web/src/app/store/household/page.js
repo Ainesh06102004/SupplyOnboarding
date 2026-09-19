@@ -152,7 +152,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
 
       {/* Who */}
       <fieldset className="mt-4">
-        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Who</legend>
+        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Personal details</legend>
         <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
           <label className="block">
             <span className={LABEL}>What to call them</span>
@@ -164,7 +164,10 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             <input id="profile-relation" value={form.relation} onChange={(e) => set({ relation: e.target.value })} placeholder="wife, son, mother" className={INPUT} />
           </label>
           <label className="block">
-            <span className={LABEL}>Age</span>
+            {/* "Age group", not "Age": the exact age below is a different
+                question, and two fields with one label is how a form gets
+                filled in twice and read wrong. */}
+            <span className={LABEL}>Age group</span>
             <select id="profile-age-band" value={form.age_band} onChange={(e) => set({ age_band: e.target.value })} className={INPUT}>
               {AGE_BANDS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
             </select>
@@ -180,6 +183,29 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             <span className={HINT}>Only used to estimate daily needs.</span>
           </label>
         </div>
+        {adult && (
+          <>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <label className="block">
+                <span className={LABEL}>Age in years</span>
+                <input id="profile-age-years" value={form.age_years} onChange={(e) => set({ age_years: e.target.value })} inputMode="numeric" placeholder="34" className={INPUT} />
+              </label>
+              <label className="block">
+                <span className={LABEL}>Weight</span>
+                <input id="profile-weight" value={form.weight_kg} onChange={(e) => set({ weight_kg: e.target.value })} inputMode="decimal" placeholder="kg" className={INPUT} />
+              </label>
+              <label className="block">
+                <span className={LABEL}>Height</span>
+                <input id="profile-height" value={form.height_cm} onChange={(e) => set({ height_cm: e.target.value })} inputMode="decimal" placeholder="cm" className={INPUT} />
+              </label>
+            </div>
+            <p className={HINT}>
+              Optional, and only used to estimate their needs. If this is someone else, add these with their agreement.
+              KOI keeps none of it for anyone under 19.
+            </p>
+          </>
+        )}
+
         {adult && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <label className="inline-flex items-center gap-2 text-[12.5px] text-[#0E4032]">
@@ -260,23 +286,6 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
                 {ACTIVITY_LEVELS.map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
               </select>
             </label>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <label className="block">
-                <span className={LABEL}>Age</span>
-                <input id="profile-age-years" value={form.age_years} onChange={(e) => set({ age_years: e.target.value })} inputMode="numeric" placeholder="years" className={INPUT} />
-              </label>
-              <label className="block">
-                <span className={LABEL}>Weight</span>
-                <input id="profile-weight" value={form.weight_kg} onChange={(e) => set({ weight_kg: e.target.value })} inputMode="decimal" placeholder="kg" className={INPUT} />
-              </label>
-              <label className="block">
-                <span className={LABEL}>Height</span>
-                <input id="profile-height" value={form.height_cm} onChange={(e) => set({ height_cm: e.target.value })} inputMode="decimal" placeholder="cm" className={INPUT} />
-              </label>
-            </div>
-            <p className={HINT}>
-              Optional, and only used to estimate their needs. If this is someone else, add these with their agreement.
-            </p>
           </>
         ) : (
           <p className="mt-2 text-[12px] text-[#5A6B5A]">
