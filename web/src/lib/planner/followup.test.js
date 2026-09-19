@@ -340,3 +340,25 @@ test("a change that came back as an id needs no word to match", () => {
   assert.deepEqual([...change.excludedSkus].sort(), ["brown", "poha", "rice"]);
   assert.ok(change.includedSkus.includes("oats"), "and one product from the shelf asked for");
 });
+
+test("somebody just added is not called missing in the same breath", () => {
+  // Live: the model resolved "my wife" to an id and added her, then the word
+  // loop — seeing her no longer absent — answered "KOI has nothing called
+  // wife to add". Both were in the same reply.
+  const me = { id: "me", label: "Me", targets: { protein: 144 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] };
+  const wife = { id: "wife", label: "Wife", targets: { protein: 50 }, avoidFlags: [], softAvoidFlags: [], dietExcludes: [] };
+  const plan = { members: [me], days: 7, budget: 4000, excludedSkus: [], includedSkus: [], cost: 2560, roster: [me, wife] };
+
+  const both = applyFollowUp(plan, { ...readFollowUp("can you plan for my wife too"), addMembers: ["wife"] }, SHOP);
+  assert.deepEqual(both.applied, ["Planned for Wife as well"], "said once");
+  assert.deepEqual(both.notApplied, [], "and not contradicted");
+  assert.deepEqual(both.members.map((m) => m.id), ["me", "wife"]);
+
+  // The rules alone still add her when the model is not configured.
+  const rulesOnly = applyFollowUp(plan, readFollowUp("add wife"), SHOP);
+  assert.deepEqual(rulesOnly.applied, ["Planned for Wife as well"]);
+
+  // And a word that names nobody is still an honest miss.
+  const nobody = applyFollowUp(plan, readFollowUp("add quinoa"), SHOP);
+  assert.match(nobody.notApplied[0], /nothing called "quinoa" to add/);
+});

@@ -742,6 +742,12 @@ export function applyFollowUp(plan, reading, catalogue) {
       // "Can you plan for my wife too" is somebody joining the week, and the
       // roster is the only place they can be found — by definition they are not
       // among the members this plan already feeds.
+      // Already here? Then the ask is answered, and saying "KOI has nothing
+      // called wife to add" about somebody who was just added is worse than
+      // saying nothing. Live: the model resolved "my wife" to an id and added
+      // her, and then this loop, seeing her no longer absent, called her
+      // missing in the same breath.
+      if (normalise(word) && membersNamed(word, members).length && membersNamed(word, members).length < members.length) continue;
       const joining = normalise(word)
         ? membersNamed(word, (plan.roster ?? []).filter((r) => !members.some((m) => String(m.id) === String(r.id))))
         : [];
