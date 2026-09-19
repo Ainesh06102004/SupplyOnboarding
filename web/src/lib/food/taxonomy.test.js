@@ -114,3 +114,25 @@ test("a realistic serving is the declared one unless that is implausibly large",
   const saffron = { measurement_basis: "per_100g", serving_size: "0.1g", protein_g: 11.4, portion_reference: nodeInfo("spices.spices").portion };
   assert.ok(Math.abs(toPerRealisticServing(saffron).protein_g - 0.0114) < 1e-9, "a small declared serving stays as declared");
 });
+
+test("a shelf says how long it takes, and whose kitchen it is (00061, 00062)", () => {
+  const rice = nodeInfo("staples.rice");
+  assert.equal(rice.form, "needs_cooking");
+  assert.equal(rice.typicalMinutes, 20, "the shelf's figure, not this pack's");
+  assert.equal(rice.lunchbox, false);
+  assert.equal(rice.cuisine, null, "rice is food, not Indian food");
+
+  const namkeen = nodeInfo("snacks.namkeen");
+  assert.equal(namkeen.form, "ready_to_eat");
+  assert.equal(namkeen.typicalMinutes, 0);
+  assert.equal(namkeen.lunchbox, true);
+  assert.equal(namkeen.cuisine, "indian");
+
+  const cereal = nodeInfo("staples.breakfast_cereals");
+  assert.equal(cereal.form, "instant");
+  assert.equal(cereal.cuisine, "global");
+
+  // Oil is never eaten alone, so its time belongs to whatever it goes into.
+  assert.equal(nodeInfo("fats_oils.oils").form, "ingredient");
+  assert.equal(nodeInfo("fats_oils.oils").typicalMinutes, 0);
+});

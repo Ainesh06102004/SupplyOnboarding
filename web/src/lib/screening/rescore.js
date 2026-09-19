@@ -89,6 +89,10 @@ export async function rescoreSkus(skuIds = null) {
         // Whatever else KOI holds. It proves what it names and nothing about
         // what it omits, which is exactly how tier2Facts reads it.
         partialText: label?.raw_ingredient_text ?? (latest?.flags?.ingredients_partial ?? []).join(", ") ?? null,
+        // The product's own words, never the brand's: a brand called "Organic
+        // India" must not mark everything it sells (00062).
+        name: sku.products.product_name,
+        claims: latest?.flags?.claims ?? [],
         mrp: sku.mrp,
         netWeight: sku.net_weight,
         nutrition: declared,

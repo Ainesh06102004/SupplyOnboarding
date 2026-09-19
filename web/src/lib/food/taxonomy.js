@@ -94,6 +94,9 @@ export function nodeInfo(key) {
     form: node.form ?? NODES[aisleKey]?.form ?? null,
     lunchbox: node.box ?? NODES[aisleKey]?.box ?? null,
     cuisine: node.cuisine ?? NODES[aisleKey]?.cuisine ?? null,
+    // Typical minutes for the shelf, never read off a pack (00062). Shown as
+    // "about 20 minutes", because that is what it is.
+    typicalMinutes: node.minutes ?? NODES[aisleKey]?.minutes ?? null,
     occasions: occasionsOf(key),
     // { amount, unit, max, measure } or null: 21 CFR 101.12 reference amounts,
     // recorded only where one exists for the category.

@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { tier2Facts, skuFacts, FACTS_VERSION } from "@/lib/food/facts.js";
+import { tier2Facts, skuFacts, organicClaimed, FACTS_VERSION } from "@/lib/food/facts.js";
 
 test("what sweetens it is proof; whether anything does needs the whole list", () => {
   // A partial list naming jaggery proves jaggery.
@@ -65,4 +65,24 @@ test("the facts row carries them, and says which list it had", () => {
   assert.equal(row.tier2_evidence, "partial_list");
   assert.equal(row.nova_group, null, "and processing still needs a complete list");
   assert.match(FACTS_VERSION, /^facts-v2\+/);
+});
+
+test("organic is the brand's claim, read from the product and never the brand", () => {
+  assert.equal(organicClaimed({ name: "Organic Whole Wheat Atta" }), true);
+  assert.equal(organicClaimed({ name: "Atta", claims: ["Organic"] }), true);
+  assert.equal(organicClaimed({ name: "Jaivik Bharat Certified Rice" }), true);
+  assert.equal(organicClaimed({ name: "Whole Wheat Atta" }), false);
+  assert.equal(organicClaimed({ name: "Inorganic Salt" }), false, "whole words, and not that one");
+  assert.equal(organicClaimed({}), false);
+
+  // The trap this is written around: a brand called "Organic India" would mark
+  // everything it sells, exactly as "Sweet Karam Coffee" once put caffeine on
+  // all four of its products. skuFacts is given the product's words only.
+  const row = skuFacts({
+    ingredientsText: "Wheat, Salt",
+    name: "Tulsi Green Tea",
+    claims: [],
+    mrp: 200, netWeight: "100 g", nutrition: null, vegReadings: [],
+  });
+  assert.equal(row.organic_claimed, false, "the brand is not in the words KOI reads");
 });

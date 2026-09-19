@@ -89,12 +89,34 @@ export function agreedVegMark(readings = []) {
 }
 
 /**
- * @param {{ ingredientsText: string|null, partialText: string|null, mrp, netWeight, nutrition, vegReadings }} input
+ * Does this pack claim to be organic (plan §9.10.3, Tier 2)?
+ *
+ * A claim, and only ever a claim. FSSAI's FSS (Organic Foods) Regulations 2017
+ * already require certification under NPOP or PGS-India before a pack may say
+ * it, so the word is regulated — but KOI has not seen a certificate, and
+ * "regulated" is not "verified by KOI".
+ *
+ * Read from the product's own name and its claims, NEVER from the brand. A
+ * brand called "Organic India" would otherwise mark everything it sells, which
+ * is exactly the bug that once put caffeine on all four Sweet Karam Coffee
+ * products.
+ *
+ * @param {{ name?: string|null, claims?: string[] }} product
+ * @returns {boolean}
+ */
+export function organicClaimed({ name = null, claims = [] } = {}) {
+  const words = [name ?? "", ...(Array.isArray(claims) ? claims : [])].join(" ").toLowerCase();
+  // Whole words: "organic" and the Indian certification marks, not "inorganic".
+  return /\b(organic|jaivik|npop)\b/.test(words) && !/\binorganic\b/.test(words);
+}
+
+/**
+ * @param {{ ingredientsText: string|null, partialText: string|null, name, claims, mrp, netWeight, nutrition, vegReadings }} input
  *   ingredientsText only when the list is complete and current; partialText is
  *   whatever else KOI holds, which proves presence and nothing more
  * @returns {object} a food.sku_facts row, without sku_id
  */
-export function skuFacts({ ingredientsText, partialText = null, mrp, netWeight, nutrition, vegReadings }) {
+export function skuFacts({ ingredientsText, partialText = null, name = null, claims = [], mrp, netWeight, nutrition, vegReadings }) {
   const nova = ingredientsText ? processingOf(ingredientsText) : null;
   const tier2 = tier2Facts(ingredientsText ?? partialText, Boolean(ingredientsText));
   return {
@@ -117,6 +139,8 @@ export function skuFacts({ ingredientsText, partialText = null, mrp, netWeight, 
     millet: tier2.millet,
     whole_grain: tier2.wholeGrain,
     tier2_evidence: tier2.evidence,
+    // The brand's word, not KOI's (00062).
+    organic_claimed: organicClaimed({ name, claims }),
     facts_version: FACTS_VERSION,
   };
 }

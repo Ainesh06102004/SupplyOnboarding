@@ -5,7 +5,7 @@
 // 39 categories, 246 names, 24 reference portions.
 // ============================================================================
 
-export const TAXONOMY_VERSION = "61aab59829bc";
+export const TAXONOMY_VERSION = "87f2b37b3bf0";
 
 // key -> { label, parent, role }: role is set on aisles and inherited
 export const NODES = {
@@ -15,7 +15,8 @@ export const NODES = {
     "role": "drink",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "beverages.drink_mixes": {
     "label": "Drink mixes",
@@ -23,7 +24,8 @@ export const NODES = {
     "role": null,
     "form": "instant",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 2
   },
   "beverages.ready_to_drink": {
     "label": "Juices & ready-to-drink",
@@ -31,7 +33,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "beverages.tea_coffee": {
     "label": "Tea & coffee",
@@ -39,7 +42,8 @@ export const NODES = {
     "role": null,
     "form": "instant",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 3
   },
   "fats_oils": {
     "label": "Oils & ghee",
@@ -47,7 +51,8 @@ export const NODES = {
     "role": "cooking",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "fats_oils.ghee": {
     "label": "Ghee",
@@ -55,7 +60,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "fats_oils.oils": {
     "label": "Cooking oils",
@@ -63,7 +69,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "nuts_seeds": {
     "label": "Nuts, seeds & dried fruit",
@@ -71,7 +78,8 @@ export const NODES = {
     "role": "snack",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "nuts_seeds.dried_fruit": {
     "label": "Dried fruit",
@@ -79,7 +87,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "nuts_seeds.mixes": {
     "label": "Nut & dried fruit mixes",
@@ -87,7 +96,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "nuts_seeds.nut_butters": {
     "label": "Nut butters",
@@ -95,7 +105,8 @@ export const NODES = {
     "role": "spread",
     "form": "ready_to_eat",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "nuts_seeds.nuts": {
     "label": "Nuts",
@@ -103,7 +114,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "nuts_seeds.seeds": {
     "label": "Seeds",
@@ -111,7 +123,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "snacks": {
     "label": "Snacks",
@@ -119,7 +132,8 @@ export const NODES = {
     "role": "snack",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "snacks.assortments": {
     "label": "Assortments & combos",
@@ -127,7 +141,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "snacks.bars": {
     "label": "Snack bars",
@@ -135,7 +150,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "snacks.biscuits_cookies": {
     "label": "Biscuits & cookies",
@@ -143,7 +159,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "snacks.cakes": {
     "label": "Cakes & muffins",
@@ -151,7 +168,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "snacks.chips_crisps": {
     "label": "Chips & crisps",
@@ -159,7 +177,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "snacks.namkeen": {
     "label": "Namkeen & mixtures",
@@ -167,7 +186,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": "indian"
+    "cuisine": "indian",
+    "minutes": 0
   },
   "snacks.puffs": {
     "label": "Puffs, crispies & makhana",
@@ -175,7 +195,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "spices": {
     "label": "Spices & condiments",
@@ -183,7 +204,8 @@ export const NODES = {
     "role": "cooking",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "spices.pickles_sauces": {
     "label": "Pickles, chutneys & sauces",
@@ -191,7 +213,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "spices.spices": {
     "label": "Spices & masalas",
@@ -199,7 +222,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": "indian"
+    "cuisine": "indian",
+    "minutes": 0
   },
   "staples": {
     "label": "Staples",
@@ -207,7 +231,8 @@ export const NODES = {
     "role": "meal_base",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "staples.breakfast_cereals": {
     "label": "Oats & breakfast cereals",
@@ -215,7 +240,8 @@ export const NODES = {
     "role": null,
     "form": "instant",
     "box": false,
-    "cuisine": "global"
+    "cuisine": "global",
+    "minutes": 5
   },
   "staples.flours": {
     "label": "Flours & atta",
@@ -223,7 +249,8 @@ export const NODES = {
     "role": null,
     "form": "needs_cooking",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 30
   },
   "staples.millets": {
     "label": "Millets & other grains",
@@ -231,7 +258,8 @@ export const NODES = {
     "role": null,
     "form": "needs_cooking",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 25
   },
   "staples.pulses": {
     "label": "Dals & pulses",
@@ -239,7 +267,8 @@ export const NODES = {
     "role": null,
     "form": "needs_cooking",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 35
   },
   "staples.rice": {
     "label": "Rice & poha",
@@ -247,7 +276,8 @@ export const NODES = {
     "role": null,
     "form": "needs_cooking",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 20
   },
   "supplements": {
     "label": "Protein & supplements",
@@ -255,7 +285,8 @@ export const NODES = {
     "role": "supplement",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "supplements.protein_powder": {
     "label": "Protein powders",
@@ -263,7 +294,8 @@ export const NODES = {
     "role": null,
     "form": "instant",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 2
   },
   "sweeteners": {
     "label": "Honey, jaggery & sugar",
@@ -271,7 +303,8 @@ export const NODES = {
     "role": "cooking",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "sweeteners.honey": {
     "label": "Honey",
@@ -279,7 +312,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "sweeteners.jaggery": {
     "label": "Jaggery",
@@ -287,7 +321,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": "indian"
+    "cuisine": "indian",
+    "minutes": 0
   },
   "sweeteners.sugar": {
     "label": "Sugar",
@@ -295,7 +330,8 @@ export const NODES = {
     "role": null,
     "form": "ingredient",
     "box": false,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": 0
   },
   "sweets": {
     "label": "Sweets & chocolate",
@@ -303,7 +339,8 @@ export const NODES = {
     "role": "sweet",
     "form": null,
     "box": null,
-    "cuisine": null
+    "cuisine": null,
+    "minutes": null
   },
   "sweets.chocolate": {
     "label": "Chocolate",
@@ -311,7 +348,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": "global"
+    "cuisine": "global",
+    "minutes": 0
   },
   "sweets.indian_sweets": {
     "label": "Indian sweets",
@@ -319,7 +357,8 @@ export const NODES = {
     "role": null,
     "form": "ready_to_eat",
     "box": true,
-    "cuisine": "indian"
+    "cuisine": "indian",
+    "minutes": 0
   }
 };
 

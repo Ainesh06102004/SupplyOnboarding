@@ -45,7 +45,7 @@ async function read(query) {
 }
 
 const [nodes, terms, portions, occasions] = await Promise.all([
-  read("taxonomy_node?select=key,parent_key,label,meal_role,food_form,lunchbox_ok,cuisine&order=key"),
+  read("taxonomy_node?select=key,parent_key,label,meal_role,food_form,lunchbox_ok,cuisine,prep_minutes&order=key"),
   read("taxonomy_term?select=term,node_key,kind&order=term"),
   read("portion_norm?select=node_key,reference_amount,unit,plausible_max,household_measure&order=node_key"),
   read("category_occasion?select=node_key,occasion&order=node_key,occasion"),
@@ -83,6 +83,7 @@ const NODES = Object.fromEntries(nodes.map((n) => [n.key, {
   form: n.food_form,
   box: n.lunchbox_ok,
   cuisine: n.cuisine,
+  minutes: n.prep_minutes,
 }]));
 const OCCASIONS = {};
 for (const { node_key: key, occasion } of occasions) (OCCASIONS[key] ??= []).push(occasion);
