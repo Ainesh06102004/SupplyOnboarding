@@ -29,6 +29,7 @@ import { AVOID_KEYS } from "@/lib/ai/intent/schema";
 import { interpret } from "@/lib/ai/intent";
 import { normalise } from "@/lib/ai/intent/deterministic";
 import { nodeInfo } from "@/lib/food/taxonomy";
+import { WORD_FAMILIES, CATEGORY_WORDS } from "@/lib/food/foodWords";
 import { numbersIn } from "@/lib/ai/intent/merge";
 import { nullableNumber, strictObject } from "@/lib/ai/providers/openaiFormat";
 import { budgetIn, MAX_DAYS } from "./brief";
@@ -453,51 +454,30 @@ export function membersNamed(words, members) {
 }
 
 /**
- * How Indian shoppers spell the same food. A live follow-up asked to swap the
- * rice "for aata" and KOI answered that it had never heard of aata, while
- * Superior MP Atta sat in the catalogue.
+ * How Indian shoppers spell the same food, and what they call a shelf.
+ *
+ * This was a hardcoded table here. It is the graph's answer now
+ * (food.ingredient_alias and food.category_alias, migration 00059, compiled by
+ * scripts/buildFoodWords.mjs): the same knowledge the label engine already
+ * read, in one place, where a new spelling is a row rather than a deploy.
  */
-const SPELLINGS = Object.freeze({
-  atta: ["aata", "ata", "aatta", "wheat", "wheat flour", "whole wheat", "chakki"],
-  besan: ["gram flour", "chickpea flour"],
-  maida: ["refined flour", "plain flour", "all purpose flour"],
-  dal: ["daal", "dhal", "lentil", "lentils", "pulse", "pulses"],
-  chana: ["channa", "chickpea", "chickpeas", "chole"],
-  moong: ["mung", "green gram"],
-  toor: ["tur", "arhar", "pigeon pea"],
-  poha: ["flaked rice", "beaten rice", "chivda"],
-  rice: ["chawal", "chaval"],
-  oats: ["oat", "oatmeal"],
-  peanut: ["groundnut", "moongphali", "mungfali"],
-  namkeen: ["mixture", "bhujia", "sev", "farsan"],
-  chikki: ["gachak", "gajak"],
-  muesli: ["granola"],
-  ghee: ["clarified butter"],
-  jaggery: ["gud", "gur"],
-  haldi: ["turmeric"],
-  jeera: ["cumin"],
-  masala: ["spice mix", "spice"],
-  // Kinds of food, for when a shopper asks for the shelf rather than the pack:
-  // "put another dry fruit in there".
-  "dried fruit": ["dry fruit", "dryfruit", "dry fruits", "dried fruits", "sukha meva"],
-  nuts: ["nut", "dry nuts"],
-  "biscuits & cookies": ["biscuit", "biscuits", "cookie", "cookies"],
-  "chips & crisps": ["chips", "crisps", "wafers"],
-  "nut butters": ["nut butter", "peanut butter"],
-  "protein powder": ["protein powder", "whey"],
-  chocolate: ["chocolates", "dark chocolate"],
-  "breakfast cereals": ["cereal", "cereals", "muesli", "granola"],
-});
 
 /** Every word that could mean the same food as this one. */
 function spellings(word) {
   const w = normalise(word);
   const forms = new Set([w, w.replace(/e?s$/, ""), `${w}s`]);
-  for (const [head, others] of Object.entries(SPELLINGS)) {
-    const family = [head, ...others];
-    if (family.some((f) => f === w || w === `${f}s` || f === `${w}s`)) family.forEach((f) => forms.add(f));
+  // The graph's families, by the word itself and by its singular and plural:
+  // a shopper writes "dals" and the row says "dal".
+  for (const form of [...forms]) {
+    for (const other of WORD_FAMILIES[form] ?? []) forms.add(other);
   }
   return [...forms].filter((f) => f.length >= 3);
+}
+
+/** The shelf a word means, when it means a kind of food rather than a product. */
+function categoryFor(word) {
+  const w = normalise(word);
+  return CATEGORY_WORDS[w] ?? CATEGORY_WORDS[w.replace(/e?s$/, "")] ?? CATEGORY_WORDS[`${w}s`] ?? null;
 }
 
 /** One letter out: "aatta" for "atta", "bisuits" for "biscuits". */
@@ -526,14 +506,34 @@ export function productsNamed(word, catalogue) {
   const w = normalise(word);
   if (w.length < 3) return [];
   const forms = spellings(w);
-  const named = catalogue.filter((item) => {
+  // The word itself first, then everything the graph says means the same.
+  // "Almonds" must reach California Almonds before Daily Dry Fruit Mix: the
+  // graph groups every tree nut into one family because that is what an
+  // allergen needs, and a shopper asking for almonds means almonds.
+  const itself = [w, w.replace(/e?s$/, ""), `${w}s`].filter((f) => f.length >= 3);
+  const matches = (item, words) => {
     const tokens = normalise(item.name).split(/[^a-z0-9]+/).filter(Boolean);
     const name = ` ${tokens.join(" ")} `;
-    return forms.some((f) => name.includes(` ${f} `) || (f.includes(" ") && name.includes(f)) || tokens.some((t) => almost(t, f)));
-  });
+    return words.some((f) => name.includes(` ${f} `) || (f.includes(" ") && name.includes(f)) || tokens.some((t) => almost(t, f)));
+  };
+  // Anything actually called that, and then nothing else: the family is how a
+  // word FINDS a product, not a reason to sweep up its cousins. "Remove the
+  // almonds" once took the Daily Dry Fruit Mix out with them, because the graph
+  // files every tree nut together for the allergen reader, and the mix was then
+  // gone before "put another dry fruit in" could ask for it.
+  const byWord = catalogue.filter((item) => matches(item, itself));
+  if (byWord.length) return byWord;
+  const named = catalogue.filter((item) => matches(item, forms));
   if (named.length) return named;
-  // Nothing is called that, so it is a kind of food: the category's own key and
-  // the words KOI shows for it ("Dried fruit", "Biscuits & cookies").
+  // Nothing is called that, so it is a kind of food. The graph is asked first:
+  // "dry fruit" is a word for a shelf (food.category_alias), and no amount of
+  // matching product names would ever have found it.
+  const shelf = categoryFor(w);
+  if (shelf) {
+    const onIt = catalogue.filter((item) => inThisCategory(item.categoryKey, shelf));
+    if (onIt.length) return onIt;
+  }
+  // Failing that, the category's own key and the words KOI shows for it.
   return catalogue.filter((item) => {
     const info = item.categoryKey ? nodeInfo(item.categoryKey) : null;
     // The product's own category, never its aisle: "Nuts, seeds & dried fruit"
