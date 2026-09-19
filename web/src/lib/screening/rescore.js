@@ -86,6 +86,9 @@ export async function rescoreSkus(skuIds = null) {
       sku_id: sku.id,
       ...skuFacts({
         ingredientsText: listIsCurrent ? label.raw_ingredient_text : null,
+        // Whatever else KOI holds. It proves what it names and nothing about
+        // what it omits, which is exactly how tier2Facts reads it.
+        partialText: label?.raw_ingredient_text ?? (latest?.flags?.ingredients_partial ?? []).join(", ") ?? null,
         mrp: sku.mrp,
         netWeight: sku.net_weight,
         nutrition: declared,

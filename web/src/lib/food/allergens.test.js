@@ -96,9 +96,13 @@ test("the last keyword flags come from the graph: meat, caffeine, root vegetable
 
 test("a fasting day: what it excludes, and what it must not (00056)", () => {
   // The whole rule turns on what a vrat day ALLOWS.
-  assert.deepEqual(ingredientFlagsIn("Buckwheat Flour"), [], "kuttu is the flour a fasting household buys");
+  // Kuttu is the flour a fasting household buys: a whole grain and a
+  // pseudocereal (00060), and deliberately not a `grain` for the fast.
+  assert.deepEqual(ingredientFlagsIn("Buckwheat Flour"), ["millet", "whole_grain"]);
+  assert.ok(!ingredientFlagsIn("Buckwheat Flour").includes("grain"));
   assert.deepEqual(ingredientFlagsIn("Rock Salt"), [], "sendha namak is what replaces common salt");
   assert.deepEqual(ingredientFlagsIn("Wheat Flour, Salt"), ["common_salt", "grain"]);
+  assert.deepEqual(ingredientFlagsIn("Whole Wheat Flour"), ["grain", "whole_grain"], "a grain, and a whole one");
   assert.deepEqual(ingredientFlagsIn("Lentils"), ["pulse"]);
   // Onion is both: a fasting day excludes it, and so does a Jain diet. Potato
   // is only the second, which is why they are separate flags.
