@@ -436,6 +436,17 @@ export async function planWithout({ planId, skuId }) {
   if (!planId || !skuId) throw new Error("A plan id and a SKU id are required.");
   const db = await getServerSupabase();
 
+  // Asked before? Then it is already worked out (00058). Precomputing every
+  // line at plan time was measured at 7.0 s on top of a 1.8 s plan, so the
+  // answer is found when it is wanted and kept once it is.
+  const { data: kept } = await db
+    .from("plan_backup")
+    .select("answer")
+    .eq("plan_id", planId)
+    .eq("sku_id", String(skuId))
+    .maybeSingle();
+  if (kept?.answer) return kept.answer;
+
   const { data: plan, error } = await db
     .from("plan")
     .select("id, days, budget_rupees, constraints, achieved, plan_item(sku_id, packs)")
@@ -505,7 +516,7 @@ export async function planWithout({ planId, skuId }) {
     edges: [...why.entries()].map(([to_sku, words]) => ({ to_sku, why: words.slice(0, 2) })),
   });
 
-  return {
+  const answer = {
     planId: plan.id,
     status: solution.usable ? "solved" : "infeasible",
     reached: attempt.step,
@@ -515,6 +526,17 @@ export async function planWithout({ planId, skuId }) {
     diff,
     report,
   };
+
+  // Keep it, so asking again is instant and the answer survives a reload. It
+  // holds no new facts: everything in it came from the plan and can be thrown
+  // away and worked out again. Failing to keep it is not worth failing on.
+  try {
+    await db.from("plan_backup").upsert({ plan_id: plan.id, sku_id: String(skuId), answer }, { onConflict: "plan_id,sku_id" });
+  } catch (err) {
+    console.error("[plan_backup]", err?.message ?? err);
+  }
+
+  return answer;
 }
 
 /**
