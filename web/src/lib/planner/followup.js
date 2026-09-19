@@ -677,11 +677,15 @@ export function applyFollowUp(plan, reading, catalogue) {
     applied.push(`Planned without ${gone.label}`);
   }
 
+  // Who this change brought in, so the word loop below can tell "she is already
+  // here because you just asked for her" from "she was always here".
+  const joined = new Set();
   for (const memberId of reading.addMembers ?? []) {
     if (members.some((m) => String(m.id) === String(memberId))) continue;
     const joining = (plan.roster ?? []).find((m) => String(m.id) === String(memberId));
     if (!joining) continue;
     members.push({ ...joining, targets: { ...joining.targets }, avoidFlags: [...(joining.avoidFlags ?? [])], softAvoidFlags: [...(joining.softAvoidFlags ?? [])] });
+    joined.add(String(joining.id));
     applied.push(`Planned for ${joining.label} as well`);
   }
 
@@ -742,12 +746,19 @@ export function applyFollowUp(plan, reading, catalogue) {
       // "Can you plan for my wife too" is somebody joining the week, and the
       // roster is the only place they can be found — by definition they are not
       // among the members this plan already feeds.
-      // Already here? Then the ask is answered, and saying "KOI has nothing
-      // called wife to add" about somebody who was just added is worse than
-      // saying nothing. Live: the model resolved "my wife" to an id and added
-      // her, and then this loop, seeing her no longer absent, called her
-      // missing in the same breath.
-      if (normalise(word) && membersNamed(word, members).length && membersNamed(word, members).length < members.length) continue;
+      // Already here? Then the ask is answered. Saying "KOI has nothing called
+      // wife to add" about somebody who was just added is worse than saying
+      // nothing — live, the model resolved "my wife" to an id and added her,
+      // and this loop then called her missing in the same breath. But somebody
+      // who was already eating is worth a word: "nothing could be applied" told
+      // a shopper who asked for his wife precisely nothing.
+      const here = normalise(word) ? membersNamed(word, members) : [];
+      if (here.length && here.length < members.length) {
+        if (!here.every((m) => joined.has(String(m.id)))) {
+          notApplied.push(`${here.map((m) => m.label).join(", ")} is already eating this plan`);
+        }
+        continue;
+      }
       const joining = normalise(word)
         ? membersNamed(word, (plan.roster ?? []).filter((r) => !members.some((m) => String(m.id) === String(r.id))))
         : [];

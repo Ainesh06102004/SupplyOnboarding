@@ -361,4 +361,10 @@ test("somebody just added is not called missing in the same breath", () => {
   // And a word that names nobody is still an honest miss.
   const nobody = applyFollowUp(plan, readFollowUp("add quinoa"), SHOP);
   assert.match(nobody.notApplied[0], /nothing called "quinoa" to add/);
+
+  // Asking for somebody who is already eating says so. "Nothing in that could
+  // be applied" told a shopper who asked for his wife precisely nothing.
+  const already = applyFollowUp({ ...plan, members: [me, wife] }, readFollowUp("add wife"), SHOP);
+  assert.deepEqual(already.applied, []);
+  assert.deepEqual(already.notApplied, ["Wife is already eating this plan"]);
 });
