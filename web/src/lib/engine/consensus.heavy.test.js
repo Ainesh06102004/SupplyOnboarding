@@ -155,8 +155,8 @@ test("ATTACK: depth and size cannot hang it either", () => {
 // ── The label's own parts ───────────────────────────────────────────────────
 
 test("allergen agreement is about both lists, not just what is in it", () => {
-  const contains = { allergens: { contains: ["dairy"], may_contain: ["gluten"] } };
-  const mayContain = { allergens: { contains: ["dairy"], may_contain: [] } };
+  const contains = { allergen_statement: "Contains Milk", may_contain_statement: "May contain Wheat" };
+  const mayContain = { allergen_statement: "Contains Milk", may_contain_statement: null };
   // Same "contains", different "may contain" — NOT agreement. Promoting a
   // trace warning into an ingredient, or losing one, both matter to somebody.
   assert.equal(consensusOf([contains, mayContain], { of: LABEL_PARTS.allergens }).agreed, false);
@@ -168,12 +168,16 @@ test("a missing allergen block reads as nothing found, not as absent", () => {
   assert.deepEqual(LABEL_PARTS.allergens(null), { contains: [], may_contain: [] });
   assert.equal(LABEL_PARTS.ingredients({}), "");
   assert.equal(LABEL_PARTS.nutrition({}), null);
+  assert.equal(LABEL_PARTS.identity({}), null);
+  // Two readers finding no statement agree that there is none printed; that is
+  // not the same as either of them saying the product is free of anything.
+  assert.equal(consensusOf([{}, {}], { of: LABEL_PARTS.allergens }).agreed, true);
 });
 
 test("ingredient text agrees across spacing and case, not across words", () => {
-  const a = { ingredients: { raw_ingredient_text: "Finger Millet (37%),  Brown Sugar" } };
-  const b = { ingredients: { raw_ingredient_text: "finger millet (37%), brown sugar" } };
-  const c = { ingredients: { raw_ingredient_text: "Finger Millet (37%), Jaggery" } };
+  const a = { ingredients_text: "Finger Millet (37%),  Brown Sugar" };
+  const b = { ingredients_text: "finger millet (37%), brown sugar" };
+  const c = { ingredients_text: "Finger Millet (37%), Jaggery" };
   assert.equal(consensusOf([a, b], { of: LABEL_PARTS.ingredients }).agreed, true);
   assert.equal(consensusOf([a, c], { of: LABEL_PARTS.ingredients }).agreed, false);
 });

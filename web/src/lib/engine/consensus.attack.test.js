@@ -6,9 +6,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { consensusOf, canonical, CONSENSUS } from "@/lib/engine/consensus.js";
+import { consensusOf, canonical, CONSENSUS, LABEL_PARTS } from "@/lib/engine/consensus.js";
 
-const allergens = (contains, may = []) => ({ allergens: { contains, may_contain: may } });
+const allergens = (statement, may = null) => ({ allergen_statement: statement, may_contain_statement: may });
 
 test("ATTACK: unnamed readers cannot be assumed independent", () => {
   // `by` is how a caller proves its readers are different. If it is supplied and
@@ -63,10 +63,11 @@ test("ATTACK: lookalike words are not agreement", () => {
 });
 
 test("ATTACK: an allergen list cannot agree by losing an entry", () => {
-  assert.equal(consensusOf([allergens(["dairy", "gluten"]), allergens(["dairy"])]).agreed, false);
-  assert.equal(consensusOf([allergens(["dairy"]), allergens(["dairy"], ["gluten"])]).agreed, false);
-  // Order within a list is not disagreement; membership is.
-  assert.equal(consensusOf([allergens(["dairy", "gluten"]), allergens(["gluten", "dairy"])]).agreed, true);
+  const of = LABEL_PARTS.allergens;
+  assert.equal(consensusOf([allergens("Contains Milk and Wheat"), allergens("Contains Milk")], { of }).agreed, false);
+  assert.equal(consensusOf([allergens("Contains Milk"), allergens("Contains Milk", "May contain Wheat")], { of }).agreed, false);
+  // The order the pack names them in is not disagreement; which ones are.
+  assert.equal(consensusOf([allergens("Contains Milk and Wheat"), allergens("Contains Wheat and Milk")], { of }).agreed, true);
 });
 
 test("ATTACK: consensus of one is refused outright", () => {

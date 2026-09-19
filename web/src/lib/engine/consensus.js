@@ -25,6 +25,8 @@
 // Pure. The readings are supplied; asking for one more is the caller's job.
 // ============================================================================
 
+import { allergensInStatement } from "@/lib/food/allergens";
+
 /** How many independent readings must agree before KOI acts on an answer. */
 export const CONSENSUS = Object.freeze({
   // Two is the bar. A third reading is asked for only when the first two
@@ -188,9 +190,15 @@ export function consensusOf(readings = [], { need = CONSENSUS.need, of = (r) => 
   };
 }
 
-/** Is another reading worth asking for, or has KOI learnt what it is going to? */
-export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most = CONSENSUS.mostReadings } = {}) =>
-  readings.length < most && !consensusOf(readings, { need }).agreed;
+/**
+ * Is another reading worth asking for, or has KOI learnt what it is going to?
+ *
+ * It must be asked about the same PART as the consensus it is chasing: whole
+ * readings of a label practically never match word for word, so comparing them
+ * entire would say "ask again" for ever and burn a reading on every label.
+ */
+export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most = CONSENSUS.mostReadings, of, by } = {}) =>
+  readings.length < most && !consensusOf(readings, { need, ...(of ? { of } : {}), ...(by ? { by } : {}) }).agreed;
 
 /**
  * The parts of a label KOI asks for agreement on, separately.
@@ -198,10 +206,19 @@ export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most =
  * Separately, because a reader may see the nutrition panel perfectly and
  * misread the ingredients underneath it — and holding the good answer hostage
  * to the bad one is how a queue fills up with things nobody needs to decide.
+ *
+ * The fields are the ones a reader actually returns (labelSchema.js), and
+ * allergens are compared as the FLAGS the statements raise rather than as their
+ * wording: "Allergens Information: Contains Milk Solid" and "Contains Milk
+ * Solids." are the same fact about the pack, and a protocol that called them a
+ * disagreement would send every label to a human over punctuation.
  */
 export const LABEL_PARTS = Object.freeze({
-  allergens: (r) => ({ contains: r?.allergens?.contains ?? [], may_contain: r?.allergens?.may_contain ?? [] }),
-  ingredients: (r) => (r?.ingredients?.raw_ingredient_text ?? "").replace(/\s+/g, " ").trim(),
+  allergens: (r) => ({
+    contains: allergensInStatement(r?.allergen_statement ?? ""),
+    may_contain: allergensInStatement(r?.may_contain_statement ?? ""),
+  }),
+  ingredients: (r) => String(r?.ingredients_text ?? "").replace(/\s+/g, " ").trim(),
   nutrition: (r) => r?.nutrition ?? null,
-  identity: (r) => r?.identity?.product_name ?? null,
+  identity: (r) => r?.product_name ?? null,
 });

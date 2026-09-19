@@ -41,26 +41,30 @@ test("the live tie that started this: two readings of one pack, broken by a thir
   // Ragi Hot Chocolate Milk Mix. The pack says "Contains Milk Solids. May
   // Contains Wheat & Nuts", so the second reading was right and the first had
   // promoted a "may contain" into an ingredient.
-  const readingA = { allergens: { contains: ["dairy", "gluten"], may_contain: ["tree_nut"] } };
-  const readingB = { allergens: { contains: ["dairy"], may_contain: ["gluten", "tree_nut"] } };
-  const readingC = { allergens: { contains: ["dairy"], may_contain: ["tree_nut", "gluten"] } };
+  // The wording each reader returned, verbatim from the live run.
+  const readingA = { allergen_statement: "Contains Milk Solids and Wheat", may_contain_statement: "May Contain Nuts." };
+  const readingB = { allergen_statement: "Allergens Information: Contains Milk Solid", may_contain_statement: "May Contain Wheat & Nuts." };
+  // KOI's own reading of the photograph: "Contains Milk Solids. May Contains
+  // Wheat & Nuts" — the same facts as B, punctuated differently.
+  const readingC = { allergen_statement: "Contains Milk Solids.", may_contain_statement: "May Contains Wheat & Nuts" };
 
   const two = consensusOf([readingA, readingB], { of: LABEL_PARTS.allergens });
   assert.equal(two.agreed, false, "as it stood, this went to a human");
-  assert.equal(worthReadingAgain([readingA, readingB]), true);
+  assert.equal(worthReadingAgain([readingA, readingB], { of: LABEL_PARTS.allergens }), true);
 
   const three = consensusOf([readingA, readingB, readingC], { of: LABEL_PARTS.allergens });
   assert.equal(three.agreed, true);
-  assert.deepEqual(three.answer, { contains: ["dairy"], may_contain: ["gluten", "tree_nut"] });
+  assert.deepEqual(three.answer.contains, ["dairy"]);
+  assert.deepEqual([...three.answer.may_contain].sort(), ["gluten", "tree_nut"]);
   assert.equal(three.agreement, 2);
-  assert.equal(worthReadingAgain([readingA, readingB, readingC]), false, "settled, so stop reading");
+  assert.equal(worthReadingAgain([readingA, readingB, readingC], { of: LABEL_PARTS.allergens }), false, "settled, so stop reading");
 });
 
 test("each part of a label is agreed separately", () => {
   // One reader saw the panel and misread the list underneath it. The nutrition
   // is settled; holding it hostage to the ingredients is how a queue fills up.
-  const a = { nutrition: { protein_g: 9.1 }, ingredients: { raw_ingredient_text: "Finger Millet, Brown Sugar" } };
-  const b = { nutrition: { protein_g: 9.1 }, ingredients: { raw_ingredient_text: "Sprouted Ragi, Jaggery" } };
+  const a = { nutrition: { protein_g: 9.1 }, ingredients_text: "Finger Millet, Brown Sugar" };
+  const b = { nutrition: { protein_g: 9.1 }, ingredients_text: "Sprouted Ragi, Jaggery" };
   assert.equal(consensusOf([a, b], { of: LABEL_PARTS.nutrition }).agreed, true);
   assert.equal(consensusOf([a, b], { of: LABEL_PARTS.ingredients }).agreed, false);
 });
