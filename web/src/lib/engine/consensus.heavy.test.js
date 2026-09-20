@@ -163,15 +163,29 @@ test("allergen agreement is about both lists, not just what is in it", () => {
   assert.equal(consensusOf([contains, contains], { of: LABEL_PARTS.allergens }).agreed, true);
 });
 
-test("a missing allergen block reads as nothing found, not as absent", () => {
-  assert.deepEqual(LABEL_PARTS.allergens({}), { contains: [], may_contain: [] });
-  assert.deepEqual(LABEL_PARTS.allergens(null), { contains: [], may_contain: [] });
-  assert.equal(LABEL_PARTS.ingredients({}), "");
-  assert.equal(LABEL_PARTS.nutrition({}), null);
-  assert.equal(LABEL_PARTS.identity({}), null);
-  // Two readers finding no statement agree that there is none printed; that is
-  // not the same as either of them saying the product is free of anything.
-  assert.equal(consensusOf([{}, {}], { of: LABEL_PARTS.allergens }).agreed, true);
+test("looked and found none is a vote; did not look is not", () => {
+  // null: the reader read the pack and there was no statement on it. That is a
+  // fact about the pack and two readers can agree on it.
+  const lookedAndFoundNone = { allergen_statement: null, may_contain_statement: null, ingredients_text: null };
+  assert.deepEqual(LABEL_PARTS.allergens(lookedAndFoundNone), { contains: [], may_contain: [] });
+  assert.equal(consensusOf([lookedAndFoundNone, lookedAndFoundNone], { of: LABEL_PARTS.allergens }).agreed, true);
+
+  // undefined: the reader did not answer for this part at all. That is an
+  // ABSTENTION, and it must never become a vote for "no allergens" — otherwise
+  // a blurred photograph would end up certifying a product allergen-free.
+  assert.equal(LABEL_PARTS.allergens({}), undefined);
+  assert.equal(LABEL_PARTS.ingredients({}), undefined);
+  assert.equal(LABEL_PARTS.nutrition({}), undefined);
+  assert.equal(LABEL_PARTS.identity({}), undefined);
+  const both = consensusOf([{}, {}], { of: LABEL_PARTS.allergens });
+  assert.equal(both.agreed, false);
+  assert.match(both.why, /abstained/);
+
+  // One abstention beside two real readings does not block them, and is counted.
+  const settled = consensusOf([lookedAndFoundNone, lookedAndFoundNone, {}], { of: LABEL_PARTS.allergens });
+  assert.equal(settled.agreed, true);
+  assert.equal(settled.agreement, 2);
+  assert.match(settled.why, /1 abstained/);
 });
 
 test("ingredient text agrees across spacing and case, not across words", () => {

@@ -25,7 +25,7 @@
 // Pure. The readings are supplied; asking for one more is the caller's job.
 // ============================================================================
 
-import { allergensInStatement } from "@/lib/food/allergens";
+import { allergensIn, allergensInStatement } from "@/lib/food/allergens";
 
 /** How many independent readings must agree before KOI acts on an answer. */
 export const CONSENSUS = Object.freeze({
@@ -114,12 +114,23 @@ export function consensusOf(readings = [], { need = CONSENSUS.need, of = (r) => 
   // agreement is what lets KOI say an allergen is absent. When readers identify
   // themselves, each gets one vote, and a reader that contradicts itself gets
   // none: it has not got an answer to give.
-  let answers = given.map((r) => of(r));
+  // A reader that looked and could not read this PART has abstained, and an
+  // abstention must never become a vote. It is the whole absence-of-evidence
+  // trap: `undefined` reaching a part-picker turns "I could not read the panel"
+  // into "there is no panel", which is how a blurred photograph would come to
+  // certify that a product contains no allergens.
+  const picked = given.map((r) => ({ r, answer: of(r) }));
+  const abstained = picked.filter((x) => x.answer === undefined).length;
+  const voting = picked.filter((x) => x.answer !== undefined);
+  if (!voting.length) {
+    return { agreed: false, answer: null, agreement: 0, readings: given.length, why: `all ${given.length} reader(s) abstained` };
+  }
+  let answers = voting.map((x) => x.answer);
   let sameReader = 0;
   let unverified = 0;
   if (by) {
     const byReader = new Map();
-    given.forEach((r, i) => {
+    voting.forEach(({ r }, i) => {
       // A reader that will not name itself cannot be shown to be a DIFFERENT
       // reader from the ones that did, and "cannot tell" must never be read as
       // "independent". It gets no vote: an unverifiable second opinion is not a
@@ -186,7 +197,9 @@ export function consensusOf(readings = [], { need = CONSENSUS.need, of = (r) => 
     answer: top.answer,
     agreement: top.n,
     readings: answers.length,
-    why: `${top.n} of ${answers.length} readings agree`,
+    why: abstained
+      ? `${top.n} of ${answers.length} readings agree (${abstained} abstained)`
+      : `${top.n} of ${answers.length} readings agree`,
   };
 }
 
@@ -214,11 +227,22 @@ export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most =
  * disagreement would send every label to a human over punctuation.
  */
 export const LABEL_PARTS = Object.freeze({
-  allergens: (r) => ({
-    contains: allergensInStatement(r?.allergen_statement ?? ""),
-    may_contain: allergensInStatement(r?.may_contain_statement ?? ""),
-  }),
-  ingredients: (r) => String(r?.ingredients_text ?? "").replace(/\s+/g, " ").trim(),
-  nutrition: (r) => r?.nutrition ?? null,
-  identity: (r) => r?.product_name ?? null,
+  // A statement and a list are two halves of one answer. The live Ragi
+  // disagreement — one reader saying the ingredients named gluten — lived
+  // entirely in the list, so comparing statements alone would have called it
+  // agreement on half the evidence. A reader that gave neither has abstained.
+  allergens: (r) => {
+    if (r?.allergen_statement === undefined && r?.ingredients_text === undefined) return undefined;
+    const said = allergensInStatement(r?.allergen_statement ?? "");
+    const may = allergensInStatement(r?.may_contain_statement ?? "");
+    const inList = allergensIn(r?.ingredients_text ?? "");
+    const contains = [...new Set([...said, ...inList.contains])].sort();
+    return {
+      contains,
+      may_contain: [...new Set([...may, ...inList.mayContain])].filter((f) => !contains.includes(f)).sort(),
+    };
+  },
+  ingredients: (r) => (r?.ingredients_text === undefined ? undefined : String(r?.ingredients_text ?? "").replace(/\s+/g, " ").trim()),
+  nutrition: (r) => (r?.nutrition === undefined ? undefined : (r?.nutrition ?? null)),
+  identity: (r) => (r?.product_name === undefined ? undefined : (r?.product_name ?? null)),
 });
