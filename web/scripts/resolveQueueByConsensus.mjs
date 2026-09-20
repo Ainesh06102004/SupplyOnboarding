@@ -25,6 +25,10 @@ import { publish } from "@/lib/engine/review.js";
 
 const AGENT = "claude-opus-5 (KOI agent)";
 const apply = process.argv.includes("--apply");
+// Writes an already-published label again. Needed when what was published is
+// wrong rather than merely absent — a published mistake does not correct itself
+// by being left alone.
+const republish = process.argv.includes("--republish");
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -108,11 +112,29 @@ const MY_READING = {
   },
 };
 
+// Accepted items come along, not only pending ones. An item is accepted the
+// moment agreement settles it, but the label publishes only once every part it
+// needs is settled — so a product whose last part was settled by an earlier run
+// (or whose publish failed after the items were marked) would otherwise never
+// be looked at again. Publishing is what this script is for; leaving a settled
+// label unpublished because nothing about it changed today is the wrong memory.
 const { data: rows, error } = await engine
   .from("review_queue")
   .select("id, output_id, sku_id, field_group, proposed, status, extraction_outputs!inner(extracted, second_read, model, second_model)")
-  .eq("status", "pending");
+  .in("status", ["pending", "accepted"]);
 if (error) throw error;
+
+// ...but a part is published once. The publish LOG is the wrong thing to ask:
+// it records that an output published something, and an output that published
+// its nutrition months ago would look finished forever while its ingredients
+// sat settled and unwritten. What each published fact carries is the id of the
+// output it came from, so that is the question — asked of the facts.
+const [{ data: haveList }, { data: havePanel }] = await Promise.all([
+  db.schema("food").from("sku_ingredients").select("source_ref"),
+  db.from("sku_nutrition").select("source_ref"),
+]);
+const listPublished = new Set((haveList ?? []).map((r) => r.source_ref));
+const panelPublished = new Set((havePanel ?? []).map((r) => r.source_ref));
 
 const names = new Map();
 const { data: skus } = await db.from("skus").select("id, products(product_name)").in("id", [...new Set(rows.map((r) => r.sku_id))]);
@@ -147,17 +169,37 @@ for (const [outputId, items] of byOutput) {
   let settledHere = 0;
   for (const item of items) {
     const v = verdicts[item.field_group];
-    if (!v?.agreed) { left += 1; continue; }
+    const already = item.status !== "pending";
+    if (!already && !v?.agreed) { left += 1; continue; }
+    if (!v?.agreed) { settledHere += 1; continue; }
+    if (!already) published += 1;
     settledHere += 1;
-    published += 1;
     if (!apply) continue;
+
+    // Allergens publish as the flags the readers AGREED on, not as the flags
+    // one reader's proposal happened to carry. The proposals in this queue were
+    // written by a proposer that filed a declared "CONTAINS WHEAT" as a trace,
+    // and accepting them unchanged would publish that mistake under the word
+    // "agreed". For every other part, agreement means the readings normalize to
+    // the same answer, so what is already proposed IS that answer.
+    const correction = item.field_group === "allergens" ? v.answer : null;
     const { error: e } = await engine.from("review_queue")
-      .update({ status: "accepted", reviewed_by: null, decided_by_agent: AGENT, reviewed_at: new Date().toISOString() })
+      .update({
+        status: correction ? "corrected" : "accepted",
+        decision: correction,
+        reviewed_by: null,
+        decided_by_agent: AGENT,
+        reviewed_at: new Date().toISOString(),
+      })
       .eq("id", item.id);
     if (e) throw e;
   }
 
-  if (apply && settledHere) {
+  // Ingredients and allergens publish together, so both have to be settled
+  // before there is anything to write.
+  const listToWrite = verdicts.ingredients?.agreed && verdicts.allergens?.agreed && (republish || !listPublished.has(outputId));
+  const panelToWrite = verdicts.nutrition?.agreed && (republish || !panelPublished.has(outputId));
+  if (apply && settledHere && (listToWrite || panelToWrite)) {
     // A label is only as settled as its least settled part, so that is the
     // agreement it carries.
     const agreed = Object.values(verdicts).filter((v) => v.agreed).map((v) => v.agreement);

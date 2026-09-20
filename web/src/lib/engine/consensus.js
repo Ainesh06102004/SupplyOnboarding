@@ -26,6 +26,7 @@
 // ============================================================================
 
 import { allergensIn, allergensInStatement } from "@/lib/food/allergens";
+import { splitStatement } from "./proposals";
 
 /** How many independent readings must agree before KOI acts on an answer. */
 export const CONSENSUS = Object.freeze({
@@ -226,6 +227,34 @@ export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most =
  * Solids." are the same fact about the pack, and a protocol that called them a
  * disagreement would send every label to a human over punctuation.
  */
+/**
+ * An ingredient list, compared as a LIST rather than as a sentence.
+ *
+ * The live run is the argument for this. Two readers transcribed the Madras
+ * Mixture panel character for character identically — except one of them also
+ * typed the word "Ingredients" printed above it. Compared as one string that is
+ * a disagreement, so the queue held a product both readers had read the same
+ * way, and because ingredients and allergens publish together, nothing about
+ * that product could publish at all.
+ *
+ * What is dropped is only what is not the food: the panel's own heading, the
+ * separators, the trailing full stop, and the CAPS most panels are printed in.
+ * What is kept is every ingredient, its wording and its order — so one reader
+ * writing "Uddi flour" where another read "Ludit flour" is still a
+ * disagreement, which is exactly what it is.
+ */
+function ingredientSequence(text) {
+  const body = String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^ingredients?(\s+list)?\s*[:.\-–—]?\s*/i, "");
+  return body
+    .split(",")
+    .map((part) => part.toLowerCase().replace(/[.\s]+$/, "").trim())
+    .filter(Boolean)
+    .join(",");
+}
+
 export const LABEL_PARTS = Object.freeze({
   // A statement and a list are two halves of one answer. The live Ragi
   // disagreement — one reader saying the ingredients named gluten — lived
@@ -233,8 +262,15 @@ export const LABEL_PARTS = Object.freeze({
   // agreement on half the evidence. A reader that gave neither has abstained.
   allergens: (r) => {
     if (r?.allergen_statement === undefined && r?.ingredients_text === undefined) return undefined;
-    const said = allergensInStatement(r?.allergen_statement ?? "");
-    const may = allergensInStatement(r?.may_contain_statement ?? "");
+    // One statement can hold both halves — "CONTAINS WHEAT AND NUTS. MAY
+    // CONTAIN MILK." — and the readers must be compared on the same split the
+    // publisher uses, or they would agree about something KOI never writes.
+    const whole = splitStatement(r?.allergen_statement ?? "");
+    const said = allergensInStatement(whole.declared);
+    const may = [
+      ...allergensInStatement(whole.precautionary),
+      ...allergensInStatement(r?.may_contain_statement ?? ""),
+    ];
     const inList = allergensIn(r?.ingredients_text ?? "");
     const contains = [...new Set([...said, ...inList.contains])].sort();
     return {
@@ -242,7 +278,7 @@ export const LABEL_PARTS = Object.freeze({
       may_contain: [...new Set([...may, ...inList.mayContain])].filter((f) => !contains.includes(f)).sort(),
     };
   },
-  ingredients: (r) => (r?.ingredients_text === undefined ? undefined : String(r?.ingredients_text ?? "").replace(/\s+/g, " ").trim()),
+  ingredients: (r) => (r?.ingredients_text === undefined ? undefined : ingredientSequence(r?.ingredients_text)),
   nutrition: (r) => (r?.nutrition === undefined ? undefined : (r?.nutrition ?? null)),
   identity: (r) => (r?.product_name === undefined ? undefined : (r?.product_name ?? null)),
 });

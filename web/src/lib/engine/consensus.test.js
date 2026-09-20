@@ -69,6 +69,35 @@ test("each part of a label is agreed separately", () => {
   assert.equal(consensusOf([a, b], { of: LABEL_PARTS.ingredients }).agreed, false);
 });
 
+test("a panel's heading is not an ingredient, and a misread word still is", () => {
+  // Both cases are quoted from the live queue. Madras Mixture: two readers
+  // transcribed the panel identically, and one of them also typed the word
+  // printed above it. Compared as one sentence that was a disagreement, and it
+  // held up the whole product, because ingredients and allergens publish
+  // together.
+  const withHeading = { ingredients_text: "Ingredients\nGram Flour, Rice Flour, Peanuts, Cashews." };
+  const listOnly = { ingredients_text: "Gram Flour, Rice Flour, Peanuts, Cashews" };
+  const shouting = { ingredients_text: "INGREDIENTS: GRAM FLOUR, RICE FLOUR, PEANUTS, CASHEWS" };
+  assert.equal(consensusOf([withHeading, listOnly], { of: LABEL_PARTS.ingredients }).agreed, true);
+  assert.equal(consensusOf([withHeading, shouting], { of: LABEL_PARTS.ingredients }).agreed, true);
+
+  // Chocolate Biscuits: one reader read "Uddi flour" where the other read
+  // "Ludit flour". That is a disagreement about the food, and it stays one.
+  const uddi = { ingredients_text: "Oat Flour, Edible Salt, Uddi flour" };
+  const ludit = { ingredients_text: "Oat Flour, Edible Salt, Ludit flour" };
+  assert.equal(consensusOf([uddi, ludit], { of: LABEL_PARTS.ingredients }).agreed, false);
+
+  // So is a dropped ingredient, a changed percentage, and a changed order.
+  const dropped = { ingredients_text: "Oat Flour, Uddi flour" };
+  assert.equal(consensusOf([uddi, dropped], { of: LABEL_PARTS.ingredients }).agreed, false);
+  const millet37 = { ingredients_text: "Finger Millet (37%), Brown Sugar" };
+  const millet57 = { ingredients_text: "Finger Millet (57%), Brown Sugar" };
+  assert.equal(consensusOf([millet37, millet57], { of: LABEL_PARTS.ingredients }).agreed, false);
+  const reordered = { ingredients_text: "Brown Sugar, Finger Millet (37%)" };
+  assert.equal(consensusOf([millet37, reordered], { of: LABEL_PARTS.ingredients }).agreed, false,
+    "the order is the declared order of weight, so it is part of the answer");
+});
+
 test("KOI stops asking once it has learnt what it is going to", () => {
   const differ = ["a", "b", "c", "d"];
   assert.equal(worthReadingAgain(differ), false, "four readings that all differ is itself the answer");
