@@ -54,6 +54,18 @@ alter table engine.review_queue
 comment on column engine.review_queue.decided_by_agent is
   'The agent that decided this item, when no person did. reviewed_by stays null in that case.';
 
+-- A decided item still has to say who decided it. It may now be an agent, but
+-- never neither: the constraint is what guarantees a row can always answer
+-- "who said so".
+alter table engine.review_queue drop constraint if exists review_decided_has_reviewer;
+alter table engine.review_queue add constraint review_decided_has_reviewer check (
+  status = any (array['pending', 'superseded'])
+  or ((reviewed_by is not null or decided_by_agent is not null) and reviewed_at is not null)
+);
+
+comment on constraint review_decided_has_reviewer on engine.review_queue is
+  'A decided item names a person or an agent. Never neither.';
+
 alter table engine.publish_log
   add column if not exists agent text;
 
