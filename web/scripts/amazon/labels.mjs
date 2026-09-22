@@ -61,7 +61,7 @@ function agreedFrom(a, b) {
 }
 
 let count = 0, agreed = 0;
-await pool([...byHash.values()], 3, async (rs) => {
+await pool([...byHash.values()], 8, async (rs) => {
   const r = rs[0];
   const bytes = readFileSync(join(cache.CACHE, "images", r.asin, `${r.role}-${r.position}.jpg`));
   const jpg = await sharp(bytes).resize({ width: 2048, height: 2048, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();

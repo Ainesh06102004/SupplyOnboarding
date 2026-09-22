@@ -1,7 +1,6 @@
-// Step 6 — barcodes, from two free sources:
-//   (a) decode the barcode printed on any pack photo (zxing-wasm), check digit verified;
-//   (b) Open Food Facts products (engine.off_products) of the same brand whose
-//       name matches the title — amazon_products.match_off(), score kept.
+// Step 6 — barcodes decoded from the pack photos (zxing-wasm), check digit verified.
+// Only codes actually read off an image are kept: matching Open Food Facts by
+// name was tried and dropped (00065) — it gave one code to many flavours.
 //   node --env-file=.env.local scripts/amazon/barcodes.mjs
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,7 +8,7 @@ import sharp from "sharp";
 import { readBarcodes } from "zxing-wasm/reader";
 import * as cache from "./cache.mjs";
 import { pool } from "./oxylabs.mjs";
-import { selectAll, upsert, rpc } from "./db.mjs";
+import { selectAll, upsert } from "./db.mjs";
 
 // GS1 check digit for EAN-8 / UPC-A / EAN-13 / GTIN-14.
 export function validGtin(code) {
@@ -43,6 +42,3 @@ await pool([...byHash.values()], 4, async (rs) => {
 const unique = [...new Map(rows.map((x) => [`${x.asin}|${x.code}`, x])).values()];
 await upsert("barcode", unique, "asin,code,source");
 console.log(`barcodes: ${unique.length} decoded from photos on ${new Set(unique.map((x) => x.asin)).size} listings`);
-
-const matched = await rpc("match_off", { min_score: 0.6 });
-console.log(`barcodes: ${matched} Open Food Facts matches (score ≥ 0.6; overview shows ≥ 0.75)`);
