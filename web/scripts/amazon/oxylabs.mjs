@@ -46,7 +46,10 @@ export async function withRateLimit(fn, tries = 8) {
     try {
       return await fn();
     } catch (err) {
-      const limited = /rate limit|429|timed out|timeout|abort/i.test(err.message || "");
+      const msg = err.message || "";
+      // Out of credits is also a 429, but waiting will not fix it: stop the run.
+      if (/no credits|insufficient_quota|billing/i.test(msg)) throw Object.assign(err, { fatal: true });
+      const limited = /rate limit|429|timed out|timeout|abort/i.test(msg);
       if (!limited || attempt >= tries) throw err;
       await new Promise((r) => setTimeout(r, Math.min(60_000, 3000 * 2 ** (attempt - 1)) + Math.random() * 2000));
     }
@@ -63,6 +66,10 @@ export async function pool(items, workers, fn) {
         await fn(items[i], i);
       } catch (err) {
         console.error(`  ! ${JSON.stringify(items[i]).slice(0, 80)}: ${err.message.slice(0, 200)}`);
+        if (err.fatal) {
+          console.error("  stopping: the error will not go away by retrying");
+          process.exit(2);
+        }
       }
     }
   };

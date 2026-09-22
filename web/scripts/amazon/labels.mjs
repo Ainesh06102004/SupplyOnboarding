@@ -75,10 +75,12 @@ await pool([...byHash.values()], 8, async (rs) => {
   let result = { fields: null, disagreements: ["a reading did not match the label schema"], agreed: false };
   if (a.success && b.success) result = agreedFrom(a.data, b.data);
   if (result.agreed) agreed++;
+  // Postgres jsonb refuses \u0000, which a model occasionally emits.
+  const clean = (v) => (v == null ? v : JSON.parse(JSON.stringify(v).replace(/\\u0000/g, "")));
   await upsert("label_reading", rs.map((img) => ({
     asin: img.asin, image_id: img.id, model: x.model, verifier_model: y.model,
-    reading: a.success ? a.data : x.json, second: b.success ? b.data : y.json,
-    agreed: result.agreed, agreed_fields: result.fields, disagreements: result.disagreements,
+    reading: clean(a.success ? a.data : x.json), second: clean(b.success ? b.data : y.json),
+    agreed: result.agreed, agreed_fields: clean(result.fields), disagreements: clean(result.disagreements),
   })), "image_id,model");
   if (++count % 25 === 0) console.log(`  read ${count}/${byHash.size} (${agreed} agreed)`);
 });
