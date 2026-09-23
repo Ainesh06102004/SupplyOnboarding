@@ -135,6 +135,34 @@ test("what the dishes need beyond the basket is listed, by kind", () => {
   assert.ok(!week.alsoNeed.fresh.some((f) => f.ingredient === "Lentils"), "the basket brings the dal");
 });
 
+test("someone without a dish's staple doesn't stop the others having it", () => {
+  // Only Me eats the chana. The shared pot is one everyone can have; Me's
+  // chana is cooked on the side, named as the dish it becomes.
+  const onlyMe = { whoEatsWhat: report.whoEatsWhat.map((w) => (w.member === "me" ? w : { ...w, allowed: w.allowed.filter((a) => a.skuId !== "chana") })) };
+  const week = buildWeek({ report: onlyMe, lines, people, days: 7, start });
+  const chanaFor = Object.values(week.cells).flatMap((c) => (c.shared?.dishes.some((x) => x.key === "chana_masala") ? c.shared.eaters : []));
+  assert.ok(!chanaFor.includes("son"), "never served to someone who has no chana");
+  const side = week.additions.me.find((a) => a.skuId === "chana");
+  if (side) assert.ok(["chana_masala", "roasted_chana"].includes(side.asDish?.key), "a leftover staple is named as a dish");
+  // A breakfast the two with moong can have is shared by them, not dropped.
+  const breakfast = week.cells["0:breakfast"];
+  assert.ok((breakfast.shared?.eaters.length ?? 0) >= 2, JSON.stringify(breakfast.shared));
+});
+
+test("two products on the same shelf both go into the dish", () => {
+  const twoRices = [...lines, { skuId: "basmati", name: "Rozana Super Basmati Rice", categoryKey: "staples.rice" }];
+  const r = { whoEatsWhat: report.whoEatsWhat.map((w) => (w.member === "me" ? { ...w, allowed: [...w.allowed, { skuId: "basmati", name: "basmati", packs: 1, amount: 700, unit: "g" }] } : w)) };
+  const week = buildWeek({ report: r, lines: twoRices, people, days: 7, start });
+  assert.ok(!week.additions.me.some((a) => a.skuId === "basmati"));
+  assert.ok(week.perServing("me", "basmati")?.amount > 0);
+});
+
+test("days are the shopper's own calendar days", () => {
+  const week = buildWeek({ report, lines, people, days: 2, start: new Date(2026, 8, 24, 5, 0) });
+  assert.equal(week.days[0].date, "2026-09-24");
+  assert.equal(week.days[0].label, "Thu");
+});
+
 test("someone who eats no meals at home is not at the table", () => {
   const away = people.map((p) => (p.memberId === "me" ? { ...p, meals_from_home: ["dinner"] } : p));
   const week = buildWeek({ report, lines, people: away, days: 3, start });

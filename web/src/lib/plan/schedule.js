@@ -82,8 +82,10 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
     const theirs = eats.get(memberId) ?? new Map();
     const used = [];
     for (const line of dish.lines.filter((l) => l.supply === "shelf")) {
-      const supplier = suppliersOf(line, basket).find((b) => theirs.has(b.skuId));
-      if (supplier) used.push({ skuId: supplier.skuId, anchor: isAnchor(line) });
+      // Every product that can fill the line is used by it: two rices both go
+      // into the rice, rather than one being left over as an "addition".
+      const suppliers = suppliersOf(line, basket).filter((b) => theirs.has(b.skuId));
+      if (suppliers.length) suppliers.forEach((b) => used.push({ skuId: b.skuId, anchor: isAnchor(line) }));
       else if (isAnchor(line)) return null; // the staple isn't in their basket
     }
     return used;
@@ -121,7 +123,9 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
     const pool = dishes.filter((dish) => kinds.includes(dish.kind) && dish.slots.includes(slot));
     let best = null;
     for (const dish of pool) {
-      const can = memberIds.filter((id) => verdict(dish, people.find((p) => String(p.memberId) === id) ?? {}).ok);
+      // Who can have it: allowed, and with its staple in their share of the
+      // basket. Someone without the moong doesn't stop the others' chilla.
+      const can = memberIds.filter((id) => verdict(dish, people.find((p) => String(p.memberId) === id) ?? {}).ok && usesFor(dish, id) !== null);
       if (!can.length) continue;
       const s = score(dish, can, day);
       if (s === -Infinity) continue;
@@ -156,7 +160,9 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
   const slots = SLOT_KEYS.filter((slot) => eatersOf(slot).length);
   const dayList = Array.from({ length: d }, (_, i) => {
     const date = new Date(start.getTime() + i * 86400000);
-    return { index: i, date: date.toISOString().slice(0, 10), label: DAY_NAMES[date.getDay()], dayOfMonth: date.getDate(), today: i === 0 };
+    // The shopper's own calendar day, not UTC's: at 6 am in India it is still yesterday in UTC.
+    const local = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return { index: i, date: local, label: DAY_NAMES[date.getDay()], dayOfMonth: date.getDate(), month: date.getMonth(), today: i === 0 };
   });
 
   const cells = {};
@@ -225,8 +231,15 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       .filter((a) => !used.has(String(a.skuId)))
       .map((a) => {
         const line = basket.find((b) => b.skuId === String(a.skuId));
+        const person = people.find((p) => String(p.memberId) === id) ?? {};
+        // A staple on one plate is still cooked: name the dish it would be
+        // ("Chana masala", from their Kabuli Chana), if one suits them.
+        const asDish = dishes.find((dish) => ["main", "snack", "breakfast"].includes(dish.kind)
+          && verdict(dish, person).ok
+          && (usesFor(dish, id) ?? []).some((u) => u.anchor && u.skuId === String(a.skuId)));
         return {
           skuId: String(a.skuId),
+          asDish: asDish ? { key: asDish.key, name: asDish.name } : null,
           name: a.name ?? line?.name ?? "A product",
           slot: slotsFor(line?.categoryKey ?? null).slot,
           perDay: isNum(a.amount) ? Math.round(Number(a.amount) / d) : null,
@@ -236,7 +249,12 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       });
   }
 
-  return { days: dayList, slots, cells, additions, perServing, usesFor: (dishKey, memberId) => usesFor(byDish.get(dishKey), memberId) ?? [], alsoNeed: alsoNeed(cells, byDish, basket) };
+  /** The staples a dish needs that this basket doesn't have ("needs kidney beans"). */
+  const staplesMissing = (dishKey) => (byDish.get(dishKey)?.lines ?? [])
+    .filter((l) => isAnchor(l) && !suppliersOf(l, basket).length)
+    .map((l) => l.ingredient);
+
+  return { days: dayList, slots, cells, additions, perServing, staplesMissing, usesFor: (dishKey, memberId) => usesFor(byDish.get(dishKey), memberId) ?? [], alsoNeed: alsoNeed(cells, byDish, basket) };
 }
 
 /** What the week's dishes need that the basket doesn't bring: fresh, kitchen, and shelves not bought. */

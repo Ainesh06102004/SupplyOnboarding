@@ -51,7 +51,8 @@ export default function WeekGrid({ s }) {
   const minWidth = 96 + week.days.length * 127;
   const openCell = menu ? week.cells[menu.key] : null;
   const alternatives = openCell ? alternativesFor(openCell, s.eating) : [];
-  const range = `${new Date(week.days[0].date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – ${new Date(week.days.at(-1).date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`;
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const range = `${week.days[0].dayOfMonth} ${MONTHS[week.days[0].month]} – ${week.days.at(-1).dayOfMonth} ${MONTHS[week.days.at(-1).month]}`;
 
   return (
     <div style={{ ...cardStyle, marginBottom: 18, opacity: busy ? 0.72 : 1, transition: "opacity .2s" }}>
@@ -140,7 +141,7 @@ export default function WeekGrid({ s }) {
                       {mine && <Chip tone="goal">{s.active.label}: {mine.dishes.map((x) => x.name).join(" + ")}</Chip>}
                       {notMine && <Chip tone="cut" title={notMine}>Not for {s.active.label}</Chip>}
                       {notes?.leaveOut?.map((i) => <Chip key={i} tone="cut">−{i.toLowerCase()}</Chip>)}
-                      {adds.map((a) => <Chip key={a.skuId} tone="goal">+{a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}</Chip>)}
+                      {adds.map((a) => <Chip key={a.skuId} tone="goal">+{a.asDish ? `${a.asDish.name} (${a.name}` : a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}{a.asDish ? ")" : ""}</Chip>)}
                       {notes?.notVerifiedFor?.length > 0 && <Chip tone="warn" title="A spice blend can hide anything">Check for {notes.notVerifiedFor.join(", ")}</Chip>}
                       {others.map(([id, o]) => <Chip key={id} tone="shared">{s.eating.find((p) => String(p.memberId) === id)?.label}: {o.dishes.map((x) => x.name).join(" + ")}</Chip>)}
                     </div>
@@ -171,6 +172,9 @@ export default function WeekGrid({ s }) {
               style={{ all: "unset", cursor: "pointer", display: "block", width: "100%", boxSizing: "border-box", padding: "7px 10px", font: font(500, 12), color: C.ink, borderRadius: 8 }}
             >
               {alt.name} <span style={{ font: font(500, 10, "mono"), color: C.faint }}>{alt.kind === "base" ? "base" : alt.kind === "main" ? "main" : ""}</span>
+              {week.staplesMissing(alt.key).length > 0 && (
+                <span style={{ display: "block", font: font(500, 10), color: C.warm }}>needs {week.staplesMissing(alt.key).join(", ").toLowerCase()} — not in this plan</span>
+              )}
             </button>
           ))}
           {s.picks[openCell.key] && (
@@ -223,7 +227,7 @@ function TodayPlates({ s, names }) {
                   </span>
                 ))}
                 {adds.map((a) => (
-                  <span key={a.skuId} style={{ font: font(600, 10), background: C.blueBg, borderRadius: 6, padding: "3px 7px", color: C.blue }}>+ {a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}</span>
+                  <span key={a.skuId} style={{ font: font(600, 10), background: C.blueBg, borderRadius: 6, padding: "3px 7px", color: C.blue }}>+ {a.asDish ? `${a.asDish.name}: ` : ""}{a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}</span>
                 ))}
                 <span style={{ font: font(600, 10), background: p.met ? C.tint : C.warnBg, borderRadius: 6, padding: "3px 7px", color: p.met ? C.primary : C.warnText }}>
                   {p.met ? "Every target met" : `Short ${p.short.map((x) => (x.nutrient === "kcal" ? `${x.perDay} kcal` : `${x.perDay} g ${x.nutrient}`)).join(", ")} a day`}
