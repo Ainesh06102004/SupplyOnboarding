@@ -100,19 +100,38 @@ async function holdFirstPriority(model, solution, base) {
   };
 }
 
-/** Climb the ladder until something can be shown. Allergens, age safety and diet are never on it. */
-export async function solveWithLadder(base) {
+/** How many products each exclusion reason took out, for a progress line. */
+function excludedCounts(model) {
+  const counts = {};
+  for (const e of model.excluded ?? []) counts[e.reason] = (counts[e.reason] ?? 0) + 1;
+  return counts;
+}
+
+/**
+ * Climb the ladder until something can be shown. Allergens, age safety and diet are never on it.
+ *
+ * @param {object} base buildPlanModel's input
+ * @param {{ onStep?: (event: object) => void }} [options] onStep hears each rung as
+ *   it is built and solved. Facts only (counts, statuses, ms): the words are the page's templates.
+ */
+export async function solveWithLadder(base, { onStep = null } = {}) {
+  const emit = (event) => { try { onStep?.(event); } catch { /* a listener never breaks a plan */ } };
   let attempt = null;
   let model = null;
   let solution = null;
   for (const rung of ladderFor(base)) {
+    emit({ stage: "rung", step: rung.step, status: "running" });
     model = buildPlanModel(rung.apply(base));
+    emit({ stage: "rung", step: rung.step, status: "built", candidates: model.meta.skus.length, excluded: excludedCounts(model) });
     solution = await solvePlanModel(model);
     attempt = rung;
+    emit({ stage: "rung", step: rung.step, status: "solved", usable: solution.usable, solverStatus: solution.status, ms: solution.ms });
     if (solution.usable) break;
   }
   // The order the household asked for, made true rather than approximated.
+  if (model.firstPriority && solution.usable) emit({ stage: "priority", status: "running", priority: model.firstPriority.name });
   const lexicographic = await holdFirstPriority(model, solution, base);
+  if (lexicographic.held) emit({ stage: "priority", status: "done", priority: lexicographic.held.priority });
   return { attempt, model: lexicographic.model, solution: lexicographic.solution, held: lexicographic.held };
 }
 
@@ -120,10 +139,12 @@ export async function solveWithLadder(base) {
  * Plan without storing anything: the ladder, the report, and who eats what.
  *
  * @param {object} base buildPlanModel's input
+ * @param {{ onStep?: (event: object) => void }} [options] progress, see solveWithLadder;
+ *   also hears the solved basket as a draft before anything is explained or stored
  * @returns {Promise<{ attempt, model, solution, report }>}
  */
-export async function solvePlan(base) {
-  const { attempt, model, solution, held } = await solveWithLadder(base);
+export async function solvePlan(base, { onStep = null } = {}) {
+  const { attempt, model, solution, held } = await solveWithLadder(base, { onStep });
   const report = planReport({
     members: base.members,
     catalogue: base.catalogue.filter((item) => model.meta.skus.includes(item.skuId)),
@@ -133,5 +154,16 @@ export async function solvePlan(base) {
   });
   // Per person: what in the basket each may eat and how much, and what is not for them.
   report.whoEatsWhat = whoEatsWhat({ members: base.members, catalogue: base.catalogue, basket: report.basket, refusals: model.meta.refusals });
+  if (onStep && solution.usable) {
+    try {
+      onStep({
+        stage: "draft",
+        status: "done",
+        basket: report.basket.map(({ skuId, name, packs, packSize, cost }) => ({ skuId, name, packs, packSize, cost })),
+        cost: report.cost,
+        everyTargetMet: report.summary?.everyTargetMet ?? null,
+      });
+    } catch { /* a listener never breaks a plan */ }
+  }
   return { attempt, model, solution, report, held };
 }

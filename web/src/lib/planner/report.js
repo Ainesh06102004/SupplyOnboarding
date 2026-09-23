@@ -207,6 +207,13 @@ export function planReport({ members = [], catalogue = [], solution = {}, days =
     for (const [member, amount] of Object.entries(eats[skuId] ?? {})) {
       if (count > 0) shares[member] = Math.round((amount / count) * 100) / 100;
     }
+    // What this line brings, from the same per-pack label figures the solver
+    // planned with. A figure the label does not declare stays null, never 0.
+    const supplies = {};
+    for (const nutrient of NUTRIENTS) {
+      const perPack = item?.perPack?.[nutrient];
+      supplies[nutrient] = isNum(perPack) ? round1(Number(perPack) * count) : null;
+    }
     return {
       skuId,
       name: item?.name ?? null,
@@ -214,6 +221,7 @@ export function planReport({ members = [], catalogue = [], solution = {}, days =
       packSize: item?.packSize ?? null,
       cost: item ? round1(item.price * count) : null,
       shares,
+      supplies,
     };
   }).sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0));
 

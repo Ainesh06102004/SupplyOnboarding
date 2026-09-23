@@ -643,10 +643,14 @@ export function applyFollowUp(plan, reading, catalogue) {
     applied.push(`${days} ${days === 1 ? "day" : "days"}`);
   }
 
-  // A swap is one change: nothing goes out unless something can come in.
+  // A swap is one change: nothing goes out unless something can come in. A swap
+  // the page built from a card (an upgrade) names its products by id, so there
+  // is no word to resolve; one read off a sentence names them by word.
+  const bySku = (id) => catalogue.filter((item) => String(item.skuId) === String(id));
   for (const swap of reading.swaps ?? []) {
-    const out = productsNamed(swap.from, catalogue);
-    const inTo = productsNamed(swap.to, catalogue).filter((item) => !out.some((o) => o.skuId === item.skuId));
+    const out = swap.fromSku ? bySku(swap.fromSku) : productsNamed(swap.from, catalogue);
+    const inTo = (swap.toSku ? bySku(swap.toSku) : productsNamed(swap.to, catalogue))
+      .filter((item) => !out.some((o) => o.skuId === item.skuId));
     if (!out.length) {
       notApplied.push(`Nothing in this plan is called "${swap.from}"`);
       continue;

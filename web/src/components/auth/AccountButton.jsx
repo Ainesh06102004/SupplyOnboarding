@@ -32,7 +32,7 @@ import { signOutUser } from "@/lib/auth/supabaseAuth";
 /** Where the account menu goes. The household is the one shoppers ask for. */
 const MENU = [
   { label: "My household", href: "/store/household", icon: Users, hint: "Everyone you shop for" },
-  { label: "Plan the week", href: "/store/plan", icon: CalendarCheck, hint: null },
+  { label: "Plan", href: "/store/plan", icon: CalendarCheck, hint: null },
   { label: "Settings", href: "/store/profile", icon: Settings, hint: "Account, addresses, goal" },
   { label: "What KOI keeps", href: "/store/profile/data", icon: Shield, hint: "See or delete your data" },
 ];

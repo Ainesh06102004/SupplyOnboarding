@@ -36,7 +36,7 @@ const LABEL = "text-[12px] font-semibold text-[#0E4032]";
 const HINT = "mt-1 block text-[11px] text-[#5A6B5A]";
 const HARD_ALLERGENS = FOODS_AVOID.filter((a) => a.mode === "hard" && a.kind === "allergen");
 
-const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, spice_tolerance, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
+const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
 
 const when = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
 
@@ -231,7 +231,8 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
           <span className={LABEL}>Diet</span>
           <select id="profile-diet" value={form.diet_type} onChange={(e) => set({ diet_type: e.target.value })} className={INPUT}>
             {!form.diet_type && <option value="">Choose a diet</option>}
-            {DIET_TYPES.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+            {/* Fasting is a diet for one plan, never a saved profile: the column refuses it (00056). */}
+            {DIET_TYPES.filter((d) => !d.forOnePlanOnly).map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
           </select>
         </label>
         <p className={`${LABEL} mt-3`}>What they avoid</p>
@@ -522,7 +523,7 @@ export default function HouseholdPage() {
           </p>
         </div>
         <p className="text-[11.5px]">
-          <Link href="/store/plan" className="font-semibold text-[#16A06E] hover:underline">Plan the week</Link>
+          <Link href="/store/plan" className="font-semibold text-[#16A06E] hover:underline">Plan</Link>
           <span className="text-[#5A6B5A]"> · </span>
           <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">What KOI keeps</Link>
         </p>

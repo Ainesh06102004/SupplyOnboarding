@@ -19,6 +19,7 @@ const EXTRA_WORDS = Object.freeze({
   high_sodium: ["salt", "sodium"], spicy_food: ["spicy"], artificial_sweeteners: ["sweetener", "sweeteners"],
   preservatives: ["preservative"], artificial_colours: ["colour", "colours", "color", "colors"],
   artificial_flavours: ["flavour", "flavours", "flavor", "flavors"], caffeine: ["coffee"], shellfish: ["prawn", "prawns", "seafood"],
+  onion_garlic: ["onion", "onions", "garlic", "pyaz", "pyaaz", "lehsun", "lahsun", "onion garlic"],
 });
 
 export const AVOID_WORDS = Object.freeze(Object.fromEntries(FOODS_AVOID.map((a) => [

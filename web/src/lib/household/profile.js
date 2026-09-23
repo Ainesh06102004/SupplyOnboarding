@@ -25,6 +25,7 @@ export const SEVERITIES = Object.freeze([
 
 export const ACTIVITY_LEVELS = Object.freeze([
   { key: "sedentary", label: "Mostly sitting" },
+  { key: "light", label: "Light exercise, a few days a week" },
   { key: "moderate", label: "On their feet, or exercises most days" },
   { key: "heavy", label: "Physical work, or trains hard" },
 ]);
@@ -83,9 +84,11 @@ export function blankProfile() {
     age_years: "",
     weight_kg: "",
     height_cm: "",
+    target_weight_kg: "",
     appetite: "",
     spice_tolerance: "",
     meals_from_home: [],
+    favourite_categories: [],
     target_kcal: "",
     target_protein_g: "",
     target_source: "stated",
@@ -112,9 +115,11 @@ export function profileFromRow(row) {
     age_years: text(row.age_years),
     weight_kg: text(row.weight_kg),
     height_cm: text(row.height_cm),
+    target_weight_kg: text(row.target_weight_kg),
     appetite: text(row.appetite),
     spice_tolerance: text(row.spice_tolerance),
     meals_from_home: row.meals_from_home ?? [],
+    favourite_categories: row.favourite_categories ?? [],
     target_kcal: text(row.target_kcal),
     target_protein_g: text(row.target_protein_g),
     target_source: row.target_source ?? "stated",
@@ -147,9 +152,11 @@ export function memberPayload(form) {
     age_years: adult && isNum(form.age_years) ? String(Math.round(Number(form.age_years))) : null,
     weight_kg: adult && isNum(form.weight_kg) ? String(Number(form.weight_kg)) : null,
     height_cm: adult && isNum(form.height_cm) ? String(Number(form.height_cm)) : null,
+    target_weight_kg: adult && isNum(form.target_weight_kg) ? String(Number(form.target_weight_kg)) : null,
     appetite: blankToNull(form.appetite),
     spice_tolerance: blankToNull(form.spice_tolerance),
     meals_from_home: form.meals_from_home ?? [],
+    favourite_categories: form.favourite_categories ?? [],
     target_kcal: whole(form.target_kcal),
     target_protein_g: whole(form.target_protein_g),
     target_source: form.target_source || "stated",
@@ -177,6 +184,7 @@ export function profileProblems(form) {
     if (isNum(form.age_years) && form.age_band === "senior_60_plus" && (age < 60 || age > 120)) problems.push("An age of 60 or over goes with the 60 or over group.");
     if (isNum(form.weight_kg) && (Number(form.weight_kg) < 25 || Number(form.weight_kg) > 300)) problems.push("Weight should be between 25 and 300 kg.");
     if (isNum(form.height_cm) && (Number(form.height_cm) < 100 || Number(form.height_cm) > 250)) problems.push("Height should be between 100 and 250 cm.");
+    if (isNum(form.target_weight_kg) && (Number(form.target_weight_kg) < 25 || Number(form.target_weight_kg) > 300)) problems.push("Target weight should be between 25 and 300 kg.");
   }
   return problems;
 }

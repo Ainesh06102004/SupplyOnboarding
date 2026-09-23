@@ -26,7 +26,7 @@ import { solvePlanModel } from "./solve";
 import { solvePlan, solveWithLadder, NEVER_RELAXED } from "./solvePlan";
 import { planReport, basketDiff, materiallyShort, atPortionLimit, refusalReason } from "./report";
 import { describeEdge } from "@/lib/food/substitutions";
-import { applyFollowUp, productsNamed } from "./followup";
+import { applyFollowUp, productsNamed, readFollowUp } from "./followup";
 import { findConflicts } from "./conflicts";
 import { coverageOf } from "./foodGroups";
 import { readFollowUpWithModel } from "./followUpModel";
@@ -86,8 +86,10 @@ export async function planForHousehold({
   availability = "allow_unknown",
   memberIds = null,
   thisWeek = {},
+  onStep = null,
 }) {
   if (!householdId) throw new Error("A household id is required.");
+  const emit = listener(onStep);
   const db = await getServerSupabase();
 
   // RLS does the authorising: no rows means not yours (or not there).
@@ -122,6 +124,10 @@ export async function planForHousehold({
   const members = memberRows.map((row) => {
     const choices = thisWeek?.[String(row.id)] ?? {};
     const targets = choices.targets ?? {};
+    // What they said they love (00066) is a standing preference; what they
+    // skip this week wins over it.
+    const skip = new Set(choices.skip ?? []);
+    const prefer = [...new Set([...(row.favourite_categories ?? []), ...(choices.prefer ?? [])])].filter((key) => !skip.has(key));
     return memberFor({
       ...row,
       // A target asked for in one plan ("75 g protein for my wife") stands for
@@ -130,18 +136,37 @@ export async function planForHousehold({
       ...(Number(targets.kcal) > 0 ? { target_kcal: Number(targets.kcal) } : {}),
       avoids: avoidsByMember.get(row.id) ?? [],
       dietForThisPlan: choices.dietType ?? null,
-      preferCategories: choices.prefer ?? [],
+      preferCategories: prefer,
       skipCategories: choices.skip ?? [],
     }, CATALOGUES);
+  });
+  emit({
+    stage: "household",
+    status: "done",
+    members: members.length,
+    labels: members.map((m) => m.label),
+    avoids: (avoidRows ?? []).length,
+    days,
+    budget,
   });
 
   // Kept out of the house (00047): hard avoids only, as their contains-flags.
   const keepOutFlags = keepOutFlagsFor(household.keep_out, AVOID_BY_KEY);
+  emit({ stage: "catalogue", status: "running" });
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
+  emit({ stage: "catalogue", status: "done", plannable: catalogue.length, notPlannable: unplannable.length, keptOut: keepOutFlags.length });
   // The kitchen's own standing rules (00052), and what it already has. It
   // needs the catalogue: a cupboard holds "atta", not a SKU id.
   const kitchen = await kitchenRulesFor(db, household, catalogue);
-  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags, kitchen });
+  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags, kitchen, onStep });
+}
+
+/** onStep, made safe: a listener that throws never breaks a plan. */
+function listener(onStep) {
+  return (event) => {
+    if (!onStep) return;
+    try { onStep(event); } catch { /* ignored */ }
+  };
 }
 
 /**
@@ -232,10 +257,12 @@ function membersFromSnapshot(snapshot) {
  * @param {string[]} [input.keepSkus] the basket this plan changes: kept where it can be
  * @param {object} [input.kitchen] the household's standing rules (00052)
  * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
+ * @param {(event: object) => void} [input.onStep] progress for the live plan page (/api/plan/run)
  */
-async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], kitchen = {}, extra = {} }) {
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], kitchen = {}, extra = {}, onStep = null }) {
+  const emit = listener(onStep);
   const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepSkus, keepOutFlags, ...kitchen };
-  let solved = await solvePlan(base);
+  let solved = await solvePlan(base, { onStep });
 
   // "Hit the targets" means hit them (C2). A budget that leaves someone short
   // is not a failed plan to goal programming — it is a plan with a miss in it —
@@ -247,11 +274,13 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
   if (targetsBeforeBudget(base.priorities)) {
     const needed = await costToMeetTargets({ base, report: solved.report });
     if (needed && needed.extra > 0) {
-      const again = await solvePlan({ ...base, budget: needed.cost });
+      emit({ stage: "targets_budget", status: "running", cost: needed.cost, extra: needed.extra });
+      const again = await solvePlan({ ...base, budget: needed.cost }, { onStep });
       if (again.solution.usable && !materiallyShort(again.report)) {
         raisedForTargets = { from: Number(budget), to: needed.cost, extra: needed.extra };
         solved = again;
       }
+      emit({ stage: "targets_budget", status: "done", raised: raisedForTargets });
     }
   }
   const { attempt, model, solution, report, held } = solved;
@@ -259,13 +288,17 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
   // Which of the shopper's own asks cannot all be had at once, and what one
   // change would fix it (C7). Proved by re-solving without each ask, never
   // guessed, and only worth the extra solves when something is actually short.
-  const conflicts = materiallyShort(report)
+  const short = materiallyShort(report);
+  if (short) emit({ stage: "conflicts", status: "running" });
+  const conflicts = short
     ? await findConflicts({
       base,
       solve: (relaxed) => solvePlan(relaxed),
       stillShort: (r) => materiallyShort(r),
     })
     : null;
+  if (short) emit({ stage: "conflicts", status: "done", fixes: conflicts?.fixes?.length ?? 0 });
+  emit({ stage: "explain", status: "running" });
 
   const status = solution.usable ? "solved" : "infeasible";
   const explanation = {
@@ -414,6 +447,7 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
       })));
     if (itemError) throw itemError;
   }
+  emit({ stage: "stored", status: "done", planId: stored.id, planStatus: status });
 
   return {
     planId: stored.id,
@@ -664,8 +698,17 @@ export function whyNotPlanned(want, explanation = {}, days = 0) {
  *
  * @param {{ planId: string, text: string }} input
  */
-export async function planFollowUp({ planId, text }) {
+/**
+ * @param {object} input
+ * @param {string} input.planId the plan this changes
+ * @param {string} input.text the shopper's words, or the page's words for a card it built
+ * @param {object} [input.reading] a change the page built from a card (an upgrade's
+ *   swap by sku id). Given, the sentence is not read: the page already knows what it means.
+ * @param {(event: object) => void} [input.onStep] progress for /api/plan/run
+ */
+export async function planFollowUp({ planId, text, reading: given = null, onStep = null }) {
   if (!planId || !text) throw new Error("A plan id and a message are required.");
+  const emit = listener(onStep);
   const db = await getServerSupabase();
 
   const { data: plan, error } = await db
@@ -690,7 +733,8 @@ export async function planFollowUp({ planId, text }) {
   // could, and the kinds of food this shop actually shelves. Giving it the
   // lists is what lets "my wife" reach a member and "another dry fruit" a
   // category (C-interpreter).
-  const reading = await readFollowUpWithModel(text, {
+  emit({ stage: "reading", status: "running" });
+  const reading = given ? { ...readFollowUp(""), ...given, message: text } : await readFollowUpWithModel(text, {
     members: members.map((m) => ({ id: String(m.id), label: m.label ?? "someone" })),
     absent: roster.filter((r) => !members.some((m) => String(m.id) === String(r.id)))
       .map((r) => ({ id: String(r.id), label: r.label ?? "someone" })),
@@ -707,6 +751,7 @@ export async function planFollowUp({ planId, text }) {
     roster,
   }, reading, catalogue);
 
+  emit({ stage: "reading", status: "done", applied: change.applied, notApplied: change.notApplied });
   if (!change.applied.length) {
     await keepTheWording({ db, plan, text, applied: [], notApplied: change.notApplied });
     return { planId: plan.id, changed: false, applied: [], notApplied: change.notApplied };
@@ -735,6 +780,7 @@ export async function planFollowUp({ planId, text }) {
     // what decides how much of it stays.
     kitchen: { ...(snapshot.kitchen_rules ?? {}), priorities: snapshot.priorities ?? [], lastPlanSkus: [] },
     extra: { follows: plan.id, change: change.applied },
+    onStep,
   });
 
   // KOI said "Added Oats" before the solver had a say, and the basket came back

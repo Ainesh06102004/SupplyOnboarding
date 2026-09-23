@@ -45,7 +45,7 @@ const SHOP_LINKS = [
   { label: "Shop all", href: "#grid" },
   // The planner and, through the account menu, the household (§9.10.2). This
   // page renders its own header, so a link in StoreNavigation never shows here.
-  { label: "Plan the week", href: "/store/plan" },
+  { label: "Plan", href: "/store/plan" },
 ];
 
 export default function ShopPage() {

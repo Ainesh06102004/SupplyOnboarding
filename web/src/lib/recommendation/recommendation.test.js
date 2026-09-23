@@ -48,12 +48,12 @@ test("every avoid key carries a kind the database knows", () => {
   for (const a of FOODS_AVOID) assert.ok(kinds.has(a.kind), `${a.key} has kind ${a.kind}`);
 });
 
-test("the avoid keys match avoided_item after migration 00021", () => {
+test("the avoid keys match avoided_item after migration 00066", () => {
   // user_avoided_food has a foreign key to avoided_item, so a key here with no
-  // row there fails the moment a shopper saves it.
+  // row there fails the moment a shopper saves it. 00066 added onion_garlic.
   assert.deepEqual(FOODS_AVOID.map((a) => a.key).sort(), [
     "artificial_colours", "artificial_flavours", "artificial_sweeteners", "caffeine",
-    "eggs", "fish", "gluten", "high_sodium", "lactose", "milk", "palm_oil", "peanuts",
+    "eggs", "fish", "gluten", "high_sodium", "lactose", "milk", "onion_garlic", "palm_oil", "peanuts",
     "preservatives", "red_meat", "refined_sugar", "shellfish", "soy", "spicy", "tree_nuts",
   ]);
 });
