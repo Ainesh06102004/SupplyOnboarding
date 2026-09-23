@@ -47,15 +47,21 @@ function AgentRun({ run }) {
       </div>
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 7 }}>
         {run.lines.map((line) => (
-          <li key={line.id} style={{ display: "flex", gap: 9, alignItems: "flex-start", animation: "koiUp .3s ease both" }}>
+          <li key={line.id} style={{ display: "flex", gap: 9, alignItems: "flex-start", animation: "koiUp .3s ease both", marginLeft: line.nested ? 18 : 0, marginTop: line.tool ? 4 : 0 }}>
             <StateMark state={line.state} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ font: font(600, 13), color: "#fff" }}>{line.title}</div>
+              <div style={{ font: font(line.tool ? 700 : line.nested ? 500 : 600, line.nested ? 12 : 13), color: line.nested ? C.mintChip : "#fff" }}>{line.title}</div>
               {line.detail && <div style={{ font: font(500, 11, "mono"), color: C.mintMuted, marginTop: 1 }}>{line.detail}</div>}
             </div>
           </li>
         ))}
       </ol>
+      {run.explain?.length > 0 && (
+        <div style={{ marginTop: 10, background: "rgba(255,255,255,.08)", borderRadius: 12, padding: "10px 12px" }}>
+          {run.explain.map((n, i) => <p key={i} style={{ font: font(n.warn ? 600 : 500, 12), color: n.warn ? "#f5d7a1" : C.mintChip, margin: i ? "4px 0 0" : 0 }}>{n.text}</p>)}
+        </div>
+      )}
+      {run.source && run.done && <div style={{ font: font(500, 10, "mono"), color: "rgba(255,255,255,.35)", marginTop: 8 }}>{run.source === "model" ? "Read by KOI's model, done by KOI's planner" : "Read by KOI's rules, done by KOI's planner"}</div>}
       {run.draft && !run.done && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
           {run.draft.basket.slice(0, 10).map((l) => (

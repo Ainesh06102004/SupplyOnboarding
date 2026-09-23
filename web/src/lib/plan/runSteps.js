@@ -122,17 +122,49 @@ export const newRun = (kind) => ({ kind, lines: [], draft: null, result: null, e
  */
 export function reduceRun(run, message) {
   if (!message || message.type === "hello") return run;
+  // ── The agent (/api/plan/agent): steps, each done by a tool ──────────────
+  if (message.type === "agent") {
+    const steps = message.steps ?? [];
+    const line = steps.length
+      ? { id: "agent", title: steps.length === 1 ? "KOI will do one thing" : `KOI will do ${steps.length} things`, detail: steps.map((s) => s.label).join(" → "), state: "done" }
+      : { id: "agent", title: "Nothing in that for KOI to do", detail: "Try: “make it cheaper”, “no biscuits”, “plan 7 days on ₹4,000”", state: "warn" };
+    return { ...run, steps, source: message.source ?? null, lines: upsert(run.lines, line) };
+  }
+  if (message.type === "step" && message.stage === "agent") {
+    return { ...run, lines: upsert(run.lines, { id: "agent", title: "Reading what you mean", detail: null, state: "running" }) };
+  }
+  if (message.type === "step" && message.stage === "tool") {
+    const state = message.status === "running" ? "running" : message.status === "done" ? "done" : "warn";
+    return {
+      ...run,
+      toolIndex: message.index,
+      lines: upsert(run.lines, { id: `tool:${message.index}`, title: message.label, detail: message.note ?? null, state, tool: true }),
+    };
+  }
+  if (message.type === "plan_result" || message.type === "without_result" || message.type === "action") {
+    return { ...run, events: [...(run.events ?? []), message] };
+  }
+  if (message.type === "done") {
+    return { ...run, done: true, finishedAt: Date.now(), lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "done" } : l)) };
+  }
   if (message.type === "result") {
     return { ...run, result: message.payload, done: true, finishedAt: Date.now(), lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "done" } : l)) };
   }
   if (message.type === "error") {
     return { ...run, error: message.error ?? "Something went wrong.", done: true, finishedAt: Date.now(), lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "warn" } : l)) };
   }
-  const line = lineFor(message);
+  const found = lineFor(message);
   const next = { ...run };
   if (message.type === "draft") next.draft = { basket: message.basket ?? [], cost: message.cost ?? null };
-  if (!line) return next;
-  const index = run.lines.findIndex((l) => l.id === line.id);
-  next.lines = index === -1 ? [...run.lines, line] : run.lines.map((l, i) => (i === index ? line : l));
+  if (!found) return next;
+  // Inside an agent run, each step's planner lines are its own.
+  const line = run.toolIndex !== undefined ? { ...found, id: `${run.toolIndex}:${found.id}`, nested: true } : found;
+  next.lines = upsert(run.lines, line);
   return next;
+}
+
+/** Replace the line with this id in place, or add it at the end. */
+function upsert(lines, line) {
+  const index = lines.findIndex((l) => l.id === line.id);
+  return index === -1 ? [...lines, line] : lines.map((l, i) => (i === index ? line : l));
 }

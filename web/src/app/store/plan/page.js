@@ -14,7 +14,7 @@
 // screen, marked as a preview of sample numbers.
 // ============================================================================
 
-import { Suspense, useCallback } from "react";
+import { Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AccountButton from "@/components/auth/AccountButton";
 import { usePlanSession } from "@/components/store/plan/design/usePlanSession";
@@ -56,6 +56,15 @@ function Plan() {
     router.replace(`/store/plan?step=${key}`, { scroll: false });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, [router]);
+  // The agent's "show me the shop": go there once its run is over.
+  const { nav, setNav } = s;
+  useEffect(() => {
+    if (nav) {
+      go(nav);
+      setNav(null);
+    }
+  }, [nav, go, setNav]);
+
   const at = STEPS.findIndex((x) => x.key === step);
   const next = () => go(STEPS[Math.min(STEPS.length - 1, at + 1)].key);
   const back = () => go(STEPS[Math.max(0, at - 1)].key);

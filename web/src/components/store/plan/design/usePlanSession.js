@@ -23,7 +23,7 @@ import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { readFollowUp } from "@/lib/planner/followup";
 import { suggestTargets } from "@/lib/planner/goals";
 import { profileFromRow, memberPayload, avoidsPayload, blankProfile, profileProblems, profilesNamedIn, profilesNamed } from "@/lib/household/profile";
-import { categoriesFrom, enrichBasket } from "@/lib/plan/planView";
+import { categoriesFrom, enrichBasket, noteLines } from "@/lib/plan/planView";
 import { readNdjson } from "@/lib/plan/stream";
 import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
@@ -390,39 +390,73 @@ export function usePlanSession() {
     await getSupabaseClient().from("plan").delete().eq("id", requestId);
   }, [requests, showPlan]);
 
-  /** No plan yet: read who it is for, the days, the budget and any stated target, then plan. */
-  const planFromWords = useCallback(async (text) => {
-    setRun({ ...newRun("plan"), lines: [{ id: "words", title: "Reading what you asked", detail: null, state: "running" }] });
-    const response = await fetch("/api/plan/brief", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
-    const read = await response.json();
-    if (!response.ok) throw new Error(read?.error ?? "That could not be read.");
-    const draft = read.draft;
-    const asked = readFollowUp(text);
-    const daysNow = draft.days ?? asked.days ?? Number(days);
-    const budgetNow = draft.budget ?? (asked.budget.change === "set" ? asked.budget.rupees : null) ?? num(budget);
-    if (daysNow !== Number(days)) setDays(daysNow);
-    if (budgetNow !== num(budget)) setBudget(budgetNow === null ? "" : String(budgetNow));
-    const named = profilesNamedIn(text, saved);
-    const planFor = named.length ? named.map((p) => p.memberId) : picked;
-    if (named.length) setPicked(planFor);
-    const targets = {};
-    for (const t of asked.targets) {
-      for (const person of profilesNamed(t.who, saved).filter((p) => planFor.includes(p.memberId))) {
-        targets[person.memberId] = { ...(targets[person.memberId] ?? {}), [t.nutrient]: t.perDay };
+  // What the agent asked the page to do once its run is over (Phase 3).
+  const [pendingCart, setPendingCart] = useState(false);
+  const [nav, setNav] = useState(null);
+
+  /**
+   * KOI's agent (/api/plan/agent): the message read for what it means, done
+   * as steps by KOI's own tools, streamed. Each plan it makes or changes lands
+   * on the board as it arrives; the page's own tools (cart, show, explain) run
+   * when the run is over, on the plan it ended with.
+   */
+  const agent = useCallback(async (text) => {
+    const ids = picked.filter((id) => UUID.test(String(id)));
+    let current = { ...newRun("agent"), lines: [] };
+    setRun(current);
+    let latest = plan;
+    let first = true;
+    const actions = [];
+    const response = await fetch("/api/plan/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        planId: plan?.planId ?? null,
+        householdId,
+        days: Number(days),
+        budget: num(budget),
+        memberIds: ids,
+        thisWeek: Object.fromEntries(ids.map((id) => [id, choiceFor(id)])),
+      }),
+    });
+    await readNdjson(response, (message) => {
+      current = reduceRun(current, message);
+      setRun(current);
+      if (message.type === "plan_result" && message.kind === "plan") {
+        const before = latest
+          ? { basket: latest.report?.basket ?? [], cost: latest.report?.cost ?? null, label: "Your last plan" }
+          : last ? { basket: last.basket, cost: last.cost, label: "Your last plan" } : null;
+        showPlan(message.payload, before);
+        setRequests([]);
+        if (first) { setPicks({}); writePicks(householdId, {}); }
+        setDays(message.payload.days ?? days);
+        latest = message.payload;
+      } else if (message.type === "plan_result" && message.kind === "change" && message.payload.changed) {
+        const body = message.payload;
+        const basePlan = latest;
+        showPlan(body);
+        setRequests((all) => [...all, {
+          id: body.planId, text: message.text, applied: body.applied ?? [], notApplied: body.notApplied ?? [],
+          basketChange: body.basketChange ?? null, costAfter: body.report?.cost ?? null,
+          householdChanges: body.householdChanges ?? [], kind: "words", before: basePlan, undone: false,
+        }]);
+        latest = body;
+      } else if (message.type === "without_result") {
+        setWithout((w) => ({ ...w, [message.skuId]: { result: message.payload } }));
+      } else if (message.type === "action") {
+        actions.push(message);
       }
+      first = false;
+    });
+    if (current.error) throw new Error(current.error);
+    for (const a of actions) {
+      if (a.action === "cart") setPendingCart(true);
+      else if (a.action === "show") setNav(a.args?.step ?? "plan");
+      else if (a.action === "explain") setRun((r) => ({ ...r, explain: latest ? noteLines(latest) : [{ text: "There's no plan yet to explain." }] }));
     }
-    const who = named.length ? named.map((p) => p.label).join(", ") : "everyone ticked";
-    const said = Object.keys(targets).length ? `${Object.keys(targets).length} target${Object.keys(targets).length === 1 ? "" : "s"} for this plan` : null;
-    const lead = [{
-      id: "words",
-      title: "Read what you asked",
-      detail: [`${daysNow} ${daysNow === 1 ? "day" : "days"}`, budgetNow ? `₹${Number(budgetNow).toLocaleString("en-IN")}` : "no budget", who, said].filter(Boolean).join(" · "),
-      state: "done",
-    }];
-    const made = await makePlan({ daysNow, budgetNow, memberIds: planFor, targets, lead });
-    if (asked.leaveOut.length || asked.include.length || asked.swaps.length) await followUp(text, { planId: made.planId, basePlan: made });
-    return made;
-  }, [days, budget, saved, picked, makePlan, followUp]);
+    return latest;
+  }, [picked, plan, householdId, days, budget, choiceFor, last, showPlan]);
 
   /** The command bar: set up, plan, or change the plan, by what there is. */
   const command = useCallback(async (raw) => {
@@ -441,13 +475,12 @@ export function usePlanSession() {
         if (read.draft.budget) setBudget(String(read.draft.budget));
         return;
       }
-      if (mode === "ready") await planFromWords(text);
-      else await followUp(text);
+      await agent(text);
     } catch (err) {
       setError(err?.message ?? "Something went wrong.");
       setRun((r) => (r ? { ...r, done: true, error: err?.message ?? "Something went wrong." } : r));
     }
-  }, [mode, run, planFromWords, followUp]);
+  }, [mode, run, agent]);
 
   /** Keep the people a description drafted, creating the household if there is none. */
   const keepBrief = useCallback(async () => {
@@ -652,6 +685,14 @@ export function usePlanSession() {
     }
   }, [plan, products, lines, packsFor, notify]);
 
+  // "Put it in my cart" from the agent, once the plan it means is the one on screen.
+  useEffect(() => {
+    if (pendingCart && plan && lines.length) {
+      setPendingCart(false);
+      addToCart();
+    }
+  }, [pendingCart, plan, lines.length, addToCart]);
+
   const setChoice = useCallback((memberId, patch) => setThisWeek((all) => ({ ...all, [memberId]: { ...(all[memberId] ?? { dietType: null, prefer: [], skip: [] }), ...patch } })), []);
 
   return {
@@ -667,6 +708,8 @@ export function usePlanSession() {
     edges, without, seeWithout,
     // the week of dishes
     week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds,
+    // the agent's page actions
+    nav, setNav,
     // pantry / cart
     have, toggleHave, qty, setPacks, packsFor, keepInPantry, addToCart, cartResult,
     toast, notify,
