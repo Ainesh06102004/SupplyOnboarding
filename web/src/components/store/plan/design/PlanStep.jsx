@@ -24,6 +24,7 @@ import { weekBoard, peopleOf, noteLines, rupees, totalsOf } from "@/lib/plan/pla
 import ThisWeekChips from "@/components/store/plan/ThisWeekChips";
 import { C, font, cardStyle, initialsOf, inr } from "./tokens";
 import { StepHead, Footer, MonoLabel, Unverified } from "./bits";
+import WeekGrid from "./WeekGrid";
 
 const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
 const amountOf = (perDay, unit) => (perDay === null || perDay === undefined ? null : unit ? `${perDay} ${unit}` : `${perDay}`);
@@ -347,8 +348,14 @@ function Upgrades({ s }) {
 }
 
 /** The week board: slots of a day × the people eating, from the basket. */
-function WeekBoard({ s }) {
+/**
+ * What each person eats from the basket, per slot, per day. With the week of
+ * dishes on screen it folds away under the grid ("compact"): it is still where
+ * a product can be left out, asked for more of, or checked for "can't get it".
+ */
+function WeekBoard({ s, compact = false }) {
   const [menu, setMenu] = useState(null);
+  const [open, setOpen] = useState(!compact);
   const busy = Boolean(s.run && !s.run.done);
   const board = useMemo(() => (s.plan ? weekBoard(s.plan.report, s.lines, s.plan.days) : null), [s.plan, s.lines]);
   const people = board ? [...board.people].sort((a, b) => s.orderOf(a.id) - s.orderOf(b.id)) : [];
@@ -358,9 +365,26 @@ function WeekBoard({ s }) {
   const shared = (skuId) => people.filter((p) => board.rows.some((r) => (r.cells[p.id] ?? []).some((i) => i.skuId === skuId))).length;
   const tray = s.categories.filter((c) => !s.lines.some((l) => l.categoryKey === c.key)).slice(0, 7);
 
+  if (compact && !open) {
+    return (
+      <div style={{ ...cardStyle, marginBottom: 18 }}>
+        <button type="button" onClick={() => setOpen(true)} style={{ all: "unset", cursor: "pointer", display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <span style={{ font: font(700, 17) }}>From the basket, per person</span>
+          <span style={{ font: font(600, 12), color: C.accent }}>each product, a day · change one ▾</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ ...cardStyle, marginBottom: 18, opacity: busy ? 0.72 : 1, transition: "opacity .2s" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
+      {compact && (
+        <button type="button" onClick={() => setOpen(false)} style={{ all: "unset", cursor: "pointer", display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <span style={{ font: font(700, 17) }}>From the basket, per person</span>
+          <span style={{ font: font(600, 12), color: C.accent }}>▴</span>
+        </button>
+      )}
+      <div style={{ display: compact ? "none" : "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ font: font(700, 17) }}>This week</span>
           <span style={{ font: font(500, 12), color: C.faint }}>{range}</span>
@@ -489,7 +513,7 @@ function WeekBoard({ s }) {
         );
       })}
 
-      {board && <Plates s={s} board={board} />}
+      {board && !compact && <Plates s={s} board={board} />}
     </div>
   );
 }
@@ -586,7 +610,8 @@ export default function PlanStep({ s, onBack, onNext }) {
       <CommandBox s={s} />
       {s.saved.length > 0 && <ThisWeek s={s} />}
       {s.plan && <Upgrades s={s} />}
-      <WeekBoard s={s} />
+      {s.week && <WeekGrid s={s} />}
+      <WeekBoard s={s} compact={Boolean(s.week)} />
       <Gaps s={s} />
       <Footer onBack={onBack} next={{ label: "Build my pantry & cart", onClick: onNext, disabled: !s.plan }} />
     </div>

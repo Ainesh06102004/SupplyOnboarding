@@ -135,6 +135,7 @@ export default function PantryStep({ s, onBack, onNext }) {
             </div>
             <p style={{ font: font(400, 12), color: C.muted, margin: "0 0 8px" }}>Everything the plan buys, and who it&apos;s for. Untick anything you already have.</p>
             {weekly.map((l) => <Row key={l.skuId} line={l} />)}
+            <AlsoNeed s={s} />
             <p style={{ font: font(400, 11), color: C.faint, margin: "10px 0 0" }}>
               Staples you always keep in go in <Link href="/store/household" style={{ color: C.accent, fontWeight: 600 }}>your household pantry</Link> — plans won&apos;t buy them again.
             </p>
@@ -201,3 +202,46 @@ export default function PantryStep({ s, onBack, onNext }) {
 }
 
 const UUIDish = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(id));
+
+/**
+ * What the week's dishes need that the basket doesn't bring (lib/plan/schedule.js):
+ * fresh things to buy, shelf things KOI stocks but this plan didn't buy, and
+ * what a kitchen usually has. Names only — no amounts: a recipe's grams are
+ * not KOI's to invent.
+ */
+function AlsoNeed({ s }) {
+  const need = s.week?.alsoNeed;
+  if (!need || (!need.fresh.length && !need.shop.length && !need.kitchen.length)) return null;
+  const busy = Boolean(s.run && !s.run.done);
+  const Row = ({ item, action }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.divider}` }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ font: font(600, 13), color: C.ink }}>{item.ingredient}</div>
+        <div style={{ font: font(400, 11), color: C.muted }}>used in: {item.dishes.slice(0, 3).join(", ")}{item.dishes.length > 3 ? ` +${item.dishes.length - 3}` : ""} · {item.meals} {item.meals === 1 ? "meal" : "meals"}</div>
+      </div>
+      {action}
+    </div>
+  );
+  return (
+    <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${C.divider}` }}>
+      <div style={{ font: font(700, 15), marginBottom: 2 }}>You&apos;ll also need</div>
+      <p style={{ font: font(400, 12), color: C.muted, margin: "0 0 6px" }}>For the week&apos;s dishes — how much depends on your recipe.</p>
+      {need.fresh.length > 0 && <MonoLabel color={C.accent} size={9} style={{ marginTop: 8 }}>Fresh</MonoLabel>}
+      {need.fresh.map((item) => <Row key={item.ingredient} item={item} />)}
+      {need.shop.length > 0 && <MonoLabel color={C.accent} size={9} style={{ marginTop: 12 }}>KOI stocks these — not in this plan</MonoLabel>}
+      {need.shop.map((item) => (
+        <Row
+          key={item.ingredient}
+          item={item}
+          action={<button type="button" disabled={busy} onClick={() => s.command(`add ${item.ingredient.toLowerCase()}`)} style={{ cursor: busy ? "wait" : "pointer", background: C.tint2, border: `1px solid ${C.tintBorder}`, color: C.primary, borderRadius: 8, padding: "5px 10px", font: font(600, 11) }}>Ask KOI to add</button>}
+        />
+      ))}
+      {need.kitchen.length > 0 && (
+        <>
+          <MonoLabel color={C.muted} size={9} style={{ marginTop: 12 }}>Check your kitchen for</MonoLabel>
+          <p style={{ font: font(500, 12), color: C.ink2, margin: "6px 0 0" }}>{need.kitchen.map((k) => k.ingredient).join(" · ")}</p>
+        </>
+      )}
+    </div>
+  );
+}

@@ -447,7 +447,26 @@ VALUES
 ('Yam', '["yam","suran","jimikand"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
 ('Ginger', '["ginger","dry ginger","ginger powder","adrak","sonth"]', 'whole_food', 'safe', FALSE, 'A rhizome. Some Jains accept it dried; a hard diet rule errs toward excluding.'),
 ('Shallot', '["shallot"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
-('Colocasia', '["colocasia","arbi","taro"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.')
+('Colocasia', '["colocasia","arbi","taro"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
+
+-- 00067: what the Plan page's dishes are made of that the graph lacked.
+('Tomato', '["tomato","tomatoes","tamatar","tomato puree","tomato paste"]', 'whole_food', 'safe', FALSE, 'A vegetable.'),
+('Spinach', '["spinach","palak"]', 'whole_food', 'safe', FALSE, 'A leafy vegetable.'),
+('Green Peas', '["green peas","peas","matar","mutter"]', 'whole_food', 'safe', FALSE, 'A legume: excluded on a fasting day.'),
+('Cauliflower', '["cauliflower","gobi","phool gobi"]', 'whole_food', 'safe', FALSE, 'A vegetable.'),
+('Okra', '["okra","bhindi","ladyfinger","lady finger"]', 'whole_food', 'safe', FALSE, 'A vegetable.'),
+('Brinjal', '["brinjal","baingan","eggplant","aubergine"]', 'whole_food', 'safe', FALSE, 'A vegetable.'),
+('Bottle Gourd', '["bottle gourd","lauki","doodhi","ghiya"]', 'whole_food', 'safe', FALSE, 'A vegetable.'),
+('Coriander Leaves', '["coriander leaves","coriander","dhania","cilantro","hara dhania"]', 'whole_food', 'safe', FALSE, 'A herb.'),
+('Curry Leaves', '["curry leaves","kadi patta","kadhi patta"]', 'whole_food', 'safe', FALSE, 'A herb.'),
+('Cumin', '["cumin","jeera","cumin seeds","cumin powder"]', 'whole_food', 'safe', FALSE, 'A spice.'),
+('Asafoetida', '["asafoetida","hing","heeng"]', 'whole_food', 'safe', FALSE, 'Sold compounded, usually with wheat or rice flour: it can carry gluten.'),
+('Garam Masala', '["garam masala"]', 'whole_food', 'safe', FALSE, 'A blend. What is in it varies by brand and kitchen.'),
+('Flattened Rice', '["flattened rice","poha","pohe","aval","chivda","chiwda","beaten rice"]', 'whole_food', 'safe', FALSE, 'Rice, flattened.'),
+('Kidney Beans', '["kidney beans","rajma","red kidney beans"]', 'whole_food', 'safe', FALSE, 'A pulse.'),
+('Banana', '["banana","kela"]', 'whole_food', 'safe', FALSE, 'A fruit.'),
+('Apple', '["apple","seb"]', 'whole_food', 'safe', FALSE, 'A fruit.'),
+('Lemon', '["lemon","lime","nimbu","lemon juice"]', 'whole_food', 'safe', FALSE, 'A fruit.')
 
 ON CONFLICT (canonical_name) DO UPDATE SET
   aliases             = EXCLUDED.aliases,

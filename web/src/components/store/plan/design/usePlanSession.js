@@ -28,6 +28,22 @@ import { readNdjson } from "@/lib/plan/stream";
 import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { avoidsFromWords } from "@/lib/plan/restrictions";
+import { buildWeek } from "@/lib/plan/schedule";
+
+/** The shopper's own dish picks, kept in this browser, per household. */
+const WEEK_KEY = "koi_plan_week_v1";
+const readPicks = (householdId) => {
+  try {
+    return JSON.parse(window.localStorage.getItem(`${WEEK_KEY}:${householdId}`) ?? "{}") ?? {};
+  } catch {
+    return {};
+  }
+};
+const writePicks = (householdId, picks) => {
+  try {
+    window.localStorage.setItem(`${WEEK_KEY}:${householdId}`, JSON.stringify(picks));
+  } catch { /* private mode: picks last for this visit */ }
+};
 import { MEMBER_COLORS } from "./tokens";
 
 const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
@@ -62,7 +78,7 @@ async function readHousehold() {
   if (!user) return { user: null, household: null, profiles: [], last: null };
   const { data: household, error } = await supabase
     .from("household")
-    .select(`id, keep_out, household_member(${MEMBER_FIELDS})`)
+    .select(`id, keep_out, repeat_tolerance, household_member(${MEMBER_FIELDS})`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -123,6 +139,8 @@ export function usePlanSession() {
   const [have, setHave] = useState(() => new Set());
   const [qty, setQty] = useState({});
   const [cartResult, setCartResult] = useState(null);
+  const [repeat, setRepeat] = useState("usual");
+  const [picks, setPicks] = useState({});
   const timers = useRef({});
   const draftSeq = useRef(1);
   const toastTimer = useRef(null);
@@ -142,6 +160,8 @@ export function usePlanSession() {
     setSession(read.user);
     if (read.error) setError(read.error);
     setHouseholdId(read.household?.id ?? null);
+    setRepeat(read.household?.repeat_tolerance ?? "usual");
+    if (read.household?.id) setPicks(readPicks(read.household.id));
     setProfiles(read.profiles);
     setLast(read.last);
     setActiveKey((key) => (key && read.profiles.some((p) => p.memberId === key) ? key : read.profiles.find((p) => p.is_account_holder)?.memberId ?? read.profiles[0]?.memberId ?? null));
@@ -329,6 +349,9 @@ export function usePlanSession() {
     }, "plan", lead);
     showPlan(made, before);
     setRequests([]);
+    // A new plan is a new week: yesterday's dish picks don't carry over.
+    setPicks({});
+    writePicks(householdId, {});
     return made;
   }, [days, budget, picked, householdId, plan, last, stream, choiceFor, showPlan]);
 
@@ -515,6 +538,40 @@ export function usePlanSession() {
 
   const lines = useMemo(() => enrichBasket(plan?.report?.basket ?? [], products), [plan?.report?.basket, products]);
 
+  // The week of dishes over the basket (lib/plan/schedule.js): the people in
+  // this plan, their own picks on top.
+  const eating = useMemo(() => {
+    const ids = new Set((plan?.report?.perMember ?? []).map((m) => String(m.id)));
+    return profiles.filter((p) => p.memberId && ids.has(String(p.memberId)));
+  }, [plan?.report?.perMember, profiles]);
+  const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat }) : null), [plan, lines, eating, picks, repeat]);
+
+  /** Put these dishes in this cell (a swap from the menu). */
+  const pickDishes = useCallback((cellKey, dishKeys) => setPicks((all) => {
+    const next = { ...all, [cellKey]: { dishes: dishKeys } };
+    if (householdId) writePicks(householdId, next);
+    return next;
+  }), [householdId]);
+
+  /** Swap two cells' meals (drag and drop). */
+  const swapCells = useCallback((a, b) => {
+    if (!week || a === b) return;
+    const dishesOf = (key) => week.cells[key]?.shared?.dishes?.map((x) => x.key) ?? null;
+    const da = dishesOf(a);
+    const db = dishesOf(b);
+    if (!da || !db) return;
+    setPicks((all) => {
+      const next = { ...all, [a]: { dishes: db }, [b]: { dishes: da } };
+      if (householdId) writePicks(householdId, next);
+      return next;
+    });
+  }, [week, householdId]);
+
+  const clearPicks = useCallback(() => {
+    setPicks({});
+    if (householdId) writePicks(householdId, {});
+  }, [householdId]);
+
   /** Packs of a line going to the cart: the plan's, unless the shopper changed it here. */
   const packsFor = useCallback((line) => (have.has(String(line.skuId)) ? 0 : qty[String(line.skuId)] ?? line.packs), [have, qty]);
 
@@ -580,6 +637,8 @@ export function usePlanSession() {
     // plan
     mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, keepBrief, saveHouseholdChanges,
     edges, without, seeWithout,
+    // the week of dishes
+    week, eating, picks, pickDishes, swapCells, clearPicks,
     // pantry / cart
     have, toggleHave, qty, setPacks, packsFor, keepInPantry, addToCart, cartResult,
     toast, notify,
