@@ -249,10 +249,10 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       });
   }
 
-  /** The staples a dish needs that this basket doesn't have ("needs kidney beans"). */
+  /** The staples a dish needs that this basket doesn't have ("needs kidney beans"), as recipe lines. */
   const staplesMissing = (dishKey) => (byDish.get(dishKey)?.lines ?? [])
     .filter((l) => isAnchor(l) && !suppliersOf(l, basket).length)
-    .map((l) => l.ingredient);
+    .map((l) => ({ ingredient: l.ingredient, category: l.category, anyOfShelf: l.anyOfShelf, anchor: true }));
 
   return { days: dayList, slots, cells, additions, perServing, staplesMissing, usesFor: (dishKey, memberId) => usesFor(byDish.get(dishKey), memberId) ?? [], alsoNeed: alsoNeed(cells, byDish, basket) };
 }
@@ -268,7 +268,11 @@ function alsoNeed(cells, byDish, basket) {
         const supplied = line.supply === "shelf" && suppliersOf(line, basket).length > 0;
         if (supplied) continue;
         const kind = line.supply === "shelf" ? "shop" : line.supply;
-        const entry = need.get(line.ingredient) ?? { ingredient: line.ingredient, kind, category: line.category, dishes: new Set(), meals: 0 };
+        const entry = need.get(line.ingredient) ?? {
+          ingredient: line.ingredient, kind, category: line.category, anyOfShelf: line.anyOfShelf,
+          anchor: isAnchor(line), dishes: new Set(), meals: 0,
+        };
+        entry.anchor = entry.anchor || isAnchor(line);
         entry.dishes.add(dish.name);
         entry.meals += 1;
         need.set(line.ingredient, entry);
@@ -281,6 +285,23 @@ function alsoNeed(cells, byDish, basket) {
     kitchen: list.filter((e) => e.kind === "kitchen"),
     shop: list.filter((e) => e.kind === "shop"),
   };
+}
+
+/**
+ * The product KOI stocks for each thing the menu needs from a shelf: on that
+ * shelf, and named for the ingredient unless any product there will do. The
+ * cheapest pack is offered; the planner decides how many.
+ * @param {Array<{ingredient, category, anyOfShelf}>} needs week.alsoNeed.shop
+ * @param {Array} products fetchAllProducts()
+ * @returns {Array<{ need, product: object|null }>}
+ */
+export function productsFor(needs = [], products = []) {
+  return needs.map((need) => {
+    const candidates = products.filter((p) => p.skuId && p.categoryKey === need.category && Number(p.price) > 0
+      && (need.anyOfShelf || ingredientsIn(p.name).has(need.ingredient)));
+    candidates.sort((a, b) => Number(a.price) - Number(b.price));
+    return { need, product: candidates[0] ?? null };
+  });
 }
 
 /**

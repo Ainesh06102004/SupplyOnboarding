@@ -79,7 +79,8 @@ export function readPlanRequest(body) {
  * swaps by SKU id (an upgrade card). Anything else in it is dropped.
  *
  * @param {object|null|undefined} reading
- * @returns {{ swaps: { from: string, to: string, fromSku: string, toSku: string }[] } | null}
+ * and products to include by SKU id (the week's menu asking for its staples).
+ * @returns {{ swaps: { from: string, to: string, fromSku: string, toSku: string }[], includeSkus: string[] } | null}
  */
 export function readStructuredChange(reading) {
   if (!reading || typeof reading !== "object") return null;
@@ -92,5 +93,9 @@ export function readStructuredChange(reading) {
       from: String(s.from ?? "").slice(0, 80),
       to: String(s.to ?? "").slice(0, 80),
     }));
-  return swaps.length ? { swaps } : null;
+  const includeSkus = [...new Set((Array.isArray(reading.includeSkus) ? reading.includeSkus : [])
+    .map(String)
+    .filter((id) => SKU_ID.test(id)))]
+    .slice(0, 8);
+  return swaps.length || includeSkus.length ? { swaps, includeSkus } : null;
 }

@@ -228,14 +228,27 @@ function AlsoNeed({ s }) {
       <p style={{ font: font(400, 12), color: C.muted, margin: "0 0 6px" }}>For the week&apos;s dishes — how much depends on your recipe.</p>
       {need.fresh.length > 0 && <MonoLabel color={C.accent} size={9} style={{ marginTop: 8 }}>Fresh</MonoLabel>}
       {need.fresh.map((item) => <Row key={item.ingredient} item={item} />)}
-      {need.shop.length > 0 && <MonoLabel color={C.accent} size={9} style={{ marginTop: 12 }}>KOI stocks these — not in this plan</MonoLabel>}
-      {need.shop.map((item) => (
+      {s.menuNeeds.stocked.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+          <MonoLabel color={C.accent} size={9}>KOI stocks these — not in this plan</MonoLabel>
+          {s.menuNeeds.stocked.length > 1 && (
+            <button type="button" disabled={busy} onClick={() => s.buyForMenu(s.menuNeeds.stocked).catch((e) => s.setError(e?.message))} style={{ cursor: busy ? "wait" : "pointer", background: "none", border: "none", color: C.accent, font: font(600, 11) }}>Add all to the plan</button>
+          )}
+        </div>
+      )}
+      {s.menuNeeds.stocked.map((item) => (
         <Row
           key={item.ingredient}
           item={item}
-          action={<button type="button" disabled={busy} onClick={() => s.command(`add ${item.ingredient.toLowerCase()}`)} style={{ cursor: busy ? "wait" : "pointer", background: C.tint2, border: `1px solid ${C.tintBorder}`, color: C.primary, borderRadius: 8, padding: "5px 10px", font: font(600, 11) }}>Ask KOI to add</button>}
+          action={<button type="button" disabled={busy} onClick={() => s.buyForMenu([item]).catch((e) => s.setError(e?.message))} style={{ cursor: busy ? "wait" : "pointer", background: C.tint2, border: `1px solid ${C.tintBorder}`, color: C.primary, borderRadius: 8, padding: "5px 10px", font: font(600, 11) }}>{busy ? "Adding…" : "Add to the plan"}</button>}
         />
       ))}
+      {s.menuNeeds.notStocked.length > 0 && (
+        <>
+          <MonoLabel color={C.muted} size={9} style={{ marginTop: 12 }}>KOI doesn&apos;t stock these yet — buy them fresh</MonoLabel>
+          {s.menuNeeds.notStocked.map((item) => <Row key={item.ingredient} item={item} />)}
+        </>
+      )}
       {need.kitchen.length > 0 && (
         <>
           <MonoLabel color={C.muted} size={9} style={{ marginTop: 12 }}>Check your kitchen for</MonoLabel>

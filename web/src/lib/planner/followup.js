@@ -703,6 +703,24 @@ export function applyFollowUp(plan, reading, catalogue) {
     applied.push(`Left out ${categoryWords(key)}`);
   }
 
+  // Products the page names by id: the week's menu asking for what its dishes
+  // need (Plan page, slice 2b). An id is exact, so there is no word to read.
+  for (const id of reading.includeSkus ?? []) {
+    const hit = bySku(id)[0];
+    if (!hit) {
+      notApplied.push("A product the menu asked for is not in the shop right now");
+      continue;
+    }
+    if (excluded.has(hit.skuId)) {
+      notApplied.push(`${hit.name} was left out of this plan, so it was not added back`);
+      continue;
+    }
+    included.add(hit.skuId);
+    const line = `Added ${hit.name} for your menu`;
+    applied.push(line);
+    wants.push({ skuId: hit.skuId, name: hit.name, line });
+  }
+
   for (const key of reading.includeCategories ?? []) {
     const hits = catalogue.filter((item) => inThisCategory(item.categoryKey, key) && !excluded.has(item.skuId));
     if (!hits.length) {

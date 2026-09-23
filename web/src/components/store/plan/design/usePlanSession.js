@@ -28,7 +28,7 @@ import { readNdjson } from "@/lib/plan/stream";
 import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { avoidsFromWords } from "@/lib/plan/restrictions";
-import { buildWeek } from "@/lib/plan/schedule";
+import { buildWeek, productsFor } from "@/lib/plan/schedule";
 
 /** The shopper's own dish picks, kept in this browser, per household. */
 const WEEK_KEY = "koi_plan_week_v1";
@@ -567,6 +567,34 @@ export function usePlanSession() {
     });
   }, [week, householdId]);
 
+  /**
+   * The menu drives the basket (slice 2b): add the products KOI stocks for
+   * what the week's dishes need and the basket lacks, by SKU id, and re-solve.
+   * The planner decides how many packs; the dish picks stay.
+   */
+  const buyForMenu = useCallback(async (needs) => {
+    const found = productsFor(needs, products);
+    const ids = found.filter((f) => f.product).map((f) => f.product.skuId);
+    const none = found.filter((f) => !f.product).map((f) => f.need.ingredient);
+    if (!ids.length) {
+      notify(`KOI doesn't stock ${none.join(", ")} yet.`, "warn");
+      return null;
+    }
+    const names = found.filter((f) => f.product).map((f) => f.need.ingredient.toLowerCase());
+    const body = await followUp(`Add what my menu needs: ${names.join(", ")}`.slice(0, 200), { reading: { includeSkus: ids } });
+    if (none.length) notify(`KOI doesn't stock ${none.join(", ")} yet — buy it fresh.`, "warn");
+    return body;
+  }, [products, followUp, notify]);
+
+  /** What the menu needs from a shelf, split by whether KOI stocks it. */
+  const menuNeeds = useMemo(() => {
+    const found = productsFor(week?.alsoNeed?.shop ?? [], products);
+    return {
+      stocked: found.filter((f) => f.product).map((f) => ({ ...f.need, product: f.product })),
+      notStocked: found.filter((f) => !f.product).map((f) => f.need),
+    };
+  }, [week, products]);
+
   const clearPicks = useCallback(() => {
     setPicks({});
     if (householdId) writePicks(householdId, {});
@@ -638,7 +666,7 @@ export function usePlanSession() {
     mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, keepBrief, saveHouseholdChanges,
     edges, without, seeWithout,
     // the week of dishes
-    week, eating, picks, pickDishes, swapCells, clearPicks,
+    week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds,
     // pantry / cart
     have, toggleHave, qty, setPacks, packsFor, keepInPantry, addToCart, cartResult,
     toast, notify,

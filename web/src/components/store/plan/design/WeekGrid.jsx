@@ -10,7 +10,7 @@
 // on the plates are the planner's own shares, spread over the meals.
 
 import { useEffect, useMemo, useState } from "react";
-import { alternativesFor, SLOT_LABELS } from "@/lib/plan/schedule";
+import { alternativesFor, productsFor, SLOT_LABELS } from "@/lib/plan/schedule";
 import { peopleOf } from "@/lib/plan/planView";
 import { goalShortLabel } from "@/lib/plan/goalCards";
 import { C, font, cardStyle, initialsOf, inr } from "./tokens";
@@ -81,6 +81,22 @@ export default function WeekGrid({ s }) {
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.blueBg, border: `1px solid ${C.blueBorder}` }} /><span style={{ font: font(500, 11), color: C.ink2 }}>{s.active?.label === "Me" ? "Your" : `${s.active?.label ?? "Their"}'s`} addition <span style={{ color: C.faint }}>— on that plate only</span></span></span>
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.redBg, border: "1px solid #e8bfb8" }} /><span style={{ font: font(500, 11), color: C.ink2 }}>Left out for them</span></span>
       </div>
+
+      {s.menuNeeds.stocked.some((n) => n.anchor) && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10, padding: "12px 14px", background: C.warmBg, border: "1px solid #f0d2bf", borderRadius: 12, flexWrap: "wrap" }}>
+          <span style={{ font: font(500, 13), color: C.ink }}>
+            Your menu needs <strong>{s.menuNeeds.stocked.filter((n) => n.anchor).map((n) => n.ingredient.toLowerCase()).join(", ")}</strong> — KOI stocks it, and this plan didn&apos;t buy it.
+          </span>
+          <button type="button" disabled={busy} onClick={() => s.buyForMenu(s.menuNeeds.stocked.filter((n) => n.anchor)).catch((e) => s.setError(e?.message))} style={{ cursor: busy ? "wait" : "pointer", background: C.primary, color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", font: font(600, 12) }}>
+            Add it to the plan
+          </button>
+        </div>
+      )}
+      {s.menuNeeds.notStocked.some((n) => n.anchor) && (
+        <div style={{ marginBottom: 14, padding: "10px 14px", background: C.note, borderRadius: 12, font: font(500, 12), color: C.ink2 }}>
+          Your menu needs <strong>{s.menuNeeds.notStocked.filter((n) => n.anchor).map((n) => n.ingredient.toLowerCase()).join(", ")}</strong>, which KOI doesn&apos;t stock yet — buy it where you shop for fresh things, or swap the dish.
+        </div>
+      )}
 
       <div className="koi-plan-grid-wrap">
         <div style={{ display: "grid", gridTemplateColumns: cols, gap: 7, minWidth, marginBottom: 7 }}>
@@ -172,9 +188,16 @@ export default function WeekGrid({ s }) {
               style={{ all: "unset", cursor: "pointer", display: "block", width: "100%", boxSizing: "border-box", padding: "7px 10px", font: font(500, 12), color: C.ink, borderRadius: 8 }}
             >
               {alt.name} <span style={{ font: font(500, 10, "mono"), color: C.faint }}>{alt.kind === "base" ? "base" : alt.kind === "main" ? "main" : ""}</span>
-              {week.staplesMissing(alt.key).length > 0 && (
-                <span style={{ display: "block", font: font(500, 10), color: C.warm }}>needs {week.staplesMissing(alt.key).join(", ").toLowerCase()} — not in this plan</span>
-              )}
+              {(() => {
+                const missing = week.staplesMissing(alt.key);
+                if (!missing.length) return null;
+                const stocked = productsFor(missing, s.products).every((f) => f.product);
+                return (
+                  <span style={{ display: "block", font: font(500, 10), color: C.warm }}>
+                    needs {missing.map((m) => m.ingredient.toLowerCase()).join(", ")} — {stocked ? "KOI can add it" : "KOI doesn't stock it yet"}
+                  </span>
+                );
+              })()}
             </button>
           ))}
           {s.picks[openCell.key] && (

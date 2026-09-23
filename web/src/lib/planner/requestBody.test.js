@@ -26,5 +26,11 @@ test("a structured change carries swaps by SKU id and nothing else", () => {
   assert.equal(readStructuredChange(null), null);
   assert.equal(readStructuredChange({ budget: 5 }), null);
   const read = readStructuredChange({ swaps: [{ fromSku: "a1", toSku: "b2", from: "Oats", to: "Muesli" }, { fromSku: "x", toSku: "x" }, { fromSku: "bad id!", toSku: "c" }] });
-  assert.deepEqual(read, { swaps: [{ fromSku: "a1", toSku: "b2", from: "Oats", to: "Muesli" }] });
+  assert.deepEqual(read, { swaps: [{ fromSku: "a1", toSku: "b2", from: "Oats", to: "Muesli" }], includeSkus: [] });
+});
+
+test("a menu's staples come in by SKU id, bounded, and nothing else rides along", () => {
+  const read = readStructuredChange({ includeSkus: ["rajma-1", "rajma-1", "bad id!", "ghee-2"], budget: 1 });
+  assert.deepEqual(read, { swaps: [], includeSkus: ["rajma-1", "ghee-2"] });
+  assert.equal(readStructuredChange({ includeSkus: Array.from({ length: 20 }, (_, i) => `s${i}`) }).includeSkus.length, 8);
 });

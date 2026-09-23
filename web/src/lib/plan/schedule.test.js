@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { DISHES } from "@/lib/food/dishData";
 import { dishFacts, dishFor, refusalsOf } from "@/lib/food/dishes";
-import { buildWeek, alternativesFor, SLOT_KEYS } from "./schedule";
+import { buildWeek, alternativesFor, productsFor, SLOT_KEYS } from "./schedule";
 
 const dish = (key) => DISHES.find((d) => d.key === key);
 
@@ -155,6 +155,20 @@ test("two products on the same shelf both go into the dish", () => {
   const week = buildWeek({ report: r, lines: twoRices, people, days: 7, start });
   assert.ok(!week.additions.me.some((a) => a.skuId === "basmati"));
   assert.ok(week.perServing("me", "basmati")?.amount > 0);
+});
+
+test("a picked dish's missing staple is listed, and the shop's product for it found", () => {
+  const week = buildWeek({ report, lines, people, days: 7, start, overrides: { "0:lunch": { dishes: ["steamed_rice", "rajma"] } } });
+  const rajma = week.alsoNeed.shop.find((n) => n.ingredient === "Kidney Beans");
+  assert.ok(rajma && rajma.anchor, "rajma needs kidney beans, which the basket doesn't have");
+  const shelf = [
+    { skuId: "k1", name: "Chitra Rajma", categoryKey: "staples.pulses", price: 180 },
+    { skuId: "k2", name: "Red Kidney Beans", categoryKey: "staples.pulses", price: 150 },
+    { skuId: "m1", name: "Moong Dal", categoryKey: "staples.pulses", price: 90 },
+  ];
+  const [found] = productsFor([rajma], shelf);
+  assert.equal(found.product.skuId, "k2", "the cheapest product that is kidney beans, not the cheapest pulse");
+  assert.equal(productsFor([rajma], [])[0].product, null);
 });
 
 test("days are the shopper's own calendar days", () => {
