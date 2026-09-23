@@ -105,7 +105,11 @@ export function peopleOf(report = {}, days = 7) {
     const perDay = { kcal: per(m.achieved?.kcal), protein: per(m.achieved?.protein) };
     const target = { kcal: per(m.asked?.kcal), protein: per(m.asked?.protein) };
     const cover = (got, want) => (isNum(got) && isNum(want) && want > 0 ? Math.min(100, Math.round((got / want) * 100)) : null);
-    const short = Object.entries(m.shortfall ?? {}).map(([nutrient, amount]) => ({ nutrient, perDay: round(Number(amount) / d) }));
+    // A shortfall under one unit a day is the solver's rounding, not a miss a
+    // person would notice; "short 0 kcal a day" would only confuse.
+    const short = Object.entries(m.shortfall ?? {})
+      .map(([nutrient, amount]) => ({ nutrient, perDay: round(Number(amount) / d) }))
+      .filter((x) => x.perDay >= 1);
     return {
       id: m.id,
       label: m.label ?? "Someone",

@@ -22,7 +22,7 @@ import { swapsFor } from "@/lib/food/swaps";
 import { goalShortLabel } from "@/lib/plan/goalCards";
 import { weekBoard, peopleOf, noteLines, rupees, totalsOf } from "@/lib/plan/planView";
 import ThisWeekChips from "@/components/store/plan/ThisWeekChips";
-import { C, font, cardStyle, MEMBER_COLORS, initialsOf, inr } from "./tokens";
+import { C, font, cardStyle, initialsOf, inr } from "./tokens";
 import { StepHead, Footer, MonoLabel, Unverified } from "./bits";
 
 const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
@@ -159,7 +159,7 @@ function CommandBox({ s }) {
               const cost = Number.isFinite(Number(before)) && Number.isFinite(Number(r.costAfter)) ? `${rupees(before)} → ${rupees(r.costAfter)}` : null;
               return (
                 <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", borderRadius: 999, padding: "7px 9px 7px 13px" }}>
-                  <span style={{ font: font(600, 12), color: C.ink }}>{r.applied.length ? r.applied.slice(0, 2).join(" · ") : r.text}</span>
+                  <span style={{ font: font(600, 12), color: C.ink }}>{r.applied.length ? r.applied.slice(0, 2).join(" · ") : `Tried: ${r.text}`}</span>
                   {cost && <span style={{ font: font(500, 11, "mono"), color: C.accent }}>{cost}</span>}
                   {r.householdChanges?.length > 0 && !r.savedToHousehold && (
                     <button type="button" onClick={() => s.saveHouseholdChanges(r.id)} style={{ cursor: "pointer", border: "none", background: C.tint, color: C.primary, borderRadius: 999, padding: "2px 8px", font: font(600, 11) }}>Save to household</button>
@@ -245,16 +245,28 @@ function ThisWeek({ s }) {
 /** Swaps the substitution graph can show a figure for, one per basket line. */
 function Upgrades({ s }) {
   const busy = Boolean(s.run && !s.run.done);
+  // A swap is only offered into a product this plan could actually use: not
+  // one it kept out of the house, one no one here can eat, one it cannot
+  // measure or price, or one it left out for its size or price. Offering one
+  // of those took the old product out and put nothing in.
+  const barred = useMemo(() => {
+    const e = s.plan?.explanation ?? {};
+    return new Set([
+      ...(e.products_kept_out ?? []), ...(e.products_refused ?? []), ...(e.products_not_plannable ?? []),
+      ...(e.products_too_big ?? []), ...(e.products_priced_out ?? []),
+    ].map((x) => String(x.skuId)));
+  }, [s.plan?.explanation]);
   const cards = useMemo(() => {
     const out = [];
     for (const line of s.lines) {
       if (!line.product) continue;
-      const [top] = swapsFor({ product: line.product, edges: s.edges.filter((e) => String(e.from_sku) === String(line.skuId)), catalogue: s.products, max: 1 });
+      const edges = s.edges.filter((e) => String(e.from_sku) === String(line.skuId) && !barred.has(String(e.to_sku)));
+      const [top] = swapsFor({ product: line.product, edges, catalogue: s.products, max: 1 });
       if (top && !s.lines.some((l) => String(l.skuId) === String(top.skuId))) out.push({ line, swap: top });
       if (out.length >= 4) break;
     }
     return out;
-  }, [s.lines, s.edges, s.products]);
+  }, [s.lines, s.edges, s.products, barred]);
   const swappedIn = s.requests.filter((r) => !r.undone && r.kind === "upgrade").length;
   const totals = totalsOf(s.plan);
   const protein = s.lines.reduce((sum, l) => sum + (Number(l.supplies?.protein) || 0), 0);
@@ -339,10 +351,11 @@ function WeekBoard({ s }) {
   const [menu, setMenu] = useState(null);
   const busy = Boolean(s.run && !s.run.done);
   const board = useMemo(() => (s.plan ? weekBoard(s.plan.report, s.lines, s.plan.days) : null), [s.plan, s.lines]);
+  const people = board ? [...board.people].sort((a, b) => s.orderOf(a.id) - s.orderOf(b.id)) : [];
   const start = new Date();
   const end = new Date(start.getTime() + ((s.plan?.days ?? s.days) - 1) * 86400000);
   const range = `${start.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – ${end.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`;
-  const shared = (skuId) => board?.people.filter((p) => board.rows.some((r) => (r.cells[p.id] ?? []).some((i) => i.skuId === skuId))).length ?? 0;
+  const shared = (skuId) => people.filter((p) => board.rows.some((r) => (r.cells[p.id] ?? []).some((i) => i.skuId === skuId))).length;
   const tray = s.categories.filter((c) => !s.lines.some((l) => l.categoryKey === c.key)).slice(0, 7);
 
   return (
@@ -379,19 +392,19 @@ function WeekBoard({ s }) {
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.redBg, border: "1px solid #e8bfb8" }} /><span style={{ font: font(500, 11), color: C.ink2 }}>Not for them</span></span>
           </div>
           <div className="koi-plan-grid-wrap">
-            <div style={{ display: "grid", gridTemplateColumns: `96px repeat(${board.people.length}, minmax(150px, 1fr))`, gap: 7, minWidth: 96 + board.people.length * 157, marginBottom: 7 }}>
+            <div style={{ display: "grid", gridTemplateColumns: `96px repeat(${people.length}, minmax(150px, 1fr))`, gap: 7, minWidth: 96 + people.length * 157, marginBottom: 7 }}>
               <div />
-              {board.people.map((p, i) => (
+              {people.map((p, i) => (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "center", font: font(600, 12), color: C.ink2, padding: "6px 0" }}>
-                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: MEMBER_COLORS[i % MEMBER_COLORS.length], color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 8, "num") }}>{initialsOf(p.label)}</span>
+                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: s.colourFor(p.id), color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 8, "num") }}>{initialsOf(p.label)}</span>
                   {p.label} <span style={{ font: font(500, 10, "mono"), color: C.faint }}>/ day</span>
                 </div>
               ))}
             </div>
             {board.rows.map((row) => (
-              <div key={row.key} style={{ display: "grid", gridTemplateColumns: `96px repeat(${board.people.length}, minmax(150px, 1fr))`, gap: 7, minWidth: 96 + board.people.length * 157, marginBottom: 7, alignItems: "stretch" }}>
+              <div key={row.key} style={{ display: "grid", gridTemplateColumns: `96px repeat(${people.length}, minmax(150px, 1fr))`, gap: 7, minWidth: 96 + people.length * 157, marginBottom: 7, alignItems: "stretch" }}>
                 <div style={{ display: "flex", alignItems: "center", font: font(600, 12), color: C.ink2 }}>{row.label}</div>
-                {board.people.map((p) => {
+                {people.map((p) => {
                   const items = row.cells[p.id] ?? [];
                   return (
                     <div key={p.id} style={{ position: "relative", background: items.length ? "#fff" : C.surface2, border: `1px solid ${C.line2}`, borderRadius: 11, padding: 9, minHeight: 58, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -430,9 +443,9 @@ function WeekBoard({ s }) {
               </div>
             ))}
             {(s.plan.report.whoEatsWhat ?? []).some((w) => (w.notForThem ?? []).length) && (
-              <div style={{ display: "grid", gridTemplateColumns: `96px repeat(${board.people.length}, minmax(150px, 1fr))`, gap: 7, minWidth: 96 + board.people.length * 157 }}>
+              <div style={{ display: "grid", gridTemplateColumns: `96px repeat(${people.length}, minmax(150px, 1fr))`, gap: 7, minWidth: 96 + people.length * 157 }}>
                 <div style={{ display: "flex", alignItems: "center", font: font(600, 12), color: C.ink2 }}>Not for them</div>
-                {board.people.map((p) => {
+                {people.map((p) => {
                   const w = s.plan.report.whoEatsWhat.find((x) => String(x.member) === String(p.id));
                   return (
                     <div key={p.id} style={{ background: C.redBg, border: "1px solid #e8bfb8", borderRadius: 11, padding: 9, display: "flex", flexDirection: "column", gap: 3 }}>
@@ -482,7 +495,7 @@ function WeekBoard({ s }) {
 }
 
 function Plates({ s, board }) {
-  const people = peopleOf(s.plan.report, s.plan.days);
+  const people = peopleOf(s.plan.report, s.plan.days).sort((a, b) => s.orderOf(a.id) - s.orderOf(b.id));
   const activeId = s.active?.memberId;
   const me = people.find((p) => String(p.id) === String(activeId)) ?? people[0];
   const favCount = (s.active?.favourite_categories ?? []).length;
@@ -495,7 +508,7 @@ function Plates({ s, board }) {
           const items = board.rows.flatMap((row) => (row.cells[p.id] ?? []).map((item) => ({ slot: row.label, name: item.name, amount: amountOf(item.perDay, item.unit) })));
           return (
             <div key={p.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.divider}` }}>
-              <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 10, "num"), color: "#fff", flex: "none", background: MEMBER_COLORS[i % MEMBER_COLORS.length] }}>{initialsOf(p.label)}</span>
+              <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 10, "num"), color: "#fff", flex: "none", background: s.colourFor(p.id) }}>{initialsOf(p.label)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ font: font(600, 12), color: C.ink }}>{p.label}</span>
@@ -512,7 +525,7 @@ function Plates({ s, board }) {
               </div>
               <div style={{ textAlign: "right", flex: "none" }}>
                 <div style={{ font: font(700, 13, "num"), color: C.ink }}>{p.perDay.kcal !== null ? inr(p.perDay.kcal) : "—"}</div>
-                <div style={{ font: font(500, 9, "mono"), color: C.muted }}>kcal / {p.target.kcal ? inr(p.target.kcal) : "—"}</div>
+                <div style={{ font: font(500, 9, "mono"), color: C.muted }}>{p.target.kcal ? `kcal / ${inr(p.target.kcal)}` : "kcal a day"}</div>
               </div>
             </div>
           );

@@ -76,7 +76,7 @@ export default function Header({ step, onStep, profiles, activeKey, onActive, ke
                 <span style={{ lineHeight: 1.1, textAlign: "left" }}>
                   <span style={{ display: "block", font: font(600, 12), color: on ? C.ink : C.ink2 }}>{p.label || "New member"}</span>
                   <span style={{ display: "block", font: font(500, 10, "mono"), color: status === "incomplete" || !p.memberId ? C.warm : C.faint }}>
-                    {!p.memberId ? (status === "saving" ? "saving…" : "needs details") : `${goalShortLabel(p)} · ${p.target_kcal ? inr(p.target_kcal) : "—"}`}
+                    {!p.memberId ? (status === "saving" ? "saving…" : "needs details") : `${goalShortLabel(p)} · ${p.target_kcal ? `${inr(p.target_kcal)} kcal` : p.target_protein_g ? `${p.target_protein_g} g protein` : "no target"}`}
                   </span>
                 </span>
               </button>

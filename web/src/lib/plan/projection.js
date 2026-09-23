@@ -52,13 +52,16 @@ export function dailyFigures(form = {}) {
   if (!suggested) return null;
   const kcal = isNum(form.target_kcal) ? Number(form.target_kcal) : suggested.kcal;
   const protein = isNum(form.target_protein_g) ? Number(form.target_protein_g) : suggested.protein;
+  // "Stated" is the shopper's own figure; a stored suggestion (mifflin_st_jeor,
+  // icmr_nin_2020) is still KOI's, even though it has a value.
+  const stated = form.target_source === "stated";
   return {
     maintenance: maintenance?.kcal ?? null,
     maintenanceSource: maintenance?.source ?? null,
     kcal,
     protein,
-    kcalStated: isNum(form.target_kcal),
-    proteinStated: isNum(form.target_protein_g),
+    kcalStated: stated && isNum(form.target_kcal),
+    proteinStated: stated && isNum(form.target_protein_g),
     suggested,
     gap: isNum(maintenance?.kcal) && isNum(kcal) ? Math.round(maintenance.kcal - kcal) : null,
   };

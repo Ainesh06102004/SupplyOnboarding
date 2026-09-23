@@ -87,9 +87,10 @@ test("a target the other way from the goal is said, not drawn", () => {
   assert.match(p.note, /above your weight/);
 });
 
-test("a stated target wins over the suggestion", () => {
-  assert.equal(dailyFigures({ ...adult, target_kcal: "2100" }).kcal, 2100);
-  assert.equal(dailyFigures({ ...adult, target_kcal: "2100" }).kcalStated, true);
+test("a stated target wins over the suggestion, and a stored suggestion is not called stated", () => {
+  assert.equal(dailyFigures({ ...adult, target_kcal: "2100", target_source: "stated" }).kcal, 2100);
+  assert.equal(dailyFigures({ ...adult, target_kcal: "2100", target_source: "stated" }).kcalStated, true);
+  assert.equal(dailyFigures({ ...adult, target_kcal: "2740", target_source: "mifflin_st_jeor" }).kcalStated, false);
 });
 
 // ── plan view ─────────────────────────────────────────────────────────────
@@ -119,6 +120,12 @@ test("people are shown per day, and a shortfall per day", () => {
   assert.equal(me.coverage.kcal, 95);
   assert.deepEqual(me.short, [{ nutrient: "kcal", perDay: 100 }]);
   assert.equal(me.met, false);
+});
+
+test("a shortfall under one a day is rounding, not a miss", () => {
+  const [me] = peopleOf({ perMember: [{ id: "m1", label: "Me", asked: { kcal: 14000 }, achieved: { kcal: 13997 }, shortfall: { kcal: 3 } }] }, 7);
+  assert.deepEqual(me.short, []);
+  assert.equal(me.met, true);
 });
 
 test("protein sources come from label figures only", () => {

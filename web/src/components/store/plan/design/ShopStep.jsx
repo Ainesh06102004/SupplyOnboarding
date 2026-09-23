@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { aislesOf, peopleOf, rupees } from "@/lib/plan/planView";
-import { C, font, MEMBER_COLORS, initialsOf, inr } from "./tokens";
+import { C, font, initialsOf, inr } from "./tokens";
 import { MonoLabel } from "./bits";
 
 const AISLE_COLOURS = ["#c8dfc0", "#b8d4f0", "#f0c8c0", "#e8e0b8", "#b8e8d0", "#e0cfe8", "#f3d9b8", "#cfe0e8", "#e6e2d6"];
@@ -19,7 +19,8 @@ export default function ShopStep({ s, onBack, onNext }) {
   const plan = s.plan;
   const days = plan?.days ?? 7;
   const aisles = useMemo(() => aislesOf(s.lines), [s.lines]);
-  const people = useMemo(() => (plan ? peopleOf(plan.report, days) : []), [plan, days]);
+  const { orderOf, colourFor } = s;
+  const people = useMemo(() => (plan ? peopleOf(plan.report, days).sort((a, b) => orderOf(a.id) - orderOf(b.id)) : []), [plan, days, orderOf]);
   const colourOf = (key) => AISLE_COLOURS[Math.max(0, aisles.findIndex((a) => a.key === key)) % AISLE_COLOURS.length];
 
   if (!plan) {
@@ -62,9 +63,9 @@ export default function ShopStep({ s, onBack, onNext }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {people.map((p, i) => (
+          {people.map((p) => (
             <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 10, padding: "7px 12px" }}>
-              <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 9, "num"), color: "#fff", flex: "none", background: MEMBER_COLORS[i % MEMBER_COLORS.length] }}>{initialsOf(p.label)}</span>
+              <span style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 9, "num"), color: "#fff", flex: "none", background: colourFor(p.id) }}>{initialsOf(p.label)}</span>
               <div>
                 <div style={{ font: font(600, 12), color: C.ink }}>{p.label}</div>
                 <div style={{ font: font(500, 10, "mono"), color: C.muted }}>{p.perDay.kcal !== null ? inr(p.perDay.kcal) : "—"} kcal · {p.perDay.protein ?? "—"}g protein / day</div>

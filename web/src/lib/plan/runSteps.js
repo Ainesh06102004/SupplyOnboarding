@@ -71,8 +71,10 @@ export function lineFor(event) {
       return {
         id: "draft",
         title: "First basket on the board",
-        detail: `${plural(event.basket?.length ?? 0, "product")} · ${rupees(event.cost)}${event.everyTargetMet === false ? " · someone is still short" : ""}`,
-        state: event.everyTargetMet === false ? "warn" : "done",
+        // Whether anyone is short is said per person on the plates, once the
+        // plan is explained: the draft only says what is on the board.
+        detail: `${plural(event.basket?.length ?? 0, "product")} · ${rupees(event.cost)}`,
+        state: "done",
       };
     case "priority":
       return {

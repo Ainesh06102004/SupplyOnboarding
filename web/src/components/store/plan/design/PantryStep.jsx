@@ -25,7 +25,8 @@ export default function PantryStep({ s, onBack, onNext }) {
   const plan = s.plan;
   const lines = s.lines;
   const days = plan?.days ?? 7;
-  const people = useMemo(() => (plan ? peopleOf(plan.report, days) : []), [plan, days]);
+  const { orderOf } = s;
+  const people = useMemo(() => (plan ? peopleOf(plan.report, days).sort((a, b) => orderOf(a.id) - orderOf(b.id)) : []), [plan, days, orderOf]);
   const sources = useMemo(() => proteinSources(lines, days), [lines, days]);
   const labelsById = Object.fromEntries((plan?.report?.perMember ?? []).map((m) => [String(m.id), m.label ?? "Someone"]));
   const swappedIn = new Set(s.requests.filter((r) => !r.undone && r.kind === "upgrade").flatMap((r) => (r.basketChange?.added ?? []).map((a) => String(a.skuId))));
@@ -157,7 +158,9 @@ export default function PantryStep({ s, onBack, onNext }) {
                   <div style={{ height: 8, borderRadius: 4, background: C.track, marginTop: 5, overflow: "hidden" }}>
                     <div style={{ width: `${pct}%`, height: 8, borderRadius: 4, background: pct >= 100 ? C.accent : C.warm, transition: "width .6s ease" }} />
                   </div>
-                  <div style={{ font: font(500, 10, "mono"), color: C.muted, marginTop: 3 }}>{p.perDay.kcal !== null ? inr(p.perDay.kcal) : "—"} of {p.target.kcal ? inr(p.target.kcal) : "—"} kcal</div>
+                  <div style={{ font: font(500, 10, "mono"), color: C.muted, marginTop: 3 }}>
+                    {p.perDay.kcal !== null ? inr(p.perDay.kcal) : "—"}{p.target.kcal ? ` of ${inr(p.target.kcal)}` : ""} kcal
+                  </div>
                 </div>
               );
             })}

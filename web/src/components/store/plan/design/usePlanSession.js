@@ -28,6 +28,7 @@ import { readNdjson } from "@/lib/plan/stream";
 import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { avoidsFromWords } from "@/lib/plan/restrictions";
+import { MEMBER_COLORS } from "./tokens";
 
 const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
 const SAVE_AFTER_MS = 700;
@@ -166,6 +167,12 @@ export function usePlanSession() {
   const active = profiles.find((p) => keyOf(p) === activeKey) ?? profiles[0] ?? null;
   const saved = profiles.filter((p) => p.memberId);
   const mode = saved.length === 0 ? "setup" : plan ? "plan" : "ready";
+  // One order and one colour per person everywhere on the page: the household's.
+  const orderOf = useCallback((memberId) => {
+    const i = profiles.findIndex((p) => String(p.memberId) === String(memberId));
+    return i < 0 ? profiles.length : i;
+  }, [profiles]);
+  const colourFor = useCallback((memberId) => MEMBER_COLORS[orderOf(memberId) % MEMBER_COLORS.length], [orderOf]);
 
   // ── People ────────────────────────────────────────────────────────────────
   const saveNow = useCallback(async (key, form) => {
@@ -277,8 +284,8 @@ export function usePlanSession() {
   }, [activeKey, profiles, editProfile]);
 
   // ── The plan ──────────────────────────────────────────────────────────────
-  const stream = useCallback(async (body, kind) => {
-    let current = newRun(kind);
+  const stream = useCallback(async (body, kind, lead = []) => {
+    let current = { ...newRun(kind), lines: lead };
     setRun(current);
     const response = await fetch("/api/plan/run", {
       method: "POST",
@@ -305,7 +312,7 @@ export function usePlanSession() {
 
   const choiceFor = useCallback((memberId) => thisWeek[memberId] ?? { dietType: null, prefer: [], skip: [] }, [thisWeek]);
 
-  const makePlan = useCallback(async ({ daysNow = Number(days), budgetNow = num(budget), memberIds = picked, targets = {} } = {}) => {
+  const makePlan = useCallback(async ({ daysNow = Number(days), budgetNow = num(budget), memberIds = picked, targets = {}, lead = [] } = {}) => {
     setError(null);
     const ids = memberIds.filter((id) => UUID.test(String(id)));
     if (!householdId || !ids.length) throw new Error("Add someone to the household first.");
@@ -319,7 +326,7 @@ export function usePlanSession() {
       budget: budgetNow,
       memberIds: ids,
       thisWeek: Object.fromEntries(ids.map((id) => [id, { ...choiceFor(id), ...(targets[id] ? { targets: targets[id] } : {}) }])),
-    }, "plan");
+    }, "plan", lead);
     showPlan(made, before);
     setRequests([]);
     return made;
@@ -362,6 +369,7 @@ export function usePlanSession() {
 
   /** No plan yet: read who it is for, the days, the budget and any stated target, then plan. */
   const planFromWords = useCallback(async (text) => {
+    setRun({ ...newRun("plan"), lines: [{ id: "words", title: "Reading what you asked", detail: null, state: "running" }] });
     const response = await fetch("/api/plan/brief", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     const read = await response.json();
     if (!response.ok) throw new Error(read?.error ?? "That could not be read.");
@@ -380,7 +388,15 @@ export function usePlanSession() {
         targets[person.memberId] = { ...(targets[person.memberId] ?? {}), [t.nutrient]: t.perDay };
       }
     }
-    const made = await makePlan({ daysNow, budgetNow, memberIds: planFor, targets });
+    const who = named.length ? named.map((p) => p.label).join(", ") : "everyone ticked";
+    const said = Object.keys(targets).length ? `${Object.keys(targets).length} target${Object.keys(targets).length === 1 ? "" : "s"} for this plan` : null;
+    const lead = [{
+      id: "words",
+      title: "Read what you asked",
+      detail: [`${daysNow} ${daysNow === 1 ? "day" : "days"}`, budgetNow ? `₹${Number(budgetNow).toLocaleString("en-IN")}` : "no budget", who, said].filter(Boolean).join(" · "),
+      state: "done",
+    }];
+    const made = await makePlan({ daysNow, budgetNow, memberIds: planFor, targets, lead });
     if (asked.leaveOut.length || asked.include.length || asked.swaps.length) await followUp(text, { planId: made.planId, basePlan: made });
     return made;
   }, [days, budget, saved, picked, makePlan, followUp]);
@@ -555,7 +571,7 @@ export function usePlanSession() {
 
   return {
     // who
-    session, householdId, profiles, saved, active, activeKey, setActiveKey, keyOf, saveState, error, setError,
+    session, householdId, profiles, saved, active, activeKey, setActiveKey, keyOf, saveState, error, setError, orderOf, colourFor,
     editProfile, resetToSuggestion, addMember, addFavourites, removeFavourite, addAvoidWords, removeAvoid,
     // catalogue
     products, categories, stockedKeys,
