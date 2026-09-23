@@ -74,6 +74,13 @@ test("but never a food, person or number the shopper didn't write", () => {
   assert.equal(groundSteps({ steps: [s("delete_everything", "make it cheaper")] }, text, { hasPlan: true }), null);
 });
 
+test("'the week' states 7 days, and 'all of us' lets everyone be named", () => {
+  const people = ["Me", "Wife", "Son"];
+  const ok = groundSteps({ steps: [s("plan", "Plan 7 days on 4000 for all of us (Me, Wife, Son).")] }, "sort out the week for all of us on 4000", { hasPlan: true, people });
+  assert.deepEqual(tools(ok), ["plan"]);
+  assert.equal(groundSteps({ steps: [s("plan", "Plan 7 days on 4000 for Wife")] }, "sort out things on 4000", { hasPlan: true, people }), null, "no week said, no person said");
+});
+
 test("products on the page may be named even if the shopper said 'the rice'", () => {
   const ok = groundSteps({ steps: [s("without", "without the rice", { product: "Gorakhpur Kalanamak Rice" })] }, "what if i can't get the rice", { hasPlan: true, products: ["Gorakhpur Kalanamak Rice"] });
   assert.equal(ok[0].args.product, "Gorakhpur Kalanamak Rice");

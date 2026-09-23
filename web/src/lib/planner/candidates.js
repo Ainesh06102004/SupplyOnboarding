@@ -189,6 +189,7 @@ export function memberFor(member, { avoidByKey, dietExclusions }) {
     // This week only: what they feel like, and what to leave out for them.
     preferCategories: member.preferCategories ?? [],
     skipCategories: member.skipCategories ?? [],
+    skipSkus: member.skipSkus ?? [],
     // The saved profile this plan was made from (household_member_version).
     profileVersion: isNum(member.version) ? Number(member.version) : null,
     targets: {

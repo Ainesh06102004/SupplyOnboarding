@@ -582,6 +582,10 @@ function refusedBy(item, member) {
   if (inCategory(item.categoryKey, member.skipCategories ?? [])) {
     return { member: member.id, flag: "not_this_week", rule: "this_week" };
   }
+  // One product, for them only ("my wife doesn't want the dates"): Phase 3.
+  if ((member.skipSkus ?? []).map(String).includes(String(item.skuId))) {
+    return { member: member.id, flag: "not_this_week", rule: "this_week" };
+  }
   return null;
 }
 

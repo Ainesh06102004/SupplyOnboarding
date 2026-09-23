@@ -27,6 +27,8 @@
 // fallback when there is no model or its answer can't be used.
 // ============================================================================
 
+import { allergensIn } from "@/lib/food/allergens";
+
 export const AGENT_TOOLS = Object.freeze(["plan", "change", "without", "cart", "show", "explain"]);
 export const MAX_STEPS = 5;
 const STEP_KEYS = Object.freeze(["define", "you", "plan", "pantry", "shop", "track"]);
@@ -111,7 +113,10 @@ export function routeMessage(text, { hasPlan = false, productWords = () => false
 export function stepLabel(step) {
   switch (step.tool) {
     case "plan": return "Plan the week";
-    case "change": return `Change it: ${clean(step.text).slice(0, 60)}`;
+    case "change": {
+      const t = clean(step.text);
+      return `Change it: ${t.length > 70 ? `${t.slice(0, 70).replace(/\s+\S*$/, "")}…` : t}`;
+    }
     case "without": return `Check without ${step.args?.product ?? "it"}`;
     case "cart": return "Put it in your cart";
     case "show": return `Show you ${step.args?.step === "shop" ? "the shop" : step.args?.step ?? "the plan"}`;
@@ -149,8 +154,8 @@ export const ROUTER_JSON_SCHEMA = Object.freeze({
 export const ROUTER_INSTRUCTIONS = [
   "A shopper is on KOI's weekly grocery planner for their household and types one message, in any words or mix of languages. Work out what they want done and turn it into a few steps, in the order they want them, each using one tool.",
   "Tools:",
-  "- plan: make a new plan. instruction says the days, budget, people and any stated targets they asked for (\"plan 7 days on 4000 for me and Wife\").",
-  "- change: change the plan already made. instruction is a short plain request KOI's planner can read: make it cheaper, no <product>, add <product>, swap <product> for <product>, more/less of <product>, <person> avoids <food>, <number> g protein for <person>, <number> days, plan for <person> too, not for <person>. Put changes that belong together in one change step.",
+  "- plan: make a new plan. instruction says the days, budget, people and any stated targets they asked for (\"plan 7 days on 4000 for me and Wife\"). Asking to plan, sort out, do or start the week (again) from scratch is a new plan even when one is on screen. Changing the days, budget or people of the plan on screen (\"make it 5 days\") is a change, not a plan.",
+  "- change: change the plan already made. instruction is a short plain request KOI's planner can read: make it cheaper, no <product>, no <product> for <person> (when only one person doesn't want it — keep who it is for), add <product>, swap <product> for <product>, more/less of <product>, <person> avoids <food>, <number> g protein for <person>, <number> days, plan for <person> too, not for <person>. Put changes that belong together in one change step.",
   "- without: they ask what happens if they can't get a product. product is that product, in their words.",
   "- cart: they want the plan put in their cart or ordered.",
   "- show: they want to see a part of the page; step is one of define, you, plan, pantry, shop, track.",
@@ -168,49 +173,54 @@ export function routerContext({ hasPlan = false, people = [], products = [] } = 
   ].filter(Boolean).join("\n");
 }
 
-/**
- * Words an instruction may use without the shopper having written them: the
- * verbs and joints of a request, and KOI's own words for its tools. A food, a
- * person or a number is never here — those have to come from the message (or
- * the people and products on the page).
- */
-const FREE_WORDS = new Set(`a an the and or but to of for on in at with by from as is are be it its this that these those my me i we our us you your they them their
-  plan planned planning week weeks day days make made keep same new again replan
-  cheaper cheap cheapest less more lower higher reduce increase cut bigger smaller extra fewer
-  add added adding include put remove drop leave out without no not none skip avoid avoids avoiding stop instead swap replace switch change changed changes
-  budget rupees rs money cost spend price protein calories calorie kcal carbs fat fibre sugar grams gram g target targets goal per daily each
-  everyone everybody all household family person people too also only just both
-  cart order checkout buy show open see view page step define pantry shop track groceries basket list
-  why what explain gave give up short missing happen happens if cant can't cannot get find
-  please would like want need some any other another something lighter`.split(/\s+/).filter(Boolean));
-
 const wordsOf = (s) => norm(s).replace(/[^a-z0-9₹' ]/g, " ").split(/\s+/).filter(Boolean);
 const numbersOf = (s) => (norm(s).match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
-const stem = (w) => w.replace(/(?:es|s)$/, "");
+/** The foods a piece of text names, through the ingredient graph ("paneer" → Milk, "chana" → Chickpea). */
+const foodsIn = (s) => new Set(allergensIn(String(s ?? "")).ingredients ?? []);
 
 /**
- * A model's steps, held to the message. It may rephrase — that is the point —
- * but every number must be one the shopper wrote, and every other word must be
- * a request word (FREE_WORDS), a word of the message, or a person or product
- * already on the page. null when a step breaks that, or the answer is unusable.
+ * A model's steps, held to the message. It may rephrase freely — that is the
+ * point — but it may not bring in anything the shopper didn't:
+ *   * a number must be one the message contains;
+ *   * a food (anything the ingredient graph recognises) must be one the message
+ *     names, or one of the products already in the plan;
+ *   * a person must be one the message names ("my wife" → Wife; "I" → Me).
+ * A step that breaks this is dropped on its own; the others still run. For
+ * cart, show and explain only the tool matters, never the wording.
+ * null when the answer is unusable, or every step was dropped.
  */
 export function groundSteps(raw, text, { hasPlan = false, people = [], products = [] } = {}) {
   const steps = Array.isArray(raw?.steps) ? raw.steps : null;
   if (!steps) return null;
-  const known = new Set([...wordsOf(text), ...people.flatMap(wordsOf), ...products.flatMap(wordsOf)].map(stem));
-  const stated = new Set(numbersOf(text));
+  const said = new Set(wordsOf(text));
+  // A week is 7 days and a fortnight 14: saying the word states the number.
+  const stated = new Set([...numbersOf(text), ...(said.has("week") ? [7] : []), ...(said.has("fortnight") ? [14] : [])]);
+  // "All of us", "everyone", "the family": every person may be named.
+  const everyoneSaid = /\b(?:all of us|everyone|everybody|whole family|the family|our family|household|all of them)\b/.test(norm(text));
+  const foodsSaid = new Set([...foodsIn(text), ...products.flatMap((p) => [...foodsIn(p)])]);
+  const productWords = new Set(products.flatMap(wordsOf));
+  const selfWords = ["i", "me", "my", "myself", "i'm", "i'd"];
+  const personSaid = (label) => {
+    const w = wordsOf(label);
+    if (!w.length || everyoneSaid) return true;
+    if (label.toLowerCase() === "me") return selfWords.some((x) => said.has(x));
+    return w.every((x) => said.has(x));
+  };
   const allowed = (instruction) => {
     if (!numbersOf(instruction).every((n) => stated.has(n))) return false;
-    return wordsOf(instruction).every((w) => /^\d/.test(w) || FREE_WORDS.has(w) || known.has(stem(w)) || w.length < 3);
+    if (![...foodsIn(instruction)].every((f) => foodsSaid.has(f))) return false;
+    const words = new Set(wordsOf(instruction));
+    // A person named in the instruction, by their label, who the message never mentions.
+    const named = people.filter((label) => label.toLowerCase() !== "me" && wordsOf(label).every((x) => words.has(x)) && !wordsOf(label).every((x) => productWords.has(x)));
+    return named.every(personSaid);
   };
   const out = [];
   let dropped = 0;
   for (const s of steps.slice(0, MAX_STEPS)) {
     if (!AGENT_TOOLS.includes(s?.tool)) return null;
     const instruction = clean(s.instruction);
-    // A step that adds something the shopper didn't say is dropped on its own;
-    // the steps that hold still run.
-    if (!instruction || !allowed(instruction) || (s.tool === "without" && (!s.product || !allowed(s.product)))) {
+    const checked = ["plan", "change", "without"].includes(s.tool);
+    if (!instruction || (checked && !allowed(instruction)) || (s.tool === "without" && (!s.product || !allowed(s.product)))) {
       dropped += 1;
       continue;
     }

@@ -232,6 +232,7 @@ function membersFromSnapshot(snapshot) {
     mealsFromHome: m.meals_from_home ?? [],
     preferCategories: m.prefer_categories ?? [],
     skipCategories: m.skip_categories ?? [],
+    skipSkus: m.skip_skus ?? [],
     // Plans stored before plan-model-v6 have no age band, and so no age rules;
     // before v7, no goal.
     ageBand: m.age_band ?? null,
@@ -380,6 +381,7 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
           targets_for_this_plan: m.targets,
           prefer_categories: m.preferCategories ?? [],
           skip_categories: m.skipCategories ?? [],
+          skip_skus: m.skipSkus ?? [],
           appetite: m.appetite ?? null,
           meals_from_home: m.mealsFromHome ?? [],
           // The saved profile version this plan was made from (00050).

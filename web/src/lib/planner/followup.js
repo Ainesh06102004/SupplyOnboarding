@@ -192,6 +192,31 @@ function productWords(text) {
   return { swaps, leaveOut, include };
 }
 
+/**
+ * A product left out for one person, not the household: "no dates for Wife",
+ * "my wife doesn't want the dates", "Son won't eat chana". The words are the
+ * sentence's own (normalised); membersNamed and productsNamed resolve them.
+ */
+const END = String.raw`(?=\s*(?:$|,|\.|;|\band\b|\bbut\b|\bthen\b))`;
+const FOR_ONE = [
+  { re: new RegExp(String.raw`\b(?:no|without|skip|remove|drop|leave out)\s+(?:the\s+|any\s+)?([a-z][a-z ]{1,30}?)\s+for\s+(?:my\s+|the\s+|our\s+)?([a-z][a-z0-9 ]{0,20}?)${END}`, "g"), product: 1, who: 2 },
+  { re: new RegExp(String.raw`\b(?:my\s+|the\s+|our\s+)?([a-z][a-z0-9]{1,20})\s+(?:doesn t|does not|doesnt|won t|will not|wont|don t|do not|dont|can t|cannot|never)\s+(?:want|like|eat|have|eats|wants|likes)\s+(?:the\s+|any\s+)?([a-z][a-z ]{1,30}?)${END}`, "g"), product: 2, who: 1 },
+];
+export function leaveOutFor(text) {
+  const found = [];
+  for (const { re, product, who } of FOR_ONE) {
+    for (const m of text.matchAll(re)) {
+      const person = m[who].trim();
+      const food = m[product].trim();
+      if (!food || ["it", "that", "this", "them"].includes(food)) continue;
+      // "No dairy for my wife" is an allergen: an avoid, held by the graph, not one product.
+      if (avoidKeysNamed(food).length) continue;
+      found.push({ product: food, who: ["i", "we"].includes(person) ? "me" : person });
+    }
+  }
+  return found;
+}
+
 /** Daily targets written as numbers, and who they are for, if anyone is named in the clause. */
 function targetsIn(text) {
   const targets = [];
@@ -218,8 +243,12 @@ export function readFollowUp(input) {
     : CHEAPER.test(text) ? { change: "cheaper", rupees: null }
     : { change: "none", rupees: null };
   // Avoids are read with the product words taken out, so "no paneer" leaves out paneer and nothing else.
-  const { swaps, leaveOut, include } = productWords(text);
-  const avoidText = [...leaveOut, ...include, ...swaps.flatMap((s) => [s.from, s.to])]
+  const words = productWords(text);
+  const { swaps, include } = words;
+  // A food left out for one person is theirs alone, not the household's.
+  const forOne = leaveOutFor(text);
+  const leaveOut = words.leaveOut.filter((w) => !forOne.some((f) => f.product === w || f.product.includes(w) || w.includes(f.product)));
+  const avoidText = [...leaveOut, ...include, ...swaps.flatMap((s) => [s.from, s.to]), ...forOne.map((f) => f.product)]
     .reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text);
   const reading = interpret(avoidText);
   const who = text.match(WHO)?.[1] ?? null;
@@ -227,6 +256,7 @@ export function readFollowUp(input) {
     budget,
     days: followUpDays(text),
     leaveOut,
+    leaveOutFor: forOne,
     include,
     swaps,
     avoid: reading.profile.foodsAvoid.map((key) => ({ key, who })),
@@ -409,7 +439,11 @@ export function mergeFollowUps(local, model) {
   return {
     budget: model.budget.change !== "none" ? model.budget : local.budget,
     days: model.days ?? local.days,
-    leaveOut: [...new Set([...local.leaveOut, ...model.leaveOut])],
+    // A food the rules read as one person's ("no dates for Wife") stays theirs:
+    // the model's household-wide "dates" would take it from everyone.
+    leaveOut: [...new Set([...local.leaveOut, ...model.leaveOut])]
+      .filter((w) => !(local.leaveOutFor ?? []).some((f) => f.product === w || f.product.includes(w) || w.includes(f.product))),
+    leaveOutFor: local.leaveOutFor ?? [],
     include: [...new Set([...(local.include ?? []), ...(model.include ?? [])])],
     swaps: [...new Map([...(local.swaps ?? []), ...(model.swaps ?? [])].map((s) => [`${s.from}>${s.to}`, s])).values()],
     avoid: byKey([...local.avoid.filter((a) => a.who || !namedByModel.has(a.key)), ...model.avoid]),
@@ -731,6 +765,23 @@ export function applyFollowUp(plan, reading, catalogue) {
     const line = `Added ${hits[0].name}`;
     applied.push(line);
     wants.push({ skuId: hits[0].skuId, name: hits[0].name, line });
+  }
+
+  // A food left out for one person: refused for them this week, still bought for
+  // anyone else who eats it (the member's skipSkus, model.js refusedBy).
+  for (const { product, who } of reading.leaveOutFor ?? []) {
+    const hits = productsNamed(product, catalogue);
+    const forWhom = membersNamed(who, members);
+    if (!hits.length) {
+      notApplied.push(`Nothing in this plan is called "${product}"`);
+      continue;
+    }
+    if (!forWhom.length) {
+      notApplied.push(`KOI couldn't tell who "${who}" is, so the ${product} stays`);
+      continue;
+    }
+    for (const m of forWhom) m.skipSkus = [...new Set([...(m.skipSkus ?? []), ...hits.map((h) => String(h.skuId))])];
+    applied.push(`No ${hits[0].name} for ${forWhom.map((m) => m.label ?? "them").join(", ")}`);
   }
 
   for (const word of reading.leaveOut) {
