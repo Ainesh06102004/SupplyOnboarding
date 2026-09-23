@@ -393,6 +393,9 @@ export function usePlanSession() {
   // What the agent asked the page to do once its run is over (Phase 3).
   const [pendingCart, setPendingCart] = useState(false);
   const [nav, setNav] = useState(null);
+  // The page as it was before the latest agent run, and the plans the run made,
+  // so the whole run can be taken back at once (`undoRun`).
+  const [lastRun, setLastRun] = useState(null);
 
   /**
    * KOI's agent (/api/plan/agent): the message read for what it means, done
@@ -407,6 +410,8 @@ export function usePlanSession() {
     let latest = plan;
     let first = true;
     const actions = [];
+    const snapshot = { plan, compareTo, requests, picks, days, created: [] };
+    setLastRun(null);
     const response = await fetch("/api/plan/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -432,6 +437,7 @@ export function usePlanSession() {
         if (first) { setPicks({}); writePicks(householdId, {}); }
         setDays(message.payload.days ?? days);
         latest = message.payload;
+        snapshot.created.push(message.payload.planId);
       } else if (message.type === "plan_result" && message.kind === "change" && message.payload.changed) {
         const body = message.payload;
         const basePlan = latest;
@@ -442,6 +448,7 @@ export function usePlanSession() {
           householdChanges: body.householdChanges ?? [], kind: "words", before: basePlan, undone: false,
         }]);
         latest = body;
+        snapshot.created.push(body.planId);
       } else if (message.type === "without_result") {
         setWithout((w) => ({ ...w, [message.skuId]: { result: message.payload } }));
       } else if (message.type === "action") {
@@ -449,6 +456,9 @@ export function usePlanSession() {
       }
       first = false;
     });
+    // Even a run that stopped part-way can be taken back: what it made is on screen.
+    const created = snapshot.created.filter((id) => UUID.test(String(id)));
+    if (created.length) setLastRun({ ...snapshot, created, endPlanId: latest?.planId ?? null, carted: actions.some((a) => a.action === "cart") });
     if (current.error) throw new Error(current.error);
     for (const a of actions) {
       if (a.action === "cart") setPendingCart(true);
@@ -456,7 +466,27 @@ export function usePlanSession() {
       else if (a.action === "explain") setRun((r) => ({ ...r, explain: latest ? noteLines(latest) : [{ text: "There's no plan yet to explain." }] }));
     }
     return latest;
-  }, [picked, plan, householdId, days, budget, choiceFor, last, showPlan]);
+  }, [picked, plan, compareTo, requests, picks, householdId, days, budget, choiceFor, last, showPlan]);
+
+  // Only while the plan on screen is still the one the run ended with: once
+  // anything else changes it, single-change undo is the way back.
+  const canUndoRun = Boolean(lastRun && plan?.planId === lastRun.endPlanId && !(run && !run.done));
+
+  /** Take the latest agent run back as a whole: the page as it was before it, and every plan it made deleted. */
+  const undoRun = useCallback(async () => {
+    if (!canUndoRun) return;
+    const r = lastRun;
+    setLastRun(null);
+    showPlan(r.plan, r.compareTo);
+    setRequests(r.requests);
+    setPicks(r.picks);
+    writePicks(householdId, r.picks);
+    setDays(r.days);
+    setRun((cur) => (cur ? { ...cur, undone: true, explain: null } : cur));
+    if (r.carted) notify("Taken back. What was put in your cart is still there.", "warn");
+    const { error: deleteError } = await getSupabaseClient().from("plan").delete().in("id", r.created);
+    if (deleteError) console.error("[plan] undo run", deleteError.message);
+  }, [canUndoRun, lastRun, householdId, showPlan, notify]);
 
   /** The command bar: set up, plan, or change the plan, by what there is. */
   const command = useCallback(async (raw) => {
@@ -704,7 +734,7 @@ export function usePlanSession() {
     // this week
     picked, setPicked, thisWeek, setChoice, choiceFor, days, setDays, budget, setBudget,
     // plan
-    mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, keepBrief, saveHouseholdChanges,
+    mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, undoRun, canUndoRun, keepBrief, saveHouseholdChanges,
     edges, without, seeWithout,
     // the week of dishes
     week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds,

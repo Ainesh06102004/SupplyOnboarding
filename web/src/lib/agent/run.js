@@ -14,39 +14,12 @@
 
 import "server-only";
 
-import { callStructured } from "@/lib/ai/providers/openai";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { planForHousehold, planFollowUp, planWithout } from "@/lib/planner/plan";
 import { readFollowUp, productsNamed, MAX_FOLLOWUP_CHARS } from "@/lib/planner/followup";
 import { profilesNamedIn, profilesNamed } from "@/lib/household/profile";
-import { routeMessage, groundSteps, routerContext, stepLabel, ROUTER_INSTRUCTIONS, ROUTER_JSON_SCHEMA, ROUTER_SCHEMA_NAME } from "./router";
-
-const productWordsIn = (text) => {
-  const r = readFollowUp(text);
-  return r.leaveOut.length + r.include.length + r.swaps.length > 0;
-};
-
-/** The steps for a message: the model's reading when there is one that holds, else the rules'. */
-export async function stepsFor(text, context) {
-  if (process.env.KOI_AI_INTERPRETER === "openai") {
-    try {
-      const { output } = await callStructured({
-        modelEnv: "KOI_OPENAI_INTERPRETER_MODEL",
-        instructions: `${ROUTER_INSTRUCTIONS}\n${routerContext(context)}`,
-        text,
-        schemaName: ROUTER_SCHEMA_NAME,
-        schema: ROUTER_JSON_SCHEMA,
-        maxOutputTokens: 700,
-      });
-      const grounded = groundSteps(output, text, context);
-      if (grounded && grounded.length) return { steps: grounded, source: "model" };
-      if (grounded && !grounded.length) return { steps: [], source: "model" };
-    } catch (err) {
-      console.error("[plan/agent] router", err?.message ?? "failed");
-    }
-  }
-  return { steps: routeMessage(text, { hasPlan: context.hasPlan, productWords: productWordsIn }), source: "rules" };
-}
+import { stepLabel } from "./router";
+import { stepsFor } from "./steps";
 
 /** A plan's days, budget, people and stated targets, from a step's words, over this week's defaults. */
 function planArgs(text, members, defaults) {

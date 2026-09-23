@@ -233,6 +233,14 @@ export function groundSteps(raw, text, { hasPlan = false, people = [], products 
     });
   }
   if (dropped && !out.length) return null;
+  // Changes one after another are one change: one solve, one line to undo
+  // ("70 g protein for Wife" + "no biscuits for Son").
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    if (out[i].tool === "change" && out[i - 1].tool === "change") {
+      out[i - 1] = { ...out[i - 1], text: `${out[i - 1].text.replace(/[.;\s]+$/, "")}; ${out[i].text}` };
+      out.splice(i, 1);
+    }
+  }
   // A change, a without or a cart needs a plan before it.
   if (!hasPlan && out.length && !["plan", "show", "explain"].includes(out[0].tool)) out.unshift({ tool: "plan", text: clean(text).slice(0, 200), args: {} });
   return out.slice(0, MAX_STEPS);

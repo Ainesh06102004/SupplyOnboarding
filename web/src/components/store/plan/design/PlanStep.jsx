@@ -36,16 +36,21 @@ function StateMark({ state }) {
 }
 
 /** KOI working: the streamed run, line by line. */
-function AgentRun({ run }) {
+function AgentRun({ run, onUndoRun }) {
   if (!run) return null;
   const seconds = run.finishedAt ? ((run.finishedAt - run.startedAt) / 1000).toFixed(1) : null;
   return (
     <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.13)", animation: "koiFade .3s ease both" }} aria-live="polite">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9 }}>
-        <MonoLabel color="rgba(255,255,255,.5)">{run.done ? (run.error ? "KOI stopped" : `KOI finished${seconds ? ` · ${seconds} s` : ""}`) : "KOI is working"}</MonoLabel>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9, gap: 10 }}>
+        <MonoLabel color="rgba(255,255,255,.5)">{run.undone ? "Taken back · your plan is as it was" : run.done ? (run.error ? "KOI stopped" : `KOI finished${seconds ? ` · ${seconds} s` : ""}`) : "KOI is working"}</MonoLabel>
         {!run.done && <span aria-hidden="true" style={{ width: 12, height: 12, border: "2px solid rgba(255,255,255,.25)", borderTopColor: C.mint, borderRadius: "50%", animation: "koiSpin .8s linear infinite" }} />}
+        {onUndoRun && (
+          <button type="button" onClick={onUndoRun} style={{ cursor: "pointer", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.22)", borderRadius: 999, padding: "4px 11px", font: font(600, 11), color: "#fff", whiteSpace: "nowrap" }}>
+            ↶ Undo all of this
+          </button>
+        )}
       </div>
-      <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 7 }}>
+      <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 7, opacity: run.undone ? 0.45 : 1, textDecoration: run.undone ? "line-through" : "none" }}>
         {run.lines.map((line) => (
           <li key={line.id} style={{ display: "flex", gap: 9, alignItems: "flex-start", animation: "koiUp .3s ease both", marginLeft: line.nested ? 18 : 0, marginTop: line.tool ? 4 : 0 }}>
             <StateMark state={line.state} />
@@ -154,7 +159,7 @@ function CommandBox({ s }) {
         </div>
       )}
 
-      <AgentRun run={s.run} />
+      <AgentRun run={s.run} onUndoRun={s.canUndoRun ? s.undoRun : null} />
       {s.brief && <BriefDraft brief={s.brief} onKeep={s.keepBrief} onDrop={() => s.setBrief(null)} />}
 
       {open.length > 0 && (

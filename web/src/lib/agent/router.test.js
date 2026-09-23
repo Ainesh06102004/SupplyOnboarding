@@ -74,6 +74,12 @@ test("but never a food, person or number the shopper didn't write", () => {
   assert.equal(groundSteps({ steps: [s("delete_everything", "make it cheaper")] }, text, { hasPlan: true }), null);
 });
 
+test("changes one after another become one change", () => {
+  const out = groundSteps({ steps: [s("change", "70g protein for Wife."), s("change", "no biscuits for Son"), s("show", "show the shop", { step: "shop" })] }, "wife wants 70g protein and no biscuits for son, then show the shop", { hasPlan: true, people: ["Me", "Wife", "Son"] });
+  assert.deepEqual(tools(out), ["change", "show"]);
+  assert.equal(out[0].text, "70g protein for Wife; no biscuits for Son");
+});
+
 test("'the week' states 7 days, and 'all of us' lets everyone be named", () => {
   const people = ["Me", "Wife", "Son"];
   const ok = groundSteps({ steps: [s("plan", "Plan 7 days on 4000 for all of us (Me, Wife, Son).")] }, "sort out the week for all of us on 4000", { hasPlan: true, people });
