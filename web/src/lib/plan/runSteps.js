@@ -121,10 +121,10 @@ export const newRun = (kind) => ({ kind, lines: [], draft: null, result: null, e
 export function reduceRun(run, message) {
   if (!message || message.type === "hello") return run;
   if (message.type === "result") {
-    return { ...run, result: message.payload, done: true, lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "done" } : l)) };
+    return { ...run, result: message.payload, done: true, finishedAt: Date.now(), lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "done" } : l)) };
   }
   if (message.type === "error") {
-    return { ...run, error: message.error ?? "Something went wrong.", done: true, lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "warn" } : l)) };
+    return { ...run, error: message.error ?? "Something went wrong.", done: true, finishedAt: Date.now(), lines: run.lines.map((l) => (l.state === "running" ? { ...l, state: "warn" } : l)) };
   }
   const line = lineFor(message);
   const next = { ...run };

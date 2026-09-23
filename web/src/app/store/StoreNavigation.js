@@ -48,8 +48,9 @@ function NavigationContent() {
 
   // The editorial landing (/store) and shop (/store/shop) ship their own
   // bespoke top nav (EditorialNav). Suppress the shared desktop navbar there to
-  // avoid a duplicate header; the mobile bottom tab bar still renders.
-  const isHome = pathname === "/store" || pathname === "/store/shop";
+  // avoid a duplicate header; the mobile bottom tab bar still renders. The Plan
+  // page (the founder's design) has its own sticky header with the steps.
+  const isHome = pathname === "/store" || pathname === "/store/shop" || pathname === "/store/plan";
 
   const totalItems = mounted ? items.reduce((sum, i) => sum + i.quantity, 0) : 0;
   // No order state exists yet — nothing in the app writes an order. This was
