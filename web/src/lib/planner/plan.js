@@ -429,6 +429,8 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
         basket: report.basket.map(({ skuId, name, packs, packSize, cost, shares }) => ({ skuId, name, packs, packSize, cost, shares })),
       },
       explanation,
+      // The report as the page draws it, so the plan reopens after a reload (00070).
+      report,
       solver: solution.solver,
       solver_version: solution.solverVersion,
       rule_version: PLAN_RULE_VERSION,

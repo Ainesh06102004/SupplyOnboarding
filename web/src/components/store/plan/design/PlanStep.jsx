@@ -160,6 +160,11 @@ function CommandBox({ s }) {
       )}
 
       <AgentRun run={s.run} onUndoRun={s.canUndoRun ? s.undoRun : null} />
+      {!s.run && s.plan?.restored && s.plan.createdAt && (
+        <div style={{ font: font(500, 11, "mono"), color: "rgba(255,255,255,.5)", marginTop: 12 }}>
+          Reopened your plan from {new Date(s.plan.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+        </div>
+      )}
       {s.brief && <BriefDraft brief={s.brief} onKeep={s.keepBrief} onDrop={() => s.setBrief(null)} />}
 
       {open.length > 0 && (

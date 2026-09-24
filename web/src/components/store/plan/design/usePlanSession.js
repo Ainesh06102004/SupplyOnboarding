@@ -29,6 +29,7 @@ import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { avoidsFromWords } from "@/lib/plan/restrictions";
 import { buildWeek, productsFor } from "@/lib/plan/schedule";
+import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
 
 /** The shopper's own dish picks, kept in this browser, per household. */
 const WEEK_KEY = "koi_plan_week_v1";
@@ -88,29 +89,34 @@ async function readHousehold() {
     .map(profileFromRow);
 
   // The last plan: its days, budget and people open the form, and its basket
-  // is what "your last plan → this plan" compares against.
+  // is what "your last plan → this plan" compares against. It, and the changes
+  // that led to it, reopen on the page (lib/plan/restore.js).
   let last = null;
+  let restore = null;
   if (household?.id) {
-    const { data: plan } = await supabase
+    const { data: rows } = await supabase
       .from("plan")
-      .select("id, days, budget_rupees, constraints, achieved, created_at")
+      .select("id, days, budget_rupees, status, created_at, follows:constraints->>follows, change:constraints->change, members:constraints->members, cost:achieved->cost, basket:achieved->basket")
       .eq("household_id", household.id)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(MAX_RESTORED_CHANGES + 2);
+    const plan = rows?.[0];
     if (plan) {
       last = {
         planId: plan.id,
         days: plan.days,
         budget: plan.budget_rupees === null ? "" : String(plan.budget_rupees),
-        memberIds: (plan.constraints?.members ?? []).map((m) => String(m.id)),
-        basket: plan.achieved?.basket ?? [],
-        cost: plan.achieved?.cost ?? null,
+        memberIds: (plan.members ?? []).map((m) => String(m.id)),
+        basket: plan.basket ?? [],
+        cost: plan.cost ?? null,
         at: plan.created_at,
       };
+      const ids = chainOf(rows).map((r) => r.id);
+      const { data: full } = await supabase.from("plan").select("id, report, explanation").in("id", ids);
+      restore = restoreFrom(rows, new Map((full ?? []).map((r) => [String(r.id), r])));
     }
   }
-  return { user, household: household ?? null, profiles, last };
+  return { user, household: household ?? null, profiles, last, restore };
 }
 
 export function usePlanSession() {
@@ -144,6 +150,7 @@ export function usePlanSession() {
   const timers = useRef({});
   const draftSeq = useRef(1);
   const toastTimer = useRef(null);
+  const reopened = useRef(false);
 
   const notify = useCallback((text, tone = "info") => {
     setToast({ text, tone, at: Date.now() });
@@ -169,6 +176,16 @@ export function usePlanSession() {
     setPicked(kept.length ? kept : read.profiles.map((p) => p.memberId));
     if (read.last?.days) setDays(read.last.days);
     if (read.last?.budget !== undefined && read.last?.budget !== null) setBudget(read.last.budget);
+    // The plan on screen comes back once, when the page opens; later reloads of
+    // the household (after saving someone) leave the plan being worked on alone.
+    if (!reopened.current) {
+      reopened.current = true;
+      if (read.restore) {
+        setPlan(read.restore.plan);
+        setRequests(read.restore.requests);
+        setCompareTo(read.restore.compareTo);
+      }
+    }
     return read;
   }, []);
 
