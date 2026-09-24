@@ -18,14 +18,20 @@ const CASES = [
     (d) => d.members.length === 4 && d.members.filter((m) => m.target_protein_g === 120).length === 2],
   ["Me, my husband and our daughter who is 6. We're all vegetarian. I need 70g protein, he needs 90g. Budget 3500 for the week",
     (d) => d.members.length === 3 && d.members.every((m) => m.diet_type === "vegetarian") && d.budget === 3500 && d.days === 7 && d.members.some((m) => m.age_band === "child_4_6")],
+  // An avoid said about one person is theirs alone (BRIEF_INSTRUCTIONS).
   ["Jain family of 5 - grandparents, us two and a 14 year old son. No peanuts for the son",
-    (d) => d.members.length === 5 && d.members.every((m) => m.diet_type === "jain" && m.avoidKeys.includes("peanuts"))],
+    (d) => d.members.length === 5 && d.members.every((m) => m.diet_type === "jain") && d.members.filter((m) => m.avoidKeys.includes("peanuts")).map((m) => m.label).join() === "Son"],
   ["just me, 2200 calories and 110 g protein a day, non veg, 10 days",
     (d) => d.members.length === 1 && d.members[0].target_kcal === 2200 && d.members[0].target_protein_g === 110 && d.members[0].diet_type === "non_vegetarian" && d.days === 10],
   ["3 adults, eggetarian, one of them is diabetic, around 1800 kcal each",
     (d) => d.members.length === 3 && d.members.every((m) => m.target_kcal === 1800 && m.diet_type === "eggetarian") && d.unresolved.some((w) => /diabet/.test(w))],
+  // Hinglish (lib/planner/hinglish.js): us two, our two, all veg, the kids allergic to nuts.
   ["hum do hamare do, sab veg, bacchon ko nuts se allergy hai",
-    (d) => d.members.length === 4 && d.members.every((m) => m.avoidKeys.includes("tree_nuts") || m.avoidKeys.includes("peanuts"))],
+    (d) => d.members.length === 4 && d.members.every((m) => m.diet_type === "vegetarian")
+      && d.members.filter((m) => m.role === "child" || /^Kid/.test(m.label)).length === 2
+      && d.members.filter((m) => /^Kid/.test(m.label)).every((m) => m.avoidKeys.includes("tree_nuts") || m.avoidKeys.includes("peanuts"))],
+  ["main aur meri biwi, do bacche, 7 din, budget 4 hazaar",
+    (d) => d.members.length === 4 && d.days === 7 && d.budget === 4000],
 ];
 
 let rules = 0;

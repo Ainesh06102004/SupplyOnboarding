@@ -38,6 +38,7 @@ import { normalise } from "@/lib/ai/intent/deterministic";
 import { numbersIn } from "@/lib/ai/intent/merge";
 import { nullableEnum, nullableNumber, enumArray, strictObject } from "@/lib/ai/providers/openaiFormat";
 import { avoidKeysNamed } from "./avoidWords";
+import { fromHinglish } from "./hinglish";
 
 export const AGE_BANDS = Object.freeze([
   { key: "adult_19_59", label: "Adult (19–59)", min: 19, max: 59 },
@@ -173,7 +174,9 @@ function clausesOf(text) {
  *   Each group carries its own `avoidKeys`. `avoidEveryone` holds what was said
  *   about no one in particular.
  */
-export function readBrief(input) {
+export function readBrief(message) {
+  // "hum do hamare do": the Hinglish a description uses, in the words below (hinglish.js).
+  const input = fromHinglish(message);
   const text = normalise(input);
   const clauses = clausesOf(input);
   const groups = [];
@@ -333,10 +336,13 @@ const ModelDraftSchema = z.object({
  * @param {string} input the shopper's message
  * @returns {{ groups, days, budget, avoidKeys, unresolved }|null}
  */
-export function groundModelDraft(raw, input) {
+export function groundModelDraft(raw, message) {
   const parsed = ModelDraftSchema.safeParse(raw);
   if (!parsed.success) return null;
   const draft = parsed.data;
+  // Held to what the shopper wrote, in their words or in the English of them:
+  // "hamare do" states the 2 a model reads from it (hinglish.js).
+  const input = `${message} ${fromHinglish(message)}`;
   const stated = statedNumbers(input);
   const text = ` ${normalise(input)} `;
   const diets = new Set(dietsNamed(input));
