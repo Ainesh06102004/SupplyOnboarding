@@ -1,5 +1,5 @@
 -- ============================================================================
--- 00066_plan_page_profile
+-- 00067_plan_page_profile
 --
 -- The new Plan page (the founder's Nutrition Planner design) asks four things
 -- of a member profile that it could not hold:

@@ -118,7 +118,7 @@ export async function runAgent({ householdId, planId = null, text, defaults, emi
     }
   }
 
-  // What the run did, without the shopper's words (00068): tools, not text.
+  // What the run did, without the shopper's words (00069): tools, not text.
   await db.from("plan_run").insert({
     household_id: householdId,
     source,

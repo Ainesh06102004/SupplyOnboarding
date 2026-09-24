@@ -449,7 +449,7 @@ VALUES
 ('Shallot', '["shallot"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
 ('Colocasia', '["colocasia","arbi","taro"]', 'whole_food', 'safe', FALSE, 'A root vegetable: excluded by a Jain diet.'),
 
--- 00067: what the Plan page's dishes are made of that the graph lacked.
+-- 00068: what the Plan page's dishes are made of that the graph lacked.
 ('Tomato', '["tomato","tomatoes","tamatar","tomato puree","tomato paste"]', 'whole_food', 'safe', FALSE, 'A vegetable.'),
 ('Spinach', '["spinach","palak"]', 'whole_food', 'safe', FALSE, 'A leafy vegetable.'),
 ('Green Peas', '["green peas","peas","matar","mutter"]', 'whole_food', 'safe', FALSE, 'A legume: excluded on a fasting day.'),

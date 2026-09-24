@@ -1,4 +1,4 @@
--- 00064 — amazon_products: every listing KOI scrapes from amazon.in, first
+-- 00065 — amazon_products: every listing KOI scrapes from amazon.in, first
 -- category protein bars. A staging catalogue, separate from the storefront:
 -- nothing here is shown to shoppers or copied into public.skus / sku_nutrition.
 --

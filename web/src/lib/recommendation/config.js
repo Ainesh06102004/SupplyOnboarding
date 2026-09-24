@@ -176,7 +176,7 @@ export const FOODS_AVOID = [
   { key: "red_meat", label: "Red Meat", emoji: "🥩", flag: "red_meat", kind: "ingredient", mode: "hard" },
   { key: "caffeine", label: "Caffeine", emoji: "☕", flag: "caffeine", kind: "ingredient", mode: "hard" },
   // The allium flag (00056) reached only the fasting diet; "no onion-garlic"
-  // is its own rule for many households, Jain or not (00066).
+  // is its own rule for many households, Jain or not (00067).
   { key: "onion_garlic", label: "Onion & garlic", emoji: "🧅", flag: "allium", kind: "ingredient", mode: "hard" },
   { key: "artificial_sweeteners", label: "Artificial Sweeteners", emoji: "🧪", flag: "artificial_sweetener", kind: "attribute", mode: "soft" },
   { key: "palm_oil", label: "Palm Oil", emoji: "🌴", flag: "palm_oil", kind: "ingredient", mode: "soft" },

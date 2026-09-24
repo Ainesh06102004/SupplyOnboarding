@@ -2,7 +2,7 @@
 
 // Step 1 · Define — the outcome, not a diet. The goal cards set the active
 // person's goal (lib/plan/goalCards.js); favourites become the kinds of food
-// KOI stocks that the planner leans towards (favourite_categories, 00066).
+// KOI stocks that the planner leans towards (favourite_categories, 00067).
 
 import { useState } from "react";
 import { GOAL_CARDS, cardFor, applyCard } from "@/lib/plan/goalCards";

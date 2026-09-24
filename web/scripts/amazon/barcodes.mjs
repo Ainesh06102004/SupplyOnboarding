@@ -1,6 +1,6 @@
 // Step 6 — barcodes decoded from the pack photos (zxing-wasm), check digit verified.
 // Only codes actually read off an image are kept: matching Open Food Facts by
-// name was tried and dropped (00065) — it gave one code to many flavours.
+// name was tried and dropped (00066) — it gave one code to many flavours.
 //   node --env-file=.env.local scripts/amazon/barcodes.mjs
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

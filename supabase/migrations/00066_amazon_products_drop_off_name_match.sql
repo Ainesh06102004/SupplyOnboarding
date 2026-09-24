@@ -1,6 +1,6 @@
--- 00065 — drop Open Food Facts name matching from amazon_products.
+-- 00066 — drop Open Food Facts name matching from amazon_products.
 --
--- 00064's match_off() matched listings to engine.off_products by brand +
+-- 00065's match_off() matched listings to engine.off_products by brand +
 -- word_similarity of the OFF name inside the Amazon title. On the first run it
 -- was wrong far more often than right: short OFF names ("Protein bar",
 -- "Peanut butter") score 1.0 against any title of that brand, so one code was

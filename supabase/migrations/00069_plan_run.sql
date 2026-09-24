@@ -1,5 +1,5 @@
 -- ============================================================================
--- 00068_plan_run — what KOI's agent did (Plan page, Phase 3).
+-- 00069_plan_run — what KOI's agent did (Plan page, Phase 3).
 --
 -- One row per message the agent ran: which tools, in what order, whether
 -- each worked, and the plan it left on screen. Not the shopper's words — the

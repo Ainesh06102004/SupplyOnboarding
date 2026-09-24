@@ -124,7 +124,7 @@ export async function planForHousehold({
   const members = memberRows.map((row) => {
     const choices = thisWeek?.[String(row.id)] ?? {};
     const targets = choices.targets ?? {};
-    // What they said they love (00066) is a standing preference; what they
+    // What they said they love (00067) is a standing preference; what they
     // skip this week wins over it.
     const skip = new Set(choices.skip ?? []);
     const prefer = [...new Set([...(row.favourite_categories ?? []), ...(choices.prefer ?? [])])].filter((key) => !skip.has(key));

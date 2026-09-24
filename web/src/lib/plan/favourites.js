@@ -4,7 +4,7 @@
 //
 // A word becomes a category key through the same graph the planner reads
 // (food.category_alias → CATEGORY_WORDS, and the taxonomy's own terms via
-// categorise). Only keys are kept; the words are not (00066). A word that
+// categorise). Only keys are kept; the words are not (00067). A word that
 // names nothing KOI knows, or a kind of food it does not stock, is said so —
 // and can go to the demand queue, which is how KOI learns what to stock.
 // ============================================================================

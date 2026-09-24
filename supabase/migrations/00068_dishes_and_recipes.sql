@@ -1,5 +1,5 @@
 -- ============================================================================
--- 00067_dishes_and_recipes — Phase 2 of the Plan page: dishes.
+-- 00068_dishes_and_recipes — Phase 2 of the Plan page: dishes.
 --
 -- The planner buys packs of products; the founder's design shows a week of
 -- dishes. This is the layer between them: a dish is a typical home recipe,
@@ -55,7 +55,7 @@ SELECT food.sync_ingredient_aliases();
 
 -- The fasting flags 00056 meant to set. Asafoetida is deliberately NOT given
 -- 00056's allium flag: allium now also backs the "no onion-garlic" avoid
--- (00066), and hing is what a no-onion-garlic kitchen cooks with instead.
+-- (00067), and hing is what a no-onion-garlic kitchen cooks with instead.
 INSERT INTO food.ingredient_flag (ingredient_id, flag, rule, source)
 SELECT m.id, v.flag, 'fasting', 'koi'
 FROM (VALUES
