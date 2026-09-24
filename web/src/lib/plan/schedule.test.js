@@ -143,7 +143,8 @@ test("someone without a dish's staple doesn't stop the others having it", () => 
   const chanaFor = Object.values(week.cells).flatMap((c) => (c.shared?.dishes.some((x) => x.key === "chana_masala") ? c.shared.eaters : []));
   assert.ok(!chanaFor.includes("son"), "never served to someone who has no chana");
   const side = week.additions.me.find((a) => a.skuId === "chana");
-  if (side) assert.ok(["chana_masala", "roasted_chana"].includes(side.asDish?.key), "a leftover staple is named as a dish");
+  // Named as a dish made from it, whichever chickpea dish that is.
+  if (side) assert.ok(dish(side.asDish?.key)?.lines.some((l) => l.ingredient === "Chickpea"), `a leftover staple is named as a dish made from it: ${side.asDish?.key}`);
   // A breakfast the two with moong can have is shared by them, not dropped.
   const breakfast = week.cells["0:breakfast"];
   assert.ok((breakfast.shared?.eaters.length ?? 0) >= 2, JSON.stringify(breakfast.shared));

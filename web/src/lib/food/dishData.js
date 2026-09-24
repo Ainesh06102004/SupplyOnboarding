@@ -3,9 +3,61 @@
 // from (a KOI shelf, fresh, or the kitchen). No quantities — amounts come from
 // the planner. Allergens and diet flags are derived at runtime (lib/food/dishes.js).
 
-export const DISH_VERSION = "b6748c909181";
+export const DISH_VERSION = "74f10bb082c1";
 
 export const DISHES = Object.freeze([
+ {
+  "key": "aam_panna",
+  "name": "Aam panna",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Mango",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Jaggery",
+    "supply": "shelf",
+    "category": "sweeteners.jaggery",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mint",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
  {
   "key": "aloo_gobi",
   "name": "Aloo gobi",
@@ -35,6 +87,91 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "aloo_matar",
+  "name": "Aloo matar",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
     "supply": "fresh",
     "category": null,
     "anyOfShelf": false,
@@ -136,6 +273,196 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "arbi_fry",
+  "name": "Arbi fry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Colocasia",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "avial",
+  "name": "Avial",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "French Beans",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Pumpkin",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Yam",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "badam_milk",
+  "name": "Badam milk",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 10,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.milk",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cardamom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Refined Sugar",
+    "supply": "shelf",
+    "category": "sweeteners.sugar",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "baingan_bharta",
   "name": "Baingan bharta",
   "kind": "main",
@@ -188,6 +515,176 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Mustard Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "bajra_roti",
+  "name": "Bajra roti",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Bajra",
+    "supply": "shelf",
+    "category": "staples.millets",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "banana_peanut_butter",
+  "name": "Banana with peanut butter",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 2,
+  "lines": [
+   {
+    "ingredient": "Banana",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Peanut",
+    "supply": "shelf",
+    "category": "nuts_seeds.nut_butters",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "banana_smoothie",
+  "name": "Banana smoothie",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.milk",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Banana",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Oats",
+    "supply": "shelf",
+    "category": "staples.breakfast_cereals",
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Honey",
+    "supply": "shelf",
+    "category": "sweeteners.honey",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "beans_poriyal",
+  "name": "Beans poriyal",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "French Beans",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
     "supply": "kitchen",
     "category": null,
     "anyOfShelf": false,
@@ -282,6 +779,90 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "bhel_puri",
+  "name": "Bhel puri",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 10,
+  "lines": [
+   {
+    "ingredient": "Puffed Rice",
+    "supply": "shelf",
+    "category": "snacks.puffs",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Tamarind",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chickpea",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Chaat Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "bhindi_masala",
   "name": "Bhindi masala",
   "kind": "main",
@@ -343,6 +924,395 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "bisi_bele_bath",
+  "name": "Bisi bele bath",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 50,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tamarind",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sambar Powder",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "French Beans",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "boiled_eggs",
+  "name": "Boiled eggs",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "snack"
+  ],
+  "cuisine": null,
+  "prepMinutes": 12,
+  "lines": [
+   {
+    "ingredient": "Egg",
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "bread_omelette",
+  "name": "Bread omelette",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 10,
+  "lines": [
+   {
+    "ingredient": "Egg",
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Wheat",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "brown_rice",
+  "name": "Brown rice",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": null,
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Brown Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "butter_chicken",
+  "name": "Butter chicken",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 50,
+  "lines": [
+   {
+    "ingredient": "Chicken",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "cabbage_poriyal",
+  "name": "Cabbage poriyal",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Cabbage",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "chaas",
   "name": "Chaas",
   "kind": "drink",
@@ -365,6 +1335,83 @@ export const DISHES = Object.freeze([
     "supply": "kitchen",
     "category": null,
     "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "chana_dal_fry",
+  "name": "Chana dal fry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
     "optional": false,
     "blend": false
    },
@@ -456,6 +1503,175 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "chana_salad",
+  "name": "Chana salad",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 15,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cucumber",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chaat Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "chicken_biryani",
+  "name": "Chicken biryani",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 75,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chicken",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mint",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "chicken_curry",
   "name": "Chicken curry",
   "kind": "main",
@@ -533,6 +1749,361 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "chicken_stew",
+  "name": "Kerala chicken stew",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 45,
+  "lines": [
+   {
+    "ingredient": "Chicken",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cinnamon",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cloves",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "coconut_rice",
+  "name": "Coconut rice",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "coconut_water",
+  "name": "Coconut water",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": null,
+  "prepMinutes": 1,
+  "lines": [
+   {
+    "ingredient": "Coconut Water",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "cold_coffee",
+  "name": "Cold coffee",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Coffee",
+    "supply": "shelf",
+    "category": "beverages.tea_coffee",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.milk",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Refined Sugar",
+    "supply": "shelf",
+    "category": "sweeteners.sugar",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "corn_chaat",
+  "name": "Corn chaat",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 10,
+  "lines": [
+   {
+    "ingredient": "Sweet Corn",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chaat Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "curd_fruit_bowl",
+  "name": "Curd bowl with fruit and nuts",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "snack"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Banana",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Pomegranate",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Honey",
+    "supply": "shelf",
+    "category": "sweeteners.honey",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "curd_rice",
   "name": "Curd rice",
   "kind": "one_pot",
@@ -572,6 +2143,176 @@ export const DISHES = Object.freeze([
     "supply": "fresh",
     "category": null,
     "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "dal_makhani",
+  "name": "Dal makhani",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 60,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Kidney Beans",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "dal_palak",
+  "name": "Dal palak",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Spinach",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
     "optional": false,
     "blend": false
    },
@@ -701,6 +2442,184 @@ export const DISHES = Object.freeze([
     "supply": "shelf",
     "category": "nuts_seeds.nuts",
     "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "dhokla",
+  "name": "Khaman dhokla",
+  "kind": "snack",
+  "slots": [
+   "snack",
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Refined Sugar",
+    "supply": "shelf",
+    "category": "sweeteners.sugar",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sodium Bicarbonate",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "dum_aloo",
+  "name": "Dum aloo",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
     "optional": false,
     "blend": false
    }
@@ -853,6 +2772,91 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "egg_fried_rice",
+  "name": "Egg fried rice",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Egg",
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Spring Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Soy Sauce",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "filter_coffee",
   "name": "Filter coffee",
   "kind": "drink",
@@ -966,6 +2970,75 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "fish_fry",
+  "name": "Fish fry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Fish",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rice Flour",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "fruit_bowl",
   "name": "Fruit bowl",
   "kind": "snack",
@@ -987,6 +3060,417 @@ export const DISHES = Object.freeze([
    {
     "ingredient": "Apple",
     "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "fruit_chaat",
+  "name": "Fruit chaat",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 10,
+  "lines": [
+   {
+    "ingredient": "Banana",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Apple",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Papaya",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Pomegranate",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Guava",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Chaat Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "gatte_ki_sabzi",
+  "name": "Gatte ki sabzi",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 50,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "gobi_paratha",
+  "name": "Gobi paratha",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Whole Wheat Flour",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cauliflower",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "green_tea",
+  "name": "Green tea",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": null,
+  "prepMinutes": 3,
+  "lines": [
+   {
+    "ingredient": "Tea",
+    "supply": "shelf",
+    "category": "beverages.tea_coffee",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Honey",
+    "supply": "shelf",
+    "category": "sweeteners.honey",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "grilled_chicken_salad",
+  "name": "Grilled chicken salad",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Chicken",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cucumber",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Olive Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "hakka_noodles",
+  "name": "Veg hakka noodles",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Refined Wheat Flour",
+    "supply": "shelf",
+    "category": "staples",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cabbage",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Spring Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Soy Sauce",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
     "category": null,
     "anyOfShelf": false,
     "optional": false,
@@ -1045,6 +3529,118 @@ export const DISHES = Object.freeze([
     "supply": "shelf",
     "category": "nuts_seeds.nuts",
     "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "hummus",
+  "name": "Hummus with cucumber",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 15,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sesame",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Olive Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cucumber",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "idli",
+  "name": "Idli",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
     "optional": false,
     "blend": false
    }
@@ -1112,6 +3708,127 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "jaljeera",
+  "name": "Jaljeera",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mint",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tamarind",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "jeera_aloo",
+  "name": "Jeera aloo",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "jeera_rice",
   "name": "Jeera rice",
   "kind": "base",
@@ -1143,6 +3860,338 @@ export const DISHES = Object.freeze([
     "supply": "shelf",
     "category": "fats_oils.ghee",
     "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "kadai_paneer",
+  "name": "Kadai paneer",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.paneer",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Seeds",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "kaddu_sabzi",
+  "name": "Khatta meetha kaddu",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Pumpkin",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Jaggery",
+    "supply": "shelf",
+    "category": "sweeteners.jaggery",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Mango",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "kadhi",
+  "name": "Kadhi",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Asafoetida",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "kala_chana_curry",
+  "name": "Kala chana curry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 45,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Seeds",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
     "optional": false,
     "blend": false
    },
@@ -1249,6 +4298,257 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "karela_sabzi",
+  "name": "Karela sabzi",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Bitter Gourd",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mango",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "keema_matar",
+  "name": "Keema matar",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 45,
+  "lines": [
+   {
+    "ingredient": "Mutton",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "kuttu_chilla",
+  "name": "Kuttu chilla",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Buckwheat",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "kuttu_roti",
+  "name": "Kuttu roti",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Buckwheat",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "lauki_sabzi",
   "name": "Lauki sabzi",
   "kind": "main",
@@ -1310,6 +4610,205 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "lemon_rice",
+  "name": "Lemon rice",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Peanut",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "lobia_curry",
+  "name": "Lobia curry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 45,
+  "lines": [
+   {
+    "ingredient": "Black-eyed Peas",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "makki_roti",
+  "name": "Makki ki roti",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Maize",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "masala_chai",
   "name": "Masala chai",
   "kind": "drink",
@@ -1349,6 +4848,174 @@ export const DISHES = Object.freeze([
     "category": "sweeteners.sugar",
     "anyOfShelf": true,
     "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "masala_dosa",
+  "name": "Masala dosa",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "masala_oats",
+  "name": "Masala oats",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 15,
+  "lines": [
+   {
+    "ingredient": "Oats",
+    "supply": "shelf",
+    "category": "staples.breakfast_cereals",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
     "blend": false
    }
   ]
@@ -1406,6 +5073,374 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "masala_peanuts",
+  "name": "Peanut chaat",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 10,
+  "lines": [
+   {
+    "ingredient": "Peanut",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chaat Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "masoor_dal",
+  "name": "Masoor dal",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "matar_paneer",
+  "name": "Matar paneer",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.paneer",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "medu_vada",
+  "name": "Medu vada",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "methi_aloo",
+  "name": "Aloo methi",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "millet_roti",
   "name": "Millet roti",
   "kind": "base",
@@ -1420,6 +5455,175 @@ export const DISHES = Object.freeze([
     "ingredient": "Jowar",
     "supply": "shelf",
     "category": "staples.millets",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "misal_pav",
+  "name": "Misal pav",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Refined Wheat Flour",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "missi_roti",
+  "name": "Missi roti",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Whole Wheat Flour",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
     "anyOfShelf": true,
     "optional": false,
     "blend": false
@@ -1677,6 +5881,83 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "mutton_curry",
+  "name": "Mutton curry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 90,
+  "lines": [
+   {
+    "ingredient": "Mutton",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "nimbu_pani",
   "name": "Nimbu pani",
   "kind": "drink",
@@ -1736,6 +6017,58 @@ export const DISHES = Object.freeze([
     "category": "dairy.milk",
     "anyOfShelf": false,
     "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Banana",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Honey",
+    "supply": "shelf",
+    "category": "sweeteners.honey",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "overnight_oats",
+  "name": "Overnight oats",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Oats",
+    "supply": "shelf",
+    "category": "staples.breakfast_cereals",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.milk",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chia Seeds",
+    "supply": "shelf",
+    "category": "nuts_seeds.seeds",
+    "anyOfShelf": false,
+    "optional": true,
     "blend": false
    },
    {
@@ -1903,6 +6236,433 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "paneer_butter_masala",
+  "name": "Paneer butter masala",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.paneer",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "paneer_paratha",
+  "name": "Paneer paratha",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Whole Wheat Flour",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.paneer",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "paneer_tikka",
+  "name": "Paneer tikka",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.paneer",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "pav_bhaji",
+  "name": "Pav bhaji",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cauliflower",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Pav Bhaji Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Refined Wheat Flour",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "peanut_butter_toast",
+  "name": "Peanut butter toast",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "snack"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Wheat",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Peanut",
+    "supply": "shelf",
+    "category": "nuts_seeds.nut_butters",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Banana",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "pesarattu",
+  "name": "Pesarattu",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "phulka",
   "name": "Phulka",
   "kind": "base",
@@ -1917,6 +6677,294 @@ export const DISHES = Object.freeze([
     "ingredient": "Whole Wheat Flour",
     "supply": "shelf",
     "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "plain_paratha",
+  "name": "Plain paratha",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Whole Wheat Flour",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "prawn_curry",
+  "name": "Prawn curry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Crustacean Shellfish",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Milk",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "quinoa_pulao",
+  "name": "Quinoa pulao",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Quinoa",
+    "supply": "shelf",
+    "category": "staples.millets",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Olive Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "ragi_dosa",
+  "name": "Ragi dosa",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Ragi",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rice Flour",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "ragi_mudde",
+  "name": "Ragi mudde",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Ragi",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1955,6 +7003,87 @@ export const DISHES = Object.freeze([
     "category": "sweeteners.jaggery",
     "anyOfShelf": true,
     "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "rajgira_porridge",
+  "name": "Rajgira porridge",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 15,
+  "lines": [
+   {
+    "ingredient": "Amaranth",
+    "supply": "shelf",
+    "category": "staples.millets",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.milk",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Jaggery",
+    "supply": "shelf",
+    "category": "sweeteners.jaggery",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Cardamom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "rajgira_roti",
+  "name": "Rajgira roti",
+  "kind": "base",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Amaranth",
+    "supply": "shelf",
+    "category": "staples.millets",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
     "blend": false
    }
   ]
@@ -2023,6 +7152,107 @@ export const DISHES = Object.freeze([
     "supply": "kitchen",
     "category": null,
     "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "rasam",
+  "name": "Tomato rasam",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tamarind",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rasam Powder",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Asafoetida",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
     "optional": false,
     "blend": false
    },
@@ -2161,6 +7391,398 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "sabudana_khichdi",
+  "name": "Sabudana khichdi",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Sago",
+    "supply": "shelf",
+    "category": "staples",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Peanut",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "samak_khichdi",
+  "name": "Samak khichdi",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Barnyard Millet",
+    "supply": "shelf",
+    "category": "staples.millets",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Peanut",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "sambar",
+  "name": "Sambar",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tamarind",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sambar Powder",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Brinjal",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Shallot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Asafoetida",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "sarson_ka_saag",
+  "name": "Sarson ka saag",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 50,
+  "lines": [
+   {
+    "ingredient": "Mustard Greens",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Spinach",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Maize",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "sattu_sharbat",
+  "name": "Sattu sharbat",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mint",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "soya_curry",
   "name": "Soya chunk curry",
   "kind": "main",
@@ -2205,6 +7827,91 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "soya_keema",
+  "name": "Soya keema",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Soya",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
     "supply": "fresh",
     "category": null,
     "anyOfShelf": false,
@@ -2320,6 +8027,1120 @@ export const DISHES = Object.freeze([
   ]
  },
  {
+  "key": "sundal",
+  "name": "Chana sundal",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 15,
+  "lines": [
+   {
+    "ingredient": "Chickpea",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coconut Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "sweet_lassi",
+  "name": "Sweet lassi",
+  "kind": "drink",
+  "slots": [
+   "drinks"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 5,
+  "lines": [
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Refined Sugar",
+    "supply": "shelf",
+    "category": "sweeteners.sugar",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Cardamom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "sweet_potato_chaat",
+  "name": "Shakarkandi chaat",
+  "kind": "snack",
+  "slots": [
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Sweet Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "tandoori_chicken",
+  "name": "Tandoori chicken",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 45,
+  "lines": [
+   {
+    "ingredient": "Chicken",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "thepla",
+  "name": "Methi thepla",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "snack"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Whole Wheat Flour",
+    "supply": "shelf",
+    "category": "staples.flours",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Fenugreek",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carom",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "tofu_bhurji",
+  "name": "Tofu bhurji",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Soya",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "tofu_stir_fry",
+  "name": "Tofu stir-fry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Soya",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cabbage",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Soy Sauce",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sesame Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "tomato_rice",
+  "name": "Tomato rice",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Mustard",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "uttapam",
+  "name": "Onion uttapam",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "veg_biryani",
+  "name": "Vegetable biryani",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 60,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "French Beans",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mint",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "veg_dalia",
+  "name": "Vegetable dalia",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Wheat",
+    "supply": "shelf",
+    "category": "staples.breakfast_cereals",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "veg_fried_rice",
+  "name": "Vegetable fried rice",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "global",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "French Beans",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cabbage",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Spring Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Soy Sauce",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "veg_khichdi",
+  "name": "Vegetable khichdi",
+  "kind": "one_pot",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 35,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Turmeric",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "veg_korma",
+  "name": "Vegetable korma",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 40,
+  "lines": [
+   {
+    "ingredient": "Carrot",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "French Beans",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Milk",
+    "supply": "shelf",
+    "category": "dairy.curd",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
   "key": "veg_pulao",
   "name": "Vegetable pulao",
   "kind": "one_pot",
@@ -2380,6 +9201,220 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "ven_pongal",
+  "name": "Ven pongal",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Polished Rice",
+    "supply": "shelf",
+    "category": "staples.rice",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lentils",
+    "supply": "shelf",
+    "category": "staples.pulses",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tree Nuts",
+    "supply": "shelf",
+    "category": "nuts_seeds.nuts",
+    "anyOfShelf": true,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "vrat_aloo",
+  "name": "Vrat wale aloo",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Potato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Coriander Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Lemon",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "vrat_kaddu",
+  "name": "Vrat ka kaddu",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 25,
+  "lines": [
+   {
+    "ingredient": "Pumpkin",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Cumin",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Chilli",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Ghee",
+    "supply": "shelf",
+    "category": "fats_oils.ghee",
+    "anyOfShelf": true,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Rock Salt",
     "supply": "kitchen",
     "category": null,
     "anyOfShelf": false,

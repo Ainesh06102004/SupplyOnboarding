@@ -6,6 +6,15 @@
 
 /** Every other way of writing a food word. */
 export const WORD_FAMILIES = Object.freeze({
+ "aam": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
+ ],
  "aata": [
   "aata",
   "aatta",
@@ -84,6 +93,11 @@ export const WORD_FAMILIES = Object.freeze({
   "msg",
   "taste maker"
  ],
+ "ajwain": [
+  "ajwain",
+  "carom",
+  "carom seeds"
+ ],
  "akhrot": [
   "akhrot",
   "almond",
@@ -133,7 +147,11 @@ export const WORD_FAMILIES = Object.freeze({
  "all purpose flour": [
   "all purpose flour",
   "apf",
+  "hakka noodles",
   "maida",
+  "noodles",
+  "pav",
+  "pav bread",
   "refined flour",
   "refined wheat flour",
   "white flour"
@@ -239,6 +257,15 @@ export const WORD_FAMILIES = Object.freeze({
   "potato flakes",
   "potato powder"
  ],
+ "alphonso": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
+ ],
  "alsi": [
   "alsi",
   "flax seeds",
@@ -249,6 +276,36 @@ export const WORD_FAMILIES = Object.freeze({
   "amaranth",
   "rajgira",
   "ramdana"
+ ],
+ "amchur": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
+ ],
+ "american corn": [
+  "american corn",
+  "bhutta",
+  "corn kernels",
+  "makai dana",
+  "sweet corn"
+ ],
+ "amrood": [
+  "amrood",
+  "guava"
+ ],
+ "anar": [
+  "anar",
+  "anardana",
+  "pomegranate"
+ ],
+ "anardana": [
+  "anar",
+  "anardana",
+  "pomegranate"
  ],
  "anchovy": [
   "anchovy",
@@ -295,7 +352,11 @@ export const WORD_FAMILIES = Object.freeze({
  "apf": [
   "all purpose flour",
   "apf",
+  "hakka noodles",
   "maida",
+  "noodles",
+  "pav",
+  "pav bread",
   "refined flour",
   "refined wheat flour",
   "white flour"
@@ -529,10 +590,25 @@ export const WORD_FAMILIES = Object.freeze({
   "banana",
   "kela"
  ],
+ "band gobi": [
+  "band gobi",
+  "cabbage",
+  "patta gobi"
+ ],
  "barley": [
   "barley",
   "jau",
   "pearl barley"
+ ],
+ "barnyard millet": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
  ],
  "basmati rice": [
   "basmati rice",
@@ -540,6 +616,16 @@ export const WORD_FAMILIES = Object.freeze({
   "chawal",
   "polished rice",
   "white rice"
+ ],
+ "bay leaf": [
+  "bay leaf",
+  "bay leaves",
+  "tej patta"
+ ],
+ "bay leaves": [
+  "bay leaf",
+  "bay leaves",
+  "tej patta"
  ],
  "beaten rice": [
   "aval",
@@ -560,6 +646,26 @@ export const WORD_FAMILIES = Object.freeze({
   "beetroot",
   "chukandar"
  ],
+ "bell pepper": [
+  "bell pepper",
+  "capsicum",
+  "green capsicum",
+  "shimla mirch"
+ ],
+ "bengal gram": [
+  "bengal gram",
+  "besan",
+  "black chana",
+  "chana",
+  "chana dal",
+  "chickpea",
+  "chole",
+  "gram flour",
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
+ ],
  "benzoate": [
   "benzoate",
   "e211",
@@ -572,12 +678,18 @@ export const WORD_FAMILIES = Object.freeze({
   "ins 210"
  ],
  "besan": [
+  "bengal gram",
   "besan",
+  "black chana",
   "chana",
   "chana dal",
   "chickpea",
+  "chole",
   "gram flour",
-  "kabuli chana"
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "beta carotene": [
   "beta carotene",
@@ -617,6 +729,13 @@ export const WORD_FAMILIES = Object.freeze({
   "e321",
   "ins 321"
  ],
+ "bhutta": [
+  "american corn",
+  "bhutta",
+  "corn kernels",
+  "makai dana",
+  "sweet corn"
+ ],
  "bifidobacterium": [
   "bifidobacterium",
   "dahi culture",
@@ -630,12 +749,54 @@ export const WORD_FAMILIES = Object.freeze({
   "binola oil",
   "cottonseed oil"
  ],
+ "bitter gourd": [
+  "bitter gourd",
+  "bitter melon",
+  "karela"
+ ],
+ "bitter melon": [
+  "bitter gourd",
+  "bitter melon",
+  "karela"
+ ],
  "bixin": [
   "annatto",
   "bixin",
   "e160b",
   "ins 160b",
   "norbixin"
+ ],
+ "black chana": [
+  "bengal gram",
+  "besan",
+  "black chana",
+  "chana",
+  "chana dal",
+  "chickpea",
+  "chole",
+  "gram flour",
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
+ ],
+ "black eyed peas": [
+  "black eyed peas",
+  "black-eyed peas",
+  "chawli",
+  "lobia",
+  "rongi"
+ ],
+ "black pepper": [
+  "black pepper",
+  "kali mirch",
+  "pepper powder",
+  "peppercorns"
+ ],
+ "black salt": [
+  "black salt",
+  "kala namak",
+  "sanchal"
  ],
  "black tea": [
   "black tea",
@@ -645,6 +806,13 @@ export const WORD_FAMILIES = Object.freeze({
   "tea extract",
   "tea leaves",
   "tea powder"
+ ],
+ "black-eyed peas": [
+  "black eyed peas",
+  "black-eyed peas",
+  "chawli",
+  "lobia",
+  "rongi"
  ],
  "bottle gourd": [
   "bottle gourd",
@@ -682,8 +850,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -697,8 +869,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -712,8 +888,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -742,6 +922,25 @@ export const WORD_FAMILIES = Object.freeze({
   "baingan",
   "brinjal",
   "eggplant"
+ ],
+ "broken wheat": [
+  "bread",
+  "bread crumbs",
+  "breadcrumbs",
+  "broken wheat",
+  "couscous",
+  "dalia",
+  "daliya",
+  "durum",
+  "lapsi",
+  "pasta",
+  "rava",
+  "semolina",
+  "suji",
+  "wheat",
+  "wheat flour",
+  "whole wheat",
+  "wholewheat"
  ],
  "bromate": [
   "bromate",
@@ -774,6 +973,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -783,6 +983,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -800,6 +1001,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -809,6 +1011,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -829,6 +1032,11 @@ export const WORD_FAMILIES = Object.freeze({
  "bvo": [
   "brominated vegetable oil",
   "bvo"
+ ],
+ "cabbage": [
+  "band gobi",
+  "cabbage",
+  "patta gobi"
  ],
  "cacao": [
   "cacao",
@@ -894,6 +1102,12 @@ export const WORD_FAMILIES = Object.freeze({
   "canola oil",
   "rapeseed oil"
  ],
+ "capsicum": [
+  "bell pepper",
+  "capsicum",
+  "green capsicum",
+  "shimla mirch"
+ ],
  "caramel color": [
   "caramel color",
   "caramel colour",
@@ -918,6 +1132,11 @@ export const WORD_FAMILIES = Object.freeze({
   "cmc",
   "e466",
   "ins 466"
+ ],
+ "cardamom": [
+  "cardamom",
+  "elaichi",
+  "green cardamom"
  ],
  "carmine": [
   "carmine",
@@ -944,6 +1163,16 @@ export const WORD_FAMILIES = Object.freeze({
   "e410",
   "ins 410",
   "locust bean gum"
+ ],
+ "carom seeds": [
+  "ajwain",
+  "carom",
+  "carom seeds"
+ ],
+ "carom": [
+  "ajwain",
+  "carom",
+  "carom seeds"
  ],
  "carotene": [
   "beta carotene",
@@ -1109,6 +1338,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1118,6 +1348,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1141,20 +1372,32 @@ export const WORD_FAMILIES = Object.freeze({
   "ins 170"
  ],
  "chana dal": [
+  "bengal gram",
   "besan",
+  "black chana",
   "chana",
   "chana dal",
   "chickpea",
+  "chole",
   "gram flour",
-  "kabuli chana"
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "chana": [
+  "bengal gram",
   "besan",
+  "black chana",
   "chana",
   "chana dal",
   "chickpea",
+  "chole",
   "gram flour",
-  "kabuli chana"
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "chaval": [
   "basmati rice",
@@ -1174,6 +1417,13 @@ export const WORD_FAMILIES = Object.freeze({
   "polished rice",
   "white rice"
  ],
+ "chawli": [
+  "black eyed peas",
+  "black-eyed peas",
+  "chawli",
+  "lobia",
+  "rongi"
+ ],
  "cheese": [
   "butter",
   "buttermilk",
@@ -1186,6 +1436,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1195,6 +1446,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1212,6 +1464,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1221,6 +1474,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1237,12 +1491,18 @@ export const WORD_FAMILIES = Object.freeze({
   "sabja substitute"
  ],
  "chickpea": [
+  "bengal gram",
   "besan",
+  "black chana",
   "chana",
   "chana dal",
   "chickpea",
+  "chole",
   "gram flour",
-  "kabuli chana"
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "chicory inulin": [
   "chicory inulin",
@@ -1362,6 +1622,20 @@ export const WORD_FAMILIES = Object.freeze({
   "poha",
   "pohe"
  ],
+ "chole": [
+  "bengal gram",
+  "besan",
+  "black chana",
+  "chana",
+  "chana dal",
+  "chickpea",
+  "chole",
+  "gram flour",
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
+ ],
  "chukandar": [
   "beetroot",
   "chukandar"
@@ -1373,6 +1647,10 @@ export const WORD_FAMILIES = Object.freeze({
   "dhania",
   "hara dhania"
  ],
+ "cinnamon": [
+  "cinnamon",
+  "dalchini"
+ ],
  "citric acid": [
   "citric acid",
   "e330",
@@ -1382,6 +1660,16 @@ export const WORD_FAMILIES = Object.freeze({
   "clarified butter",
   "desi ghee",
   "ghee"
+ ],
+ "clove": [
+  "clove",
+  "cloves",
+  "laung"
+ ],
+ "cloves": [
+  "clove",
+  "cloves",
+  "laung"
  ],
  "cmc": [
   "carboxymethyl cellulose",
@@ -1460,6 +1748,27 @@ export const WORD_FAMILIES = Object.freeze({
   "nariyal tel",
   "virgin coconut oil"
  ],
+ "coconut powder": [
+  "coconut",
+  "coconut powder",
+  "copra",
+  "desiccated coconut",
+  "grated coconut",
+  "nariyal"
+ ],
+ "coconut water": [
+  "coconut water",
+  "nariyal pani",
+  "tender coconut water"
+ ],
+ "coconut": [
+  "coconut",
+  "coconut powder",
+  "copra",
+  "desiccated coconut",
+  "grated coconut",
+  "nariyal"
+ ],
  "coffee extract": [
   "coffee",
   "coffee extract",
@@ -1500,12 +1809,32 @@ export const WORD_FAMILIES = Object.freeze({
   "ins 904",
   "shellac"
  ],
+ "copra": [
+  "coconut",
+  "coconut powder",
+  "copra",
+  "desiccated coconut",
+  "grated coconut",
+  "nariyal"
+ ],
  "coriander leaves": [
   "cilantro",
   "coriander",
   "coriander leaves",
   "dhania",
   "hara dhania"
+ ],
+ "coriander powder": [
+  "coriander powder",
+  "coriander seeds",
+  "dhania powder",
+  "dhaniya powder"
+ ],
+ "coriander seeds": [
+  "coriander powder",
+  "coriander seeds",
+  "dhania powder",
+  "dhaniya powder"
  ],
  "coriander": [
   "cilantro",
@@ -1520,6 +1849,13 @@ export const WORD_FAMILIES = Object.freeze({
   "cornflour",
   "maize starch",
   "makai starch"
+ ],
+ "corn kernels": [
+  "american corn",
+  "bhutta",
+  "corn kernels",
+  "makai dana",
+  "sweet corn"
  ],
  "corn starch": [
   "corn flour",
@@ -1542,6 +1878,14 @@ export const WORD_FAMILIES = Object.freeze({
   "maize starch",
   "makai starch"
  ],
+ "cornmeal": [
+  "cornmeal",
+  "maize",
+  "maize flour",
+  "makka",
+  "makki",
+  "makki atta"
+ ],
  "cottonseed oil": [
   "binola oil",
   "cottonseed oil"
@@ -1550,8 +1894,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -1584,6 +1932,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1593,6 +1942,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1619,6 +1969,11 @@ export const WORD_FAMILIES = Object.freeze({
   "prawn",
   "shellfish",
   "shrimp"
+ ],
+ "cucumber": [
+  "cucumber",
+  "kakdi",
+  "kheera"
  ],
  "cumin powder": [
   "cumin",
@@ -1661,6 +2016,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1670,6 +2026,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1714,6 +2071,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1723,6 +2081,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1740,6 +2099,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -1749,6 +2109,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -1767,12 +2128,54 @@ export const WORD_FAMILIES = Object.freeze({
   "toor",
   "urad"
  ],
+ "dalchini": [
+  "cinnamon",
+  "dalchini"
+ ],
  "dalda": [
   "dalda",
   "hydrogenated vegetable oil",
   "vanaspati",
   "vanaspati ghee",
   "vegetable ghee"
+ ],
+ "dalia": [
+  "bread",
+  "bread crumbs",
+  "breadcrumbs",
+  "broken wheat",
+  "couscous",
+  "dalia",
+  "daliya",
+  "durum",
+  "lapsi",
+  "pasta",
+  "rava",
+  "semolina",
+  "suji",
+  "wheat",
+  "wheat flour",
+  "whole wheat",
+  "wholewheat"
+ ],
+ "daliya": [
+  "bread",
+  "bread crumbs",
+  "breadcrumbs",
+  "broken wheat",
+  "couscous",
+  "dalia",
+  "daliya",
+  "durum",
+  "lapsi",
+  "pasta",
+  "rava",
+  "semolina",
+  "suji",
+  "wheat",
+  "wheat flour",
+  "whole wheat",
+  "wholewheat"
  ],
  "date paste": [
   "date paste",
@@ -1809,6 +2212,14 @@ export const WORD_FAMILIES = Object.freeze({
   "desi ghee",
   "ghee"
  ],
+ "desiccated coconut": [
+  "coconut",
+  "coconut powder",
+  "copra",
+  "desiccated coconut",
+  "grated coconut",
+  "nariyal"
+ ],
  "dextrose monohydrate": [
   "dextrose",
   "dextrose monohydrate",
@@ -1836,12 +2247,24 @@ export const WORD_FAMILIES = Object.freeze({
   "toor",
   "urad"
  ],
+ "dhania powder": [
+  "coriander powder",
+  "coriander seeds",
+  "dhania powder",
+  "dhaniya powder"
+ ],
  "dhania": [
   "cilantro",
   "coriander",
   "coriander leaves",
   "dhania",
   "hara dhania"
+ ],
+ "dhaniya powder": [
+  "coriander powder",
+  "coriander seeds",
+  "dhania powder",
+  "dhaniya powder"
  ],
  "diglycerides": [
   "diglycerides",
@@ -1953,6 +2376,15 @@ export const WORD_FAMILIES = Object.freeze({
   "ginger powder",
   "sonth"
  ],
+ "dry mango powder": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
+ ],
  "dryfruit": [
   "akhrot",
   "almond",
@@ -2009,8 +2441,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -2553,6 +2989,11 @@ export const WORD_FAMILIES = Object.freeze({
   "brinjal",
   "eggplant"
  ],
+ "elaichi": [
+  "cardamom",
+  "elaichi",
+  "green cardamom"
+ ],
  "erythritol": [
   "e968",
   "erythritol",
@@ -2640,6 +3081,43 @@ export const WORD_FAMILIES = Object.freeze({
   "sunset yellow fcf",
   "yellow 6"
  ],
+ "fennel seeds": [
+  "fennel",
+  "fennel seeds",
+  "saunf"
+ ],
+ "fennel": [
+  "fennel",
+  "fennel seeds",
+  "saunf"
+ ],
+ "fenugreek leaves": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
+ "fenugreek seeds": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
+ "fenugreek": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
  "finger millet": [
   "finger millet",
   "nachni",
@@ -2726,6 +3204,12 @@ export const WORD_FAMILIES = Object.freeze({
   "foxtail millet",
   "kangni",
   "navane"
+ ],
+ "french beans": [
+  "french beans",
+  "green beans",
+  "phali",
+  "string beans"
  ],
  "fructooligosaccharide": [
   "chicory inulin",
@@ -2877,12 +3361,18 @@ export const WORD_FAMILIES = Object.freeze({
   "phool gobi"
  ],
  "gram flour": [
+  "bengal gram",
   "besan",
+  "black chana",
   "chana",
   "chana dal",
   "chickpea",
+  "chole",
   "gram flour",
-  "kabuli chana"
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "grape skin extract": [
   "anthocyanin",
@@ -2890,6 +3380,31 @@ export const WORD_FAMILIES = Object.freeze({
   "e163",
   "grape skin extract",
   "ins 163"
+ ],
+ "grated coconut": [
+  "coconut",
+  "coconut powder",
+  "copra",
+  "desiccated coconut",
+  "grated coconut",
+  "nariyal"
+ ],
+ "green beans": [
+  "french beans",
+  "green beans",
+  "phali",
+  "string beans"
+ ],
+ "green capsicum": [
+  "bell pepper",
+  "capsicum",
+  "green capsicum",
+  "shimla mirch"
+ ],
+ "green cardamom": [
+  "cardamom",
+  "elaichi",
+  "green cardamom"
  ],
  "green chilli": [
   "cayenne",
@@ -2903,6 +3418,13 @@ export const WORD_FAMILIES = Object.freeze({
   "mirchi",
   "red chilli",
   "red chilli powder"
+ ],
+ "green onion": [
+  "green onion",
+  "hara pyaz",
+  "scallion",
+  "spring onion",
+  "spring onions"
  ],
  "green peas": [
   "green peas",
@@ -2949,6 +3471,10 @@ export const WORD_FAMILIES = Object.freeze({
   "guar gum",
   "ins 412"
  ],
+ "guava": [
+  "amrood",
+  "guava"
+ ],
  "gud": [
   "cane jaggery",
   "gud",
@@ -2967,6 +3493,18 @@ export const WORD_FAMILIES = Object.freeze({
   "gur",
   "jaggery"
  ],
+ "hakka noodles": [
+  "all purpose flour",
+  "apf",
+  "hakka noodles",
+  "maida",
+  "noodles",
+  "pav",
+  "pav bread",
+  "refined flour",
+  "refined wheat flour",
+  "white flour"
+ ],
  "haldi": [
   "curcuma",
   "haldi",
@@ -2983,6 +3521,13 @@ export const WORD_FAMILIES = Object.freeze({
   "coriander leaves",
   "dhania",
   "hara dhania"
+ ],
+ "hara pyaz": [
+  "green onion",
+  "hara pyaz",
+  "scallion",
+  "spring onion",
+  "spring onions"
  ],
  "hazelnut": [
   "akhrot",
@@ -3069,6 +3614,11 @@ export const WORD_FAMILIES = Object.freeze({
   "hvp",
   "hydrolysed vegetable protein",
   "yeast extract"
+ ],
+ "imli": [
+  "imli",
+  "tamarind",
+  "tamarind pulp"
  ],
  "indigo carmine": [
   "e132",
@@ -3707,12 +4257,18 @@ export const WORD_FAMILIES = Object.freeze({
   "sorghum"
  ],
  "kabuli chana": [
+  "bengal gram",
   "besan",
+  "black chana",
   "chana",
   "chana dal",
   "chickpea",
+  "chole",
   "gram flour",
-  "kabuli chana"
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "kachi ghani": [
   "kachi ghani",
@@ -3724,6 +4280,13 @@ export const WORD_FAMILIES = Object.freeze({
   "pepita",
   "pumpkin seeds"
  ],
+ "kaddu": [
+  "kaddu",
+  "kashiphal",
+  "pumpkin",
+  "red pumpkin",
+  "yellow pumpkin"
+ ],
  "kadhi patta": [
   "curry leaves",
   "kadhi patta",
@@ -3733,6 +4296,15 @@ export const WORD_FAMILIES = Object.freeze({
   "curry leaves",
   "kadhi patta",
   "kadi patta"
+ ],
+ "kairi": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
  ],
  "kaju": [
   "akhrot",
@@ -3760,6 +4332,36 @@ export const WORD_FAMILIES = Object.freeze({
   "tree nuts",
   "walnut"
  ],
+ "kakdi": [
+  "cucumber",
+  "kakdi",
+  "kheera"
+ ],
+ "kala chana": [
+  "bengal gram",
+  "besan",
+  "black chana",
+  "chana",
+  "chana dal",
+  "chickpea",
+  "chole",
+  "gram flour",
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
+ ],
+ "kala namak": [
+  "black salt",
+  "kala namak",
+  "sanchal"
+ ],
+ "kali mirch": [
+  "black pepper",
+  "kali mirch",
+  "pepper powder",
+  "peppercorns"
+ ],
  "kanda": [
   "dehydrated onion",
   "kanda",
@@ -3772,6 +4374,18 @@ export const WORD_FAMILIES = Object.freeze({
   "foxtail millet",
   "kangni",
   "navane"
+ ],
+ "karela": [
+  "bitter gourd",
+  "bitter melon",
+  "karela"
+ ],
+ "kashiphal": [
+  "kaddu",
+  "kashiphal",
+  "pumpkin",
+  "red pumpkin",
+  "yellow pumpkin"
  ],
  "kashmiri chilli": [
   "cayenne",
@@ -3793,6 +4407,15 @@ export const WORD_FAMILIES = Object.freeze({
   "rai",
   "sarson"
  ],
+ "kasuri methi": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
  "kela": [
   "banana",
   "kela"
@@ -3807,6 +4430,11 @@ export const WORD_FAMILIES = Object.freeze({
   "khajur",
   "medjool"
  ],
+ "kheera": [
+  "cucumber",
+  "kakdi",
+  "kheera"
+ ],
  "khoya": [
   "butter",
   "buttermilk",
@@ -3819,6 +4447,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -3828,6 +4457,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -3837,6 +4467,13 @@ export const WORD_FAMILIES = Object.freeze({
   "kidney beans",
   "rajma",
   "red kidney beans"
+ ],
+ "kishmish": [
+  "kishmish",
+  "munakka",
+  "raisin",
+  "raisins",
+  "sultanas"
  ],
  "kodo millet": [
   "kodo millet",
@@ -3858,6 +4495,13 @@ export const WORD_FAMILIES = Object.freeze({
   "prawn",
   "shellfish",
   "shrimp"
+ ],
+ "kurmura": [
+  "kurmura",
+  "mamra",
+  "muri",
+  "murmura",
+  "puffed rice"
  ],
  "kuttu atta": [
   "buckwheat",
@@ -3895,6 +4539,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -3904,6 +4549,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -3940,11 +4586,63 @@ export const WORD_FAMILIES = Object.freeze({
   "red chilli",
   "red chilli powder"
  ],
+ "lapsi": [
+  "bread",
+  "bread crumbs",
+  "breadcrumbs",
+  "broken wheat",
+  "couscous",
+  "dalia",
+  "daliya",
+  "durum",
+  "lapsi",
+  "pasta",
+  "rava",
+  "semolina",
+  "suji",
+  "wheat",
+  "wheat flour",
+  "whole wheat",
+  "wholewheat"
+ ],
+ "lassi": [
+  "butter",
+  "buttermilk",
+  "chaas",
+  "cheese",
+  "chhena",
+  "cream",
+  "curd",
+  "dahi",
+  "dairy",
+  "khoya",
+  "lactose",
+  "lassi",
+  "makhan",
+  "malai",
+  "mawa",
+  "milk",
+  "milk fat",
+  "milk powder",
+  "milk solids",
+  "milkfat",
+  "paneer",
+  "shrikhand",
+  "skimmed milk powder",
+  "smp",
+  "yoghurt",
+  "yogurt"
+ ],
  "lauki": [
   "bottle gourd",
   "doodhi",
   "ghiya",
   "lauki"
+ ],
+ "laung": [
+  "clove",
+  "cloves",
+  "laung"
  ],
  "lecithin": [
   "e322",
@@ -4034,6 +4732,13 @@ export const WORD_FAMILIES = Object.freeze({
   "probiotic cultures",
   "yoghurt culture",
   "yoghurt cultures"
+ ],
+ "lobia": [
+  "black eyed peas",
+  "black-eyed peas",
+  "chawli",
+  "lobia",
+  "rongi"
  ],
  "lobster": [
   "crab",
@@ -4131,10 +4836,22 @@ export const WORD_FAMILIES = Object.freeze({
  "maida": [
   "all purpose flour",
   "apf",
+  "hakka noodles",
   "maida",
+  "noodles",
+  "pav",
+  "pav bread",
   "refined flour",
   "refined wheat flour",
   "white flour"
+ ],
+ "maize flour": [
+  "cornmeal",
+  "maize",
+  "maize flour",
+  "makka",
+  "makki",
+  "makki atta"
  ],
  "maize starch": [
   "corn flour",
@@ -4142,6 +4859,21 @@ export const WORD_FAMILIES = Object.freeze({
   "cornflour",
   "maize starch",
   "makai starch"
+ ],
+ "maize": [
+  "cornmeal",
+  "maize",
+  "maize flour",
+  "makka",
+  "makki",
+  "makki atta"
+ ],
+ "makai dana": [
+  "american corn",
+  "bhutta",
+  "corn kernels",
+  "makai dana",
+  "sweet corn"
  ],
  "makai starch": [
   "corn flour",
@@ -4162,6 +4894,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4171,6 +4904,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4181,6 +4915,30 @@ export const WORD_FAMILIES = Object.freeze({
   "lotus seed",
   "makhana",
   "phool makhana"
+ ],
+ "makka": [
+  "cornmeal",
+  "maize",
+  "maize flour",
+  "makka",
+  "makki",
+  "makki atta"
+ ],
+ "makki atta": [
+  "cornmeal",
+  "maize",
+  "maize flour",
+  "makka",
+  "makki",
+  "makki atta"
+ ],
+ "makki": [
+  "cornmeal",
+  "maize",
+  "maize flour",
+  "makka",
+  "makki",
+  "makki atta"
  ],
  "malai": [
   "butter",
@@ -4194,6 +4952,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4203,6 +4962,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4266,6 +5026,22 @@ export const WORD_FAMILIES = Object.freeze({
   "ins 965",
   "maltitol"
  ],
+ "mamra": [
+  "kurmura",
+  "mamra",
+  "muri",
+  "murmura",
+  "puffed rice"
+ ],
+ "mango": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
+ ],
  "marzipan": [
   "akhrot",
   "almond",
@@ -4323,6 +5099,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4332,6 +5109,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4357,6 +5135,33 @@ export const WORD_FAMILIES = Object.freeze({
   "sodium metabisulfite",
   "sodium metabisulphite"
  ],
+ "methi dana": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
+ "methi leaves": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
+ "methi": [
+  "fenugreek",
+  "fenugreek leaves",
+  "fenugreek seeds",
+  "kasuri methi",
+  "methi",
+  "methi dana",
+  "methi leaves"
+ ],
  "milk fat": [
   "butter",
   "buttermilk",
@@ -4369,6 +5174,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4378,6 +5184,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4395,6 +5202,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4404,6 +5212,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4428,6 +5237,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4437,6 +5247,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4454,6 +5265,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4463,6 +5275,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -4480,6 +5293,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4489,10 +5303,21 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
   "yogurt"
+ ],
+ "mint leaves": [
+  "mint",
+  "mint leaves",
+  "pudina"
+ ],
+ "mint": [
+  "mint",
+  "mint leaves",
+  "pudina"
  ],
  "mirchi": [
   "cayenne",
@@ -4621,6 +5446,16 @@ export const WORD_FAMILIES = Object.freeze({
   "shengdana",
   "singdana"
  ],
+ "moraiyo": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
  "moringa oleifera": [
   "drumstick leaf",
   "moringa",
@@ -4633,6 +5468,12 @@ export const WORD_FAMILIES = Object.freeze({
   "moringa oleifera",
   "sahjan"
  ],
+ "mosambi": [
+  "mosambi",
+  "orange",
+  "santra",
+  "sweet lime"
+ ],
  "msg": [
   "ajinomoto",
   "e621",
@@ -4641,6 +5482,13 @@ export const WORD_FAMILIES = Object.freeze({
   "monosodium glutamate",
   "msg",
   "taste maker"
+ ],
+ "munakka": [
+  "kishmish",
+  "munakka",
+  "raisin",
+  "raisins",
+  "sultanas"
  ],
  "mungfali": [
   "groundnut",
@@ -4652,6 +5500,25 @@ export const WORD_FAMILIES = Object.freeze({
   "peanuts",
   "shengdana",
   "singdana"
+ ],
+ "muri": [
+  "kurmura",
+  "mamra",
+  "muri",
+  "murmura",
+  "puffed rice"
+ ],
+ "murmura": [
+  "kurmura",
+  "mamra",
+  "muri",
+  "murmura",
+  "puffed rice"
+ ],
+ "mustard greens": [
+  "mustard greens",
+  "sarson ka saag",
+  "sarson saag"
  ],
  "mustard oil": [
   "kachi ghani",
@@ -4696,10 +5563,23 @@ export const WORD_FAMILIES = Object.freeze({
   "salt",
   "table salt"
  ],
+ "nariyal pani": [
+  "coconut water",
+  "nariyal pani",
+  "tender coconut water"
+ ],
  "nariyal tel": [
   "coconut oil",
   "nariyal tel",
   "virgin coconut oil"
+ ],
+ "nariyal": [
+  "coconut",
+  "coconut powder",
+  "copra",
+  "desiccated coconut",
+  "grated coconut",
+  "nariyal"
  ],
  "natamycin": [
   "e235",
@@ -4775,6 +5655,18 @@ export const WORD_FAMILIES = Object.freeze({
   "nitrite",
   "sodium nitrite"
  ],
+ "noodles": [
+  "all purpose flour",
+  "apf",
+  "hakka noodles",
+  "maida",
+  "noodles",
+  "pav",
+  "pav bread",
+  "refined flour",
+  "refined wheat flour",
+  "white flour"
+ ],
  "norbixin": [
   "annatto",
   "bixin",
@@ -4845,6 +5737,12 @@ export const WORD_FAMILIES = Object.freeze({
   "pyaaz",
   "pyaz"
  ],
+ "orange": [
+  "mosambi",
+  "orange",
+  "santra",
+  "sweet lime"
+ ],
  "palak": [
   "palak",
   "spinach"
@@ -4893,6 +5791,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -4902,10 +5801,19 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
   "yogurt"
+ ],
+ "papaya": [
+  "papaya",
+  "papita"
+ ],
+ "papita": [
+  "papaya",
+  "papita"
  ],
  "paprika extract": [
   "e160c",
@@ -4935,8 +5843,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -4945,6 +5857,35 @@ export const WORD_FAMILIES = Object.freeze({
   "wheat flour",
   "whole wheat",
   "wholewheat"
+ ],
+ "patta gobi": [
+  "band gobi",
+  "cabbage",
+  "patta gobi"
+ ],
+ "pav bread": [
+  "all purpose flour",
+  "apf",
+  "hakka noodles",
+  "maida",
+  "noodles",
+  "pav",
+  "pav bread",
+  "refined flour",
+  "refined wheat flour",
+  "white flour"
+ ],
+ "pav": [
+  "all purpose flour",
+  "apf",
+  "hakka noodles",
+  "maida",
+  "noodles",
+  "pav",
+  "pav bread",
+  "refined flour",
+  "refined wheat flour",
+  "white flour"
  ],
  "peanut butter": [
   "groundnut",
@@ -5035,6 +5976,24 @@ export const WORD_FAMILIES = Object.freeze({
   "kaddu ke beej",
   "pepita",
   "pumpkin seeds"
+ ],
+ "pepper powder": [
+  "black pepper",
+  "kali mirch",
+  "pepper powder",
+  "peppercorns"
+ ],
+ "peppercorns": [
+  "black pepper",
+  "kali mirch",
+  "pepper powder",
+  "peppercorns"
+ ],
+ "phali": [
+  "french beans",
+  "green beans",
+  "phali",
+  "string beans"
  ],
  "phool gobi": [
   "cauliflower",
@@ -5193,6 +6152,11 @@ export const WORD_FAMILIES = Object.freeze({
   "polysorbate 80",
   "tween 80"
  ],
+ "pomegranate": [
+  "anar",
+  "anardana",
+  "pomegranate"
+ ],
  "ponceau 4r": [
   "cochineal red a",
   "e124",
@@ -5275,6 +6239,18 @@ export const WORD_FAMILIES = Object.freeze({
   "yoghurt culture",
   "yoghurt cultures"
  ],
+ "pudina": [
+  "mint",
+  "mint leaves",
+  "pudina"
+ ],
+ "puffed rice": [
+  "kurmura",
+  "mamra",
+  "muri",
+  "murmura",
+  "puffed rice"
+ ],
  "pulse": [
   "arhar",
   "daal",
@@ -5292,6 +6268,13 @@ export const WORD_FAMILIES = Object.freeze({
   "kaddu ke beej",
   "pepita",
   "pumpkin seeds"
+ ],
+ "pumpkin": [
+  "kaddu",
+  "kashiphal",
+  "pumpkin",
+  "red pumpkin",
+  "yellow pumpkin"
  ],
  "pyaaz": [
   "dehydrated onion",
@@ -5337,6 +6320,20 @@ export const WORD_FAMILIES = Object.freeze({
   "rai",
   "sarson"
  ],
+ "raisin": [
+  "kishmish",
+  "munakka",
+  "raisin",
+  "raisins",
+  "sultanas"
+ ],
+ "raisins": [
+  "kishmish",
+  "munakka",
+  "raisin",
+  "raisins",
+  "sultanas"
+ ],
  "rajgira": [
   "amaranth",
   "rajgira",
@@ -5361,8 +6358,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -5371,6 +6372,15 @@ export const WORD_FAMILIES = Object.freeze({
   "wheat flour",
   "whole wheat",
   "wholewheat"
+ ],
+ "raw mango": [
+  "aam",
+  "alphonso",
+  "amchur",
+  "dry mango powder",
+  "kairi",
+  "mango",
+  "raw mango"
  ],
  "red 3": [
   "e127",
@@ -5418,10 +6428,21 @@ export const WORD_FAMILIES = Object.freeze({
   "rajma",
   "red kidney beans"
  ],
+ "red pumpkin": [
+  "kaddu",
+  "kashiphal",
+  "pumpkin",
+  "red pumpkin",
+  "yellow pumpkin"
+ ],
  "refined flour": [
   "all purpose flour",
   "apf",
+  "hakka noodles",
   "maida",
+  "noodles",
+  "pav",
+  "pav bread",
   "refined flour",
   "refined wheat flour",
   "white flour"
@@ -5445,7 +6466,11 @@ export const WORD_FAMILIES = Object.freeze({
  "refined wheat flour": [
   "all purpose flour",
   "apf",
+  "hakka noodles",
   "maida",
+  "noodles",
+  "pav",
+  "pav bread",
   "refined flour",
   "refined wheat flour",
   "white flour"
@@ -5453,6 +6478,20 @@ export const WORD_FAMILIES = Object.freeze({
  "rice flour": [
   "chawal atta",
   "rice flour"
+ ],
+ "roasted gram": [
+  "bengal gram",
+  "besan",
+  "black chana",
+  "chana",
+  "chana dal",
+  "chickpea",
+  "chole",
+  "gram flour",
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
  ],
  "rock salt": [
   "himalayan salt",
@@ -5468,6 +6507,13 @@ export const WORD_FAMILIES = Object.freeze({
   "oats",
   "rolled oats",
   "steel cut oats"
+ ],
+ "rongi": [
+  "black eyed peas",
+  "black-eyed peas",
+  "chawli",
+  "lobia",
+  "rongi"
  ],
  "rye": [
   "cereals containing gluten",
@@ -5486,6 +6532,11 @@ export const WORD_FAMILIES = Object.freeze({
   "chia seeds",
   "sabja substitute"
  ],
+ "sabudana pearls": [
+  "sabudana pearls",
+  "sago",
+  "tapioca pearls"
+ ],
  "sabudana": [
   "cassava starch",
   "sabudana",
@@ -5501,8 +6552,10 @@ export const WORD_FAMILIES = Object.freeze({
  "sago": [
   "cassava starch",
   "sabudana",
+  "sabudana pearls",
   "sago",
   "tapioca",
+  "tapioca pearls",
   "tapioca starch"
  ],
  "sahjan": [
@@ -5530,6 +6583,75 @@ export const WORD_FAMILIES = Object.freeze({
   "salt",
   "table salt"
  ],
+ "sama ke chawal": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
+ "sama": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
+ "samak rice": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
+ "samak": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
+ "sambar masala": [
+  "sambar masala",
+  "sambar powder"
+ ],
+ "sambar powder": [
+  "sambar masala",
+  "sambar powder"
+ ],
+ "samvat": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
+ "sanchal": [
+  "black salt",
+  "kala namak",
+  "sanchal"
+ ],
+ "santra": [
+  "mosambi",
+  "orange",
+  "santra",
+  "sweet lime"
+ ],
  "sapp": [
   "diphosphate",
   "diphosphates",
@@ -5549,10 +6671,20 @@ export const WORD_FAMILIES = Object.freeze({
   "sardine",
   "tuna"
  ],
+ "sarson ka saag": [
+  "mustard greens",
+  "sarson ka saag",
+  "sarson saag"
+ ],
  "sarson ka tel": [
   "kachi ghani",
   "mustard oil",
   "sarson ka tel"
+ ],
+ "sarson saag": [
+  "mustard greens",
+  "sarson ka saag",
+  "sarson saag"
  ],
  "sarson": [
   "kasundi",
@@ -5560,6 +6692,32 @@ export const WORD_FAMILIES = Object.freeze({
   "mustard seeds",
   "rai",
   "sarson"
+ ],
+ "sattu": [
+  "bengal gram",
+  "besan",
+  "black chana",
+  "chana",
+  "chana dal",
+  "chickpea",
+  "chole",
+  "gram flour",
+  "kabuli chana",
+  "kala chana",
+  "roasted gram",
+  "sattu"
+ ],
+ "saunf": [
+  "fennel",
+  "fennel seeds",
+  "saunf"
+ ],
+ "scallion": [
+  "green onion",
+  "hara pyaz",
+  "scallion",
+  "spring onion",
+  "spring onions"
  ],
  "seb": [
   "apple",
@@ -5569,8 +6727,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -5646,6 +6808,40 @@ export const WORD_FAMILIES = Object.freeze({
   "shengdana",
   "singdana"
  ],
+ "shimla mirch": [
+  "bell pepper",
+  "capsicum",
+  "green capsicum",
+  "shimla mirch"
+ ],
+ "shrikhand": [
+  "butter",
+  "buttermilk",
+  "chaas",
+  "cheese",
+  "chhena",
+  "cream",
+  "curd",
+  "dahi",
+  "dairy",
+  "khoya",
+  "lactose",
+  "lassi",
+  "makhan",
+  "malai",
+  "mawa",
+  "milk",
+  "milk fat",
+  "milk powder",
+  "milk solids",
+  "milkfat",
+  "paneer",
+  "shrikhand",
+  "skimmed milk powder",
+  "smp",
+  "yoghurt",
+  "yogurt"
+ ],
  "shrimp": [
   "crab",
   "crustacean",
@@ -5692,6 +6888,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -5701,6 +6898,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -5718,6 +6916,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -5727,6 +6926,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -5867,6 +7067,10 @@ export const WORD_FAMILIES = Object.freeze({
   "tofu",
   "tvp"
  ],
+ "soy sauce": [
+  "soy sauce",
+  "soya sauce"
+ ],
  "soy": [
   "soy",
   "soy milk",
@@ -5954,6 +7158,10 @@ export const WORD_FAMILIES = Object.freeze({
   "soyabean oil",
   "soybean oil"
  ],
+ "soya sauce": [
+  "soy sauce",
+  "soya sauce"
+ ],
  "soya": [
   "soy",
   "soy milk",
@@ -6013,6 +7221,20 @@ export const WORD_FAMILIES = Object.freeze({
   "palak",
   "spinach"
  ],
+ "spring onion": [
+  "green onion",
+  "hara pyaz",
+  "scallion",
+  "spring onion",
+  "spring onions"
+ ],
+ "spring onions": [
+  "green onion",
+  "hara pyaz",
+  "scallion",
+  "spring onion",
+  "spring onions"
+ ],
  "steel cut oats": [
   "jai",
   "oat flour",
@@ -6033,6 +7255,12 @@ export const WORD_FAMILIES = Object.freeze({
   "ins 960",
   "stevia",
   "steviol glycosides"
+ ],
+ "string beans": [
+  "french beans",
+  "green beans",
+  "phali",
+  "string beans"
  ],
  "sucralose": [
   "e955",
@@ -6059,8 +7287,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -6117,6 +7349,13 @@ export const WORD_FAMILIES = Object.freeze({
   "sulfur dioxide",
   "sulphur dioxide"
  ],
+ "sultanas": [
+  "kishmish",
+  "munakka",
+  "raisin",
+  "raisins",
+  "sultanas"
+ ],
  "sunflower oil": [
   "sunflower oil",
   "sunflower seed oil"
@@ -6154,6 +7393,19 @@ export const WORD_FAMILIES = Object.freeze({
   "suran",
   "yam"
  ],
+ "sweet corn": [
+  "american corn",
+  "bhutta",
+  "corn kernels",
+  "makai dana",
+  "sweet corn"
+ ],
+ "sweet lime": [
+  "mosambi",
+  "orange",
+  "santra",
+  "sweet lime"
+ ],
  "sweet potato": [
   "shakarkandi",
   "sweet potato"
@@ -6173,12 +7425,27 @@ export const WORD_FAMILIES = Object.freeze({
   "tahini",
   "til"
  ],
+ "tamarind pulp": [
+  "imli",
+  "tamarind",
+  "tamarind pulp"
+ ],
+ "tamarind": [
+  "imli",
+  "tamarind",
+  "tamarind pulp"
+ ],
  "tamatar": [
   "tamatar",
   "tomato",
   "tomato paste",
   "tomato puree",
   "tomatoes"
+ ],
+ "tapioca pearls": [
+  "sabudana pearls",
+  "sago",
+  "tapioca pearls"
  ],
  "tapioca starch": [
   "cassava starch",
@@ -6256,6 +7523,16 @@ export const WORD_FAMILIES = Object.freeze({
   "tea extract",
   "tea leaves",
   "tea powder"
+ ],
+ "tej patta": [
+  "bay leaf",
+  "bay leaves",
+  "tej patta"
+ ],
+ "tender coconut water": [
+  "coconut water",
+  "nariyal pani",
+  "tender coconut water"
  ],
  "tertiary butylhydroquinone": [
   "e319",
@@ -6562,6 +7839,16 @@ export const WORD_FAMILIES = Object.freeze({
   "tocopherols",
   "vitamin e"
  ],
+ "vrat ke chawal": [
+  "barnyard millet",
+  "moraiyo",
+  "sama",
+  "sama ke chawal",
+  "samak",
+  "samak rice",
+  "samvat",
+  "vrat ke chawal"
+ ],
  "walnut": [
   "akhrot",
   "almond",
@@ -6592,8 +7879,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -6619,8 +7910,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -6678,7 +7973,11 @@ export const WORD_FAMILIES = Object.freeze({
  "white flour": [
   "all purpose flour",
   "apf",
+  "hakka noodles",
   "maida",
+  "noodles",
+  "pav",
+  "pav bread",
   "refined flour",
   "refined wheat flour",
   "white flour"
@@ -6724,8 +8023,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -6750,8 +8053,12 @@ export const WORD_FAMILIES = Object.freeze({
   "bread",
   "bread crumbs",
   "breadcrumbs",
+  "broken wheat",
   "couscous",
+  "dalia",
+  "daliya",
   "durum",
+  "lapsi",
   "pasta",
   "rava",
   "semolina",
@@ -6815,6 +8122,13 @@ export const WORD_FAMILIES = Object.freeze({
   "sunset yellow fcf",
   "yellow 6"
  ],
+ "yellow pumpkin": [
+  "kaddu",
+  "kashiphal",
+  "pumpkin",
+  "red pumpkin",
+  "yellow pumpkin"
+ ],
  "yoghurt culture": [
   "bifidobacterium",
   "dahi culture",
@@ -6845,6 +8159,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -6854,6 +8169,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -6871,6 +8187,7 @@ export const WORD_FAMILIES = Object.freeze({
   "dairy",
   "khoya",
   "lactose",
+  "lassi",
   "makhan",
   "malai",
   "mawa",
@@ -6880,6 +8197,7 @@ export const WORD_FAMILIES = Object.freeze({
   "milk solids",
   "milkfat",
   "paneer",
+  "shrikhand",
   "skimmed milk powder",
   "smp",
   "yoghurt",
@@ -6923,4 +8241,4 @@ export const CATEGORY_WORDS = Object.freeze({
  "chakki": "staples.flours"
 });
 
-export const FOOD_WORDS_VERSION = "837w-32c";
+export const FOOD_WORDS_VERSION = "991w-32c";
