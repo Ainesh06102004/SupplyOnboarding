@@ -94,16 +94,47 @@ const PICKS = [
   ["8908017087439", "Plant Protein Mango", "Happy Cultures", "Supplements", "Protein Powder", 1299],
   ["8901748000852", "Garam Masala", "Ruchi", "Spices", "Spices", 25],
   ["8906021123105", "Turmeric Powder", "Aachi", "Spices", "Spices", 10],
+
+  // ── Added 24 September 2026: the kitchen staples the week's dishes asked for
+  // and KOI had no shelf or product for (migration 00071 added the dairy, egg
+  // and frozen-vegetable shelves). Each was checked against the live Open Food
+  // Facts record for per-100 figures and a pack size first. What could not be
+  // had that way is left out rather than guessed: no dry rajma on Open Food
+  // Facts has a pack size (the cooked pouch below is the one that does), and
+  // the mustard oils are sold by the litre with figures per 100 g, which the
+  // planner rightly refuses to multiply. The last field marks a pack that must
+  // be kept cold, as every pack of fresh curd, paneer and frozen peas says.
+  ["8906030960043", "Ragi Flour", "Pattabhi", "Staples", "Flours", 50],
+  ["8906195000004", "Cooked Rajma (Kidney Beans)", "FreshCon", "Staples", "Pulses", 70],
+  ["8906035030918", "Groundnut Oil", "Freedom", "Oils & Ghee", "Oils", 199],
+  ["8904422710894", "Refined Sunflower Oil", "Sunrich", "Oils & Ghee", "Oils", 145],
+  ["8906010360085", "Ghee", "GRB", "Oils & Ghee", "Ghee", 150],
+  ["8901262150217", "Taaza Toned Milk", "Amul", "Dairy", "Milk", 30],
+  ["8901262202381", "Curd", "Amul", "Dairy", "Curd", 75, { cold: true }],
+  ["8901262180115", "Malai Paneer", "Amul", "Dairy", "Paneer", 95, { cold: true }],
+  ["5060204123672", "White Eggs", "Eggon", "Eggs", "Eggs", 60],
+  ["8906065166045", "Frozen Green Peas", "Farmland ITC", "Vegetables", "Frozen Vegetables", 95, { cold: true }],
+  ["8906009010106", "Jaggery Powder", "Parry's", "Sweeteners", "Jaggery", 75],
+  ["8902901031195", "Crystal Sugar", "Good Life", "Sweeteners", "Sugar", 50],
+  ["8901747001546", "Wagh Bakri Tea", "Wagh Bakri", "Beverages", "Tea", 290],
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const num = (v) => (Number.isFinite(Number(v)) && v !== "" && v !== null ? Number(v) : null);
 const round = (v, places = 2) => (v === null ? null : Math.round(v * 10 ** places) / 10 ** places);
 
-function grams(quantity) {
-  const m = String(quantity ?? "").toLowerCase().replace(",", ".").match(/(\d+(?:\.\d+)?)\s*(kg|g|gm|gms|grams?)\b/);
-  if (!m) return null;
-  return m[2] === "kg" ? Number(m[1]) * 1000 : Number(m[1]);
+/**
+ * A pack's size in the unit its figures are per 100 of. Grams whenever the
+ * pack states them ("1 l (910 g)" is 910 g); millilitres only for a pack sold
+ * by volume alone, whose Open Food Facts figures are then per 100 ml.
+ */
+function packSize(quantity) {
+  const q = String(quantity ?? "").toLowerCase().replace(",", ".");
+  const g = q.match(/(\d+(?:\.\d+)?)\s*(kg|g|gm|gms|grams?)\b/);
+  if (g) return { value: g[2] === "kg" ? Number(g[1]) * 1000 : Number(g[1]), unit: "g" };
+  const ml = q.match(/(\d+(?:\.\d+)?)\s*(ml|l|ltr|litres?|liters?)\b/);
+  if (ml) return { value: ml[2] === "ml" ? Number(ml[1]) : Number(ml[1]) * 1000, unit: "ml" };
+  return null;
 }
 
 /** Top-level ingredients, split on commas outside brackets. */
@@ -139,13 +170,14 @@ async function productJson(code) {
 
 const fetchedAt = new Date().toISOString();
 const products = [];
-for (const [code, name, brand, l1, l2, price] of PICKS) {
+for (const [code, name, brand, l1, l2, price, { cold = null } = {}] of PICKS) {
   const body = await productJson(code);
   const p = body.product;
   if (!p) throw new Error(`Open Food Facts has no product ${code}`);
   const n = p.nutriments ?? {};
-  const packGrams = grams(p.quantity);
-  if (!packGrams) throw new Error(`${code}: cannot read a pack size from "${p.quantity}"`);
+  const pack = packSize(p.quantity);
+  if (!pack) throw new Error(`${code}: cannot read a pack size from "${p.quantity}"`);
+  const size = `${pack.value} ${pack.unit}`;
   const sodiumG = num(n.sodium_100g);
   const url = `https://world.openfoodfacts.org/product/${code}`;
   const ingredients = ingredientNames(p.ingredients_text_en || p.ingredients_text);
@@ -160,11 +192,13 @@ for (const [code, name, brand, l1, l2, price] of PICKS) {
     brands: { brand_name: `${brand} (test · Open Food Facts)` },
     skus: [{
       id: `off-${code}`,
-      variant_name: `${packGrams} g`,
+      variant_name: size,
       mrp: price,
-      net_weight: `${packGrams} g`,
+      net_weight: size,
+      // Only when the pack says so; unknown is not "ambient" (model.js).
+      keep_refrigerated: cold,
       sku_nutrition: [{
-        measurement_basis: "per_100g",
+        measurement_basis: pack.unit === "ml" ? "per_100ml" : "per_100g",
         serving_size: null,
         energy_kcal: round(num(n["energy-kcal_100g"])),
         protein_g: round(num(n.proteins_100g)),
@@ -193,7 +227,7 @@ for (const [code, name, brand, l1, l2, price] of PICKS) {
       fetchedAt,
     },
   });
-  console.log(`${code} ${brand} ${name}: ${packGrams} g, ${round(num(n["energy-kcal_100g"]))} kcal, ${ingredients.length} ingredients`);
+  console.log(`${code} ${brand} ${name}: ${size}, ${round(num(n["energy-kcal_100g"]))} kcal, ${ingredients.length} ingredients`);
   await sleep(1500);
 }
 

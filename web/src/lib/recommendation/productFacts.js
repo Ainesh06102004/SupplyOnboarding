@@ -74,7 +74,12 @@ export function extractFacts(product) {
     : (label || ingredients.trim() ? "partial" : "none");
   const labelText = label ? String(label.ingredientsText || "").toLowerCase() : "";
 
-  const haystack = [product.name, product.brand, product.category, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]
+  // Not the shelf. A shelf's label is KOI's name for a kind of food, and it
+  // names every kind on it: "Oils & ghee" flagged every cooking oil as dairy (so
+  // no vegan was ever given oil), "Honey, jaggery & sugar" put honey in sugar,
+  // "Flours & atta" put wheat in ragi and besan. What is in a pack is read off
+  // the pack: its name, its ingredients, its label.
+  const haystack = [product.name, product.brand, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]
     .join(" ")
     .toLowerCase();
 
@@ -132,7 +137,7 @@ export function extractFacts(product) {
   // them from anyone avoiding caffeine and, with the planner's age rules, from
   // every child. Allergens above still read the brand: over-reading an
   // allergen only ever hides a product from someone avoiding it.
-  const productText = [product.name, product.category, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]
+  const productText = [product.name, ingredients, labelText, ...(product.tags || []), ...(product.goalTags || [])]
     .join(" ")
     .toLowerCase();
   for (const flag of ingredientFlagsIn(productText)) contains.add(flag);

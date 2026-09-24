@@ -3,7 +3,7 @@
 // from (a KOI shelf, fresh, or the kitchen). No quantities — amounts come from
 // the planner. Allergens and diet flags are derived at runtime (lib/food/dishes.js).
 
-export const DISH_VERSION = "97fbdf4dc8b4";
+export const DISH_VERSION = "b6748c909181";
 
 export const DISHES = Object.freeze([
  {
@@ -354,8 +354,8 @@ export const DISHES = Object.freeze([
   "lines": [
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.curd",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -553,8 +553,8 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.curd",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -719,8 +719,8 @@ export const DISHES = Object.freeze([
   "lines": [
    {
     "ingredient": "Egg",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -788,8 +788,8 @@ export const DISHES = Object.freeze([
   "lines": [
    {
     "ingredient": "Egg",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -872,8 +872,8 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.milk",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1006,8 +1006,8 @@ export const DISHES = Object.freeze([
   "lines": [
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.milk",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1169,7 +1169,7 @@ export const DISHES = Object.freeze([
    {
     "ingredient": "Flattened Rice",
     "supply": "shelf",
-    "category": "staples.breakfast_cereals",
+    "category": "staples.rice",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1329,8 +1329,8 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.milk",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1365,8 +1365,8 @@ export const DISHES = Object.freeze([
   "lines": [
    {
     "ingredient": "Egg",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1660,8 +1660,8 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.curd",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1732,8 +1732,8 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.milk",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1777,8 +1777,8 @@ export const DISHES = Object.freeze([
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.paneer",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1846,8 +1846,8 @@ export const DISHES = Object.freeze([
   "lines": [
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.paneer",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
@@ -1936,15 +1936,15 @@ export const DISHES = Object.freeze([
    {
     "ingredient": "Ragi",
     "supply": "shelf",
-    "category": "staples.millets",
+    "category": "staples.flours",
     "anyOfShelf": false,
     "optional": false,
     "blend": false
    },
    {
     "ingredient": "Milk",
-    "supply": "fresh",
-    "category": null,
+    "supply": "shelf",
+    "category": "dairy.milk",
     "anyOfShelf": false,
     "optional": false,
     "blend": false

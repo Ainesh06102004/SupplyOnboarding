@@ -41,10 +41,10 @@ test("the test catalogue can be planned with, and its allergens still count", ()
   const products = mapProducts(testCatalogueRows(true));
   const { catalogue, unplannable } = plannableFrom(products);
   assert.ok(catalogue.length >= 40, `${catalogue.length} plannable`);
-  // Three products carry no figure KOI can plan with, and are recorded as
-  // such rather than quietly dropped.
+  // Four products carry no figure KOI can plan with (the tea declares no
+  // energy at all), and are recorded as such rather than quietly dropped.
   assert.deepEqual(unplannable.map((u) => u.reason), unplannable.map(() => "cannot_quantify_a_pack"));
-  assert.ok(unplannable.length <= 3, `${unplannable.length} unplannable`);
+  assert.ok(unplannable.length <= 4, `${unplannable.length} unplannable`);
 
   const muesli = products.find((p) => p.name === "Super Muesli 0% Added Sugar");
   assert.ok(extractFacts(muesli).contains.has("tree_nut"), "the ingredient list names nuts");

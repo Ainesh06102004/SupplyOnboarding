@@ -171,6 +171,17 @@ test("a picked dish's missing staple is listed, and the shop's product for it fo
   assert.equal(productsFor([rajma], [])[0].product, null);
 });
 
+test("'any rice' is still rice: poha on the same shelf is not offered for steamed rice", () => {
+  const rice = { ingredient: "Polished Rice", category: "staples.rice", anyOfShelf: true };
+  const shelf = [
+    { skuId: "poha", name: "Poha (Thick)", categoryKey: "staples.rice", price: 55 },
+    { skuId: "basmati", name: "Rozana Super Basmati Rice", categoryKey: "staples.rice", price: 130 },
+  ];
+  assert.equal(productsFor([rice], shelf)[0].product.skuId, "basmati");
+  // Nothing named for it: then any pack on the shelf will do, as the recipe says.
+  assert.equal(productsFor([rice], shelf.slice(0, 1))[0].product.skuId, "poha");
+});
+
 test("days are the shopper's own calendar days", () => {
   const week = buildWeek({ report, lines, people, days: 2, start: new Date(2026, 8, 24, 5, 0) });
   assert.equal(week.days[0].date, "2026-09-24");

@@ -297,8 +297,12 @@ function alsoNeed(cells, byDish, basket) {
  */
 export function productsFor(needs = [], products = []) {
   return needs.map((need) => {
-    const candidates = products.filter((p) => p.skuId && p.categoryKey === need.category && Number(p.price) > 0
-      && (need.anyOfShelf || ingredientsIn(p.name).has(need.ingredient)));
+    const onShelf = products.filter((p) => p.skuId && p.categoryKey === need.category && Number(p.price) > 0);
+    const named = onShelf.filter((p) => ingredientsIn(p.name).has(need.ingredient));
+    // "Any rice will do" still means rice: the cheapest pack on the rice shelf
+    // was poha, and on the nut shelf peanuts. The rest of the shelf is offered
+    // only when nothing there is named for the ingredient.
+    const candidates = named.length || !need.anyOfShelf ? named : onShelf;
     candidates.sort((a, b) => Number(a.price) - Number(b.price));
     return { need, product: candidates[0] ?? null };
   });
