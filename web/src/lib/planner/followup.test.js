@@ -57,7 +57,25 @@ test("a swap KOI cannot complete changes nothing at all", () => {
   const r = applyText("swap the rice for quinoa");
   assert.deepEqual(r.excludedSkus, [], "the rice stays");
   assert.deepEqual(r.includedSkus, []);
-  assert.deepEqual(r.notApplied, ['KOI has nothing called "quinoa" to swap in, so the rice stays']);
+  assert.deepEqual(r.notApplied, ['KOI has nothing called "quinoa" to swap in, so KOI kept the rice']);
+});
+
+test("a swap into a product the plan can't use changes nothing, and says why", () => {
+  // 24 Sep: "swap dates for dry fruit mix", with the mix kept out of the house,
+  // took the dates out and put nothing in.
+  const barred = new Map([["atta", "Superior MP Atta is kept out of your house: it contains gluten"]]);
+  const r = applyText("swap the rice for aata please", { ...PLAN, barred });
+  assert.deepEqual(r.excludedSkus, [], "the rice stays");
+  assert.deepEqual(r.includedSkus, []);
+  assert.deepEqual(r.notApplied, ["Superior MP Atta is kept out of your house: it contains gluten, so KOI kept the rice"]);
+
+  const earlier = applyText("swap the rice for oats", { ...PLAN, excludedSkus: ["oats"] });
+  assert.deepEqual(earlier.excludedSkus, ["oats"], "only what was already out");
+  assert.deepEqual(earlier.notApplied, ["Oats was left out of this plan, so KOI kept the rice"]);
+
+  // A structured swap (an upgrade card) is held to the same rule.
+  const card = applyFollowUp({ ...PLAN, barred }, { ...readFollowUp(""), swaps: [{ fromSku: "rice", toSku: "atta" }] }, SHOP);
+  assert.deepEqual(card.excludedSkus, []);
 });
 
 test("\"swap toor dal with oats\" takes out the dal and puts in the oats", () => {

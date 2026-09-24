@@ -691,6 +691,24 @@ export function whyNotPlanned(want, explanation = {}, days = 0) {
 }
 
 /**
+ * What a stored plan could not use, and why, in the shopper's words: nothing
+ * is swapped into one of these (applyFollowUp's `barred`).
+ *
+ * @param {object} explanation the plan's own explanation
+ * @param {Array} catalogue plannable rows, for names
+ * @param {number} days
+ * @returns {Map<string, string>} skuId → reason
+ */
+export function barredBy(explanation, catalogue, days) {
+  const e = explanation ?? {};
+  const nameOf = new Map(catalogue.map((i) => [String(i.skuId), i.name]));
+  const ids = [...(e.products_kept_out ?? []), ...(e.products_refused ?? []), ...(e.products_too_big ?? []), ...(e.products_priced_out ?? [])]
+    .map((x) => String(x?.skuId ?? ""))
+    .filter(Boolean);
+  return new Map(ids.map((id) => [id, whyNotPlanned({ skuId: id, name: nameOf.get(id) ?? "That product" }, e, days)]));
+}
+
+/**
  * A follow-up on a stored plan (Phase 4.3): "cheaper", "swap the oats".
  *
  * The message is read (followup.js, with a model when configured), applied to
@@ -717,7 +735,7 @@ export async function planFollowUp({ planId, text, reading: given = null, onStep
 
   const { data: plan, error } = await db
     .from("plan")
-    .select("id, household_id, days, budget_rupees, zone_id, constraints, achieved")
+    .select("id, household_id, days, budget_rupees, zone_id, constraints, achieved, explanation")
     .eq("id", planId)
     .maybeSingle();
   if (error) throw error;
@@ -728,6 +746,7 @@ export async function planFollowUp({ planId, text, reading: given = null, onStep
   if (!members.length) throw new Error("This plan has no members to plan for.");
 
   const { catalogue, unplannable } = plannableFrom(await fetchAllProducts());
+  const barred = barredBy(plan.explanation, catalogue, plan.days);
   // Everyone in the household, not only everyone in this plan. "Can you plan
   // for my wife too" is about somebody who is deliberately not here, so a
   // follow-up that can only see the plan's own members can never answer it.
@@ -753,6 +772,7 @@ export async function planFollowUp({ planId, text, reading: given = null, onStep
     cost: Number(plan.achieved?.cost ?? 0),
     // Who could join this plan, in the shape the planner needs them.
     roster,
+    barred,
   }, reading, catalogue);
 
   emit({ stage: "reading", status: "done", applied: change.applied, notApplied: change.notApplied });

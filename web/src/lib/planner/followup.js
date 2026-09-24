@@ -632,7 +632,8 @@ const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 /**
  * Apply a follow-up to a plan's constraints.
  *
- * @param {object} plan { members, days, budget, excludedSkus, cost }
+ * @param {object} plan { members, days, budget, excludedSkus, cost, barred? }
+ *   `barred`: Map skuId → why the plan can't use it, in words; nothing is swapped into one
  * @param {object} reading from readFollowUp / mergeFollowUps
  * @param {Array} catalogue plannable rows (for leave-out words)
  * @returns {{ members, days, budget, excludedSkus, includedSkus, wants, applied: string[], notApplied: string[], householdChanges: Array }}
@@ -681,16 +682,30 @@ export function applyFollowUp(plan, reading, catalogue) {
   // the page built from a card (an upgrade) names its products by id, so there
   // is no word to resolve; one read off a sentence names them by word.
   const bySku = (id) => catalogue.filter((item) => String(item.skuId) === String(id));
+  // What the plan being changed could not use, and why, in words (planFollowUp
+  // reads it off that plan's explanation): kept out of the house, no one here
+  // can eat it, KOI cannot measure it, too big, priced out.
+  const barred = plan.barred ?? new Map();
+  const leftOut = (item) => [...excluded].some((id) => String(id) === String(item.skuId));
   for (const swap of reading.swaps ?? []) {
     const out = swap.fromSku ? bySku(swap.fromSku) : productsNamed(swap.from, catalogue);
-    const inTo = (swap.toSku ? bySku(swap.toSku) : productsNamed(swap.to, catalogue))
+    const named = (swap.toSku ? bySku(swap.toSku) : productsNamed(swap.to, catalogue))
       .filter((item) => !out.some((o) => o.skuId === item.skuId));
+    // Only a product the plan can actually use: swapping into one it can't took
+    // the old product out and put nothing in.
+    const inTo = named.filter((item) => !barred.has(String(item.skuId)) && !leftOut(item));
     if (!out.length) {
       notApplied.push(`Nothing in this plan is called "${swap.from}"`);
       continue;
     }
+    if (!named.length) {
+      notApplied.push(`KOI has nothing called "${swap.to}" to swap in, so KOI kept the ${swap.from}`);
+      continue;
+    }
     if (!inTo.length) {
-      notApplied.push(`KOI has nothing called "${swap.to}" to swap in, so the ${swap.from} stays`);
+      const [first] = named;
+      const why = barred.get(String(first.skuId)) ?? `${first.name} was left out of this plan`;
+      notApplied.push(`${why}, so KOI kept the ${swap.from}`);
       continue;
     }
     out.forEach((h) => excluded.add(h.skuId));
