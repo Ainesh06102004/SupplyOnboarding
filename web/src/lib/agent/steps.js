@@ -10,12 +10,13 @@ import "server-only";
 
 import { callStructured } from "@/lib/ai/providers/openai";
 import { readFollowUp } from "@/lib/planner/followup";
-import { routeMessage, groundSteps, routerContext, ROUTER_INSTRUCTIONS, ROUTER_JSON_SCHEMA, ROUTER_SCHEMA_NAME } from "./router";
+import { routeMessage, groundSteps, withChangeFloor, withPeopleKept, pageStepsLast, routerContext, ROUTER_INSTRUCTIONS, ROUTER_JSON_SCHEMA, ROUTER_SCHEMA_NAME } from "./router";
 
 const productWordsIn = (text) => {
   const r = readFollowUp(text);
   return r.leaveOut.length + r.include.length + r.swaps.length > 0;
 };
+
 
 /**
  * @param {string} text the shopper's message
@@ -36,7 +37,10 @@ export async function stepsFor(text, context) {
       });
       raw = output;
       const grounded = groundSteps(output, text, context);
-      if (grounded) return { steps: grounded, source: "model", raw: output };
+      if (grounded) {
+        const steps = pageStepsLast(withPeopleKept(withChangeFloor(grounded, text, context), text));
+        return { steps, source: "model", raw: output };
+      }
     } catch (err) {
       console.error("[plan/agent] router", err?.message ?? "failed");
     }

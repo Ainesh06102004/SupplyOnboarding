@@ -12,7 +12,7 @@
 // cases change.
 // ============================================================================
 
-export const AGENT_EVAL_VERSION = "agent-eval-v1";
+export const AGENT_EVAL_VERSION = "agent-eval-v2";
 
 /** The household and basket every case is read against, as the page would send them. */
 export const EVAL_CONTEXT = Object.freeze({
@@ -36,6 +36,9 @@ export const AGENT_CASES = Object.freeze([
   { id: "hinglish", text: "thoda sasta karo aur dates mat daalo", hasPlan: true, expect: { tools: ["change"], says: [/dates/i] } },
   { id: "swap", text: "swap the basmati for the kalanamak one", hasPlan: true, expect: { tools: ["change"], says: [/basmati|kalanamak/i] } },
   { id: "no-invented-food", text: "can you make it healthier for my son", hasPlan: true, expect: { tools: ["change"], never: /paneer|egg|milk|oats|chicken|\d/i } },
+  // 24 Sep, live: read once as plan → change → show, re-planning the week and
+  // leaving the page for the shop. Adding foods is one change to this plan.
+  { id: "add-several", text: "add paneer, eggs and milk", hasPlan: true, expect: { tools: ["change"], says: [/paneer/i], allSay: /milk/i } },
 
   // What if
   { id: "without", text: "we're out of chana, what now?", hasPlan: true, expect: { tools: ["without"], product: /chana/i } },

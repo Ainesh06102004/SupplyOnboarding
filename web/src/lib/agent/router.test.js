@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { splitClauses, routeClause, routeMessage, groundSteps, stepLabel, MAX_STEPS } from "./router";
+import { splitClauses, routeClause, routeMessage, groundSteps, stepLabel, withChangeFloor, withPeopleKept, pageStepsLast, asksForChange, MAX_STEPS } from "./router";
 
 const tools = (steps) => steps.map((s) => s.tool);
 
@@ -96,6 +96,40 @@ test("a change needs a plan before it", () => {
   const planFirst = groundSteps({ steps: [s("change", "make it cheaper")] }, "make it cheaper", { hasPlan: false });
   assert.deepEqual(tools(planFirst), ["plan", "change"]);
   assert.deepEqual(groundSteps({ steps: [] }, "hello", { hasPlan: true }), []);
+});
+
+test("a change the model folded into a cart step is not lost", () => {
+  const text = "add some paneer and make it 5 days, then order it";
+  const cartOnly = [{ tool: "cart", text: "order the 5-day plan with paneer", args: {} }];
+  const out = withChangeFloor(cartOnly, text, { hasPlan: true, people: ["Me", "Wife", "Son"] });
+  assert.deepEqual(tools(out), ["change", "cart"]);
+  assert.equal(out[0].text, text);
+  // Only the page's own tools, and nothing to change: left alone.
+  for (const page of ["put it all in my cart", "take me to my pantry list", "can i see what i'm buying", "why is son short on protein"]) {
+    assert.equal(asksForChange(page, ["Me", "Wife", "Son"]), false, page);
+  }
+  const shop = [{ tool: "show", text: "show", args: { step: "shop" } }];
+  assert.deepEqual(tools(withChangeFloor(shop, "take me to the shop", { hasPlan: true })), ["show"]);
+  // A change step already there: nothing added.
+  const both = [{ tool: "change", text: "add paneer", args: {} }, ...cartOnly];
+  assert.equal(withChangeFloor(both, text, { hasPlan: true }), both);
+});
+
+test("who a leave-out is for survives the model's rewording", () => {
+  const text = "my wife doesn't want the dates";
+  const out = withPeopleKept([{ tool: "change", text: "Remove Dates (keep the rest of the plan the same).", args: {} }], text);
+  assert.match(out[0].text, /no dates for wife$/);
+  const kept = [{ tool: "change", text: "No Dates for Wife", args: {} }];
+  assert.equal(withPeopleKept(kept, text), kept, "already says who: left alone");
+});
+
+test("the page's own steps come after the changes they show", () => {
+  const out = pageStepsLast([
+    { tool: "show", text: "show the shop", args: { step: "shop" } },
+    { tool: "change", text: "trim it", args: {} },
+    { tool: "cart", text: "cart", args: {} },
+  ]);
+  assert.deepEqual(tools(out), ["change", "show", "cart"]);
 });
 
 test("step labels are templates", () => {

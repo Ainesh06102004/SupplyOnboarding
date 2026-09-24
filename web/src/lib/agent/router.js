@@ -28,6 +28,7 @@
 // ============================================================================
 
 import { allergensIn } from "@/lib/food/allergens";
+import { readFollowUp } from "@/lib/planner/followup";
 
 export const AGENT_TOOLS = Object.freeze(["plan", "change", "without", "cart", "show", "explain"]);
 export const MAX_STEPS = 5;
@@ -161,6 +162,7 @@ export const ROUTER_INSTRUCTIONS = [
   "- show: they want to see a part of the page; step is one of define, you, plan, pantry, shop, track.",
   "- explain: they ask why, or what the plan gave up.",
   "Understand what they mean, not the literal words: \"something lighter on the wallet\" is a change \"make it cheaper\"; \"can we see what I'm buying\" is show shop.",
+  "Every change they ask for (days, budget, people, products, targets) goes in the change or plan step, all of it. cart, show and explain only act on the plan as it then is: their instruction never carries a change. \"add paneer and make it 5 days, then order it\" is change \"add paneer, 5 days\" then cart. Adding foods to the plan on screen is a change, not a new plan. Add a show step only when they ask to see or go to part of the page.",
   "Never add a food, person or number the message and the lists below do not contain. A number is only one the shopper wrote. If there is no plan yet, start with a plan step. At most five steps. Nothing to do → an empty list.",
 ].join("\n");
 
@@ -244,5 +246,62 @@ export function groundSteps(raw, text, { hasPlan = false, people = [], products 
   // A change, a without or a cart needs a plan before it.
   if (!hasPlan && out.length && !["plan", "show", "explain"].includes(out[0].tool)) out.unshift({ tool: "plan", text: clean(text).slice(0, 200), args: {} });
   return out.slice(0, MAX_STEPS);
+}
+
+// "take ME to my pantry" is not leaving anything out.
+const NOT_FOOD = new Set(["me", "us", "him", "her", "them", "you", "myself", "everyone", "everybody", "all", "it", "this", "that", "my", "our"]);
+
+/**
+ * Whether the rules can see this message change the plan: a budget, days, a
+ * product in or out, an avoid, a target. Phrases that are only people or
+ * pronouns don't count.
+ */
+export function asksForChange(text, people = []) {
+  const r = readFollowUp(String(text ?? ""));
+  const person = new Set(people.map((p) => String(p).toLowerCase()));
+  const food = (phrase) => String(phrase ?? "").split(/\s+/).filter(Boolean).some((w) => !NOT_FOOD.has(w) && !person.has(w));
+  return r.budget.change !== "none" || Boolean(r.days) || r.avoid.length > 0 || r.targets.length > 0
+    || r.leaveOut.some(food) || r.include.some(food) || r.leaveOutFor.some((f) => food(f.product))
+    || r.swaps.some((s) => food(s.from) || food(s.to));
+}
+
+/**
+ * The model's steps, with nothing the shopper asked to change left out. The
+ * model sometimes folds a change into the step after it ("add paneer and make
+ * it 5 days, then order it" read as one cart step), and a cart or show step
+ * changes nothing. When the rules see a change and the model's steps make
+ * none, the whole message goes in as a change, before the page's own steps.
+ */
+export function withChangeFloor(steps, text, context = {}) {
+  if (!context.hasPlan || steps.some((s) => s.tool === "plan" || s.tool === "change")) return steps;
+  if (!asksForChange(text, context.people ?? [])) return steps;
+  return [{ tool: "change", text: clean(text).slice(0, 200), args: {} }, ...steps].slice(0, MAX_STEPS);
+}
+
+/**
+ * "my wife doesn't want the dates" is the wife's, not the household's. When
+ * the model's change drops who it was for ("Remove Dates"), the shopper's own
+ * "no dates for wife" is added to it, so the dates stay for everyone else.
+ */
+export function withPeopleKept(steps, text) {
+  const forOne = readFollowUp(String(text ?? "")).leaveOutFor ?? [];
+  const i = steps.findIndex((s) => s.tool === "change");
+  if (!forOne.length || i < 0) return steps;
+  const said = norm(steps.filter((s) => s.tool === "change").map((s) => s.text).join(" "));
+  const missing = forOne.filter((f) => !said.includes(String(f.who).toLowerCase()));
+  if (!missing.length) return steps;
+  const out = [...steps];
+  out[i] = { ...out[i], text: [out[i].text.replace(/[.\s]+$/, ""), ...missing.map((f) => `no ${f.product} for ${f.who}`)].join("; ") };
+  return out;
+}
+
+/**
+ * The page's own steps (cart, show, explain) run when the run is over, on the
+ * plan it ended with, so that is where they are listed: "show me the shop and
+ * trim it" changes the plan first and then shows it.
+ */
+export function pageStepsLast(steps) {
+  const page = (s) => ["cart", "show", "explain"].includes(s.tool);
+  return [...steps.filter((s) => !page(s)), ...steps.filter(page)];
 }
 
