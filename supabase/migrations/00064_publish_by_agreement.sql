@@ -1,97 +1,60 @@
 -- ============================================================================
--- 00063_agent_review
+-- 00064  A publish records the authority it was made on, and agreement is one
 --
--- An agent may work the review queue. It may not pretend to be a person.
+-- engine.publish_log has always answered "who published this label". It knew
+-- two answers: a person ('human'), and the pipeline publishing a reading both
+-- of its readers already agreed about ('automatic'). Working the queue by
+-- agreement adds a third, and until now it had nowhere to go: 00063 gave
+-- publish_log an `agent` column but left `method` defaulting to 'human', so
+-- every agent publish tripped publish_log_human_has_reviewer — a check that a
+-- human publish names the human. The check was right. The method was wrong.
 --
--- WHY THIS EXISTS. 22 items sat pending because every one routes to a human by
--- design, and the founder asked KOI's agent to work them. The agent can do the
--- reading — it can open the back-of-pack photo and compare it against both
--- machine readings, which is exactly what the reviewer does. What it must not
--- do is publish through a path that stamps `manually_verified = true`, because
--- that flag is what the storefront, the planner and the score all read as "a
--- person checked this".
+-- 'agreement' is its own authority, and it names the agent instead of a person.
+-- The constraint now holds all three to the same rule: a publish always says
+-- who or what stands behind it, and never nothing.
 --
--- WHAT CHANGES. publish_label takes an optional p_agent. When it is given:
---   * manually_verified stays FALSE and verified_by stays NULL, so nothing
---     claims a human signed it off;
---   * source is 'model_extraction', which the generated `evidence` column
---     already turns into 'machine_read' — a tier this codebase has had since
---     Phase 0 and has never until now had a way to write;
---   * the agent's name is recorded on the queue item and in the publish log, so
---     "who decided this" always has an answer.
--- Either a reviewer or an agent must be named. Neither, and it raises.
---
--- WHAT AN AGENT READING IS WORTH: agreement, not authority. One reading of a
--- photograph is one opinion, whoever holds it, and the founder's rule is the
--- right one — several readers reaching the SAME outcome is what makes it safe
--- to act on, and that is a stronger test than one person glancing once.
---
--- So a published list records `read_agreement`: how many independent readings
--- agreed on exactly this allergen set. The pipeline already reads every label
--- twice (extraction_outputs.second_read) and routes the disagreements here; an
--- agent's reading is a third. Enforced in lib/recommendation/verification.js:
---
---   verified                        a person signed it off. Clears everything.
---   machine_read, agreement >= 2    several readers, one answer. Clears a hard
---                                   allergen avoid too.
---   machine_read, agreement < 2     a complete list, so it still proves what is
---                                   IN the product, but it cannot say an
---                                   allergen is absent.
---
--- A tie broken by one more reader is the point: two readings that differ are
--- not evidence, and three readings where two agree are.
+-- This also drops the four-argument publish_label. It is unreachable — nothing
+-- in the database calls it and review.js always passes six — and it hardcodes
+-- manually_verified = true, the strongest claim KOI can make about a label.
+-- An unreachable overload that certifies a label as human-verified is a trap
+-- waiting for a caller, so it goes.
 -- ============================================================================
 
-alter table food.sku_ingredients
-  add column if not exists read_agreement smallint;
+alter table engine.publish_log drop constraint if exists publish_log_method_check;
+alter table engine.publish_log add constraint publish_log_method_check
+  check (method in ('human', 'automatic', 'agreement'));
 
-comment on column food.sku_ingredients.read_agreement is
-  'How many independent readings agreed on exactly this allergen set. 2 or more lets a machine_read list say an allergen is absent.';
-
-alter table engine.review_queue
-  add column if not exists decided_by_agent text;
-
-comment on column engine.review_queue.decided_by_agent is
-  'The agent that decided this item, when no person did. reviewed_by stays null in that case.';
-
--- A decided item still has to say who decided it. It may now be an agent, but
--- never neither: the constraint is what guarantees a row can always answer
--- "who said so".
-alter table engine.review_queue drop constraint if exists review_decided_has_reviewer;
-alter table engine.review_queue add constraint review_decided_has_reviewer check (
-  status = any (array['pending', 'superseded'])
-  or ((reviewed_by is not null or decided_by_agent is not null) and reviewed_at is not null)
+alter table engine.publish_log drop constraint if exists publish_log_human_has_reviewer;
+alter table engine.publish_log add constraint publish_log_names_its_authority check (
+  (method = 'human' and reviewer is not null)
+  or (method = 'agreement' and agent is not null)
+  or method = 'automatic'
 );
 
-comment on constraint review_decided_has_reviewer on engine.review_queue is
-  'A decided item names a person or an agent. Never neither.';
+comment on constraint publish_log_names_its_authority on engine.publish_log is
+  'Every publish names what stands behind it: a person, an agent, or the pipeline''s own agreed reading.';
 
-alter table engine.publish_log
-  add column if not exists agent text;
+comment on column engine.publish_log.method is
+  'human = a person decided; agreement = independent readers agreed and an agent recorded it; automatic = the pipeline''s two readings already matched.';
 
-comment on column engine.publish_log.agent is
-  'The agent that published, when no person did. `reviewer` stays null in that case.';
+drop function if exists engine.publish_label(uuid, uuid, jsonb, jsonb);
 
+-- Same body as 00063, with the one line it was missing: the method.
 create or replace function engine.publish_label(
-  p_output_id uuid,
-  p_reviewer uuid,
-  p_ingredients jsonb,
-  p_nutrition jsonb,
-  p_agent text default null,
-  p_agreement smallint default null
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SET search_path TO ''
-AS $function$
+  p_output_id uuid, p_reviewer uuid, p_ingredients jsonb, p_nutrition jsonb,
+  p_agent text default null, p_agreement smallint default null
+) returns jsonb
+language plpgsql
+set search_path to ''
+as $function$
 DECLARE
   v_out engine.extraction_outputs%ROWTYPE;
   v_version integer;
   v_prev_i jsonb;
   v_prev_n jsonb;
-  -- An agent's reading is never a human verification.
   v_manual boolean := p_agent IS NULL;
   v_source text := CASE WHEN p_agent IS NULL THEN 'brand_label' ELSE 'model_extraction' END;
+  v_method text := CASE WHEN p_agent IS NULL THEN 'human' ELSE 'agreement' END;
 BEGIN
   IF p_reviewer IS NULL AND p_agent IS NULL THEN
     RAISE EXCEPTION 'publish_label needs the reviewer or the agent who approved it';
@@ -160,10 +123,13 @@ BEGIN
       verified_at = EXCLUDED.verified_at, updated_at = now();
   END IF;
 
-  INSERT INTO engine.publish_log (sku_id, output_id, reviewer, agent, previous_ingredients, previous_nutrition)
-  VALUES (v_out.sku_id, v_out.id, p_reviewer, p_agent, v_prev_i, v_prev_n);
+  INSERT INTO engine.publish_log (sku_id, output_id, reviewer, agent, method, previous_ingredients, previous_nutrition)
+  VALUES (v_out.sku_id, v_out.id, p_reviewer, p_agent, v_method, v_prev_i, v_prev_n);
   UPDATE engine.ai_extraction_jobs SET status = 'completed', completed_at = COALESCE(completed_at, now()) WHERE id = v_out.job_id;
   RETURN jsonb_build_object('sku_id', v_out.sku_id, 'ingredients', p_ingredients IS NOT NULL,
     'nutrition', p_nutrition IS NOT NULL, 'label_version', v_version, 'verified', v_manual, 'agreement', p_agreement);
 END;
 $function$;
+
+revoke execute on function engine.publish_label(uuid, uuid, jsonb, jsonb, text, smallint) from public;
+grant execute on function engine.publish_label(uuid, uuid, jsonb, jsonb, text, smallint) to service_role;

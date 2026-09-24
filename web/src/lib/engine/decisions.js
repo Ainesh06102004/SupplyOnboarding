@@ -92,14 +92,23 @@ export function buildPublishPayload(items, ctx = {}) {
   let ingredients = null;
   const list = settled(by.ingredients);
   const allergens = settled(by.allergens);
-  if (list && allergens) {
+  // An agreed ABSENCE of a list is not a complete list. Three readers looking
+  // at a lab report and all finding no ingredients on it agree perfectly — and
+  // publishing that as the product's list would tell KOI the food has no
+  // ingredients, which `machine_read` evidence would then let it use to say no
+  // allergen is present. Absence of a list proves nothing about the food.
+  const listIsEmpty = list && !String(list.raw_ingredient_text ?? "").trim();
+  if (listIsEmpty) {
+    blockers.push("The readers agree this photo carries no ingredient list, and an absent list cannot be published as a complete one.");
+  }
+  if (list && allergens && !listIsEmpty) {
     ingredients = {
       raw_ingredient_text: list.raw_ingredient_text,
       parsed_ingredients: list.parsed_ingredients,
       allergens: allergens.contains,
       may_contain: allergens.may_contain,
     };
-  } else if (list || allergens) {
+  } else if ((list || allergens) && !listIsEmpty) {
     blockers.push("Ingredients and allergens publish together — decide both.");
   } else if (!by.ingredients) {
     blockers.push("No ingredient list in this photo — ask the brand for a back-of-pack photo.");

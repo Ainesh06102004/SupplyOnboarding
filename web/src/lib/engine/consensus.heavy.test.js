@@ -155,25 +155,43 @@ test("ATTACK: depth and size cannot hang it either", () => {
 // ── The label's own parts ───────────────────────────────────────────────────
 
 test("allergen agreement is about both lists, not just what is in it", () => {
-  const contains = { allergens: { contains: ["dairy"], may_contain: ["gluten"] } };
-  const mayContain = { allergens: { contains: ["dairy"], may_contain: [] } };
+  const contains = { allergen_statement: "Contains Milk", may_contain_statement: "May contain Wheat" };
+  const mayContain = { allergen_statement: "Contains Milk", may_contain_statement: null };
   // Same "contains", different "may contain" — NOT agreement. Promoting a
   // trace warning into an ingredient, or losing one, both matter to somebody.
   assert.equal(consensusOf([contains, mayContain], { of: LABEL_PARTS.allergens }).agreed, false);
   assert.equal(consensusOf([contains, contains], { of: LABEL_PARTS.allergens }).agreed, true);
 });
 
-test("a missing allergen block reads as nothing found, not as absent", () => {
-  assert.deepEqual(LABEL_PARTS.allergens({}), { contains: [], may_contain: [] });
-  assert.deepEqual(LABEL_PARTS.allergens(null), { contains: [], may_contain: [] });
-  assert.equal(LABEL_PARTS.ingredients({}), "");
-  assert.equal(LABEL_PARTS.nutrition({}), null);
+test("looked and found none is a vote; did not look is not", () => {
+  // null: the reader read the pack and there was no statement on it. That is a
+  // fact about the pack and two readers can agree on it.
+  const lookedAndFoundNone = { allergen_statement: null, may_contain_statement: null, ingredients_text: null };
+  assert.deepEqual(LABEL_PARTS.allergens(lookedAndFoundNone), { contains: [], may_contain: [] });
+  assert.equal(consensusOf([lookedAndFoundNone, lookedAndFoundNone], { of: LABEL_PARTS.allergens }).agreed, true);
+
+  // undefined: the reader did not answer for this part at all. That is an
+  // ABSTENTION, and it must never become a vote for "no allergens" — otherwise
+  // a blurred photograph would end up certifying a product allergen-free.
+  assert.equal(LABEL_PARTS.allergens({}), undefined);
+  assert.equal(LABEL_PARTS.ingredients({}), undefined);
+  assert.equal(LABEL_PARTS.nutrition({}), undefined);
+  assert.equal(LABEL_PARTS.identity({}), undefined);
+  const both = consensusOf([{}, {}], { of: LABEL_PARTS.allergens });
+  assert.equal(both.agreed, false);
+  assert.match(both.why, /abstained/);
+
+  // One abstention beside two real readings does not block them, and is counted.
+  const settled = consensusOf([lookedAndFoundNone, lookedAndFoundNone, {}], { of: LABEL_PARTS.allergens });
+  assert.equal(settled.agreed, true);
+  assert.equal(settled.agreement, 2);
+  assert.match(settled.why, /1 abstained/);
 });
 
 test("ingredient text agrees across spacing and case, not across words", () => {
-  const a = { ingredients: { raw_ingredient_text: "Finger Millet (37%),  Brown Sugar" } };
-  const b = { ingredients: { raw_ingredient_text: "finger millet (37%), brown sugar" } };
-  const c = { ingredients: { raw_ingredient_text: "Finger Millet (37%), Jaggery" } };
+  const a = { ingredients_text: "Finger Millet (37%),  Brown Sugar" };
+  const b = { ingredients_text: "finger millet (37%), brown sugar" };
+  const c = { ingredients_text: "Finger Millet (37%), Jaggery" };
   assert.equal(consensusOf([a, b], { of: LABEL_PARTS.ingredients }).agreed, true);
   assert.equal(consensusOf([a, c], { of: LABEL_PARTS.ingredients }).agreed, false);
 });

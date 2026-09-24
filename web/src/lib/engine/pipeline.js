@@ -24,6 +24,7 @@ import { runChecks } from "./checks";
 import { toReviewItems } from "./proposals";
 import { planAutoPublish, pickPrimary } from "./autopublish";
 import { readLabel } from "./providers/openai";
+import { readUntilAgreed, whyUnsettled } from "./agree";
 import { rescoreSkus } from "@/lib/screening/rescore";
 import { evaluationGate } from "./evalGate";
 
@@ -122,7 +123,33 @@ export async function runExtraction(uploadId, { gate = null } = {}) {
     };
 
     const result = runChecks(parsed.data);
-    const plan = planAutoPublish({ reading: parsed.data, second: secondReading, result, sku: context });
+    let plan = planAutoPublish({ reading: parsed.data, second: secondReading, result, sku: context });
+
+    // Where the two readings differ, ask a third rather than a person. Each
+    // part of the label is settled on its own, and only what no set of readers
+    // agrees about still goes to the queue (agree.js). A part that reaches
+    // consensus publishes with the count that agreed, which is what lets a
+    // machine-read list say an allergen is absent (migration 00063).
+    let agreedParts = null;
+    if (plan.blocked.length && secondReading) {
+      const settled = await readUntilAgreed(image, {
+        readings: [
+          { by: primaryMeta.model, reading: parsed.data },
+          { by: otherMeta?.model ?? `${primaryMeta.model}-again`, reading: secondReading },
+        ],
+      });
+      agreedParts = settled.parts;
+      const stillOpen = plan.blocked.filter((b) => !agreedParts[b.group]?.agreed);
+      if (stillOpen.length !== plan.blocked.length) {
+        plan = {
+          ...plan,
+          blocked: stillOpen.map((b) => ({ ...b, reason: whyUnsettled(b.group, agreedParts[b.group]) ?? b.reason })),
+          agreement: { ...plan.agreement, consensus: Object.fromEntries(
+            Object.entries(agreedParts).map(([part, r]) => [part, { agreed: r.agreed, agreement: r.agreement, readings: r.readings, why: r.why }]),
+          ) },
+        };
+      }
+    }
 
     const { data: output, error: outputError } = await engine
       .from("extraction_outputs")

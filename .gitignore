@@ -30,3 +30,6 @@ Personal-research/
 .env
 .env.local
 .env.*.local
+
+# Screenshots the browser tool drops while verifying pages.
+.playwright-mcp/

@@ -99,8 +99,11 @@ export async function getSkuReview(skuId) {
  * @param {object|undefined} value the correction, for "correct"
  * @param {string} reviewerUid from the verified session
  */
-export async function decide(itemId, action, value, reviewerUid) {
-  if (!reviewerUid) fail("No reviewer.");
+export async function decide(itemId, action, value, reviewerUid, agent = null) {
+  // Either a person or a named agent. Never neither, and never an agent
+  // pretending to be a person: reviewed_by stays null when an agent decided,
+  // and decided_by_agent names it (migration 00063).
+  if (!reviewerUid && !agent) fail("No reviewer.");
   const engine = engineDb().schema("engine");
 
   const { data: item, error } = await engine.from("review_queue").select("id, field_group, status").eq("id", itemId).maybeSingle();
@@ -112,7 +115,13 @@ export async function decide(itemId, action, value, reviewerUid) {
   if (!verdict.ok) fail(verdict.error);
 
   const { error: updateError } = await engine.from("review_queue")
-    .update({ status: verdict.status, decision: verdict.decision, reviewed_by: reviewerUid, reviewed_at: new Date().toISOString() })
+    .update({
+      status: verdict.status,
+      decision: verdict.decision,
+      reviewed_by: reviewerUid ?? null,
+      decided_by_agent: reviewerUid ? null : agent,
+      reviewed_at: new Date().toISOString(),
+    })
     .eq("id", itemId);
   if (updateError) throw updateError;
   return { status: verdict.status };
@@ -124,8 +133,8 @@ export async function decide(itemId, action, value, reviewerUid) {
  * @param {string} outputId extraction_outputs id
  * @param {string} reviewerUid from the verified session
  */
-export async function publish(outputId, reviewerUid) {
-  if (!reviewerUid) fail("No reviewer.");
+export async function publish(outputId, reviewerUid, { agent = null, agreement = null } = {}) {
+  if (!reviewerUid && !agent) fail("No reviewer.");
   const db = engineDb();
   const engine = db.schema("engine");
 
@@ -144,9 +153,13 @@ export async function publish(outputId, reviewerUid) {
 
   const { data, error: rpcError } = await engine.rpc("publish_label", {
     p_output_id: outputId,
-    p_reviewer: reviewerUid,
+    p_reviewer: reviewerUid ?? null,
     p_ingredients: payload.ingredients,
     p_nutrition: payload.nutrition,
+    // An agent's publish is machine_read, never manually_verified, and carries
+    // how many independent readers agreed (migration 00063).
+    p_agent: reviewerUid ? null : agent,
+    p_agreement: agreement,
   });
   if (rpcError) fail(rpcError.message);
   return { published: data, stillOpen: payload.blockers };

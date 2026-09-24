@@ -25,6 +25,9 @@
 // Pure. The readings are supplied; asking for one more is the caller's job.
 // ============================================================================
 
+import { allergensIn, allergensInStatement } from "@/lib/food/allergens";
+import { splitStatement } from "./proposals";
+
 /** How many independent readings must agree before KOI acts on an answer. */
 export const CONSENSUS = Object.freeze({
   // Two is the bar. A third reading is asked for only when the first two
@@ -112,12 +115,23 @@ export function consensusOf(readings = [], { need = CONSENSUS.need, of = (r) => 
   // agreement is what lets KOI say an allergen is absent. When readers identify
   // themselves, each gets one vote, and a reader that contradicts itself gets
   // none: it has not got an answer to give.
-  let answers = given.map((r) => of(r));
+  // A reader that looked and could not read this PART has abstained, and an
+  // abstention must never become a vote. It is the whole absence-of-evidence
+  // trap: `undefined` reaching a part-picker turns "I could not read the panel"
+  // into "there is no panel", which is how a blurred photograph would come to
+  // certify that a product contains no allergens.
+  const picked = given.map((r) => ({ r, answer: of(r) }));
+  const abstained = picked.filter((x) => x.answer === undefined).length;
+  const voting = picked.filter((x) => x.answer !== undefined);
+  if (!voting.length) {
+    return { agreed: false, answer: null, agreement: 0, readings: given.length, why: `all ${given.length} reader(s) abstained` };
+  }
+  let answers = voting.map((x) => x.answer);
   let sameReader = 0;
   let unverified = 0;
   if (by) {
     const byReader = new Map();
-    given.forEach((r, i) => {
+    voting.forEach(({ r }, i) => {
       // A reader that will not name itself cannot be shown to be a DIFFERENT
       // reader from the ones that did, and "cannot tell" must never be read as
       // "independent". It gets no vote: an unverifiable second opinion is not a
@@ -184,13 +198,21 @@ export function consensusOf(readings = [], { need = CONSENSUS.need, of = (r) => 
     answer: top.answer,
     agreement: top.n,
     readings: answers.length,
-    why: `${top.n} of ${answers.length} readings agree`,
+    why: abstained
+      ? `${top.n} of ${answers.length} readings agree (${abstained} abstained)`
+      : `${top.n} of ${answers.length} readings agree`,
   };
 }
 
-/** Is another reading worth asking for, or has KOI learnt what it is going to? */
-export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most = CONSENSUS.mostReadings } = {}) =>
-  readings.length < most && !consensusOf(readings, { need }).agreed;
+/**
+ * Is another reading worth asking for, or has KOI learnt what it is going to?
+ *
+ * It must be asked about the same PART as the consensus it is chasing: whole
+ * readings of a label practically never match word for word, so comparing them
+ * entire would say "ask again" for ever and burn a reading on every label.
+ */
+export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most = CONSENSUS.mostReadings, of, by } = {}) =>
+  readings.length < most && !consensusOf(readings, { need, ...(of ? { of } : {}), ...(by ? { by } : {}) }).agreed;
 
 /**
  * The parts of a label KOI asks for agreement on, separately.
@@ -198,10 +220,65 @@ export const worthReadingAgain = (readings = [], { need = CONSENSUS.need, most =
  * Separately, because a reader may see the nutrition panel perfectly and
  * misread the ingredients underneath it — and holding the good answer hostage
  * to the bad one is how a queue fills up with things nobody needs to decide.
+ *
+ * The fields are the ones a reader actually returns (labelSchema.js), and
+ * allergens are compared as the FLAGS the statements raise rather than as their
+ * wording: "Allergens Information: Contains Milk Solid" and "Contains Milk
+ * Solids." are the same fact about the pack, and a protocol that called them a
+ * disagreement would send every label to a human over punctuation.
  */
+/**
+ * An ingredient list, compared as a LIST rather than as a sentence.
+ *
+ * The live run is the argument for this. Two readers transcribed the Madras
+ * Mixture panel character for character identically — except one of them also
+ * typed the word "Ingredients" printed above it. Compared as one string that is
+ * a disagreement, so the queue held a product both readers had read the same
+ * way, and because ingredients and allergens publish together, nothing about
+ * that product could publish at all.
+ *
+ * What is dropped is only what is not the food: the panel's own heading, the
+ * separators, the trailing full stop, and the CAPS most panels are printed in.
+ * What is kept is every ingredient, its wording and its order — so one reader
+ * writing "Uddi flour" where another read "Ludit flour" is still a
+ * disagreement, which is exactly what it is.
+ */
+function ingredientSequence(text) {
+  const body = String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^ingredients?(\s+list)?\s*[:.\-–—]?\s*/i, "");
+  return body
+    .split(",")
+    .map((part) => part.toLowerCase().replace(/[.\s]+$/, "").trim())
+    .filter(Boolean)
+    .join(",");
+}
+
 export const LABEL_PARTS = Object.freeze({
-  allergens: (r) => ({ contains: r?.allergens?.contains ?? [], may_contain: r?.allergens?.may_contain ?? [] }),
-  ingredients: (r) => (r?.ingredients?.raw_ingredient_text ?? "").replace(/\s+/g, " ").trim(),
-  nutrition: (r) => r?.nutrition ?? null,
-  identity: (r) => r?.identity?.product_name ?? null,
+  // A statement and a list are two halves of one answer. The live Ragi
+  // disagreement — one reader saying the ingredients named gluten — lived
+  // entirely in the list, so comparing statements alone would have called it
+  // agreement on half the evidence. A reader that gave neither has abstained.
+  allergens: (r) => {
+    if (r?.allergen_statement === undefined && r?.ingredients_text === undefined) return undefined;
+    // One statement can hold both halves — "CONTAINS WHEAT AND NUTS. MAY
+    // CONTAIN MILK." — and the readers must be compared on the same split the
+    // publisher uses, or they would agree about something KOI never writes.
+    const whole = splitStatement(r?.allergen_statement ?? "");
+    const said = allergensInStatement(whole.declared);
+    const may = [
+      ...allergensInStatement(whole.precautionary),
+      ...allergensInStatement(r?.may_contain_statement ?? ""),
+    ];
+    const inList = allergensIn(r?.ingredients_text ?? "");
+    const contains = [...new Set([...said, ...inList.contains])].sort();
+    return {
+      contains,
+      may_contain: [...new Set([...may, ...inList.mayContain])].filter((f) => !contains.includes(f)).sort(),
+    };
+  },
+  ingredients: (r) => (r?.ingredients_text === undefined ? undefined : ingredientSequence(r?.ingredients_text)),
+  nutrition: (r) => (r?.nutrition === undefined ? undefined : (r?.nutrition ?? null)),
+  identity: (r) => (r?.product_name === undefined ? undefined : (r?.product_name ?? null)),
 });

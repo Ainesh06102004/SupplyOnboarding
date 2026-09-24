@@ -57,15 +57,38 @@ const PRECAUTIONARY = /\b(may contain|may be present|traces? of|facility|premise
 
 export const isPrecautionary = (statement) => Boolean(statement) && PRECAUTIONARY.test(statement);
 
+/**
+ * A statement is not one thing. Indian packs routinely print both sentences
+ * under one heading — "ALLERGEN INFORMATION: CONTAINS WHEAT AND NUTS. MAY
+ * CONTAIN MILK." — and classifying the whole statement as precautionary because
+ * it contains the words "may contain" files the DECLARED wheat as a trace. That
+ * is the Madras Mixture label, and it is the wrong direction to be wrong in: a
+ * coeliac shopper would be shown a product that says it contains wheat as one
+ * that merely might.
+ *
+ * So the statement is cut at its first precautionary marker. What comes before
+ * is a declaration; what comes after is a warning about the factory. A
+ * statement that begins precautionary has nothing before the cut and stays
+ * entirely precautionary, which is the Daily Dry Fruit Mix case unchanged.
+ *
+ * @returns {{declared: string, precautionary: string}}
+ */
+export function splitStatement(statement) {
+  const text = String(statement ?? "");
+  const at = text.search(PRECAUTIONARY);
+  if (at < 0) return { declared: text, precautionary: "" };
+  return { declared: text.slice(0, at), precautionary: text.slice(at) };
+}
+
 export function proposeAllergens(reading) {
   const fromText = flagsInIngredients(reading.ingredients_text);
-  const precautionary = isPrecautionary(reading.allergen_statement);
-  const fromStatement = precautionary ? [] : flagsInStatement(reading.allergen_statement);
+  const { declared, precautionary } = splitStatement(reading.allergen_statement);
+  const fromStatement = flagsInStatement(declared);
   const contains = [...new Set([...fromText, ...fromStatement])];
   const mayContain = [...new Set([
     ...mayContainInIngredients(reading.ingredients_text),
     ...flagsInStatement(reading.may_contain_statement),
-    ...(precautionary ? flagsInStatement(reading.allergen_statement) : []),
+    ...flagsInStatement(precautionary),
   ])].filter((flag) => !contains.includes(flag));
   return {
     contains,
