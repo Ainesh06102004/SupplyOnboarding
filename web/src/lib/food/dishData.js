@@ -3,7 +3,7 @@
 // from (a KOI shelf, fresh, or the kitchen). No quantities — amounts come from
 // the planner. Allergens and diet flags are derived at runtime (lib/food/dishes.js).
 
-export const DISH_VERSION = "74f10bb082c1";
+export const DISH_VERSION = "f25607cefca2";
 
 export const DISHES = Object.freeze([
  {
@@ -5876,6 +5876,228 @@ export const DISHES = Object.freeze([
     "category": null,
     "anyOfShelf": false,
     "optional": true,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "mushroom_matar",
+  "name": "Mushroom matar",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 30,
+  "lines": [
+   {
+    "ingredient": "Mushroom",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Green Peas",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Tomato",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Ginger",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garam Masala",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": true
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "mushroom_omelette",
+  "name": "Mushroom omelette",
+  "kind": "breakfast",
+  "slots": [
+   "breakfast"
+  ],
+  "cuisine": null,
+  "prepMinutes": 12,
+  "lines": [
+   {
+    "ingredient": "Egg",
+    "supply": "shelf",
+    "category": "eggs.hen_eggs",
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Mushroom",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   }
+  ]
+ },
+ {
+  "key": "mushroom_pepper_fry",
+  "name": "Mushroom pepper fry",
+  "kind": "main",
+  "slots": [
+   "lunch",
+   "dinner"
+  ],
+  "cuisine": "indian",
+  "prepMinutes": 20,
+  "lines": [
+   {
+    "ingredient": "Mushroom",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Capsicum",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Onion",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Garlic",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Black Pepper",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Curry Leaves",
+    "supply": "fresh",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": true,
+    "blend": false
+   },
+   {
+    "ingredient": "Sunflower Oil",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
+    "blend": false
+   },
+   {
+    "ingredient": "Iodised Salt",
+    "supply": "kitchen",
+    "category": null,
+    "anyOfShelf": false,
+    "optional": false,
     "blend": false
    }
   ]

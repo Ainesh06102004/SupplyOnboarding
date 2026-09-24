@@ -250,7 +250,7 @@ export const DIET_EXCLUSIONS = Object.freeze({
   vegan: ["dairy", "egg", "meat", "fish", "shellfish", "honey"],
   vegetarian: ["meat", "fish", "shellfish", "egg"],
   eggetarian: ["meat", "fish", "shellfish"],
-  jain: ["meat", "fish", "shellfish", "egg", "honey", "root_veg"],
+  jain: ["meat", "fish", "shellfish", "egg", "honey", "root_veg", "fungi"],
   // A fasting (vrat/phalahar) day, chosen for one plan rather than kept on a
   // profile. Not "eat less": a different list of permitted foods. Grains,
   // pulses, common salt, onion and garlic are out — and buckwheat, amaranth,

@@ -1017,6 +1017,15 @@ export const WORD_FAMILIES = Object.freeze({
   "yoghurt",
   "yogurt"
  ],
+ "button mushroom": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
+ ],
  "butylated hydroxyanisole": [
   "bha",
   "butylated hydroxyanisole",
@@ -4463,6 +4472,24 @@ export const WORD_FAMILIES = Object.freeze({
   "yoghurt",
   "yogurt"
  ],
+ "khumb": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
+ ],
+ "khumbi": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
+ ],
  "kidney beans": [
   "kidney beans",
   "rajma",
@@ -5515,6 +5542,24 @@ export const WORD_FAMILIES = Object.freeze({
   "murmura",
   "puffed rice"
  ],
+ "mushroom": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
+ ],
+ "mushrooms": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
+ ],
  "mustard greens": [
   "mustard greens",
   "sarson ka saag",
@@ -5742,6 +5787,15 @@ export const WORD_FAMILIES = Object.freeze({
   "orange",
   "santra",
   "sweet lime"
+ ],
+ "oyster mushroom": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
  ],
  "palak": [
   "palak",
@@ -6807,6 +6861,15 @@ export const WORD_FAMILIES = Object.freeze({
   "peanuts",
   "shengdana",
   "singdana"
+ ],
+ "shiitake": [
+  "button mushroom",
+  "khumb",
+  "khumbi",
+  "mushroom",
+  "mushrooms",
+  "oyster mushroom",
+  "shiitake"
  ],
  "shimla mirch": [
   "bell pepper",
@@ -8241,4 +8304,4 @@ export const CATEGORY_WORDS = Object.freeze({
  "chakki": "staples.flours"
 });
 
-export const FOOD_WORDS_VERSION = "991w-32c";
+export const FOOD_WORDS_VERSION = "998w-32c";

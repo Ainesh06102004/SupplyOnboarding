@@ -19,7 +19,7 @@ import { ageReason } from "./ageSafety";
 
 /** What a diet flag means, in words, when it is why someone cannot eat a product. */
 const DIET_FLAG_WORDS = Object.freeze({
-  meat: "meat", fish: "fish", shellfish: "shellfish", egg: "egg", honey: "honey", root_veg: "root vegetables", dairy: "dairy",
+  meat: "meat", fish: "fish", shellfish: "shellfish", egg: "egg", honey: "honey", root_veg: "root vegetables", fungi: "mushrooms", dairy: "dairy",
 });
 
 /**

@@ -507,7 +507,9 @@ VALUES
 ('Black-eyed Peas', '["black eyed peas","black-eyed peas","lobia","chawli","rongi"]', 'whole_food', 'safe', FALSE, 'A pulse.'),
 ('Soy Sauce', '["soy sauce","soya sauce"]', 'whole_food', 'safe', FALSE, 'Brewed from soybeans and, usually, wheat.'),
 -- 00074: the fasting-day grain.
-('Barnyard Millet', '["barnyard millet","samak","sama","samvat","samak rice","sama ke chawal","vrat ke chawal","moraiyo"]', 'whole_food', 'safe', FALSE, 'A millet eaten on fasting days.')
+('Barnyard Millet', '["barnyard millet","samak","sama","samvat","samak rice","sama ke chawal","vrat ke chawal","moraiyo"]', 'whole_food', 'safe', FALSE, 'A millet eaten on fasting days.'),
+-- 00076: a fungus, for the Jain rule.
+('Mushroom', '["mushroom","mushrooms","khumb","khumbi","button mushroom","oyster mushroom","shiitake"]', 'whole_food', 'safe', FALSE, 'A fungus: a Jain kitchen excludes it.')
 
 ON CONFLICT (canonical_name) DO UPDATE SET
   aliases             = EXCLUDED.aliases,

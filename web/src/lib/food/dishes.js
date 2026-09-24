@@ -24,7 +24,7 @@ const AS_INGREDIENT_FLAG = Object.freeze({ refined_sugar: "sweetened_sugar", spi
 
 const FLAG_WORDS = Object.freeze({
   meat: "meat", red_meat: "red meat", fish: "fish", shellfish: "shellfish", egg: "egg", honey: "honey",
-  root_veg: "root vegetables", allium: "onion or garlic", grain: "grain", pulse: "pulses",
+  root_veg: "root vegetables", fungi: "mushrooms", allium: "onion or garlic", grain: "grain", pulse: "pulses",
   common_salt: "common salt", caffeine: "caffeine", spicy: "chilli", sweetened_sugar: "sugar",
   palm_oil: "palm oil", dairy: "milk",
 });

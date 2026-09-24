@@ -108,6 +108,8 @@ test("a fasting day: what it excludes, and what it must not (00056)", () => {
   // is only the second, which is why they are separate flags.
   assert.deepEqual(ingredientFlagsIn("Onion"), ["allium", "root_veg"]);
   assert.deepEqual(ingredientFlagsIn("Potato"), ["root_veg"], "a vrat day eats potato quite happily");
+  // A Jain kitchen keeps out fungi as well (00076).
+  assert.deepEqual(ingredientFlagsIn("Button Mushroom"), ["fungi"]);
 });
 
 test("statements name groups, and 'peanuts' does not declare tree nuts", () => {
