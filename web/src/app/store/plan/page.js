@@ -111,7 +111,7 @@ function Plan() {
         {step === "plan" && <PlanStep s={s} onBack={back} onNext={next} />}
         {step === "pantry" && <PantryStep s={s} onBack={back} onNext={next} />}
         {step === "shop" && <ShopStep s={s} onBack={back} onNext={next} />}
-        {step === "track" && <TrackStep onBack={back} />}
+        {step === "track" && <TrackStep s={s} onBack={back} />}
       </main>
       <Toast toast={s.toast} />
     </>

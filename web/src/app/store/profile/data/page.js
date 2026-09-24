@@ -87,7 +87,7 @@ async function readEverything() {
     return result;
   };
   try {
-    const [account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy] = await Promise.all([
+    const [account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy, checkins] = await Promise.all([
         rows(supabase.from("customer_profiles").select("display_name, email, phone, city, pincode, created_at").maybeSingle()),
         rows(supabase.from("user_health_profile").select("*").maybeSingle()),
         rows(supabase.from("user_diet_type").select("diet_type").maybeSingle()),
@@ -101,8 +101,10 @@ async function readEverything() {
         rows(supabase.from("delivery_addresses").select("id, label, city, pincode, is_default")),
         rows(supabase.from("fulfilment_intents").select("id, state, marketplace, item_count, created_at").order("created_at", { ascending: false }).limit(20)),
         fetch("/api/marketplace/connect").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        // Track (00077): your own weigh-ins, and nobody else's (RLS).
+        rows(supabase.from("member_checkin").select("member_id, checked_on, weight_kg").order("checked_on", { ascending: false }).limit(400)),
       ]);
-    return { user: signedIn, data: { account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy }, error: null };
+    return { user: signedIn, data: { account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy, checkins }, error: null };
   } catch (err) {
     return { user: signedIn, data: null, error: err?.message ?? "What KOI keeps could not be loaded." };
   }
@@ -234,6 +236,19 @@ export default function YourDataPage() {
               ))}
             </div>
           )) : <Empty />}
+        </Section>
+
+        <Section title="Weigh-ins"
+                 action={(d.checkins ?? []).length > 0 && (
+                   <ConfirmDelete label="Delete all weigh-ins" what={`all ${d.checkins.length} weigh-ins`}
+                                  onConfirm={() => remove(supabase.from("member_checkin").delete().in("member_id", [...new Set(d.checkins.map((c) => c.member_id))]))} />
+                 )}>
+          {(d.checkins ?? []).length ? (
+            <>
+              <p>{d.checkins.length} weigh-in{d.checkins.length === 1 ? "" : "s"}, from {date(d.checkins.at(-1).checked_on)} to {date(d.checkins[0].checked_on)}; the latest {d.checkins[0].weight_kg} kg.</p>
+              <p className="text-[11.5px]">Only your weight and the day, which you entered yourself on Plan → Track. Kept until you delete them here.</p>
+            </>
+          ) : <Empty />}
         </Section>
 
         <Section title="Delivery addresses">
