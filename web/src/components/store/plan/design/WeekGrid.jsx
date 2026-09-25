@@ -9,7 +9,7 @@
 // everyone at the table; drag one cell onto another to swap them. The amounts
 // on the plates are the planner's own shares, spread over the meals.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { alternativesFor, productsFor, SLOT_LABELS } from "@/lib/plan/schedule";
 import { peopleOf } from "@/lib/plan/planView";
 import { goalShortLabel } from "@/lib/plan/goalCards";
@@ -37,6 +37,60 @@ export default function WeekGrid({ s }) {
   const busy = Boolean(s.run && !s.run.done);
   const me = s.active?.memberId ? String(s.active.memberId) : null;
   const names = useMemo(() => new Map(s.lines.map((l) => [String(l.skuId), l.name])), [s.lines]);
+
+  // Touch: HTML5 drag and drop never fires on a phone. A long press picks a
+  // dish up, a move carries it, lifting drops it; a quick swipe still scrolls
+  // the grid and a tap still opens the swap menu. Native listeners, because a
+  // drag must be able to stop the page scrolling (React's are passive).
+  const gridRef = useRef(null);
+  const latest = useRef({ week, swap: s.swapCells });
+  useEffect(() => { latest.current = { week, swap: s.swapCells }; });
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return undefined;
+    let press = { timer: null, from: null, active: false };
+    const cellOf = (node) => node?.closest?.("[data-cell]")?.getAttribute("data-cell") ?? null;
+    const cellAt = (t) => cellOf(document.elementFromPoint(t.clientX, t.clientY));
+    const canDrop = (from, to) => {
+      const cells = latest.current.week?.cells ?? {};
+      return Boolean(to && to !== from && SWAPPABLE[cells[from]?.slot]?.includes(cells[to]?.slot));
+    };
+    const reset = () => { clearTimeout(press.timer); press = { timer: null, from: null, active: false }; };
+    const start = (e) => {
+      const from = cellOf(e.target);
+      if (!from || !latest.current.week?.cells[from]?.shared || e.touches.length > 1) return;
+      reset();
+      press.from = from;
+      press.timer = setTimeout(() => { press.active = true; setDrag(from); navigator.vibrate?.(15); }, 350);
+    };
+    const move = (e) => {
+      if (!press.active) { clearTimeout(press.timer); return; }
+      e.preventDefault();
+      const to = cellAt(e.touches[0]);
+      setOver(canDrop(press.from, to) ? to : null);
+    };
+    const end = (e) => {
+      if (press.active) {
+        e.preventDefault(); // no click: the menu stays shut after a drag
+        const to = e.changedTouches?.[0] ? cellAt(e.changedTouches[0]) : null;
+        if (canDrop(press.from, to)) latest.current.swap(press.from, to);
+        setDrag(null);
+        setOver(null);
+      }
+      reset();
+    };
+    el.addEventListener("touchstart", start, { passive: true });
+    el.addEventListener("touchmove", move, { passive: false });
+    el.addEventListener("touchend", end, { passive: false });
+    el.addEventListener("touchcancel", end);
+    return () => {
+      reset();
+      el.removeEventListener("touchstart", start);
+      el.removeEventListener("touchmove", move);
+      el.removeEventListener("touchend", end);
+      el.removeEventListener("touchcancel", end);
+    };
+  }, []);
 
   useEffect(() => {
     if (!menu) return undefined;
@@ -98,7 +152,7 @@ export default function WeekGrid({ s }) {
         </div>
       )}
 
-      <div className="koi-plan-grid-wrap">
+      <div className="koi-plan-grid-wrap" ref={gridRef}>
         <div style={{ display: "grid", gridTemplateColumns: cols, gap: 7, minWidth, marginBottom: 7 }}>
           <div />
           {week.days.map((d) => (
@@ -122,6 +176,7 @@ export default function WeekGrid({ s }) {
               return (
                 <div
                   key={key}
+                  data-cell={key}
                   role="button"
                   tabIndex={0}
                   draggable={Boolean(cell.shared)}
