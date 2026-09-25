@@ -148,6 +148,10 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
     const pool = dishes.filter((dish) => kinds.includes(dish.kind) && dish.slots.includes(slot));
     let best = null;
     for (const dish of pool) {
+      // A one-pot meal stands in for the week's rice and dal, so it has to be
+      // cooked from the basket: pav bhaji (fresh vegetables and pav, nothing
+      // off the shelf) suited everyone at the table and won every dinner.
+      if (dish.kind === "one_pot" && !dish.lines.some(isAnchor)) continue;
       // Who can have it: allowed, and with its staple in their share of the
       // basket. Someone without the moong doesn't stop the others' chilla.
       const can = memberIds.filter((id) => verdict(dish, people.find((p) => String(p.memberId) === id) ?? {}).ok && usesFor(dish, id) !== null);

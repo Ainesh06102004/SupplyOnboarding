@@ -100,6 +100,12 @@ test("a staple bought for the week is cooked through the week, not in one servin
   assert.ok(week.perServing("me", "besan").amount <= 125, "at most half the week's share in one serving");
 });
 
+test("no one-pot meal that uses nothing from the basket (pav bhaji every night)", () => {
+  const week = buildWeek({ report, lines, people, days: 7, start });
+  const pots = Object.values(week.cells).flatMap((c) => c.shared?.dishes ?? []).filter((x) => x.kind === "one_pot").map((x) => x.key);
+  assert.ok(!pots.includes("pav_bhaji"), pots.join(", "));
+});
+
 test("the dish needs its staple in the basket: no rajma when there are no kidney beans", () => {
   const week = buildWeek({ report, lines, people, days: 7, start });
   const served = Object.values(week.cells).flatMap((c) => [...(c.shared?.dishes ?? []), ...Object.values(c.own).flatMap((o) => o.dishes)]).map((x) => x.key);
