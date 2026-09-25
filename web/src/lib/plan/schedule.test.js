@@ -89,6 +89,17 @@ test("a week has every day and every slot, and lunch is a base with a main or on
   assert.ok(JSON.stringify(kinds) === JSON.stringify(["base", "main"]) || JSON.stringify(kinds) === JSON.stringify(["one_pot"]));
 });
 
+test("a staple bought for the week is cooked through the week, not in one serving", () => {
+  // 24 Sep: besan added for one chilla was one 127 g serving and a half-full pack.
+  const withBesan = [...lines, { skuId: "besan", name: "Besan", categoryKey: "staples.flours" }];
+  const r = { whoEatsWhat: report.whoEatsWhat.map((w) => ({ ...w, allowed: [...w.allowed, { skuId: "besan", name: "Besan", packs: 1, amount: 250, unit: "g" }] })) };
+  const week = buildWeek({ report: r, lines: withBesan, people, days: 7, start });
+  const uses = Object.values(week.cells).filter((c) => [...(c.shared?.dishes ?? []), ...Object.values(c.own).flatMap((o) => o.dishes)]
+    .some((x) => week.usesFor(x.key, "me").some((u) => u.skuId === "besan"))).length;
+  assert.ok(uses >= 2, `besan dishes in the week: ${uses}`);
+  assert.ok(week.perServing("me", "besan").amount <= 125, "at most half the week's share in one serving");
+});
+
 test("the dish needs its staple in the basket: no rajma when there are no kidney beans", () => {
   const week = buildWeek({ report, lines, people, days: 7, start });
   const served = Object.values(week.cells).flatMap((c) => [...(c.shared?.dishes ?? []), ...Object.values(c.own).flatMap((o) => o.dishes)]).map((x) => x.key);

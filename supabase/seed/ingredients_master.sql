@@ -315,7 +315,7 @@ VALUES
  'Complete protein pseudocereal, naturally gluten free.'),
 ('Brown Rice', '["brown rice","unpolished rice"]', 'whole_food', 'safe', FALSE,
  'Bran retained, so more fibre and a lower glycaemic response than polished rice.'),
-('Chickpea', '["chickpea","chana","besan","gram flour","kabuli chana","chana dal","kala chana","black chana","chole","sattu","roasted gram","bengal gram"]', 'whole_food', 'safe', FALSE,
+('Chickpea', '["chickpea","chana","besan","gram flour","kabuli chana","chana dal","kala chana","black chana","chole","roasted gram","bengal gram"]', 'whole_food', 'safe', FALSE,
  'Legume protein and fibre. Besan is a common gluten-free flour.'),
 ('Lentils', '["lentil","dal","masoor","moong","toor","urad","arhar"]', 'whole_food', 'safe', FALSE,
  'Staple Indian protein and fibre source.'),
@@ -509,7 +509,9 @@ VALUES
 -- 00074: the fasting-day grain.
 ('Barnyard Millet', '["barnyard millet","samak","sama","samvat","samak rice","sama ke chawal","vrat ke chawal","moraiyo"]', 'whole_food', 'safe', FALSE, 'A millet eaten on fasting days.'),
 -- 00076: a fungus, for the Jain rule.
-('Mushroom', '["mushroom","mushrooms","khumb","khumbi","button mushroom","oyster mushroom","shiitake"]', 'whole_food', 'safe', FALSE, 'A fungus: a Jain kitchen excludes it.')
+('Mushroom', '["mushroom","mushrooms","khumb","khumbi","button mushroom","oyster mushroom","shiitake"]', 'whole_food', 'safe', FALSE, 'A fungus: a Jain kitchen excludes it.'),
+-- 00080: roasted gram flour, not besan.
+('Sattu', '["sattu","roasted gram flour","bhuna chana atta","sattu atta"]', 'whole_food', 'safe', FALSE, 'Roasted gram flour, eaten uncooked. Not besan, which is raw.')
 
 ON CONFLICT (canonical_name) DO UPDATE SET
   aliases             = EXCLUDED.aliases,

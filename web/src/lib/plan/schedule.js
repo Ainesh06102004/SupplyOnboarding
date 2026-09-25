@@ -23,6 +23,7 @@ import { DISHES } from "@/lib/food/dishData";
 import { dishFor } from "@/lib/food/dishes";
 import { allergensIn } from "@/lib/food/allergens";
 import { slotsFor } from "@/lib/plan/planView";
+import { nodeInfo } from "@/lib/food/taxonomy";
 
 export const SLOT_KEYS = Object.freeze(["breakfast", "lunch", "snack", "dinner", "drinks"]);
 export const SLOT_LABELS = Object.freeze({ breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner", drinks: "Drinks" });
@@ -31,6 +32,8 @@ const AT_TABLE = Object.freeze({ breakfast: ["breakfast"], lunch: ["lunch", "tif
 /** Shelves that are a dish's staple. Ghee, oil, sugar and spices are not what makes a dal a dal. */
 const SIDE_SHELVES = Object.freeze(["fats_oils", "sweeteners", "spices"]);
 const REPEAT_PENALTY = Object.freeze({ low: 4, usual: 2.5, high: 1 });
+/** How many dishes a staple's share should reach in a week before it stops being owed another. */
+const STAPLE_WEEK_USES = 4;
 const DAY_NAMES = Object.freeze(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
 
 const isNum = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
@@ -100,6 +103,24 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
     return people.filter((p) => !(p.meals_from_home ?? []).length || p.meals_from_home.some((m) => wanted.includes(m))).map((p) => String(p.memberId));
   };
 
+  // How many reference servings (21 CFR 101.12, taxonomy.js) of a product a
+  // person's share holds, and how many the week has used so far. A staple
+  // bought for the week should be cooked through the week: a 500 g pack of
+  // besan put into a single chilla is 127 g on one plate and the rest unused.
+  const portionOf = (skuId) => {
+    const line = basket.find((b) => b.skuId === String(skuId));
+    const p = line?.categoryKey ? nodeInfo(line.categoryKey)?.portion : null;
+    return p?.amount > 0 ? p : null;
+  };
+  /** Dishes still owed to a staple: its servings (at most STAPLE_WEEK_USES), less the times it has been cooked. */
+  const owedUses = (memberId, skuId) => {
+    const a = eats.get(memberId)?.get(String(skuId));
+    const p = portionOf(skuId);
+    if (!a || !p || !isNum(a.amount) || (a.unit && a.unit !== p.unit)) return 0;
+    const servings = Math.floor(Number(a.amount) / p.amount);
+    return Math.min(servings, STAPLE_WEEK_USES) - (served.get(memberId)?.get(String(skuId)) ?? 0);
+  };
+
   const count = new Map(); // dishKey -> times served
   const lastServed = new Map(); // dishKey -> day index
   const favourites = new Set(people.flatMap((p) => p.favourite_categories ?? []));
@@ -110,6 +131,10 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       const used = usesFor(dish, id);
       if (!used) return -Infinity;
       s += used.filter((u) => u.anchor).length * 3 + used.length * 0.5;
+      // A staple cooked fewer times than its share could serve (up to
+      // STAPLE_WEEK_USES a week) is owed another dish: rice and dal cooked daily
+      // soon lose this, a pack of besan bought for one chilla keeps it.
+      for (const u of used.filter((x) => x.anchor)) s += Math.max(0, owedUses(id, u.skuId)) * 1.2;
     }
     s /= Math.max(1, memberIds.length);
     if (dish.lines.some((l) => l.supply === "shelf" && favourites.has(l.category))) s += 1;

@@ -3,7 +3,7 @@
 // from (a KOI shelf, fresh, or the kitchen). No quantities — amounts come from
 // the planner. Allergens and diet flags are derived at runtime (lib/food/dishes.js).
 
-export const DISH_VERSION = "f25607cefca2";
+export const DISH_VERSION = "71a0ebbfddd4";
 
 export const DISHES = Object.freeze([
  {
@@ -7963,7 +7963,7 @@ export const DISHES = Object.freeze([
   "prepMinutes": 5,
   "lines": [
    {
-    "ingredient": "Chickpea",
+    "ingredient": "Sattu",
     "supply": "shelf",
     "category": "staples.flours",
     "anyOfShelf": false,

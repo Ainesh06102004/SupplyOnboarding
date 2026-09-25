@@ -663,8 +663,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "benzoate": [
   "benzoate",
@@ -688,8 +687,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "beta carotene": [
   "beta carotene",
@@ -728,6 +726,12 @@ export const WORD_FAMILIES = Object.freeze({
   "butylated hydroxytoluene",
   "e321",
   "ins 321"
+ ],
+ "bhuna chana atta": [
+  "bhuna chana atta",
+  "roasted gram flour",
+  "sattu",
+  "sattu atta"
  ],
  "bhutta": [
   "american corn",
@@ -777,8 +781,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "black eyed peas": [
   "black eyed peas",
@@ -1391,8 +1394,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "chana": [
   "bengal gram",
@@ -1405,8 +1407,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "chaval": [
   "basmati rice",
@@ -1510,8 +1511,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "chicory inulin": [
   "chicory inulin",
@@ -1642,8 +1642,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "chukandar": [
   "beetroot",
@@ -3380,8 +3379,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "grape skin extract": [
   "anthocyanin",
@@ -4276,8 +4274,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "kachi ghani": [
   "kachi ghani",
@@ -4357,8 +4354,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "kala namak": [
   "black salt",
@@ -6533,6 +6529,12 @@ export const WORD_FAMILIES = Object.freeze({
   "chawal atta",
   "rice flour"
  ],
+ "roasted gram flour": [
+  "bhuna chana atta",
+  "roasted gram flour",
+  "sattu",
+  "sattu atta"
+ ],
  "roasted gram": [
   "bengal gram",
   "besan",
@@ -6544,8 +6546,7 @@ export const WORD_FAMILIES = Object.freeze({
   "gram flour",
   "kabuli chana",
   "kala chana",
-  "roasted gram",
-  "sattu"
+  "roasted gram"
  ],
  "rock salt": [
   "himalayan salt",
@@ -6747,19 +6748,17 @@ export const WORD_FAMILIES = Object.freeze({
   "rai",
   "sarson"
  ],
+ "sattu atta": [
+  "bhuna chana atta",
+  "roasted gram flour",
+  "sattu",
+  "sattu atta"
+ ],
  "sattu": [
-  "bengal gram",
-  "besan",
-  "black chana",
-  "chana",
-  "chana dal",
-  "chickpea",
-  "chole",
-  "gram flour",
-  "kabuli chana",
-  "kala chana",
-  "roasted gram",
-  "sattu"
+  "bhuna chana atta",
+  "roasted gram flour",
+  "sattu",
+  "sattu atta"
  ],
  "saunf": [
   "fennel",
@@ -8304,4 +8303,4 @@ export const CATEGORY_WORDS = Object.freeze({
  "chakki": "staples.flours"
 });
 
-export const FOOD_WORDS_VERSION = "998w-32c";
+export const FOOD_WORDS_VERSION = "1001w-32c";
