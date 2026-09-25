@@ -12,7 +12,7 @@
 // cases change.
 // ============================================================================
 
-export const AGENT_EVAL_VERSION = "agent-eval-v2";
+export const AGENT_EVAL_VERSION = "agent-eval-v3";
 
 /** The household and basket every case is read against, as the page would send them. */
 export const EVAL_CONTEXT = Object.freeze({
@@ -55,6 +55,9 @@ export const AGENT_CASES = Object.freeze([
   { id: "explain-2", text: "what did you give up?", hasPlan: true, expect: { tools: ["explain"] } },
 
   // Several at once
+  // 25 Sep, live: a cart step nobody asked for, and the per-person asks lost in
+  // the model's paraphrase. The planner now reads the message itself.
+  { id: "complex-1", text: "sort out 5 days for all of us on 3500, wife needs 70g protein and no dates for her, son is allergic to peanuts, add paneer, thoda sasta karo, then show me the shop", hasPlan: true, expect: { tools: ["change", "show"], toolsAny: [["change", "show"], ["plan", "change", "show"]], step: "shop", allSay: /son is allergic to peanuts/ } },
   { id: "run-on", text: "honestly this is a bit much money, trim it down, and my wife doesn't want the dates. can i see what i'm buying", hasPlan: true, expect: { tools: ["change", "show"], step: "shop" } },
 ]);
 

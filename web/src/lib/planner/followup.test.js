@@ -78,6 +78,18 @@ test("a swap into a product the plan can't use changes nothing, and says why", (
   assert.deepEqual(card.excludedSkus, []);
 });
 
+test("who is meant, in a long message: 'for her' and 'son is allergic'", () => {
+  // 25 Sep, live: "for all of us" made the son's peanut allergy everyone's, and
+  // "no dates for her" named nobody.
+  const r = readFollowUp("sort out 5 days for all of us on 3500, wife needs 70g protein and no dates for her, son is allergic to peanuts, add paneer");
+  assert.deepEqual(r.leaveOutFor, [{ product: "dates", who: "wife" }]);
+  assert.deepEqual(r.avoid, [{ key: "peanuts", who: "son" }]);
+  // Said of the household, it is still the household's.
+  assert.deepEqual(readFollowUp("no peanuts for all of us").avoid, [{ key: "peanuts", who: null }]);
+  const nuts = readFollowUp("no nuts for the kids").avoid;
+  assert.ok(nuts.length > 0 && nuts.every((a) => a.who === "kids"), JSON.stringify(nuts));
+});
+
 test("\"swap toor dal with oats\" takes out the dal and puts in the oats", () => {
   const r = applyText("can you swap toor dal with oats");
   assert.deepEqual(r.excludedSkus, ["toor"]);

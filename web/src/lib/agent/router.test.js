@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { splitClauses, routeClause, routeMessage, groundSteps, stepLabel, withChangeFloor, withPeopleKept, pageStepsLast, asksForChange, MAX_STEPS } from "./router";
+import { splitClauses, routeClause, routeMessage, groundSteps, stepLabel, withChangeFloor, withPeopleKept, pageStepsLast, inShoppersWords, asksForChange, MAX_STEPS } from "./router";
 
 const tools = (steps) => steps.map((s) => s.tool);
 
@@ -130,6 +130,29 @@ test("the page's own steps come after the changes they show", () => {
     { tool: "cart", text: "cart", args: {} },
   ]);
   assert.deepEqual(tools(out), ["change", "show", "cart"]);
+});
+
+test("the planner reads the shopper's words; the model only picks the tools", () => {
+  // 25 Sep, live: the model's paraphrases lost the wife, the protein, the
+  // allergy and the paneer, and it added a cart step nobody asked for.
+  const text = "sort out 5 days for all of us on 3500, wife needs 70g protein and no dates for her, son is allergic to peanuts, add paneer, thoda sasta karo, then show me the shop";
+  const model = [
+    { tool: "plan", text: "Plan 5 days for Me, Wife, and Son on a budget of 3500.", args: {} },
+    { tool: "change", text: "Make it cheaper while keeping the same constraints", args: {} },
+    { tool: "change", text: "Ensure Son is allergic to peanuts", args: {} },
+    { tool: "cart", text: "Order the current shopping list", args: {} },
+    { tool: "show", text: "Show the shop", args: { step: "shop" } },
+  ];
+  const out = inShoppersWords(model, text, { hasPlan: true, people: ["Me", "Wife", "Son"] });
+  assert.deepEqual(tools(out), ["plan", "change", "show"], "one change; no cart it wasn't asked for");
+  assert.equal(out[0].text, text);
+  assert.equal(out[1].text, text);
+  assert.equal(stepLabel(out[1]), "Change it: Make it cheaper while keeping the same constraints", "the label is the model's summary");
+  // Asked for the cart: kept.
+  assert.ok(tools(inShoppersWords(model, "plan 5 days and put it in my cart")).includes("cart"));
+  // Planned, with per-person asks the plan can't carry: a change reads them.
+  const planOnly = inShoppersWords([model[0]], "plan 5 days on 3500, no dates for my wife", { people: ["Me", "Wife", "Son"] });
+  assert.deepEqual(tools(planOnly), ["plan", "change"]);
 });
 
 test("step labels are templates", () => {

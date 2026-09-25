@@ -202,11 +202,36 @@ const FOR_ONE = [
   { re: new RegExp(String.raw`\b(?:no|without|skip|remove|drop|leave out)\s+(?:the\s+|any\s+)?([a-z][a-z ]{1,30}?)\s+for\s+(?:my\s+|the\s+|our\s+)?([a-z][a-z0-9 ]{0,20}?)${END}`, "g"), product: 1, who: 2 },
   { re: new RegExp(String.raw`\b(?:my\s+|the\s+|our\s+)?([a-z][a-z0-9]{1,20})\s+(?:doesn t|does not|doesnt|won t|will not|wont|don t|do not|dont|can t|cannot|never)\s+(?:want|like|eat|have|eats|wants|likes)\s+(?:the\s+|any\s+)?([a-z][a-z ]{1,30}?)${END}`, "g"), product: 2, who: 1 },
 ];
+/** The words that name someone in a household, for "her", "him" and a clause's subject. */
+const PERSON_WORDS = /\b(wife|husband|partner|son|daughter|kids?|child|children|mother|mom|mum|mummy|father|dad|papa|grandma|grandpa|grandmother|grandfather|nani|dadi|nana|dada|beta|beti|me)\b/g;
+const PRONOUNS_FOR_SOMEONE = new Set(["her", "him", "them", "his"]);
+/** "wife needs 70g and no dates for her": her is the wife — the nearest person named before. */
+function personBefore(text, index) {
+  let last = null;
+  for (const m of text.matchAll(PERSON_WORDS)) if (m.index < index) last = m[1];
+  return last;
+}
+
+/**
+ * Who an avoid is for, read from the clause that names it: "son is allergic to
+ * peanuts" is the son's, even in a message that began "for all of us". "For
+ * all of us", "everyone", "us" — or no one named — is the household (null).
+ */
+function avoidWho(text, key) {
+  const clauses = text.split(/[,.;]|\band\b|\bthen\b|\bbut\b/).map((c) => c.trim()).filter(Boolean);
+  const clause = clauses.find((c) => avoidKeysNamed(c).includes(key));
+  if (!clause) return null;
+  const said = clause.match(WHO)?.[1] ?? clause.match(PERSON_WORDS)?.[0] ?? null;
+  if (!said || ["all", "everyone", "everybody", "us", "all of us", "the family", "family", "the house", "house"].includes(said)) return null;
+  return PRONOUNS_FOR_SOMEONE.has(said) ? personBefore(text, text.indexOf(clause)) : said;
+}
+
 export function leaveOutFor(text) {
   const found = [];
   for (const { re, product, who } of FOR_ONE) {
     for (const m of text.matchAll(re)) {
-      const person = m[who].trim();
+      let person = m[who].trim();
+      if (PRONOUNS_FOR_SOMEONE.has(person)) person = personBefore(text, m.index) ?? person;
       const food = m[product].trim();
       if (!food || ["it", "that", "this", "them"].includes(food)) continue;
       // "No dairy for my wife" is an allergen: an avoid, held by the graph, not one product.
@@ -251,7 +276,6 @@ export function readFollowUp(input) {
   const avoidText = [...leaveOut, ...include, ...swaps.flatMap((s) => [s.from, s.to]), ...forOne.map((f) => f.product)]
     .reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text);
   const reading = interpret(avoidText);
-  const who = text.match(WHO)?.[1] ?? null;
   return {
     budget,
     days: followUpDays(text),
@@ -259,7 +283,7 @@ export function readFollowUp(input) {
     leaveOutFor: forOne,
     include,
     swaps,
-    avoid: reading.profile.foodsAvoid.map((key) => ({ key, who })),
+    avoid: reading.profile.foodsAvoid.map((key) => ({ key, who: avoidWho(text, key) })),
     targets: targetsIn(text),
     dayNames: DAY_NAMES.test(text),
     unresolved: reading.unresolved,
@@ -436,6 +460,9 @@ export function mergeFollowUps(local, model) {
   // Where the model says who an avoid is for and the rules could not, its reading replaces
   // the rules' "everyone" (the plan leaves the product out for the household either way).
   const namedByModel = new Set(model.avoid.filter((a) => a.who).map((a) => a.key));
+  // And the other way: "son is allergic to peanuts" read by the rules as the
+  // son's is not undone by a model reading it as everyone's.
+  const namedByRules = new Set(local.avoid.filter((a) => a.who).map((a) => a.key));
   return {
     budget: model.budget.change !== "none" ? model.budget : local.budget,
     days: model.days ?? local.days,
@@ -446,7 +473,7 @@ export function mergeFollowUps(local, model) {
     leaveOutFor: local.leaveOutFor ?? [],
     include: [...new Set([...(local.include ?? []), ...(model.include ?? [])])],
     swaps: [...new Map([...(local.swaps ?? []), ...(model.swaps ?? [])].map((s) => [`${s.from}>${s.to}`, s])).values()],
-    avoid: byKey([...local.avoid.filter((a) => a.who || !namedByModel.has(a.key)), ...model.avoid]),
+    avoid: byKey([...local.avoid.filter((a) => a.who || !namedByModel.has(a.key)), ...model.avoid.filter((a) => a.who || !namedByRules.has(a.key))]),
     targets: model.targets.length ? model.targets : local.targets,
     dayNames: local.dayNames || model.dayNames,
     unresolved: [...new Set([...local.unresolved, ...model.unresolved])],

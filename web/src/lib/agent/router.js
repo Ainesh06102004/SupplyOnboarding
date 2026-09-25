@@ -115,7 +115,8 @@ export function stepLabel(step) {
   switch (step.tool) {
     case "plan": return "Plan the week";
     case "change": {
-      const t = clean(step.text);
+      // The model's summary when there is one (inShoppersWords); the words run are the shopper's.
+      const t = clean(step.label ?? step.text);
       return `Change it: ${t.length > 70 ? `${t.slice(0, 70).replace(/\s+\S*$/, "")}…` : t}`;
     }
     case "without": return `Check without ${step.args?.product ?? "it"}`;
@@ -293,6 +294,66 @@ export function withPeopleKept(steps, text) {
   const out = [...steps];
   out[i] = { ...out[i], text: [out[i].text.replace(/[.\s]+$/, ""), ...missing.map((f) => `no ${f.product} for ${f.who}`)].join("; ") };
   return out;
+}
+
+/**
+ * What a plan can't carry but a change can: a product in or out, a leave-out
+ * for one person, an avoid, a person's target. Days, budget and people are the
+ * plan's own (planArgs), so "plan 7 days on 4000" asks for nothing beyond it.
+ */
+export function asksBeyondPlan(text, people = []) {
+  const r = readFollowUp(String(text ?? ""));
+  const person = new Set(people.map((p) => String(p).toLowerCase()));
+  const food = (phrase) => String(phrase ?? "").split(/\s+/).filter(Boolean).some((w) => !NOT_FOOD.has(w) && !person.has(w));
+  return r.avoid.length > 0 || r.targets.some((t) => t.who)
+    || r.leaveOut.some(food) || r.include.some(food) || r.leaveOutFor.some((f) => food(f.product))
+    || r.swaps.some((s) => food(s.from) || food(s.to));
+}
+
+/** A cart step only when the shopper asked for one: "show me the shop" is not "order it". */
+const ASKS_CART = /\b(cart|order|checkout|check out|buy|kharid\w*|mangwa\w*|mangao)\b/;
+
+/**
+ * The model decides WHICH tools run; the planner reads the SHOPPER's words.
+ *
+ * Asked "sort out 5 days for all of us on 3500, wife needs 70g protein and no
+ * dates for her, son is allergic to peanuts, add paneer, thoda sasta karo, then
+ * show me the shop", the model split it into long paraphrases ("Exclude dates
+ * for Wife. Add paneer (for the household except where exclusions apply)") and
+ * the planner's reader lost the wife, the protein, the allergy and the paneer in
+ * them — and it added a cart step nobody asked for. The follow-up reader was
+ * built and evaluated on shoppers' sentences, so that is what it gets:
+ *   * the plan and change steps run on the message itself; the model's own
+ *     words stay only as the step's label on the timeline;
+ *   * one change step at most (the reader takes the whole sentence at once),
+ *     after the plan when there is one, and added when the model planned but
+ *     left the rest of the message unread;
+ *   * a cart step only when the message asks for the cart.
+ * @param {Array} steps grounded, settled steps
+ * @param {string} text the shopper's message
+ * @param {{ hasPlan?: boolean, people?: string[] }} [context]
+ */
+export function inShoppersWords(steps, text, context = {}) {
+  const message = clean(text).slice(0, 200);
+  const wantsCart = ASKS_CART.test(norm(text));
+  const out = [];
+  let change = null;
+  for (const step of steps) {
+    if (step.tool === "cart" && !wantsCart) continue;
+    // One message is one plan: a second plan step would plan the week again.
+    if (step.tool === "plan" && !out.some((s) => s.tool === "plan")) out.push({ ...step, label: step.text, text: message });
+    else if (step.tool === "plan") continue;
+    else if (step.tool === "change") {
+      if (!change) { change = { ...step, label: step.text, text: message }; out.push(change); }
+    } else out.push(step);
+  }
+  // Planned, and the message also changes something the plan can't say (a
+  // person's target, a leave-out, an allergy, a product): read it as a change.
+  const planned = out.findIndex((s) => s.tool === "plan");
+  if (planned >= 0 && !change && asksBeyondPlan(text, context.people ?? [])) {
+    out.splice(planned + 1, 0, { tool: "change", text: message, label: "the rest of what you asked", args: {} });
+  }
+  return out.slice(0, MAX_STEPS);
 }
 
 /**

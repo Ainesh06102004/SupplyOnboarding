@@ -10,7 +10,7 @@ import "server-only";
 
 import { callStructured } from "@/lib/ai/providers/openai";
 import { readFollowUp } from "@/lib/planner/followup";
-import { routeMessage, groundSteps, withChangeFloor, withPeopleKept, pageStepsLast, routerContext, ROUTER_INSTRUCTIONS, ROUTER_JSON_SCHEMA, ROUTER_SCHEMA_NAME } from "./router";
+import { routeMessage, groundSteps, withChangeFloor, withPeopleKept, pageStepsLast, inShoppersWords, routerContext, ROUTER_INSTRUCTIONS, ROUTER_JSON_SCHEMA, ROUTER_SCHEMA_NAME } from "./router";
 
 const productWordsIn = (text) => {
   const r = readFollowUp(text);
@@ -38,7 +38,7 @@ export async function stepsFor(text, context) {
       raw = output;
       const grounded = groundSteps(output, text, context);
       if (grounded) {
-        const steps = pageStepsLast(withPeopleKept(withChangeFloor(grounded, text, context), text));
+        const steps = inShoppersWords(pageStepsLast(withPeopleKept(withChangeFloor(grounded, text, context), text)), text, context);
         return { steps, source: "model", raw: output };
       }
     } catch (err) {
