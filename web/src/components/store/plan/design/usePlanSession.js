@@ -114,6 +114,11 @@ async function readHousehold() {
       const ids = chainOf(rows).map((r) => r.id);
       const { data: full } = await supabase.from("plan").select("id, report, explanation").in("id", ids);
       restore = restoreFrom(rows, new Map((full ?? []).map((r) => [String(r.id), r])));
+      // The week's dish picks, kept with its first plan (00078).
+      if (restore?.weekRootId) {
+        const { data: week } = await supabase.from("plan_week").select("picks").eq("plan_id", restore.weekRootId).maybeSingle();
+        if (week?.picks) restore.picks = week.picks;
+      }
     }
   }
   return { user, household: household ?? null, profiles, last, restore };
@@ -147,6 +152,9 @@ export function usePlanSession() {
   const [cartResult, setCartResult] = useState(null);
   const [repeat, setRepeat] = useState("usual");
   const [picks, setPicks] = useState({});
+  // The week's first plan: its picks are the week's, saved against it (00078).
+  const [weekRootId, setWeekRootId] = useState(null);
+  const savedPicks = useRef({ root: null, json: "{}" });
   const timers = useRef({});
   const draftSeq = useRef(1);
   const toastTimer = useRef(null);
@@ -184,6 +192,12 @@ export function usePlanSession() {
         setPlan(read.restore.plan);
         setRequests(read.restore.requests);
         setCompareTo(read.restore.compareTo);
+        setWeekRootId(read.restore.weekRootId);
+        // Saved picks win over this browser's copy; a week saved nowhere keeps it.
+        if (read.restore.picks) {
+          setPicks(read.restore.picks);
+          savedPicks.current = { root: read.restore.weekRootId, json: JSON.stringify(read.restore.picks) };
+        }
       }
     }
     return read;
@@ -365,6 +379,7 @@ export function usePlanSession() {
       thisWeek: Object.fromEntries(ids.map((id) => [id, { ...choiceFor(id), ...(targets[id] ? { targets: targets[id] } : {}) }])),
     }, "plan", lead);
     showPlan(made, before);
+    setWeekRootId(made.planId);
     setRequests([]);
     // A new plan is a new week: yesterday's dish picks don't carry over.
     setPicks({});
@@ -427,7 +442,7 @@ export function usePlanSession() {
     let latest = plan;
     let first = true;
     const actions = [];
-    const snapshot = { plan, compareTo, requests, picks, days, created: [] };
+    const snapshot = { plan, compareTo, requests, picks, days, weekRootId, created: [] };
     setLastRun(null);
     const response = await fetch("/api/plan/agent", {
       method: "POST",
@@ -450,6 +465,7 @@ export function usePlanSession() {
           ? { basket: latest.report?.basket ?? [], cost: latest.report?.cost ?? null, label: "Your last plan" }
           : last ? { basket: last.basket, cost: last.cost, label: "Your last plan" } : null;
         showPlan(message.payload, before);
+        setWeekRootId(message.payload.planId);
         setRequests([]);
         if (first) { setPicks({}); writePicks(householdId, {}); }
         setDays(message.payload.days ?? days);
@@ -483,7 +499,7 @@ export function usePlanSession() {
       else if (a.action === "explain") setRun((r) => ({ ...r, explain: latest ? noteLines(latest) : [{ text: "There's no plan yet to explain." }] }));
     }
     return latest;
-  }, [picked, plan, compareTo, requests, picks, householdId, days, budget, choiceFor, last, showPlan]);
+  }, [picked, plan, compareTo, requests, picks, weekRootId, householdId, days, budget, choiceFor, last, showPlan]);
 
   // Only while the plan on screen is still the one the run ended with: once
   // anything else changes it, single-change undo is the way back.
@@ -495,6 +511,7 @@ export function usePlanSession() {
     const r = lastRun;
     setLastRun(null);
     showPlan(r.plan, r.compareTo);
+    setWeekRootId(r.weekRootId);
     setRequests(r.requests);
     setPicks(r.picks);
     writePicks(householdId, r.picks);
@@ -739,6 +756,22 @@ export function usePlanSession() {
       addToCart();
     }
   }, [pendingCart, plan, lines.length, addToCart]);
+
+  // The week's picks, saved against its first plan (00078) a moment after they
+  // settle. A week with nothing picked writes nothing.
+  useEffect(() => {
+    if (!weekRootId) return undefined;
+    const json = JSON.stringify(picks);
+    const saved = savedPicks.current.root === weekRootId ? savedPicks.current.json : "{}";
+    if (json === saved) return undefined;
+    const timer = setTimeout(async () => {
+      const { error: saveError } = await getSupabaseClient()
+        .from("plan_week")
+        .upsert({ plan_id: weekRootId, picks, updated_at: new Date().toISOString() });
+      if (!saveError) savedPicks.current = { root: weekRootId, json };
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [picks, weekRootId]);
 
   const setChoice = useCallback((memberId, patch) => setThisWeek((all) => ({ ...all, [memberId]: { ...(all[memberId] ?? { dietType: null, prefer: [], skip: [] }), ...patch } })), []);
 

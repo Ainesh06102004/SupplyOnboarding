@@ -43,7 +43,7 @@ export function chainOf(rows) {
  * @param {object[]} rows the household's latest plans, newest first:
  *   { id, days, budget_rupees, status, created_at, follows, change, cost, basket }
  * @param {Map<string, {report, explanation}>} stored reports by plan id (for the chain)
- * @returns {{ plan, requests, compareTo } | null} null when the latest plan has no report
+ * @returns {{ plan, requests, compareTo, weekRootId } | null} null when the latest plan has no report
  */
 export function restoreFrom(rows, stored) {
   const all = chainOf(rows);
@@ -80,5 +80,6 @@ export function restoreFrom(rows, stored) {
   const earlier = (rows ?? []).find((r) => !inChain.has(String(r.id)) && String(r.created_at) < String(root.created_at));
   const compareTo = earlier ? { basket: earlier.basket ?? [], cost: earlier.cost ?? null, label: "Your last plan" } : null;
 
-  return { plan: chain[0].plan, requests, compareTo };
+  // The week's first plan: its dish picks are the week's (00078).
+  return { plan: chain[0].plan, requests, compareTo, weekRootId: root.id };
 }

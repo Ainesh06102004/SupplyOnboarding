@@ -37,6 +37,7 @@ test("its changes come back as requests, oldest first, each undoable to the plan
   assert.equal(out.requests[1].costAfter, 1897);
   assert.equal(out.requests[0].before.planId, "a");
   assert.equal(out.compareTo.cost, 2500, "the plan before the chain is 'your last plan'");
+  assert.equal(out.weekRootId, "a", "the week's picks belong to its first plan");
 });
 
 test("the chain stops where a plan can't be drawn", () => {
