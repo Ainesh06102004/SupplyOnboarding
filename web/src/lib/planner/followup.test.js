@@ -84,6 +84,10 @@ test("who is meant, in a long message: 'for her' and 'son is allergic'", () => {
   const r = readFollowUp("sort out 5 days for all of us on 3500, wife needs 70g protein and no dates for her, son is allergic to peanuts, add paneer");
   assert.deepEqual(r.leaveOutFor, [{ product: "dates", who: "wife" }]);
   assert.deepEqual(r.avoid, [{ key: "peanuts", who: "son" }]);
+  // And the protein is the wife's, not everyone's.
+  assert.deepEqual(r.targets, [{ who: "wife", nutrient: "protein", perDay: 70 }]);
+  assert.deepEqual(readFollowUp("120 g protein for me").targets.map((t) => t.who), ["me"]);
+  assert.deepEqual(readFollowUp("100g protein for all of us").targets.map((t) => t.who), [null]);
   // Said of the household, it is still the household's.
   assert.deepEqual(readFollowUp("no peanuts for all of us").avoid, [{ key: "peanuts", who: null }]);
   const nuts = readFollowUp("no nuts for the kids").avoid;

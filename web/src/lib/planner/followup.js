@@ -248,7 +248,11 @@ function targetsIn(text) {
   for (const clause of text.split(/,|\band\b|;/)) {
     const protein = clause.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|gms|grams?)\s*(?:of\s+)?protein/);
     const kcal = clause.match(/(\d{3,4})\s*(?:kcal|calories|cals?)\b/);
-    const who = clause.match(WHO)?.[1] ?? null;
+    // "70 g for my wife", or the person the clause is about: "wife needs 70g
+    // protein" was read as everyone's 70 g. "For all of us" is everyone's.
+    const said = clause.match(WHO)?.[1] ?? clause.match(PERSON_WORDS)?.[0] ?? null;
+    const who = !said || ["all", "everyone", "everybody", "us"].includes(said) ? null
+      : PRONOUNS_FOR_SOMEONE.has(said) ? personBefore(text, text.indexOf(clause)) : said;
     if (protein) targets.push({ who, nutrient: "protein", perDay: Number(protein[1]) });
     if (kcal) targets.push({ who, nutrient: "kcal", perDay: Number(kcal[1]) });
   }
