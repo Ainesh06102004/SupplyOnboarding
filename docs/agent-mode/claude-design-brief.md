@@ -11,7 +11,9 @@
 1. Paste **section 1** into Claude Design as the opening prompt.
 2. Attach the following:
    - `KOI - Nutrition Planner.html`: the founder's original design for the Plan page. Its look is the source of truth.
-   - `docs/agent-mode/screens/*.png`: screenshots of today's store and Plan page, at desktop and phone width.
+   - `docs/agent-mode/screens/*.png`: screenshots of today's store and Plan page, at desktop and phone width:
+     - `founder-design-1-define … 6-track-1440.png`: the founder's six steps, full page. **Their figures are the founder's placeholders.** KOI's live page shows only what the planner produced, so take the look from them, not the numbers or claims.
+     - `store-home-*`, `shop-*`, `product-*`, `cart-*`, `plan-signed-out-*`, at 1440 and 390. The 390 shots show the floating tab bar the collapsed dock must sit above.
    - This file, as the reference for components, states, copy and example conversations (sections 2–14).
 3. Link the codebase folders:
    - `web/src/components/store/plan/design/`
