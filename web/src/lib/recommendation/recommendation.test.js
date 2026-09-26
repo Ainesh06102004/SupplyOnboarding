@@ -15,6 +15,7 @@ import { filterEligible } from "@/lib/recommendation/eligibilityFilter.js";
 import { scoreProduct } from "@/lib/recommendation/scoringEngine.js";
 import { FOODS_AVOID, DIET_EXCLUSIONS } from "@/lib/recommendation/config.js";
 import { REASONS, CAUTIONS } from "@/lib/recommendation/reasons.js";
+import { unverifiedFor, provesAllergenAbsence } from "@/lib/recommendation/verification.js";
 
 function product(over = {}) {
   return {
@@ -81,12 +82,31 @@ test("a verified label can", () => {
 });
 
 test("a machine-read label says what the pack lists, not that the food is safe", () => {
-  const p = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, jaggery", allergens: [], mayContain: [], confirmedAt: TODAY } });
+  const p = product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, jaggery", allergens: [], mayContain: [], confirmedAt: TODAY, readAgreement: 2 } });
   const s = score(p, { foodsAvoid: ["peanuts", "milk"] });
   assert.ok(s.reasons.includes(REASONS.notListedOnPack(["Peanuts", "Milk"])));
   assert.equal(REASONS.notListedOnPack(["Peanuts", "Milk"]), "No peanuts or milk listed on the pack");
   assert.ok(!s.reasons.includes(REASONS.noAvoid()));
   assert.deepEqual(s.cautions, [], "the whole list was read, so nothing is 'not verified'");
+});
+
+test("a machine read needs two agreeing readings to say an allergen is absent (00063)", () => {
+  const read = (readAgreement) => product({ label: { evidence: "machine_read", ingredientsText: "rolled oats, jaggery", allergens: [], mayContain: [], confirmedAt: TODAY, readAgreement } });
+  for (const agreement of [null, 1]) {
+    const s = score(read(agreement), { foodsAvoid: ["peanuts"] });
+    assert.ok(!s.reasons.includes(REASONS.notListedOnPack(["Peanuts"])), `agreement ${agreement} cannot say peanuts are absent`);
+    assert.deepEqual(s.cautions, [CAUTIONS.notVerifiedFor(["Peanuts"])]);
+  }
+  assert.deepEqual(score(read(3), { foodsAvoid: ["peanuts"] }).cautions, []);
+
+  // Still the complete list: it settles the diet, and what it lists still counts.
+  const one = extractFacts(read(1));
+  assert.equal(one.readAgreement, 1);
+  assert.equal(unverifiedFor(one, { dietType: "vegan" }).diet, null);
+  assert.equal(eligible(product({ label: { evidence: "machine_read", ingredientsText: "oats, peanuts", allergens: [], mayContain: [], confirmedAt: TODAY, readAgreement: 1 } }), { foodsAvoid: ["peanuts"] }), false);
+
+  assert.equal(provesAllergenAbsence("verified", null), true, "a person's check needs no count");
+  assert.equal(provesAllergenAbsence("partial", 5), false, "a partial list never proves absence");
 });
 
 test("a label unconfirmed for a year proves what it lists, not what it leaves out", () => {

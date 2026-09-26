@@ -21,7 +21,7 @@ import "server-only";
 
 import { getServiceClient } from "@/lib/supabase/admin";
 import { buildMasterIndex, screen } from "./score";
-import { isLabelCurrent } from "@/lib/recommendation/verification";
+import { isLabelCurrent, provesAllergenAbsence } from "@/lib/recommendation/verification";
 import { categorise } from "@/lib/food/taxonomy";
 import { skuFacts } from "@/lib/food/facts";
 import { buildSubstitutionEdges } from "@/lib/food/substitutions";
@@ -152,7 +152,7 @@ export async function rebuildSubstitutionEdges(db) {
     db.from("skus").select("id, products!inner(status), sku_nutrition(*)").eq("products.status", "approved"),
     db.schema("food").from("sku_taxonomy").select("sku_id, node_key"),
     db.schema("food").from("sku_facts").select("sku_id, nova_group, rupees_per_g_protein"),
-    db.schema("food").from("sku_ingredients").select("sku_id, allergens, may_contain, evidence, confirmed_at"),
+    db.schema("food").from("sku_ingredients").select("sku_id, allergens, may_contain, evidence, confirmed_at, read_agreement"),
   ]);
   if (e1 || e2 || e3 || e4) {
     console.error("[screening] reading substitution inputs failed", (e1 || e2 || e3 || e4).message);
@@ -168,8 +168,10 @@ export async function rebuildSubstitutionEdges(db) {
     const per100 = toPer100(nutrition);
     const node = nodeBySku.get(sku.id) ?? null;
     const label = labelBySku.get(sku.id);
-    // Absence is only claimable from a complete, current list.
-    const listIsCurrent = Boolean(label && isLabelCurrent(label.confirmed_at) && FULL_LIST.includes(label.evidence));
+    // Absence is only claimable from a complete, current list, and from a
+    // machine-read one only when enough readings agreed on the allergens.
+    const listIsCurrent = Boolean(label && isLabelCurrent(label.confirmed_at)
+      && provesAllergenAbsence(label.evidence, label.read_agreement));
     return {
       skuId: sku.id,
       categoryKey: node,

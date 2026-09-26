@@ -95,8 +95,10 @@ export function plannableFrom(products = []) {
       // The flags the graph found: allergens, diet flags, additive filters.
       contains: [...facts.contains],
       // How much KOI knows about what is in it (productFacts.js). Only a full
-      // list can show an allergen is absent; anything less proves presence only.
+      // list can show an allergen is absent, and a machine-read one only when
+      // enough readings agreed (verification.js); anything less proves presence only.
       ingredientEvidence: facts.ingredientEvidence,
+      readAgreement: facts.readAgreement ?? null,
       availability: product.availability ?? "unknown",
       perPack: supplied.perPack,
       packSize: `${supplied.packSize.value} ${supplied.packSize.unit}`,

@@ -90,6 +90,9 @@ export function mapProducts(rows) {
           // When KOI last saw the pack (migration 00029). A year without a
           // fresh sighting and the list stops counting as complete.
           confirmedAt: labelRow.confirmed_at ?? null,
+          // How many independent readings agreed on the allergens (00063,
+          // 00081). A machine read needs 2 to say an allergen is absent.
+          readAgreement: labelRow.read_agreement ?? null,
         }
       : null;
     // Only claims the screening report actually made. This used to default to

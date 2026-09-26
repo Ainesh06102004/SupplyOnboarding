@@ -220,6 +220,8 @@ export function extractFacts(product) {
     goalTags: product.goalTags || [],
     contains,
     ingredientEvidence,
+    // Readings that agreed on the allergens; see provesAllergenAbsence.
+    readAgreement: label ? label.readAgreement ?? null : null,
     haystack,
     // Tri-state, never inferred. An unchecked product is `unknown`, not in
     // stock — defaulting the other way turns absence of evidence into a claim.

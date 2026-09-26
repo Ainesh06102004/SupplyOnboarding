@@ -11,7 +11,7 @@ import { planReport, basketDiff, materiallyShort, atPortionLimit, whoEatsWhat, r
 test("each person sees what in the basket is theirs, and what is not for them and why", () => {
   const members = [{ id: "me", label: "Me" }, { id: "wife", label: "Wife", avoidFlags: ["gluten"] }, { id: "kid", label: "Kid 1", avoidFlags: ["tree_nut"] }];
   const catalogue = [
-    { skuId: "atta", name: "Atta", packAmount: 1000, packUnit: "g", ingredientEvidence: "machine_read" },
+    { skuId: "atta", name: "Atta", packAmount: 1000, packUnit: "g", ingredientEvidence: "machine_read", readAgreement: 2 },
     { skuId: "almonds", name: "Almonds", packAmount: 200, packUnit: "g", ingredientEvidence: "partial" },
   ];
   const basket = [
@@ -28,6 +28,9 @@ test("each person sees what in the basket is theirs, and what is not for them an
   assert.deepEqual(wife.allowed.map((a) => a.name), ["Almonds"]);
   assert.deepEqual(wife.allowed[0].notVerifiedFor, ["gluten"], "a partial list cannot show gluten is absent");
   assert.deepEqual(kid.allowed.find((a) => a.name === "Atta").notVerifiedFor, [], "a full list can");
+  const oneReading = whoEatsWhat({ members, basket, refusals, catalogue: catalogue.map((c) => ({ ...c, readAgreement: null })) });
+  assert.deepEqual(oneReading[2].allowed.find((a) => a.name === "Atta").notVerifiedFor, ["tree nuts"],
+    "a machine read no second reading agreed with cannot show tree nuts are absent");
   assert.deepEqual(me.allowed[0].notVerifiedFor, [], "nothing to check for someone who avoids nothing");
   assert.deepEqual(wife.notForThem, [{ skuId: "atta", name: "Atta", because: "contains gluten" }]);
   assert.deepEqual(kid.notForThem, [{ skuId: "almonds", name: "Almonds", because: "contains tree nuts" }]);

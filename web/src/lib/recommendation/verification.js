@@ -44,8 +44,25 @@ export function isLabelCurrent(confirmedAt, now = Date.now()) {
   return Number.isFinite(t) && now - t <= LABEL_MAX_AGE_DAYS * DAY_MS;
 }
 
+// How many independent readings must agree on a machine-read allergen set
+// before it may say an allergen is absent (migration 00063). One reading, or
+// two that differ, is still the complete list: it proves what is IN the
+// product and settles the diet, but it cannot clear a hard allergen avoid.
+export const MIN_READ_AGREEMENT = 2;
+
+/**
+ * @param {string|null|undefined} evidence      ingredientEvidence
+ * @param {number|null|undefined} readAgreement readings that agreed on the allergens
+ * @returns {boolean} whether the list may say an allergen is absent
+ */
+export function provesAllergenAbsence(evidence, readAgreement) {
+  if (evidence === "verified") return true;
+  return evidence === "machine_read" && Number(readAgreement) >= MIN_READ_AGREEMENT;
+}
+
 export function unverifiedFor(facts, profile = {}) {
-  if (FULL_LIST_EVIDENCE.includes(facts.ingredientEvidence)) return { allergens: [], diet: null };
+  const fullList = FULL_LIST_EVIDENCE.includes(facts.ingredientEvidence);
+  if (fullList && provesAllergenAbsence(facts.ingredientEvidence, facts.readAgreement)) return { allergens: [], diet: null };
 
   // Milk and lactose share the `dairy` flag; one caution per flag is enough.
   const flags = new Set();
@@ -59,6 +76,7 @@ export function unverifiedFor(facts, profile = {}) {
   const dietDef = DIET_BY_KEY[profile.dietType];
   const declared = (facts.dietary || []).map((d) => String(d).toLowerCase());
   const diet = dietDef
+    && !fullList
     && LABEL_VERIFIED_DIETS.includes(dietDef.key)
     && !declared.includes(dietDef.label.toLowerCase())
     ? dietDef

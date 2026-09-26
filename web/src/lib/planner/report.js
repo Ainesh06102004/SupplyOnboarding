@@ -14,7 +14,7 @@
 
 import { NUTRIENTS } from "./model";
 import { FOODS_AVOID } from "@/lib/recommendation/config";
-import { FULL_LIST_EVIDENCE } from "@/lib/recommendation/verification";
+import { provesAllergenAbsence } from "@/lib/recommendation/verification";
 import { ageReason } from "./ageSafety";
 
 /** What a diet flag means, in words, when it is why someone cannot eat a product. */
@@ -68,7 +68,7 @@ export function whoEatsWhat({ members = [], catalogue = [], basket = [], refusal
       }
       const item = bySku.get(String(line.skuId));
       const packs = Math.round((line.shares?.[m.id] ?? 0) * line.packs * 100) / 100;
-      const fullList = FULL_LIST_EVIDENCE.includes(item?.ingredientEvidence);
+      const fullList = provesAllergenAbsence(item?.ingredientEvidence, item?.readAgreement);
       allowed.push({
         skuId: line.skuId,
         name: line.name,

@@ -118,6 +118,7 @@ export function buildProductVM(p, all = [], profile = null) {
   const ingredients = rawIngredients.slice(0, labelList ? 16 : 8).map(ingredientEntry);
   const ingredientsEvidence = labelList && labelList.length ? labelEvidence : null;
   const ingredientsVerified = ingredientsEvidence === "verified";
+  const agreedReadings = Number(p.label?.readAgreement) || 0;
 
   // ── Trust module: "What we confirmed" ──
   // Only what KOI established itself — a claim rule passed on the declared
@@ -194,7 +195,9 @@ export function buildProductVM(p, all = [], profile = null) {
     { label: "Ingredient list", ...(ingredientsVerified
       ? { status: "pass", note: "Checked against the pack by KOI." }
       : ingredientsEvidence === "machine_read"
-        ? { status: "pass", note: "Read from the pack automatically; two independent readings agreed." }
+        ? { status: "pass", note: agreedReadings >= 2
+          ? `Read from the pack automatically; ${agreedReadings === 2 ? "two" : agreedReadings} independent readings agreed.`
+          : "Read from the pack automatically." }
         : { status: "limited", note: rawIngredients.length ? "Partial — from the brand's submission, not the full pack." : "KOI doesn't hold this product's ingredient list yet." }) },
     { label: "Nutrient claims", status: "pass", note: "Every nutrient claim on this page is tested against FSSAI's conditions on the declared figures." },
     { label: "Palm oil", ...declaredBy(has(tags, "no palm"), "palm-oil free") },
