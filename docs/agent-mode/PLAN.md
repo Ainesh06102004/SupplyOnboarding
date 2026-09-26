@@ -278,3 +278,33 @@ Prompt, typed on any page: *"plan this week's groceries for me, my wife and our 
 ## Build log
 
 - 27 Sep 2026: branch agent-mode created from plan-redesign (1853144); Claude Design brief written (docs/agent-mode/claude-design-brief.md).
+
+**Phase 0 (done).**
+- The Claude Design brief, plus screenshots of today's store and the founder's six steps.
+- A first design canvas in Claude Design (https://claude.ai/artifact/4soKTJQcXhyfymcghe6Cy5), with its source in `docs/agent-mode/design`.
+- `keepBrief` now refuses anyone without an age group or a diet. It used to save every "kid" as an adult.
+- `mergeAvoids`: the member-save RPC replaces the whole avoid list, so a save that sent one new avoid deleted the rest.
+- Planner abort signal; `callTools`; migration 00082.
+
+**Phase 1 (done).**
+- `loop.js`, 13 tools, the readiness gates, the sealed memory, the narration check, the rules fallback, and `/api/agent`.
+- 9 loop tests.
+
+**Phase 2 (done; the golden path waits on a signed-in run).**
+- The glass dock and sheet on every store page.
+- `AgentProvider` (conversation in the tab only, streaming, auto-continue, queue, Stop, follow-along, glow, cart after Allow, sign-in hold).
+- The Plan page bridge. Back now works.
+
+**Phase 3 (done except a real iOS check).**
+- ⌘K "Ask KOI"; header glow.
+- Fallbacks: reduced transparency, more contrast, reduced motion, no backdrop-filter.
+- Phone bottom sheet. Checked at 390 px: the dock sits above the tab bar; sending signed out opens sign-in with the message held.
+
+**Phase 4.**
+- `save_kitchen_rules` and `log_weigh_in`, both needing approval.
+- Whole-run eval (`scripts/evalAgentLoop.mjs`, 36 cases). gpt-5.4-mini scored 30/33 on the first run and 33/33 after fixes (median 4.4 s, p90 9.8 s per run). KOI's rules alone score 28/33.
+- The eval found and fixed:
+  - "make it cheaper" with no plan now makes one first;
+  - a partial quote lost "family of five";
+  - "parents" are now people whose age KOI asks.
+- Not built: `pick_dish` (the week grid already does it by tap) and `mark_have` (a one-week "we have rice" is a plan change).
