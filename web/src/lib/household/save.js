@@ -13,7 +13,28 @@
 
 import { FOODS_AVOID, DIET_TYPES } from "@/lib/recommendation/config";
 import { AGE_BANDS } from "@/lib/planner/brief";
+import { suggestTargets } from "@/lib/planner/goals";
 import { defaultSeverityFor, SEVERITIES } from "./profile";
+
+const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
+
+/** Targets that follow KOI's suggestion unless the shopper stated their own. Shared by the page and the agent. */
+export function withSuggestedTargets(form) {
+  if (form.target_source === "stated" && (form.target_kcal !== "" || form.target_protein_g !== "")) return form;
+  const s = suggestTargets({
+    ageBand: form.age_band,
+    sex: form.sex || null,
+    activity: form.activity_level || null,
+    ageYears: num(form.age_years),
+    weightKg: num(form.weight_kg),
+    heightCm: num(form.height_cm),
+    energyGoal: form.energy_goal || "maintain",
+    eatingPattern: form.eating_pattern || "balanced",
+  });
+  // No suggestion to follow: the source must still be one the column allows.
+  if (!s) return form.target_source === "stated" ? form : { ...form, target_source: "stated" };
+  return { ...form, target_kcal: String(s.kcal), target_protein_g: String(s.protein), target_source: s.source };
+}
 
 /** How strongly an avoid is held. A move down this list is a downgrade. */
 export const SEVERITY_RANK = Object.freeze({ allergy: 4, intolerance: 3, rule: 2, dislike: 1 });

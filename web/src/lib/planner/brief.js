@@ -442,6 +442,9 @@ export function draftFrom(local, model = null) {
     budget: reading.budget ?? local.budget ?? null,
     unresolved: [...new Set([...(local.unresolved ?? []), ...(model?.unresolved ?? [])])],
     source: useModel ? "openai" : "rules",
+    // Avoids said about no one in particular, put on everyone. The agent asks
+    // who they are for rather than leave them there (lib/agent/readiness.js).
+    avoidEveryone: members.length > 1 ? [...everyone] : [],
     notes,
   };
 }

@@ -21,7 +21,7 @@ import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { isTestSku } from "@/lib/data/testCatalogue";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { readFollowUp } from "@/lib/planner/followup";
-import { suggestTargets } from "@/lib/planner/goals";
+import { withSuggestedTargets } from "@/lib/household/save";
 import { profileFromRow, memberPayload, avoidsPayload, blankProfile, profileProblems, profilesNamedIn, profilesNamed } from "@/lib/household/profile";
 import { categoriesFrom, enrichBasket, noteLines } from "@/lib/plan/planView";
 import { readNdjson } from "@/lib/plan/stream";
@@ -53,24 +53,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 const keyOf = (p) => p.memberId ?? p.draftKey;
-
-/** Targets that follow KOI's suggestion unless the shopper stated their own. */
-function withSuggestedTargets(form) {
-  if (form.target_source === "stated" && (form.target_kcal !== "" || form.target_protein_g !== "")) return form;
-  const s = suggestTargets({
-    ageBand: form.age_band,
-    sex: form.sex || null,
-    activity: form.activity_level || null,
-    ageYears: num(form.age_years),
-    weightKg: num(form.weight_kg),
-    heightCm: num(form.height_cm),
-    energyGoal: form.energy_goal || "maintain",
-    eatingPattern: form.eating_pattern || "balanced",
-  });
-  // No suggestion to follow: the source must still be one the column allows.
-  if (!s) return form.target_source === "stated" ? form : { ...form, target_source: "stated" };
-  return { ...form, target_kcal: String(s.kcal), target_protein_g: String(s.protein), target_source: s.source };
-}
 
 async function readHousehold() {
   const supabase = getSupabaseClient();
