@@ -308,4 +308,15 @@ Prompt, typed on any page: *"plan this week's groceries for me, my wife and our 
   - a partial quote lost "family of five";
   - "parents" are now people whose age KOI asks.
 - Model comparison on the same 36 cases: gpt-5.4-nano scored 32/36 (89%), median 9.0 s, p90 13.7 s. It saved people twice, redrafted a saved person instead of changing them, and changed the plan on a "what if". **gpt-5.4-mini stays the default**: it is both more accurate and faster here.
+- **Live run, 27 Sep (signed in, the user's household Me · Wife · Son).**
+  - "plan this week's groceries for all of us on 3500, keep peanuts away from my son, and put it in my cart" ran in 16 s to the cart card: plan changed to ₹1,852, everyone at 100% protein, the page's board and request chips updated through the bridge. Allow added exactly 10 packs (3+2+2+1+1+1), the page followed to Shop, and plan_run logged tools and decisions only.
+  - On a product page, "is this ok for my son?" ran check_product in 8 s: "Fits Son · Not verified for peanuts".
+  - Declining a save carried on for this week only. "Undo all of this" deleted the run's plan.
+  - Everything was cleaned up afterwards: plans deleted, cart emptied, Son's profile unchanged.
+- **Fixed from the live run:**
+  1. The dock read the wrong id (`user.id` instead of KOI's `user.uid`), so it thought everyone was signed out.
+  2. "keep peanuts away from my son" was read as the household's avoid. `readFollowUp` now reads "keep X away from Y".
+  3. KOI's own line said "Yes, it's okay for your son" over a "Not verified for peanuts" card. Narration now refuses verdict words.
+  4. A save that changes nothing showed an empty card. It now refuses: "Son already has that".
+  5. The model sent an unstated severity ("never"), which would have weakened Son's allergy. The card flagged it; now a severity counts only if the shopper's words say it.
 - Not built: `pick_dish` (the week grid already does it by tap) and `mark_have` (a one-week "we have rice" is a plan change).

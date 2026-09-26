@@ -118,6 +118,12 @@ async function draftPeople(ctx, { quote }) {
 }
 
 // ── save_people (approval) ──────────────────────────────────────────────────
+const SEVERITY_WORDS = {
+  allergy: /\ballerg(y|ic|ies)\b/,
+  intolerance: /\bintoleran(t|ce)\b|\bupsets?\b/,
+  rule: /\b(never|by choice|belief|religio\w*|don t eat|doesn t eat|do not eat|does not eat)\b/,
+  dislike: /\b(dislikes?|doesn t like|don t like|not a fan|hates?|rather not)\b/,
+};
 const GOAL_WORDS = { lose: /\b(lose|losing|cut|slim|weight down)\b/, gain: /\b(gain|bulk|build muscle|put on)\b/, maintain: /\b(maintain|stay the same|keep my weight)\b/ };
 
 /** Is each value the model set for a person one the shopper actually stated? */
@@ -138,6 +144,7 @@ function unsupported(change, ev) {
 
 async function planSave(ctx, args) {
   const people = [];
+  const unchanged = [];
   if (args.source === "draft") {
     const draft = ctx.memory.draft;
     if (!draft?.members?.length) return { refused: "There is no draft to save. Use draft_people first, or source=changes for saved people." };
@@ -165,8 +172,17 @@ async function planSave(ctx, args) {
       if (bad.length) return { refused: `The shopper didn't state: ${bad.join(", ")}. Only save what they said, or ask them.` };
       const set = applyProfileSet(held, { age_band: c.set_age_band, diet_type: c.set_diet, energy_goal: c.set_goal, eating_pattern: c.set_pattern, target_kcal: c.target_kcal, target_protein_g: c.target_protein_g });
       const form = withSuggestedTargets(set.form);
-      const avoids = mergeAvoids(held.avoids, { add: (c.add_avoids ?? []).map((key) => ({ key, severity: c.avoid_severity })), remove: c.remove_avoids ?? [] });
+      // A severity only when the shopper's words give it; otherwise what is held stays.
+      // (Live, 27 Sep: "keep peanuts away from my son" was sent as "never", which would have weakened his allergy.)
+      const severity = c.avoid_severity && SEVERITY_WORDS[c.avoid_severity]?.test(norm(ev.saidText)) ? c.avoid_severity : null;
+      const avoids = mergeAvoids(held.avoids, { add: (c.add_avoids ?? []).map((key) => ({ key, severity })), remove: c.remove_avoids ?? [] });
+      const same = !set.changed.length && !avoids.added.length && !avoids.removed.length && !avoids.stronger.length && !avoids.weaker.length;
+      // Nothing would change: no card. (Live, 27 Sep: "keep peanuts away from my son" asked to save a Son who already avoids peanuts.)
+      if (same) { unchanged.push(held.label); continue; }
       people.push({ label: held.label, isNew: false, memberId: held.memberId, form: { ...form, memberId: held.memberId }, avoids, changed: set.changed });
+    }
+    if (!people.length && unchanged.length && !args.this_is_me) {
+      return { refused: `Nothing to save: ${joinLabels(unchanged)} already ${unchanged.length === 1 ? "has" : "have"} that. For this week's plan only, use change_plan.` };
     }
   }
   if (args.this_is_me) {

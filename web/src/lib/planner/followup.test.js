@@ -8,6 +8,12 @@ import assert from "node:assert/strict";
 
 import { readFollowUp, groundFollowUp, contextInstructions, mergeFollowUps, applyFollowUp, membersNamed, productsNamed, productWordFor, followUpExamples, CHEAPER_SHARE } from "@/lib/planner/followup.js";
 
+test("'keep peanuts away from my son' is the son's avoid, not the household's (found live in Agent Mode)", () => {
+  const r = readFollowUp("plan this week's groceries for all of us on 3500, keep peanuts away from my son, and put it in my cart");
+  assert.deepEqual(r.avoid, [{ key: "peanuts", who: "son" }]);
+  assert.ok(readFollowUp("keep all nuts away from the kids").avoid.every((a) => a.who === "kids"));
+});
+
 // ── What a live conversation got wrong, 18 September 2026 ───────────────────
 // A shopper asked, and the plan did the opposite or nothing:
 //   "can you add oats?"              → "Left out Oats"

@@ -212,6 +212,10 @@ function personBefore(text, index) {
   return last;
 }
 
+/** "keep peanuts away from my son": the son's. Read live, 27 Sep, as everyone's. */
+const AWAY_FROM = /\baway from\s+(?:(?:the|my|our|your)\s+)?([a-z]+(?:\s+\d+)?)\b/;
+const KEEP_AWAY = /\bkeep\s+(?:the\s+|all\s+|any\s+)?([a-z][a-z ]{1,30}?)\s+away\s+from\b/g;
+
 /**
  * Who an avoid is for, read from the clause that names it: "son is allergic to
  * peanuts" is the son's, even in a message that began "for all of us". "For
@@ -221,7 +225,7 @@ function avoidWho(text, key) {
   const clauses = text.split(/[,.;]|\band\b|\bthen\b|\bbut\b/).map((c) => c.trim()).filter(Boolean);
   const clause = clauses.find((c) => avoidKeysNamed(c).includes(key));
   if (!clause) return null;
-  const said = clause.match(WHO)?.[1] ?? clause.match(PERSON_WORDS)?.[0] ?? null;
+  const said = clause.match(WHO)?.[1] ?? clause.match(AWAY_FROM)?.[1] ?? clause.match(PERSON_WORDS)?.[0] ?? null;
   if (!said || ["all", "everyone", "everybody", "us", "all of us", "the family", "family", "the house", "house"].includes(said)) return null;
   return PRONOUNS_FOR_SOMEONE.has(said) ? personBefore(text, text.indexOf(clause)) : said;
 }
@@ -280,6 +284,9 @@ export function readFollowUp(input) {
   const avoidText = [...leaveOut, ...include, ...swaps.flatMap((s) => [s.from, s.to]), ...forOne.map((f) => f.product)]
     .reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text);
   const reading = interpret(avoidText);
+  // "keep peanuts away from …" names an avoid the search reading doesn't see.
+  const keptAway = [...text.matchAll(KEEP_AWAY)].flatMap((m) => avoidKeysNamed(m[1]));
+  const avoidKeys = [...new Set([...reading.profile.foodsAvoid, ...keptAway])];
   return {
     budget,
     days: followUpDays(text),
@@ -287,7 +294,7 @@ export function readFollowUp(input) {
     leaveOutFor: forOne,
     include,
     swaps,
-    avoid: reading.profile.foodsAvoid.map((key) => ({ key, who: avoidWho(text, key) })),
+    avoid: avoidKeys.map((key) => ({ key, who: avoidWho(text, key) })),
     targets: targetsIn(text),
     dayNames: DAY_NAMES.test(text),
     unresolved: reading.unresolved,

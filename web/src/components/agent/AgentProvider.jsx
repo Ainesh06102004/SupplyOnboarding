@@ -55,7 +55,8 @@ export function useAgentBridge(bridge) {
 
 export function AgentProvider({ children }) {
   const { user, loading: authLoading } = useAuth() ?? {};
-  const uid = user?.id ?? null;
+  // AuthContext's user is KOI's shape (contexts/AuthContext.jsx toKoiUser): the id is `uid`.
+  const uid = user?.uid ?? null;
   // Signed out means signed out, not "the session hasn't loaded yet".
   const signedOut = !authLoading && !uid;
   const [state, dispatch] = useReducer(agentReducer, initialAgentState);

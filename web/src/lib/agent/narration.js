@@ -21,6 +21,12 @@ import { foodsKnown, wordsOf } from "./evidence";
 export const MAX_SAY = 240;
 const COUNTING = new Set(["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "dozen", "half", "twice", "double", "triple", "hundred", "thousand", "lakh", "crore"]);
 const FIGURE_WORDS = /\b(kcal|calories?|grams?|kg|kilos?|mg|percent|rupees?|rs)\b/i;
+/**
+ * A verdict on whether something is fine to eat belongs to the card, which
+ * carries its cautions ("Not verified for peanuts"). Said in KOI's voice
+ * ("Yes — it's okay for your son") it drops them. Found live, 27 Sep.
+ */
+const VERDICT = /\b(safe|unsafe|okay|ok|fine|suitable|allergy[- ]free|allergen[- ]free|nut[- ]free|can (?:eat|have)|good for|bad for|perfect for)\b|^\s*(yes|no)\b/i;
 /** Words that talk about people KOI does not have. */
 const PERSON_WORDS = /\b(son|daughter|husband|wife|mother|father|mom|dad|mum|papa|mummy|grandma|grandpa|brother|sister|baby|kid|kids|child|children)\b/i;
 
@@ -41,6 +47,7 @@ export function checkSay(say, evidence, { enabled = process.env.KOI_AGENT_NARRAT
   const words = wordsOf(text);
   if (words.some((w) => COUNTING.has(w) && !evidence.words.has(w))) return no("figure");
   if (!isClaimSafeText(text)) return no("claim");
+  if (VERDICT.test(text)) return no("verdict");
   const lower = text.toLowerCase();
   if (MEDICAL_TERMS.some((t) => new RegExp(`\\b${String(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i").test(lower))) return no("medical");
   if (!foodsKnown(text, evidence)) return no("food");

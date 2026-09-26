@@ -215,6 +215,10 @@ test("narration: no figures, no claims, no foods or people nobody mentioned", ()
   assert.equal(checkSay("Adding paneer for protein.", ev, { enabled: true }).why, "food");
   assert.equal(checkSay("Keeping peanuts away.", ev, { enabled: true }).ok, true);
   assert.equal(checkSay("Your son will like this.", ev, { enabled: true }).why, "person");
+  // The verdict is the card's, with its cautions; never KOI's voice.
+  assert.equal(checkSay("Yes — it's okay for your wife.", ev, { enabled: true }).why, "verdict");
+  assert.equal(checkSay("This is safe for everyone.", ev, { enabled: true }).why, "verdict");
+  assert.equal(checkSay("I checked it for your wife.", ev, { enabled: true }).ok, true);
   assert.equal(checkSay("Done.", ev, { enabled: false }).ok, false, "off switch");
   assert.ok(isQuote("no peanuts", ev));
   assert.equal(isQuote("no nuts at all", ev), false);
