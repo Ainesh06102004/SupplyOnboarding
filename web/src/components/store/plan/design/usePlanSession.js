@@ -504,6 +504,83 @@ export function usePlanSession() {
     if (deleteError) console.error("[plan] undo run", deleteError.message);
   }, [canUndoRun, lastRun, householdId, showPlan, notify]);
 
+  // ── KOI Agent Mode (components/agent): the dock drives this page ──────────
+  // The dock runs on every store page; here it hands each plan it makes or
+  // changes to the page, which takes it exactly as it takes its own: the
+  // board, the request chips with their undo, and "Undo all of this".
+  const agentRunRef = useRef(null);
+  const latestRef = useRef({});
+  latestRef.current = { plan, compareTo, requests, picks, days, weekRootId, last, householdId, profiles, canUndoRun, undoRun };
+  const agentBridge = useMemo(() => {
+    const bridge = {
+      get planId() { return latestRef.current.plan?.planId ?? null; },
+      get canUndoRun() { return latestRef.current.canUndoRun; },
+      beginRun() {
+        const b = latestRef.current;
+        agentRunRef.current = { plan: b.plan, compareTo: b.compareTo, requests: b.requests, picks: b.picks, days: b.days, weekRootId: b.weekRootId, created: [], latest: b.plan, first: true, carted: false };
+        setLastRun(null);
+      },
+      toolResult(event) {
+        if (!agentRunRef.current) bridge.beginRun();
+        const r = agentRunRef.current;
+        const data = event.data;
+        if (event.tool === "add_to_cart" && event.ok) r.carted = true;
+        if (!data || !event.ok) return;
+        if (data.kind === "plan") {
+          const b = latestRef.current;
+          const prior = r.latest ?? b.plan;
+          const before = prior
+            ? { basket: prior.report?.basket ?? [], cost: prior.report?.cost ?? null, label: "Your last plan" }
+            : b.last ? { basket: b.last.basket, cost: b.last.cost, label: "Your last plan" } : null;
+          showPlan(data.payload, before);
+          setWeekRootId(data.payload.planId);
+          setRequests([]);
+          if (r.first) { setPicks({}); writePicks(b.householdId, {}); }
+          setDays(data.payload.days ?? b.days);
+          r.latest = data.payload;
+          r.created.push(data.payload.planId);
+          r.first = false;
+        } else if (data.kind === "change" && data.payload?.changed) {
+          const body = data.payload;
+          const basePlan = r.latest ?? latestRef.current.plan;
+          showPlan(body);
+          setRequests((all) => [...all, {
+            id: body.planId, text: data.text ?? "", applied: body.applied ?? [], notApplied: body.notApplied ?? [],
+            basketChange: body.basketChange ?? null, costAfter: body.report?.cost ?? null,
+            householdChanges: body.householdChanges ?? [], kind: "words", before: basePlan, undone: false,
+          }]);
+          r.latest = body;
+          r.created.push(body.planId);
+        } else if (data.kind === "without") {
+          setWithout((w) => ({ ...w, [data.skuId]: { result: data.payload } }));
+        }
+      },
+      endRun() {
+        const r = agentRunRef.current;
+        agentRunRef.current = null;
+        const created = (r?.created ?? []).filter((id) => UUID.test(String(id)));
+        if (created.length) setLastRun({ ...r, created, endPlanId: r.latest?.planId ?? null });
+      },
+      reload: () => load(),
+      /** Save what the shopper was typing before KOI reads the household. */
+      async flushAutosaves() {
+        const pending = Object.keys(timers.current);
+        for (const key of pending) {
+          clearTimeout(timers.current[key]);
+          delete timers.current[key];
+          const person = latestRef.current.profiles.find((p) => keyOf(p) === key);
+          if (person) await saveNow(key, person);
+        }
+      },
+      explainLines() {
+        const p = latestRef.current.plan;
+        return p ? noteLines(p) : null;
+      },
+      undoRun: () => latestRef.current.undoRun(),
+    };
+    return bridge;
+  }, [showPlan, load, saveNow]);
+
   /** The command bar: set up, plan, or change the plan, by what there is. */
   const command = useCallback(async (raw) => {
     const text = String(raw ?? "").trim();
@@ -784,7 +861,7 @@ export function usePlanSession() {
     // the week of dishes
     week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds,
     // the agent's page actions
-    nav, setNav,
+    nav, setNav, agentBridge,
     // pantry / cart
     have, toggleHave, qty, setPacks, packsFor, keepInPantry, addToCart, cartResult,
     toast, notify,

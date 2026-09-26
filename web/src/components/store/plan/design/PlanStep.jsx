@@ -25,6 +25,7 @@ import ThisWeekChips from "@/components/store/plan/ThisWeekChips";
 import { C, font, cardStyle, initialsOf, inr } from "./tokens";
 import { StepHead, Footer, MonoLabel, Unverified } from "./bits";
 import WeekGrid from "./WeekGrid";
+import { useAgent } from "@/components/agent/AgentProvider";
 
 const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
 const amountOf = (perDay, unit) => (perDay === null || perDay === undefined ? null : unit ? `${perDay} ${unit}` : `${perDay}`);
@@ -129,7 +130,12 @@ function BriefDraft({ brief, onKeep, onDrop, onEdit }) {
 
 function CommandBox({ s }) {
   const [text, setText] = useState("");
-  const busy = Boolean(s.run && !s.run.done);
+  // KOI Agent Mode: the dock is the one conversation. This box keeps what it
+  // shows about the plan (requests, undo, the draft) and hands its
+  // suggestions to the dock instead of running its own.
+  const agent = useAgent();
+  const docked = Boolean(agent);
+  const busy = docked ? agent.state.status === "running" : Boolean(s.run && !s.run.done);
   const max = s.mode === "setup" ? MAX_BRIEF_CHARS : MAX_FOLLOWUP_CHARS;
   const placeholder = {
     setup: "e.g. four of us — me, my wife and two kids; she's vegetarian, the little one is allergic to peanuts",
@@ -141,7 +147,8 @@ function CommandBox({ s }) {
     : s.mode === "ready" ? [`plan ${s.days} days`, "on ₹3,000", "high protein for me", "no budget"] : [];
   const send = (value = text) => {
     if (!value.trim() || busy) return;
-    s.command(value.slice(0, max));
+    if (docked) agent.send(value.slice(0, 600));
+    else s.command(value.slice(0, max));
     setText("");
   };
   const open = s.requests.filter((r) => !r.undone);
@@ -151,12 +158,12 @@ function CommandBox({ s }) {
     <div style={{ background: C.primary, borderRadius: 22, padding: 22, marginBottom: 18 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 13, flexWrap: "wrap" }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2" stroke={C.mint} strokeWidth="1.7" strokeLinecap="round" /></svg>
-        <span style={{ font: font(700, 15), color: "#fff" }}>Tell KOI what you want</span>
+        <span style={{ font: font(700, 15), color: "#fff" }}>{docked ? "KOI works from the dock" : "Tell KOI what you want"}</span>
         <span style={{ font: font(500, 11, "mono"), color: "rgba(255,255,255,.5)" }}>
-          {s.mode === "setup" ? "it drafts your household" : "it re-solves the plan and the cart"}
+          {docked ? "type at the bottom of the screen, or tap one of these" : s.mode === "setup" ? "it drafts your household" : "it re-solves the plan and the cart"}
         </span>
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
+      {!docked && <div style={{ display: "flex", gap: 10 }}>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -170,7 +177,7 @@ function CommandBox({ s }) {
         <button type="button" onClick={() => send()} disabled={busy || !text.trim()} style={{ cursor: busy ? "wait" : "pointer", background: C.accent, border: "none", borderRadius: 12, padding: "0 22px", font: font(600, 14), color: "#fff", opacity: busy || !text.trim() ? 0.7 : 1 }}>
           {s.mode === "setup" ? "Read" : s.mode === "ready" ? "Plan it" : "Apply"}
         </button>
-      </div>
+      </div>}
       {quick.length > 0 && (
         <div style={{ display: "flex", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
           {quick.map((q) => (
@@ -181,7 +188,10 @@ function CommandBox({ s }) {
         </div>
       )}
 
-      <AgentRun run={s.run} onUndoRun={s.canUndoRun ? s.undoRun : null} />
+      {!docked && <AgentRun run={s.run} onUndoRun={s.canUndoRun ? s.undoRun : null} />}
+      {docked && s.canUndoRun && (
+        <button type="button" onClick={s.undoRun} style={{ marginTop: 12, cursor: "pointer", background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 999, padding: "6px 12px", font: font(600, 12), color: "#fff" }}>{"↶ Undo all of KOI's last run"}</button>
+      )}
       {!s.run && s.plan?.restored && s.plan.createdAt && (
         <div style={{ font: font(500, 11, "mono"), color: "rgba(255,255,255,.5)", marginTop: 12 }}>
           Reopened your plan from {new Date(s.plan.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}

@@ -14,7 +14,7 @@
 // screen, marked as a preview of sample numbers.
 // ============================================================================
 
-import { Suspense, useCallback, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AccountButton from "@/components/auth/AccountButton";
 import { usePlanSession } from "@/components/store/plan/design/usePlanSession";
@@ -27,6 +27,7 @@ import ShopStep from "@/components/store/plan/design/ShopStep";
 import TrackStep from "@/components/store/plan/design/TrackStep";
 import { Toast } from "@/components/store/plan/design/bits";
 import { C, font } from "@/components/store/plan/design/tokens";
+import { useAgent, useAgentBridge } from "@/components/agent/AgentProvider";
 
 export default function PlanPage() {
   return (
@@ -46,16 +47,24 @@ function Loading() {
 }
 
 function Plan() {
-  const s = usePlanSession();
+  const session = usePlanSession();
+  // KOI Agent Mode: every "tell KOI" on this page (a chip, "no X", "add oats")
+  // goes to the dock, so there is one conversation, not two.
+  const agent = useAgent();
+  const agentSend = agent?.send;
+  const s = useMemo(() => (agentSend ? { ...session, command: agentSend } : session), [session, agentSend]);
   const params = useSearchParams();
   const router = useRouter();
   const asked = params.get("step");
   const step = STEPS.some((x) => x.key === asked) ? asked : "define";
 
+  // push, not replace: each step is a place in history, so Back goes back.
   const go = useCallback((key) => {
-    router.replace(`/store/plan?step=${key}`, { scroll: false });
+    router.push(`/store/plan?step=${key}`, { scroll: false });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, [router]);
+  // KOI Agent Mode: the dock reaches this page through its bridge.
+  useAgentBridge(s.agentBridge);
   // The agent's "show me the shop": go there once its run is over.
   const { nav, setNav } = s;
   useEffect(() => {
