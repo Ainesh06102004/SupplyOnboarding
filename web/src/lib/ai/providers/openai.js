@@ -19,7 +19,7 @@
 
 import "server-only";
 
-import { buildStructuredRequest, readStructuredOutput } from "./openaiFormat";
+import { buildStructuredRequest, readStructuredOutput, buildToolsRequest, readToolCall } from "./openaiFormat";
 
 // The Responses API endpoint. A fixed provider address, not a fallback for a
 // missing setting: there is no other value it could take.
@@ -71,5 +71,70 @@ export async function callStructured({ modelEnv, instructions, text, schemaName,
     return { output: readStructuredOutput(json), model, ms: Date.now() - started };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/** One turn of the agent's loop: longer than a sentence read, because the loop is the whole job. */
+export const AGENT_TIMEOUT_MS = 12000;
+
+/**
+ * One turn of KOI's agent loop: the conversation so far in, one tool call out.
+ *
+ * A model call has no side effects, so a 5xx or a dropped connection is tried
+ * once more. A timeout or the shopper's stop is not.
+ *
+ * @param {object} input
+ * @param {string} input.modelEnv the env var naming the model (KOI_OPENAI_AGENT_MODEL)
+ * @param {string} [input.effortEnv] the env var naming the reasoning effort
+ * @param {string} input.instructions
+ * @param {Array<object>} input.input Responses API input items
+ * @param {Array<object>} input.tools
+ * @param {number} [input.maxOutputTokens]
+ * @param {number} [input.timeoutMs]
+ * @param {number} [input.retries]
+ * @param {AbortSignal|null} [input.signal] the shopper's stop
+ * @param {typeof fetch} [input.fetchImpl]
+ * @returns {Promise<{ call, text, carry, usage, model: string, ms: number }>}
+ */
+export async function callTools({ modelEnv, effortEnv = null, instructions, input, tools, maxOutputTokens, timeoutMs = AGENT_TIMEOUT_MS, retries = 1, signal = null, fetchImpl = fetch }) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error("OPENAI_API_KEY is not set");
+  const model = process.env[modelEnv];
+  if (!model) throw new Error(`${modelEnv} is not set`);
+  const body = buildToolsRequest({
+    model,
+    instructions,
+    input,
+    tools,
+    maxOutputTokens,
+    reasoningEffort: (effortEnv && process.env[effortEnv]) || process.env.KOI_OPENAI_REASONING_EFFORT || null,
+  });
+
+  const started = Date.now();
+  for (let attempt = 0; ; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const onStop = () => controller.abort();
+    signal?.addEventListener?.("abort", onStop);
+    try {
+      if (signal?.aborted) throw new Error("stopped");
+      const response = await fetchImpl(RESPONSES_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      const json = await response.json().catch(() => null);
+      if (response.status >= 500 && attempt < retries) continue;
+      if (!response.ok) throw new Error(`OpenAI HTTP ${response.status}: ${json?.error?.code ?? json?.error?.type ?? "error"}`);
+      return { ...readToolCall(json), model, ms: Date.now() - started };
+    } catch (err) {
+      const aborted = controller.signal.aborted || signal?.aborted;
+      if (!aborted && attempt < retries && /fetch failed|ECONNRESET|socket/i.test(String(err?.message))) continue;
+      throw aborted && signal?.aborted ? new Error("stopped") : err;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener?.("abort", onStop);
+    }
   }
 }

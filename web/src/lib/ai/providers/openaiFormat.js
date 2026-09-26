@@ -63,6 +63,77 @@ export function readStructuredOutput(body) {
   }
 }
 
+// ── Tool calling (KOI Agent Mode) ───────────────────────────────────────────
+//
+// The agent's loop (lib/agent/loop.js) sends a conversation, not a sentence:
+// the shopper's messages, the agent's own earlier tool calls and their results,
+// and a short state digest (household labels, gap flags, product names — never
+// an age, a diet, an allergy or a target; lib/agent/digest.js). Still
+// `store: false`, so OpenAI keeps nothing and every turn resends what the turn
+// needs; a reasoning model's thinking comes back encrypted and goes back in
+// unread, and only for as long as that turn is open.
+
+/**
+ * @param {object} input
+ * @param {string} input.model
+ * @param {string} input.instructions
+ * @param {Array<object>} input.input Responses API input items
+ * @param {Array<{name, description, parameters}>} input.tools strict JSON schemas
+ * @param {number} [input.maxOutputTokens]
+ * @param {string|null} [input.reasoningEffort]
+ * @param {"required"|"auto"} [input.toolChoice]
+ * @returns {object} a Responses API request body
+ */
+export function buildToolsRequest({ model, instructions, input, tools, maxOutputTokens = 800, reasoningEffort = null, toolChoice = "required" }) {
+  return {
+    model,
+    instructions,
+    input,
+    store: false,
+    max_output_tokens: maxOutputTokens,
+    ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
+    include: ["reasoning.encrypted_content"],
+    tools: tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.parameters, strict: true })),
+    tool_choice: toolChoice,
+    // One call per turn: the loop looks at each result before the next.
+    parallel_tool_calls: false,
+  };
+}
+
+/**
+ * The tool call a Responses API body asked for, parsed.
+ *
+ * @param {object} body
+ * @returns {{ call: { callId: string, name: string, args: object, item: object }|null, text: string, carry: Array<object>, usage: object|null }}
+ *   `carry` is every output item that must go back into the next request
+ *   (reasoning items and the function call itself), in order.
+ */
+export function readToolCall(body) {
+  if (!body || typeof body !== "object") throw new Error("OpenAI returned no body");
+  if (body.error) throw new Error(`OpenAI error: ${body.error.code ?? body.error.type ?? "unknown"}`);
+  if (body.status && body.status !== "completed") {
+    throw new Error(`OpenAI response ${body.status}${body.incomplete_details?.reason ? `: ${body.incomplete_details.reason}` : ""}`);
+  }
+  const output = Array.isArray(body.output) ? body.output : [];
+  const parts = output.filter((o) => o.type === "message").flatMap((o) => o.content ?? []);
+  if (parts.some((c) => c.type === "refusal")) throw new Error("OpenAI refused");
+  const text = parts.filter((c) => c.type === "output_text").map((c) => c.text).join("");
+  const calls = output.filter((o) => o.type === "function_call");
+  let call = null;
+  if (calls.length) {
+    const first = calls[0];
+    let args;
+    try {
+      args = JSON.parse(first.arguments || "{}");
+    } catch {
+      throw new Error(`OpenAI returned arguments for ${first.name} that are not JSON`);
+    }
+    call = { callId: String(first.call_id), name: String(first.name), args, item: first };
+  }
+  const carry = output.filter((o) => o.type === "reasoning" || (o.type === "function_call" && o === calls[0]));
+  return { call, text, carry, usage: body.usage ?? null };
+}
+
 /** A nullable enum for a strict schema: one of `values`, or null. */
 export const nullableEnum = (values) => ({ type: ["string", "null"], enum: [...values, null] });
 

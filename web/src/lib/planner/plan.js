@@ -87,6 +87,7 @@ export async function planForHousehold({
   memberIds = null,
   thisWeek = {},
   onStep = null,
+  signal = null,
 }) {
   if (!householdId) throw new Error("A household id is required.");
   const emit = listener(onStep);
@@ -158,8 +159,21 @@ export async function planForHousehold({
   // The kitchen's own standing rules (00052), and what it already has. It
   // needs the catalogue: a cupboard holds "atta", not a SKU id.
   const kitchen = await kitchenRulesFor(db, household, catalogue);
-  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags, kitchen, onStep });
+  return solveAndStore({ db, householdId: household.id, zoneId, availability, members, catalogue, unplannable, days, budget, keepOutFlags, kitchen, onStep, signal });
 }
+
+/** Thrown when the shopper stopped a run before its plan was stored. Nothing was written. */
+export class PlanStopped extends Error {
+  constructor() {
+    super("Stopped before the plan was stored.");
+    this.name = "PlanStopped";
+  }
+}
+
+/** A solve already running can't be interrupted, but nothing is stored once the shopper has stopped. */
+const stopIfAborted = (signal) => {
+  if (signal?.aborted) throw new PlanStopped();
+};
 
 /** onStep, made safe: a listener that throws never breaks a plan. */
 function listener(onStep) {
@@ -260,10 +274,12 @@ function membersFromSnapshot(snapshot) {
  * @param {object} [input.extra] recorded in the constraints: `follows`, `change`
  * @param {(event: object) => void} [input.onStep] progress for the live plan page (/api/plan/run)
  */
-async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], kitchen = {}, extra = {}, onStep = null }) {
+async function solveAndStore({ db, householdId, zoneId, availability, members, catalogue, unplannable, days, budget, excludeSkus = [], includeSkus = [], keepSkus = [], keepOutFlags = [], kitchen = {}, extra = {}, onStep = null, signal = null }) {
   const emit = listener(onStep);
   const base = { members, catalogue, days, budget, availability, candidateLimit: CANDIDATE_LIMIT, excludeSkus, includeSkus, keepSkus, keepOutFlags, ...kitchen };
+  stopIfAborted(signal);
   let solved = await solvePlan(base, { onStep });
+  stopIfAborted(signal);
 
   // "Hit the targets" means hit them (C2). A budget that leaves someone short
   // is not a failed plan to goal programming — it is a plan with a miss in it —
@@ -290,6 +306,7 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
   // change would fix it (C7). Proved by re-solving without each ask, never
   // guessed, and only worth the extra solves when something is actually short.
   const short = materiallyShort(report);
+  stopIfAborted(signal);
   if (short) emit({ stage: "conflicts", status: "running" });
   const conflicts = short
     ? await findConflicts({
@@ -355,6 +372,9 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     budget_blocked: await costToMeetTargets({ base, report }),
   };
 
+  // The last moment to stop: past here a plan exists, and the page would
+  // reopen it on reload even though the shopper stopped the run.
+  stopIfAborted(signal);
   const { data: stored, error: planError } = await db
     .from("plan")
     .insert({
@@ -728,7 +748,7 @@ export function barredBy(explanation, catalogue, days) {
  *   swap by sku id). Given, the sentence is not read: the page already knows what it means.
  * @param {(event: object) => void} [input.onStep] progress for /api/plan/run
  */
-export async function planFollowUp({ planId, text, reading: given = null, onStep = null }) {
+export async function planFollowUp({ planId, text, reading: given = null, onStep = null, signal = null }) {
   if (!planId || !text) throw new Error("A plan id and a message are required.");
   const emit = listener(onStep);
   const db = await getServerSupabase();
@@ -805,6 +825,7 @@ export async function planFollowUp({ planId, text, reading: given = null, onStep
     kitchen: { ...(snapshot.kitchen_rules ?? {}), priorities: snapshot.priorities ?? [], lastPlanSkus: [] },
     extra: { follows: plan.id, change: change.applied },
     onStep,
+    signal,
   });
 
   // KOI said "Added Oats" before the solver had a say, and the basket came back

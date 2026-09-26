@@ -546,9 +546,32 @@ export function usePlanSession() {
     }
   }, [mode, run, agent]);
 
+  /** Fill in what a drafted person is missing (an age group, a diet) before keeping them. */
+  const editBrief = useCallback((index, patch) => {
+    setBrief((b) => (b ? { ...b, members: b.members.map((m, i) => (i === index ? { ...m, ...patch } : m)) } : b));
+  }, []);
+
   /** Keep the people a description drafted, creating the household if there is none. */
   const keepBrief = useCallback(async () => {
     if (!brief?.members?.length) return;
+    const forms = brief.members.map((member) => withSuggestedTargets({
+      ...blankProfile(),
+      label: member.label,
+      age_band: member.age_band,
+      diet_type: member.diet_type,
+      target_kcal: member.target_kcal ?? "",
+      target_protein_g: member.target_protein_g ?? "",
+      target_source: member.target_kcal || member.target_protein_g ? "stated" : "suggested",
+      avoids: (member.avoidKeys ?? []).map((key) => ({ key, severity: null })),
+    }));
+    // The same test as a hand-made profile. A draft with no age group used to be
+    // kept anyway, and the database filled the blank with "Adult": every "kid"
+    // a description mentioned was planned for as an adult.
+    const unfinished = forms.map((f) => ({ label: f.label, problems: profileProblems(f) })).filter((f) => f.problems.length);
+    if (unfinished.length) {
+      setError(`Before keeping them: ${unfinished.map((f) => `${f.label || "someone"}: ${f.problems[0].replace(/\.$/, "").toLowerCase()}`).join("; ")}.`);
+      return;
+    }
     const supabase = getSupabaseClient();
     try {
       let id = householdId;
@@ -558,17 +581,7 @@ export function usePlanSession() {
         id = data.id;
         setHouseholdId(id);
       }
-      for (const member of brief.members) {
-        const form = withSuggestedTargets({
-          ...blankProfile(),
-          label: member.label,
-          age_band: member.age_band,
-          diet_type: member.diet_type,
-          target_kcal: member.target_kcal ?? "",
-          target_protein_g: member.target_protein_g ?? "",
-          target_source: member.target_kcal || member.target_protein_g ? "stated" : "suggested",
-          avoids: (member.avoidKeys ?? []).map((key) => ({ key, severity: null })),
-        });
+      for (const form of forms) {
         const { error: saveError } = await supabase.rpc("save_household_member", { p_household_id: id, p_member: memberPayload(form), p_avoids: avoidsPayload(form) });
         if (saveError) throw saveError;
       }
@@ -784,7 +797,7 @@ export function usePlanSession() {
     // this week
     picked, setPicked, thisWeek, setChoice, choiceFor, days, setDays, budget, setBudget,
     // plan
-    mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, undoRun, canUndoRun, keepBrief, saveHouseholdChanges,
+    mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, undoRun, canUndoRun, keepBrief, editBrief, saveHouseholdChanges,
     edges, without, seeWithout,
     // the week of dishes
     week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds,

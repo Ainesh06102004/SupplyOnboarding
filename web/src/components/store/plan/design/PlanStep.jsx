@@ -82,13 +82,35 @@ function AgentRun({ run, onUndoRun }) {
 }
 
 /** A household in words, drafted and waiting to be kept. */
-function BriefDraft({ brief, onKeep, onDrop }) {
+const PROFILE_DIETS = DIET_TYPES.filter((d) => !d.forOnePlanOnly);
+const hasBand = (m) => AGE_BANDS.some((b) => b.key === m.age_band);
+const hasDiet = (m) => PROFILE_DIETS.some((d) => d.key === m.diet_type);
+
+function BriefDraft({ brief, onKeep, onDrop, onEdit }) {
+  // Nobody is kept without an age group and a diet: KOI never guesses either,
+  // because both decide what is safe to plan for them.
+  const ready = brief.members.length > 0 && brief.members.every((m) => hasBand(m) && hasDiet(m));
+  const pick = { font: font(500, 12), color: C.ink, border: `1px solid ${C.warnBorder}`, background: C.warnBg, borderRadius: 8, padding: "3px 6px", marginLeft: 6 };
   return (
     <div style={{ marginTop: 14, background: "#fff", borderRadius: 16, padding: 16 }}>
       <MonoLabel color={C.muted} style={{ marginBottom: 8 }}>Drafted · check, then keep</MonoLabel>
       {brief.members.map((m, i) => (
         <div key={i} style={{ font: font(500, 13), color: C.ink, padding: "6px 0", borderBottom: `1px solid ${C.divider}` }}>
-          <strong>{m.label}</strong> · {labelOf(AGE_BANDS, m.age_band)} · {labelOf(DIET_TYPES, m.diet_type)}
+          <strong>{m.label}</strong>
+          {" · "}
+          {hasBand(m) ? labelOf(AGE_BANDS, m.age_band) : (
+            <select aria-label={`Age group for ${m.label}`} value="" onChange={(e) => onEdit?.(i, { age_band: e.target.value })} style={pick}>
+              <option value="" disabled>Age group?</option>
+              {AGE_BANDS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+            </select>
+          )}
+          {" · "}
+          {hasDiet(m) ? labelOf(DIET_TYPES, m.diet_type) : (
+            <select aria-label={`Diet for ${m.label}`} value="" onChange={(e) => onEdit?.(i, { diet_type: e.target.value })} style={pick}>
+              <option value="" disabled>Diet?</option>
+              {PROFILE_DIETS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+            </select>
+          )}
           {m.target_protein_g ? ` · ${m.target_protein_g} g protein` : ""}
           {m.target_kcal ? ` · ${m.target_kcal} kcal` : ""}
           {(m.avoidKeys ?? []).length ? ` · avoids ${m.avoidKeys.map((k) => labelOf(FOODS_AVOID, k)).join(", ")}` : ""}
@@ -98,7 +120,7 @@ function BriefDraft({ brief, onKeep, onDrop }) {
         <p key={i} style={{ font: font(400, 12), color: C.muted, margin: "6px 0 0" }}>{n}</p>
       ))}
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <button type="button" onClick={onKeep} disabled={!brief.members.length} style={{ cursor: "pointer", background: C.primary, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", font: font(600, 13) }}>Keep these people</button>
+        <button type="button" onClick={onKeep} disabled={!ready} title={ready ? undefined : "Choose an age group and a diet for everyone first"} style={{ cursor: ready ? "pointer" : "not-allowed", opacity: ready ? 1 : 0.5, background: C.primary, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", font: font(600, 13) }}>Keep these people</button>
         <button type="button" onClick={onDrop} style={{ cursor: "pointer", background: "none", color: C.muted, border: "none", font: font(600, 13) }}>Start again</button>
       </div>
     </div>
@@ -165,7 +187,7 @@ function CommandBox({ s }) {
           Reopened your plan from {new Date(s.plan.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
         </div>
       )}
-      {s.brief && <BriefDraft brief={s.brief} onKeep={s.keepBrief} onDrop={() => s.setBrief(null)} />}
+      {s.brief && <BriefDraft brief={s.brief} onKeep={s.keepBrief} onEdit={s.editBrief} onDrop={() => s.setBrief(null)} />}
 
       {open.length > 0 && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,.13)" }}>
