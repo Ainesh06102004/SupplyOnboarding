@@ -76,6 +76,7 @@ export function simulated(start = {}) {
         } else {
           world.changes.push(...(args.changes ?? []).map((ch) => ({ person: ch.person, ...ch })));
         }
+        if (args.this_is_me) for (const p of world.saved) p.is_account_holder = norm(p.label) === norm(args.this_is_me);
         return { ok: true, summary: "Saved", forModel: "Saved." };
       },
     },
@@ -119,6 +120,23 @@ export function simulated(start = {}) {
         return { card: { kind: "cart", lines: world.basket.map((n, i) => ({ skuId: String(i), name: n, packs: 1 })) } };
       },
       execute: async () => { world.cart = world.basket.length; return { ok: true, summary: "Added", forModel: "Added to the cart.", end: true }; },
+    },
+    save_kitchen_rules: {
+      kind: "approval",
+      prepare: async (c, args) => ((args.keep_out_add ?? []).length + (args.keep_out_remove ?? []).length + (args.pantry_add ?? []).length + (args.pantry_remove ?? []).length
+        ? { card: { kind: "rules", rows: [] } }
+        : { refused: "Nothing would change." }),
+      execute: async (c, args) => { world.rules = args; return { ok: true, summary: "Saved", forModel: "Saved the kitchen rules." }; },
+    },
+    log_weigh_in: {
+      kind: "approval",
+      prepare: async (c, { kg }) => {
+        const me = world.saved.find((p) => p.is_account_holder);
+        if (!me) return { refused: "KOI doesn't know which saved person is the shopper. Ask which_person, then save_people source=changes with this_is_me." };
+        if (!c.evidence().numbers.has(Number(kg))) return { refused: `The shopper didn't say ${kg} kg.` };
+        return { card: { kind: "rules", rows: [] } };
+      },
+      execute: async (c, { kg }) => { world.weighIn = kg; return { ok: true, summary: "Logged", forModel: "Logged." }; },
     },
     ask_shopper: {
       kind: "ask",

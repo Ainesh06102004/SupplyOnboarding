@@ -85,6 +85,22 @@ export const TOOL_SCHEMAS = Object.freeze([
     parameters: strictObject({ say }),
   },
   {
+    name: "save_kitchen_rules",
+    description: "Save standing kitchen rules, after the shopper approves: foods kept out of the house for everyone (keep_out_add / keep_out_remove, as avoid keys), and what is already in the pantry (pantry_add / pantry_remove, the shopper's own words for it, e.g. \"rice\"). Only what the shopper said.",
+    parameters: strictObject({
+      keep_out_add: enumArray(AVOID_KEYS),
+      keep_out_remove: enumArray(AVOID_KEYS),
+      pantry_add: { type: "array", items: { type: "string" } },
+      pantry_remove: { type: "array", items: { type: "string" } },
+      say,
+    }),
+  },
+  {
+    name: "log_weigh_in",
+    description: "Log today's weight for the shopper themself (Track), after they approve. kg: only the number the shopper said. Only for the account holder, and only an adult.",
+    parameters: strictObject({ kg: { type: "number" }, say }),
+  },
+  {
     name: "ask_shopper",
     description: "Ask the shopper something only they can decide, when it changes the result: who is eating, how many days, a budget, which person they mean, or a choice between options they mentioned. KOI writes the question. Ages, diets and who avoids what are asked by KOI automatically; don't ask those.",
     parameters: strictObject({ topic: { type: "string", enum: ["who", "days", "budget", "which_person", "clarify"] }, about: { type: ["string", "null"] }, options: { type: "array", items: { type: "string" } }, say }),

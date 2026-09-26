@@ -20,6 +20,8 @@ export const TOOL_LABELS = Object.freeze({
   check_product: "Checking the product",
   show: "Opening the page",
   add_to_cart: "Adding to your cart",
+  save_kitchen_rules: "Saving your kitchen rules",
+  log_weigh_in: "Logging your weigh-in",
   finish: "Wrapping up",
 });
 

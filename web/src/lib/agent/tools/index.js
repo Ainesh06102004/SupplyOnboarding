@@ -432,6 +432,87 @@ async function executeCart(ctx, args, prepared, decision) {
   return { ok: true, summary: `Added ${packs} packs to your cart`, forModel: `The shopper added the plan (${prepared.card.lines.length} products) to the cart.`, ui: { navigate: { href: "/store/plan?step=shop", step: "shop" } }, end: decision?.endRun !== false };
 }
 
+// ── save_kitchen_rules / log_weigh_in (approval) ────────────────────────────
+async function planRules(ctx, args) {
+  if (!ctx.household) return { refused: "There's no household yet. Set people up first." };
+  const ev = ctx.evidence();
+  const named = new Set(avoidKeysNamed(ev.saidText));
+  const keys = [...(args.keep_out_add ?? []), ...(args.keep_out_remove ?? [])];
+  const unsaid = keys.filter((k) => !named.has(k));
+  if (unsaid.length) return { refused: `The shopper didn't name ${unsaid.join(", ")}. Only save what they said.` };
+  const clean = (list) => [...new Set((list ?? []).map((s) => String(s).trim().toLowerCase()).filter(Boolean))].slice(0, 12);
+  const pantryAdd = clean(args.pantry_add);
+  const pantryRemove = clean(args.pantry_remove);
+  const unknownWords = [...pantryAdd, ...pantryRemove].filter((p) => !wordsOf(p).every((w) => ev.words.has(w)));
+  if (unknownWords.length) return { refused: `Pantry items must be the shopper's own words; they didn't say "${unknownWords.join('", "')}".` };
+  const { data: row } = await ctx.db.from("household").select("keep_out").eq("id", ctx.household.id).maybeSingle();
+  const held = new Set(row?.keep_out ?? []);
+  const keepOut = new Set(held);
+  for (const k of args.keep_out_add ?? []) keepOut.add(k);
+  for (const k of args.keep_out_remove ?? []) keepOut.delete(k);
+  const rows = [
+    ...[...keepOut].filter((k) => !held.has(k)).map((k) => ({ text: `Keep ${AVOID_BY_KEY[k]?.label ?? k} out of the house`, tone: AVOID_BY_KEY[k]?.kind === "allergen" ? "allergy" : "added" })),
+    ...[...held].filter((k) => !keepOut.has(k)).map((k) => ({ text: `${AVOID_BY_KEY[k]?.label ?? k} allowed in the house again`, tone: "removed" })),
+    ...pantryAdd.map((p) => ({ text: `In the pantry: ${p}`, tone: "added" })),
+    ...pantryRemove.map((p) => ({ text: `Not in the pantry: ${p}`, tone: "removed" })),
+  ];
+  if (!rows.length) return { refused: "Nothing would change." };
+  return { keepOut: [...keepOut], pantryAdd, pantryRemove, rows };
+}
+
+async function prepareRules(ctx, args) {
+  const planned = await planRules(ctx, args);
+  if (planned.refused) return planned;
+  return {
+    card: { kind: "rules", title: "Save to your kitchen rules?", rows: planned.rows, weakens: planned.rows.some((r) => r.tone === "removed"), note: "KOI uses these for every plan from now on." },
+    fp: fingerprint(planned),
+  };
+}
+
+async function executeRules(ctx, args, prepared) {
+  const planned = await planRules(ctx, args);
+  if (planned.refused) return refuse(`Not saved: ${planned.refused}`);
+  if (fingerprint(planned) !== prepared.fp) return refuse("The kitchen rules changed since the shopper saw the card. Nothing was saved; call save_kitchen_rules again.");
+  const { error } = await ctx.db.from("household").update({ keep_out: planned.keepOut }).eq("id", ctx.household.id);
+  if (error) throw error;
+  for (const label of planned.pantryAdd) {
+    const { error: e } = await ctx.db.from("household_pantry").insert({ household_id: ctx.household.id, label });
+    if (e) throw e;
+  }
+  for (const label of planned.pantryRemove) {
+    await ctx.db.from("household_pantry").delete().eq("household_id", ctx.household.id).ilike("label", label);
+  }
+  return { ok: true, summary: "Saved your kitchen rules", forModel: `Saved: ${planned.rows.map((r) => r.text).join("; ")}. The next plan uses them.` };
+}
+
+const ADULT_BANDS = new Set(["adult_19_59", "senior_60_plus"]);
+/** Today in India, as the date a weigh-in belongs to. */
+const todayIST = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+
+async function planWeighIn(ctx, { kg }) {
+  const me = ctx.saved.find((p) => p.is_account_holder);
+  if (!me) return { refused: "KOI doesn't know which saved person is the shopper. Ask which_person, then save_people source=changes with this_is_me." };
+  if (!ADULT_BANDS.has(me.age_band)) return { refused: "Weigh-ins are for adults only." };
+  const n = Number(kg);
+  if (!Number.isFinite(n) || n < 30 || n > 250) return { refused: "A weight between 30 and 250 kg." };
+  if (!ctx.evidence().numbers.has(n)) return { refused: `The shopper didn't say ${kg} kg. Only log the number they gave.` };
+  return { me, kg: Math.round(n * 10) / 10, on: todayIST() };
+}
+
+async function prepareWeighIn(ctx, args) {
+  const planned = await planWeighIn(ctx, args);
+  if (planned.refused) return planned;
+  return { card: { kind: "rules", title: `Log ${planned.kg} kg for ${planned.me.label} today?`, rows: [{ text: `${planned.kg} kg on ${planned.on}`, tone: "added" }], note: "Only you see your weigh-ins. You can delete them in your data settings." }, fp: fingerprint({ m: planned.me.memberId, kg: planned.kg, on: planned.on }) };
+}
+
+async function executeWeighIn(ctx, args) {
+  const planned = await planWeighIn(ctx, args);
+  if (planned.refused) return refuse(`Not logged: ${planned.refused}`);
+  const { error } = await ctx.db.from("member_checkin").upsert({ member_id: planned.me.memberId, checked_on: planned.on, weight_kg: planned.kg }, { onConflict: "member_id,checked_on" });
+  if (error) throw error;
+  return { ok: true, summary: `Logged ${planned.kg} kg`, forModel: "Logged today's weight. The Track step shows the trend.", ui: { navigate: { href: "/store/plan?step=track", step: "track" } } };
+}
+
 const DAY_OPTIONS = [7, 5, 3, 14];
 
 function askCard(ctx, { topic, about, options }) {
@@ -473,6 +554,8 @@ export const TOOLS = Object.freeze({
   check_product: { kind: "read", run: checkProduct },
   show: { kind: "ui", run: show },
   add_to_cart: { kind: "approval", prepare: prepareCart, execute: executeCart, clientExecutes: true },
+  save_kitchen_rules: { kind: "approval", prepare: prepareRules, execute: executeRules },
+  log_weigh_in: { kind: "approval", prepare: prepareWeighIn, execute: executeWeighIn, step: "track" },
   ask_shopper: { kind: "ask", card: askCard },
   finish: { kind: "end", run: finish },
 });

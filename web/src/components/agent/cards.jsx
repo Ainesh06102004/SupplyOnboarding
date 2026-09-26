@@ -153,8 +153,8 @@ export function ApprovalCard({ entry, active, onDecide }) {
     return (
       <div className="ka-card" style={{ fontSize: 13, color: "#6b6f63" }}>
         {entry.decided === "allow"
-          ? card.kind === "cart" ? `Added ${packs} ${packs === 1 ? "pack" : "packs"} to your cart.` : `Saved ${card.people?.map((p) => p.label).join(", ")}.`
-          : card.kind === "cart" ? "Not added to the cart." : "Not saved. KOI keeps it to this week's plan."}
+          ? card.kind === "cart" ? `Added ${packs} ${packs === 1 ? "pack" : "packs"} to your cart.` : card.kind === "rules" ? "Saved." : `Saved ${card.people?.map((p) => p.label).join(", ")}.`
+          : card.kind === "cart" ? "Not added to the cart." : card.kind === "rules" ? "Not saved." : "Not saved. KOI keeps it to this week's plan."}
       </div>
     );
   }
@@ -163,7 +163,10 @@ export function ApprovalCard({ entry, active, onDecide }) {
       <div className="ka-mono" style={{ color: "#c2683a", marginBottom: 6 }}>KOI needs your OK</div>
       <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>{card.title}</div>
       {card.kind === "save_people" && card.people.map((p, i) => <Person key={p.label} person={p} index={i} />)}
-      {card.kind === "save_people" && card.weakens && (
+      {card.kind === "rules" && (
+        <div style={{ margin: "2px 0 4px" }}>{card.rows.map((r, i) => <span key={i} className="ka-tag" data-tone={r.tone}>{r.text}</span>)}</div>
+      )}
+      {(card.kind === "save_people" || card.kind === "rules") && card.weakens && (
         <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "#c2683a", fontWeight: 600 }}>This takes a protection away. Check it before you allow.</p>
       )}
       {card.kind === "cart" && (

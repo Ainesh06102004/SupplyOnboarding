@@ -38,6 +38,8 @@ const TASKS = Object.freeze({
   explore: "Look into it",
   check_product: "Check the product",
   add_to_cart: "Add to cart",
+  save_kitchen_rules: "Save kitchen rules",
+  log_weigh_in: "Log your weigh-in",
   show: "Open the page",
   look: "Look at the plan",
 });
