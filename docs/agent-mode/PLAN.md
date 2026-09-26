@@ -307,4 +307,5 @@ Prompt, typed on any page: *"plan this week's groceries for me, my wife and our 
   - "make it cheaper" with no plan now makes one first;
   - a partial quote lost "family of five";
   - "parents" are now people whose age KOI asks.
+- Model comparison on the same 36 cases: gpt-5.4-nano scored 32/36 (89%), median 9.0 s, p90 13.7 s. It saved people twice, redrafted a saved person instead of changing them, and changed the plan on a "what if". **gpt-5.4-mini stays the default**: it is both more accurate and faster here.
 - Not built: `pick_dish` (the week grid already does it by tap) and `mark_have` (a one-week "we have rice" is a plan change).
