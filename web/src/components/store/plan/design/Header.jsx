@@ -8,6 +8,7 @@ import Link from "next/link";
 import AccountButton from "@/components/auth/AccountButton";
 import { goalShortLabel } from "@/lib/plan/goalCards";
 import { C, font, MEMBER_COLORS, initialsOf, inr } from "./tokens";
+import { useGlowing } from "@/components/agent/AgentProvider";
 
 export const STEPS = Object.freeze([
   { key: "define", label: "Define" },
@@ -20,6 +21,8 @@ export const STEPS = Object.freeze([
 
 export default function Header({ step, onStep, profiles, activeKey, onActive, keyOf, onAddMember, saveState }) {
   const [name, setName] = useState("");
+  // KOI Agent Mode: someone KOI just saved glows for a moment.
+  const glowing = useGlowing();
   const index = STEPS.findIndex((s) => s.key === step);
   const active = profiles.find((p) => keyOf(p) === activeKey) ?? profiles[0] ?? null;
   const colourOf = (p) => MEMBER_COLORS[Math.max(0, profiles.indexOf(p)) % MEMBER_COLORS.length];
@@ -69,6 +72,7 @@ export default function Header({ step, onStep, profiles, activeKey, onActive, ke
               <button
                 key={keyOf(p)}
                 type="button"
+                className={glowing("member", p.label) ? "koi-glow" : undefined}
                 onClick={() => onActive(keyOf(p))}
                 style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: "5px 12px 5px 6px", borderRadius: 999, border: "none", background: on ? "#fff" : "rgba(255,255,255,.4)", boxShadow: on ? "0 1px 3px rgba(20,22,15,.08)" : "none", flex: "none" }}
               >

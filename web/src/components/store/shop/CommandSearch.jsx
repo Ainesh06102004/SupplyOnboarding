@@ -17,6 +17,7 @@ import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { ScoreRing } from "@/components/store/landing/primitives";
 import { GOALS, INGREDIENTS, EDITORIAL, TRENDING, PLACEHOLDERS } from "./shopData";
 import { interpret, describeIntent } from "@/lib/ai/intent";
+import { useAgent } from "@/components/agent/AgentProvider";
 import Image from "next/image";
 
 const GOAL_ICONS = { Dumbbell, ShieldCheck, Sprout, Zap, Activity, Baby, Heart, Flame };
@@ -74,6 +75,7 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
   }, [open, query]);
 
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))), [products]);
+  const askKoi = useAgent()?.send ?? null;
 
   // A typed query leaves here as an interpreted intent, not as a raw string.
   // The shop still receives the text for the fallback path, but a sentence is
@@ -116,7 +118,13 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
             : "See every match in the shop",
           icon: Search,
           run: () => submitQuery(query),
-        }],
+        }, ...(askKoi ? [{
+          // KOI Agent Mode: a sentence ("plan snacks for my kids") is a job, not a search.
+          label: `Ask KOI: “${query.trim()}”`,
+          sub: "KOI plans, checks or changes it for your household, and asks before saving",
+          icon: Sparkles,
+          run: () => { onClose?.(); askKoi(query.trim()); },
+        }] : [])],
       });
 
       const prod = products
@@ -141,7 +149,7 @@ export default function CommandSearch({ open, onClose, products = [], onSelectPr
     const flatList = [];
     secs.forEach((s) => s.items.forEach((it) => { it._i = flatList.length; flatList.push(it); }));
     return { sections: secs, flat: flatList };
-  }, [query, recent, products, brands, submitQuery, goProduct, goGoal, goBrand]);
+  }, [query, recent, products, brands, submitQuery, goProduct, goGoal, goBrand, askKoi, onClose]);
 
   // derived state handles reset: setSel(0) when query changes
 

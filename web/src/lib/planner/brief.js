@@ -60,6 +60,8 @@ export const MAX_DAYS = 14;
 export const ROLES = Object.freeze({
   adult: { label: "Adult", plural: "adults?|grown ups?|grownups?", singular: "wife|husband|partner|spouse", ageBand: "adult_19_59" },
   senior: { label: "Senior", plural: "seniors?|grandparents?|grandmothers?|grandfathers?|grandmas?|grandpas?|elderly", singular: "grandmother|grandfather|grandma|grandpa|nani|dadi|nana|dada", ageBand: "senior_60_plus" },
+  // A parent's age is not implied (a parent of a 25-year-old is not 60+): named, never guessed.
+  parent: { label: "Parent", plural: "parents|in[- ]laws", singular: "mother|father|mom|mum|dad|papa|mummy|amma|appa|saas|sasur", ageBand: null },
   teen: { label: "Teen", plural: "teens?|teenagers?", singular: "teen|teenager", ageBand: null },
   child: { label: "Kid", plural: "kids?|children|child|sons?|daughters?|toddlers?|babies|baby", singular: "kid|child|son|daughter|toddler|baby", ageBand: null },
   person: { label: "Person", plural: "", singular: "", ageBand: null },

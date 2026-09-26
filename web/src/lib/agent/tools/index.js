@@ -93,7 +93,10 @@ async function look(ctx, { what }) {
 async function draftPeople(ctx, { quote }) {
   const w = wordsFor(ctx, quote);
   if (w.error) return refuse(w.error);
-  const read = await draftHousehold(w.text);
+  // Who is eating is read from the whole message: a quote of part of it lost
+  // "family of five". A quote only matters when it is from an earlier message.
+  const latest = ctx.memory.said.at(-1) ?? "";
+  const read = await draftHousehold(norm(latest).includes(norm(w.text)) ? latest : w.text);
   const savedLabels = new Set(ctx.saved.map((p) => norm(p.label)));
   // Someone already saved is not drafted again: "me" is Me.
   const members = read.members.filter((m) => !savedLabels.has(norm(m.label)));

@@ -8,7 +8,7 @@
 // fails mid-run.
 // ============================================================================
 
-import { routeMessage } from "./router";
+import { routeMessage, asksForChange } from "./router";
 import { readFollowUp } from "@/lib/planner/followup";
 import { norm } from "./evidence";
 
@@ -17,8 +17,9 @@ const productWords = (text) => {
   return r.leaveOut.length + r.include.length + r.swaps.length > 0;
 };
 
-const ASKS_ABOUT_THIS = /\b(ok|okay|safe|fine|good|suitable|allowed)\b.*\b(this|it)\b|\b(can|could|should)\s+(my|the|i|we|he|she)\b.*\b(eat|have)\b.*\b(this|it)\b/;
+const ASKS_ABOUT_THIS = /\b(ok|okay|safe|fine|good|suitable|allowed)\b.*\b(this|it)\b|\b(this|it)\b.*\b(ok|okay|safe|fine|good|suitable|allowed)\b|\b(can|could|should)\s+(my|the|i|we|he|she)\b.*\b(eat|have)\b.*\b(this|it)\b/;
 const ADD_THIS = /\badd (this|it)\b.*\b(plan|week)\b/;
+const FIND = /^\s*(?:please\s+)?(?:find|search|look for|looking for|show me some|any)\b/;
 
 let seq = 0;
 const call = (name, args) => ({ callId: `rules_${Date.now().toString(36)}_${(seq++).toString(36)}`, name, args: { say: null, ...args } });
@@ -39,15 +40,19 @@ export function rulesModel({ memory, state }) {
   if (!state.savedCount && !ok.has("save_people")) return pick("finish", { outcome: "cannot_do" });
 
   const lower = norm(text);
-  if (state.page?.productId && ADD_THIS.test(lower) && !tried.has("change_plan") && (state.hasPlan || ok.has("make_plan"))) {
-    return pick("change_plan", { quote: null, add_this_product: true });
+  const done = (outcome = "done") => pick("finish", { outcome });
+  if (state.page?.productId && ADD_THIS.test(lower) && (state.hasPlan || ok.has("make_plan"))) {
+    return tried.has("change_plan") ? done() : pick("change_plan", { quote: null, add_this_product: true });
   }
-  if (state.page?.productId && ASKS_ABOUT_THIS.test(lower) && !tried.has("check_product")) return pick("check_product", { product: "this", people: [] });
+  if (state.page?.productId && ASKS_ABOUT_THIS.test(lower)) return tried.has("check_product") ? done() : pick("check_product", { product: "this", people: [] });
+  if (FIND.test(lower)) return tried.has("explore") ? done() : pick("explore", { kind: "products", product: null });
 
   const steps = routeMessage(text, { hasPlan: state.hasPlan, productWords });
   for (const step of steps) {
     const name = { plan: "make_plan", change: "change_plan", without: "explore", cart: "add_to_cart", show: "show", explain: "look" }[step.tool];
     if (!name || tried.has(name)) continue;
+    // The rules' last resort is "a change"; a message that asks for none ("hello") is not one.
+    if (name === "change_plan" && !asksForChange(step.text || text, (state.saved ?? []).map((p) => p.label)) && !productWords(text)) continue;
     if (name === "make_plan") return pick(name, { quote: null, days: null, budget: null });
     if (name === "change_plan") return pick(name, { quote: step.text && step.text !== text ? step.text : null, add_this_product: false });
     if (name === "explore") return pick(name, { kind: "without", product: step.args?.product ?? null });

@@ -36,6 +36,11 @@ export function useGlow(kind, key) {
   return glowing(kind, key) ? "koi-glow" : "";
 }
 
+/** For lists: glowing(kind, key) → whether KOI has just changed that one. */
+export function useGlowing() {
+  return useContext(GlowContext).glowing;
+}
+
 /** The Plan page registers its bridge; the dock reaches the page through it. */
 export function useAgentBridge(bridge) {
   const agent = useContext(AgentContext);
