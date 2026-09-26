@@ -311,7 +311,7 @@ export function asksBeyondPlan(text, people = []) {
 }
 
 /** A cart step only when the shopper asked for one: "show me the shop" is not "order it". */
-const ASKS_CART = /\b(cart|order|checkout|check out|buy|kharid\w*|mangwa\w*|mangao)\b/;
+export const ASKS_CART = /\b(cart|order|checkout|check out|buy|kharid\w*|mangwa\w*|mangao)\b/;
 
 /**
  * The model decides WHICH tools run; the planner reads the SHOPPER's words.

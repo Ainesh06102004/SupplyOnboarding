@@ -16,34 +16,10 @@ import "server-only";
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { planForHousehold, planFollowUp, planWithout } from "@/lib/planner/plan";
-import { readFollowUp, productsNamed, MAX_FOLLOWUP_CHARS } from "@/lib/planner/followup";
-import { profilesNamedIn, profilesNamed } from "@/lib/household/profile";
+import { productsNamed, MAX_FOLLOWUP_CHARS } from "@/lib/planner/followup";
 import { stepLabel } from "./router";
 import { stepsFor } from "./steps";
-
-/** A plan's days, budget, people and stated targets, from a step's words, over this week's defaults. */
-function planArgs(text, members, defaults) {
-  const asked = readFollowUp(text);
-  const profiles = members.map((m) => ({ memberId: String(m.id), label: m.label, relation: m.relation ?? "" }));
-  // "All of us", "everyone", "the whole family" is everyone ticked — not the
-  // "us" or "me" inside it.
-  const everyone = /\b(?:all of us|everyone|everybody|every one|whole (?:family|household)|all of them|the family|the household)\b/i.test(text);
-  const named = everyone ? [] : profilesNamedIn(text, profiles);
-  const memberIds = named.length ? named.map((p) => p.memberId) : defaults.memberIds;
-  const thisWeek = { ...(defaults.thisWeek ?? {}) };
-  for (const t of asked.targets ?? []) {
-    for (const p of profilesNamed(t.who, profiles).filter((x) => !memberIds || memberIds.includes(x.memberId))) {
-      const was = thisWeek[p.memberId] ?? { dietType: null, prefer: [], skip: [], targets: {} };
-      thisWeek[p.memberId] = { ...was, targets: { ...(was.targets ?? {}), [t.nutrient]: t.perDay } };
-    }
-  }
-  return {
-    days: asked.days ?? defaults.days,
-    budget: asked.budget?.change === "set" ? asked.budget.rupees : asked.budget?.change === "remove" ? null : defaults.budget,
-    memberIds,
-    thisWeek,
-  };
-}
+import { planArgs } from "./planArgs";
 
 /**
  * @param {object} input
