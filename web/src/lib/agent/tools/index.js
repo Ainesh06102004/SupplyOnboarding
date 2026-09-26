@@ -33,12 +33,16 @@ import { filterEligible } from "@/lib/recommendation/eligibilityFilter";
 import { unverifiedFor } from "@/lib/recommendation/verification";
 import { interpret, resolveIntent } from "@/lib/ai/intent";
 import { swapsFor } from "@/lib/food/swaps";
+import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
+import { noteLines } from "@/lib/plan/planView";
+import { trackRead } from "@/lib/plan/track";
 import { blankProfile, memberPayload, profileProblems, SEVERITIES } from "@/lib/household/profile";
 import { mergeAvoids, applyProfileSet, withSuggestedTargets, weakens } from "@/lib/household/save";
 import { ASKS_CART } from "../router";
+import { asksForParticularProducts } from "../cartWords";
 import { planArgs } from "../planArgs";
 import { isQuote, numbersOf, norm, wordsOf } from "../evidence";
-import { gapsFor, gapWords, askCardFor, bandForAge } from "../readiness";
+import { gapsFor, gapWords, askCardFor, bandForAge, nextAskFor, detailsCardFor, missingDetails } from "../readiness";
 import { fingerprint } from "../sign";
 
 const AVOID_BY_KEY = Object.fromEntries(FOODS_AVOID.map((a) => [a.key, a]));
@@ -55,6 +59,11 @@ function wordsFor(ctx, quote) {
 }
 
 const currentPlanId = (ctx) => ctx.memory.planId ?? ctx.plan?.id ?? null;
+
+/** A person's profile, said as a change: "son's age to middle teens", "my weight is 70 kg now", "wife is vegan now". */
+const PROFILE_EDIT = /\b(age|years? old|height|weight is|weigh|tall|sex|gender|activity|active|goal)\b.*\b(to|is|now|as)\b|\b(is|are|turned|became|going)\s+(now\s+)?(vegan|vegetarian|veg|non[- ]?veg|eggetarian|jain|pescatarian)\b|\bdiet to\b|\brename\b/;
+/** The week's dishes: "reshuffle the snacks", "different breakfast on Tuesday", "swap Monday and Wednesday dinners". */
+const MENU_WORDS = /\b(reshuffle|shuffle|menu|dish(es)?|recipes?|breakfasts?|lunch(es)?|dinners?|snacks?|meals?)\b.*\b(reshuffle|shuffle|different|change|swap|switch|new|other|another|vary|variety)\b|\b(reshuffle|shuffle|swap|switch|change|vary)\b.*\b(breakfasts?|lunch(es)?|dinners?|snacks?|meals?|menu|dish(es)?)\b/;
 
 /** The product on screen. The page names a product by its id; plans and baskets by its SKU. */
 const onScreen = (catalogue, id) => (id ? catalogue.find((p) => String(p.id) === String(id) || String(p.skuId) === String(id)) ?? null : null);
@@ -74,18 +83,53 @@ async function look(ctx, { what }) {
     const product = onScreen(await ctx.catalogue(), ctx.page.productId);
     return { ok: true, summary: "Looked at this page", forModel: `The shopper is on: ${ctx.page.route}${ctx.page.step ? ` (${ctx.page.step} step)` : ""}${product ? `, viewing "${product.name}"` : ""}.` };
   }
+  if (what === "menu") {
+    // The week's dishes are built in the browser; the page describes them (kinds and names only).
+    const week = ctx.page.week;
+    if (!week?.length) return refuse("KOI can only read the week's dishes on the Plan page. Call show target=plan_step step=plan first, then look what=menu.");
+    return {
+      ok: true,
+      summary: "Read the week's dishes",
+      forModel: `The week's dishes (shown to the shopper in the chat): ${week.map((d) => `${d.day}: ${Object.entries(d.slots).map(([s, v]) => `${s} ${v}`).join("; ")}`).join(" | ")}.`,
+      data: { kind: "menu", days: week },
+    };
+  }
   const planId = currentPlanId(ctx);
   if (!planId) return refuse("There is no plan yet. Make one with make_plan (after people are saved).");
-  const { data: plan } = await ctx.db.from("plan").select("id, days, budget_rupees, achieved, report").eq("id", planId).maybeSingle();
+  const { data: plan } = await ctx.db.from("plan").select("id, days, budget_rupees, achieved, report, explanation").eq("id", planId).maybeSingle();
   if (!plan) return refuse("That plan is not available. Make a new one with make_plan.");
   const basket = plan.achieved?.basket ?? [];
-  if (what === "basket") return { ok: true, summary: `The basket: ${basket.length} products`, forModel: `Basket: ${basket.map((l) => l.name).join(", ")}.` };
-  if (what === "explanation") return { ok: true, summary: "How KOI made this plan", forModel: "The plan's explanation is now shown on the page.", ui: { explain: true, navigate: { href: "/store/plan?step=plan", step: "plan" } } };
+  if (what === "basket") {
+    return { ok: true, summary: `The basket: ${basket.length} products`, forModel: `Basket (shown in the chat): ${basket.map((l) => l.name).join(", ")}.`, data: { kind: "basket", lines: basket.map((l) => ({ skuId: String(l.skuId), name: l.name, packs: l.packs, cost: l.cost })) } };
+  }
+  if (what === "explanation") {
+    const lines = noteLines({ explanation: plan.explanation, days: plan.days, report: plan.report });
+    return { ok: true, summary: "How KOI made this plan", forModel: "The plan's explanation is shown to the shopper in the chat.", data: { kind: "explain", lines } };
+  }
+  if (what === "per_day") {
+    // A plan is a week's food, so "Tuesday's macros" is the plan's day: its figures ÷ days, per person.
+    const days = Math.max(1, Number(plan.days) || 7);
+    const people = (plan.report?.perMember ?? []).map((m) => ({
+      label: m.label,
+      rows: ["kcal", "protein", "carbs", "fat"].map((n) => ({
+        nutrient: n,
+        planned: Number.isFinite(Number(m.achieved?.[n])) ? Math.round((Number(m.achieved[n]) / days) * 10) / 10 : null,
+        asked: Number.isFinite(Number(m.asked?.[n])) ? Math.round((Number(m.asked[n]) / days) * 10) / 10 : null,
+      })).filter((r) => r.planned !== null || r.asked !== null),
+    }));
+    return {
+      ok: true,
+      summary: "Each person's day in this plan",
+      forModel: "Per-person daily figures are shown to the shopper in the chat. They are the plan's daily average: KOI plans a week of food, not a set menu's nutrients per day. Don't restate the figures.",
+      data: { kind: "per_day", days, people },
+    };
+  }
   const short = (plan.report?.unmet ?? []).map((u) => `${u.label} (${u.nutrient})`);
   return {
     ok: true,
     summary: "Read the plan",
-    forModel: `Plan: ${plan.days} days, ${basket.length} products, within budget: ${plan.achieved?.within_budget === false ? "no" : plan.achieved?.within_budget ? "yes" : "no budget"}. Short of a target: ${short.join(", ") || "nobody"}.`,
+    forModel: `Plan (summary shown in the chat): ${plan.days} days, ${basket.length} products, within budget: ${plan.achieved?.within_budget === false ? "no" : plan.achieved?.within_budget ? "yes" : "no budget"}. Short of a target: ${short.join(", ") || "nobody"}. To open it on the page, call show.`,
+    data: { kind: "plan", payload: { days: plan.days, report: plan.report } },
   };
 }
 
@@ -103,6 +147,9 @@ async function draftPeople(ctx, { quote }) {
   const draft = { members, avoidEveryone: read.avoidEveryone ?? [], days: read.days ?? null, budget: read.budget ?? null };
   ctx.memory.draft = members.length ? draft : null;
   const gaps = gapsFor(ctx.memory.draft, { savedCount: ctx.saved.length });
+  // Blocking gaps first; then, once each, an adult's You-step details (skippable).
+  const next = ctx.memory.draft ? nextAskFor(ctx.memory.draft, { savedCount: ctx.saved.length, asked: ctx.memory.detailsAsked ?? {} }) : null;
+  if (next?.details) ctx.memory.detailsAsked = { ...(ctx.memory.detailsAsked ?? {}), [next.details]: true };
   const notice = (read.unresolved ?? []).length
     ? `KOI can't plan around a health condition, so it left out "${read.unresolved.join('", "')}".`
     : null;
@@ -110,9 +157,9 @@ async function draftPeople(ctx, { quote }) {
   return {
     ok: true,
     summary: labels.length ? `Drafted ${labels.length} ${labels.length === 1 ? "person" : "people"}: ${joinLabels(labels)}` : "Found no one new to add",
-    forModel: `Drafted, not saved: ${labels.join(", ") || "nobody new"}. Missing: ${gapWords(gaps)}.${gaps.length ? " KOI is asking the shopper now." : labels.length ? " Next: save_people source=draft." : ""}`,
+    forModel: `Drafted, not saved: ${labels.join(", ") || "nobody new"}. Missing: ${gapWords(gaps)}.${next ? " KOI is asking the shopper now; wait for their answers." : labels.length ? " Next: save_people source=draft." : ""}`,
     notice,
-    ask: gaps.length ? askCardFor(gaps, { draft: ctx.memory.draft }) : null,
+    ask: next?.card ?? null,
     data: { kind: "draft", people: labels },
   };
 }
@@ -124,21 +171,36 @@ const SEVERITY_WORDS = {
   rule: /\b(never|by choice|belief|religio\w*|don t eat|doesn t eat|do not eat|does not eat)\b/,
   dislike: /\b(dislikes?|doesn t like|don t like|not a fan|hates?|rather not)\b/,
 };
-const GOAL_WORDS = { lose: /\b(lose|losing|cut|slim|weight down)\b/, gain: /\b(gain|bulk|build muscle|put on)\b/, maintain: /\b(maintain|stay the same|keep my weight)\b/ };
+const GOAL_WORDS = { lose: /\b(lose|losing|cut|slim|weight down)\b/, gain: /\b(gain|bulk|build muscle|put on)\b/, maintain: /\b(maintain|stay the same|stay as|keep my weight|keep (his|her|their) weight)\b/ };
+const PATTERN_WORDS = { high_protein: /\b(high|more|extra) protein\b|\bprotein\b/, low_carb: /\blow[- ]?carbs?\b|\bless carbs?\b/, keto: /\bketo\b/, balanced: /\bbalanced\b|\bnormal\b/ };
+const SEX_WORDS = { female: /\b(female|woman|she|her)\b/, male: /\b(male|man|he|him|his)\b/, unspecified: /\b(prefer not|rather not say|not say)\b/ };
+const ACTIVITY_WORDS = {
+  sedentary: /\b(sedentary|sits?|sitting|desk|not active|inactive)\b/,
+  light: /\b(light|lightly|a few days|walks?|walking)\b/,
+  moderate: /\b(moderate(ly)?|active|exercises?|gym|on (his|her|my|their) feet)\b/,
+  heavy: /\b(heavy|very active|trains? hard|athlete|physical work|labou?r)\b/,
+};
+const REMOVE_WORDS = /\b(remove|delete|take out|drop|no longer (lives|eats)|moved out|left)\b/;
 
 /** Is each value the model set for a person one the shopper actually stated? */
 function unsupported(change, ev) {
-  const said = ev.saidText;
+  const said = norm(ev.saidText);
   const out = [];
   if (change.set_diet && !dietsNamed(said).includes(change.set_diet)) out.push(`diet ${change.set_diet}`);
   const named = new Set(avoidKeysNamed(said));
   for (const k of [...(change.add_avoids ?? []), ...(change.remove_avoids ?? [])]) if (!named.has(k)) out.push(`avoid ${k}`);
-  if (change.set_age_band) {
-    const typed = bandForAge(said);
-    if (typed !== change.set_age_band) out.push(`age group ${change.set_age_band}`);
+  // An age group from a number or from words ("middle teens"), or one of KOI's own options the shopper picked.
+  if (change.set_age_band && bandForAge(said) !== change.set_age_band && !said.includes(norm(labelOf(AGE_BANDS, change.set_age_band)))) out.push(`age group ${change.set_age_band}`);
+  if (change.set_goal && !GOAL_WORDS[change.set_goal]?.test(said)) out.push(`goal ${change.set_goal}`);
+  if (change.set_pattern && !PATTERN_WORDS[change.set_pattern]?.test(said)) out.push(`eating pattern ${change.set_pattern}`);
+  if (change.set_sex && !SEX_WORDS[change.set_sex]?.test(said)) out.push(`sex ${change.set_sex}`);
+  if (change.set_activity && !ACTIVITY_WORDS[change.set_activity]?.test(said)) out.push(`activity ${change.set_activity}`);
+  for (const f of ["target_kcal", "target_protein_g", "set_age_years", "set_height_cm", "set_weight_kg", "set_target_weight_kg"]) {
+    if (change[f] !== null && change[f] !== undefined && !ev.numbers.has(Number(change[f]))) out.push(f.replace(/^set_/, ""));
   }
-  if (change.set_goal && !GOAL_WORDS[change.set_goal]?.test(norm(said))) out.push(`goal ${change.set_goal}`);
-  for (const f of ["target_kcal", "target_protein_g"]) if (change[f] !== null && change[f] !== undefined && !ev.numbers.has(Number(change[f]))) out.push(f);
+  if (change.rename_to && !wordsOf(change.rename_to).every((w) => ev.words.has(w))) out.push(`name ${change.rename_to}`);
+  if (change.remove_person && !REMOVE_WORDS.test(said)) out.push("removing them");
+  for (const w of [...(change.add_favourites ?? []), ...(change.remove_favourites ?? [])]) if (!wordsOf(w).every((x) => ev.words.has(x))) out.push(`favourite ${w}`);
   return out;
 }
 
@@ -151,11 +213,19 @@ async function planSave(ctx, args) {
     const gaps = gapsFor(draft, { savedCount: ctx.saved.length });
     if (gaps.length) return { gaps, draft };
     for (const m of draft.members) {
+      const text = (v) => (v === null || v === undefined ? "" : String(v));
       const form = withSuggestedTargets({
         ...blankProfile(),
         label: m.label,
         age_band: m.age_band,
         diet_type: m.diet_type,
+        // The You step's details, when the shopper gave them on the details card.
+        sex: text(m.sex),
+        age_years: text(m.age_years),
+        height_cm: text(m.height_cm),
+        weight_kg: text(m.weight_kg),
+        activity_level: text(m.activity_level),
+        energy_goal: m.energy_goal || "maintain",
         target_kcal: m.target_kcal ?? "",
         target_protein_g: m.target_protein_g ?? "",
         target_source: m.target_kcal || m.target_protein_g ? "stated" : "suggested",
@@ -170,7 +240,31 @@ async function planSave(ctx, args) {
       if (!held) return { refused: `${c.person} is not a saved person. Saved: ${ctx.saved.map((p) => p.label).join(", ") || "none"}. To add someone new use draft_people.` };
       const bad = unsupported(c, ev);
       if (bad.length) return { refused: `The shopper didn't state: ${bad.join(", ")}. Only save what they said, or ask them.` };
-      const set = applyProfileSet(held, { age_band: c.set_age_band, diet_type: c.set_diet, energy_goal: c.set_goal, eating_pattern: c.set_pattern, target_kcal: c.target_kcal, target_protein_g: c.target_protein_g });
+      if (c.remove_person) {
+        people.push({ label: held.label, isNew: false, memberId: held.memberId, remove: true, form: held, avoids: mergeAvoids(held.avoids, {}), changed: [] });
+        continue;
+      }
+      const set = applyProfileSet(held, {
+        age_band: c.set_age_band, diet_type: c.set_diet, energy_goal: c.set_goal, eating_pattern: c.set_pattern,
+        sex: c.set_sex, age_years: c.set_age_years, height_cm: c.set_height_cm, weight_kg: c.set_weight_kg, target_weight_kg: c.set_target_weight_kg,
+        activity_level: c.set_activity, target_kcal: c.target_kcal, target_protein_g: c.target_protein_g, label: c.rename_to,
+      });
+      // Favourites are category keys, read from the shopper's words (lib/plan/favourites.js), never the model's.
+      const favWords = [...(c.add_favourites ?? []), ...(c.remove_favourites ?? [])];
+      if (favWords.length) {
+        const stocked = [...new Set((await ctx.catalogue()).map((p) => p.categoryKey).filter(Boolean))];
+        const keysOf = (words) => words.flatMap((w) => readFavourites(w, stocked).matched.map((m) => m.key));
+        const add = keysOf(c.add_favourites ?? []);
+        const drop = new Set(keysOf(c.remove_favourites ?? []));
+        const before = held.favourite_categories ?? [];
+        const after = [...new Set([...before.filter((k) => !drop.has(k)), ...add])].slice(0, MAX_FAVOURITES);
+        if (after.join() !== before.join()) {
+          set.form.favourite_categories = after;
+          set.changed.push({ field: "favourite_categories", from: before, to: after });
+        }
+      }
+      // A different age group can't keep an age that doesn't fit it.
+      if (set.changed.some((ch) => ch.field === "age_band") && !set.changed.some((ch) => ch.field === "age_years")) set.form.age_years = "";
       const form = withSuggestedTargets(set.form);
       // A severity only when the shopper's words give it; otherwise what is held stays.
       // (Live, 27 Sep: "keep peanuts away from my son" was sent as "never", which would have weakened his allergy.)
@@ -202,23 +296,44 @@ async function planSave(ctx, args) {
   return { people };
 }
 
-const FIELD_WORDS = { age_band: "Age group", diet_type: "Diet", energy_goal: "Goal", eating_pattern: "Eating pattern", target_kcal: "Calories a day", target_protein_g: "Protein a day", is_account_holder: "This is you" };
+const FIELD_WORDS = {
+  age_band: "Age group", diet_type: "Diet", energy_goal: "Goal", eating_pattern: "Eating pattern", target_kcal: "Calories a day", target_protein_g: "Protein a day",
+  is_account_holder: "This is you", sex: "Sex", age_years: "Age", height_cm: "Height", weight_kg: "Weight", target_weight_kg: "Target weight",
+  activity_level: "Activity", label: "Name", favourite_categories: "Favourites",
+};
+const VALUE_WORDS = {
+  energy_goal: { maintain: "Stay as they are", lose: "Lose weight", gain: "Gain / build muscle" },
+  eating_pattern: { balanced: "Balanced", high_protein: "High protein", low_carb: "Low carb", keto: "Keto" },
+  sex: { female: "Female", male: "Male", unspecified: "Not said" },
+  activity_level: { sedentary: "Mostly sitting", light: "Light exercise", moderate: "Active most days", heavy: "Physical work / trains hard" },
+};
+const UNITS = { age_years: "years", height_cm: "cm", weight_kg: "kg", target_weight_kg: "kg", target_kcal: "kcal", target_protein_g: "g" };
+function fieldText({ field, to }) {
+  const value = field === "age_band" ? labelOf(AGE_BANDS, to)
+    : field === "diet_type" ? labelOf(DIET_TYPES, to)
+      : field === "favourite_categories" ? `${(to ?? []).length} kinds of food`
+        : field === "is_account_holder" ? "yes"
+          : VALUE_WORDS[field]?.[to] ?? `${to}${UNITS[field] ? ` ${UNITS[field]}` : ""}`;
+  return `${FIELD_WORDS[field] ?? field}: ${value}`;
+}
 
 function saveCard(people) {
   return {
     kind: "save_people",
-    title: `Save ${people.length} ${people.length === 1 ? "person" : "people"} to your household?`,
-    note: "Not now keeps this to this week's plan only.",
+    title: people.every((p) => p.remove)
+      ? `Remove ${joinLabels(people.map((p) => p.label))} from your household?`
+      : people.some((p) => p.isNew) ? `Save ${people.length} ${people.length === 1 ? "person" : "people"} to your household?` : `Save changes to ${joinLabels(people.map((p) => p.label))}?`,
+    note: people.some((p) => p.remove) ? "Their saved details and foods to avoid go too. Past plans keep what they were made for." : "Not now keeps this to this week's plan only.",
     people: people.map((p) => ({
       label: p.label,
       isNew: p.isNew,
-      rows: p.isNew
+      rows: p.remove ? [{ text: "Removed from the household", tone: "removed" }] : p.isNew
         ? [
           { text: labelOf(AGE_BANDS, p.form.age_band), tone: "added" },
           { text: labelOf(DIET_TYPES, p.form.diet_type), tone: "added" },
           { text: p.form.target_source === "stated" ? "Daily targets as you stated them" : `Daily targets suggested (${p.form.target_source === "mifflin_st_jeor" ? "Mifflin–St Jeor" : "ICMR-NIN 2020"})`, tone: "added" },
         ]
-        : p.changed.map((c) => ({ text: `${FIELD_WORDS[c.field] ?? c.field}: ${c.field === "age_band" ? labelOf(AGE_BANDS, c.to) : c.field === "diet_type" ? labelOf(DIET_TYPES, c.to) : c.to}`, tone: "changed" })),
+        : p.changed.map((c) => ({ text: fieldText(c), tone: "changed" })),
       avoids: [
         ...p.avoids.added.map((a) => ({ text: `${AVOID_BY_KEY[a.key]?.label ?? a.key}: ${labelOf(SEVERITIES, a.severity)}`, tone: a.severity === "allergy" ? "allergy" : "added" })),
         ...p.avoids.stronger.map((a) => ({ text: `${AVOID_BY_KEY[a.key]?.label ?? a.key}: ${labelOf(SEVERITIES, a.from)} → ${labelOf(SEVERITIES, a.to)}`, tone: "changed" })),
@@ -226,7 +341,7 @@ function saveCard(people) {
         ...p.avoids.removed.map((a) => ({ text: `${AVOID_BY_KEY[a.key]?.label ?? a.key}: no longer avoided`, tone: "removed" })),
       ],
     })),
-    weakens: people.some((p) => weakens(p.avoids)),
+    weakens: people.some((p) => p.remove || weakens(p.avoids)),
   };
 }
 
@@ -251,6 +366,12 @@ async function executeSave(ctx, args, prepared) {
     householdId = data.id;
   }
   for (const p of planned.people) {
+    if (p.remove) {
+      // RLS: only this shopper's own household's members. Avoids cascade; plans keep their snapshots.
+      const { error } = await ctx.db.from("household_member").delete().eq("id", p.memberId).eq("household_id", householdId);
+      if (error) throw error;
+      continue;
+    }
     const { error } = await ctx.db.rpc("save_household_member", { p_household_id: householdId, p_member: memberPayload(p.form), p_avoids: p.avoids.avoids });
     if (error) throw error;
   }
@@ -315,11 +436,22 @@ async function changePlan(ctx, { quote, add_this_product: addThis }, callId) {
     if (w.error) return refuse(w.error);
     if (w.text.length > MAX_FOLLOWUP_CHARS) return refuse(`That message is long; quote just the part that changes the plan (${MAX_FOLLOWUP_CHARS} characters at most).`);
     text = w.text;
+    // A person's age, body, diet or goal is their profile, not this week's basket.
+    // (Live, 27 Sep: "change my son's age to middle teens" went to the planner, which read "sons age" as a food.)
+    if (PROFILE_EDIT.test(norm(text))) {
+      return refuse("That changes a person, not the plan: use save_people source=changes (age group, age, height, weight, sex, activity, goal, diet, name), or ask_shopper topic=details for them. Then make_plan again if they want the plan to follow.");
+    }
+    // The week's dishes are the menu, not the basket.
+    if (MENU_WORDS.test(norm(text))) return refuse("That is about the week's dishes: use week_menu (reshuffle a meal, swap days, reset) instead.");
   }
   const body = await planFollowUp({ planId, text, reading, onStep: progress(ctx, callId), signal: ctx.signal });
   if (body.changed) {
     ctx.memory.planId = body.planId;
     ctx.memory.created = [...(ctx.memory.created ?? []), body.planId];
+  }
+  if (!body.changed) {
+    // Nothing changed: a line, never a "Plan changed" card.
+    return { ok: false, summary: "Nothing in the plan changed", forModel: `Nothing changed. ${(body.notApplied ?? []).join("; ") || "KOI couldn't read a change in that."} Don't retry the same words; ask the shopper or say what KOI can do.` };
   }
   return {
     ok: true,
@@ -418,21 +550,25 @@ async function checkProduct(ctx, { product, people }) {
 
 // ── show / add_to_cart / ask_shopper / finish ───────────────────────────────
 async function show(ctx, { target, step, product }) {
+  // Asked for, so it happens whether or not the page is following KOI.
   if (target === "plan_step") {
     const s = step ?? "plan";
-    return { ok: true, summary: `Opened ${s[0].toUpperCase()}${s.slice(1)}`, forModel: `Showing the ${s} step.`, ui: { navigate: { href: `/store/plan?step=${s}`, step: s } } };
+    return { ok: true, summary: `Opened ${s[0].toUpperCase()}${s.slice(1)}`, forModel: `The page now shows the ${s} step.`, ui: { navigate: { href: `/store/plan?step=${s}`, step: s, explicit: true } } };
   }
   if (target === "product") {
     const item = await productNamed(ctx, product);
     if (!item) return refuse(`No product called "${product ?? ""}" in KOI's catalogue.`);
-    return { ok: true, summary: `Opened ${item.name}`, forModel: `Showing ${item.name}.`, ui: { navigate: { href: `/store/product/${item.id}` } } };
+    return { ok: true, summary: `Opened ${item.name}`, forModel: `The page now shows ${item.name}.`, ui: { navigate: { href: `/store/product/${item.id}`, explicit: true } } };
   }
   const href = { shop: "/store/shop", cart: "/store/cart", household: "/store/household" }[target];
-  return { ok: true, summary: `Opened the ${target}`, forModel: `Showing the ${target}.`, ui: { navigate: { href } } };
+  return { ok: true, summary: `Opened the ${target}`, forModel: `The page now shows the ${target}.`, ui: { navigate: { href, explicit: true } } };
 }
 
 async function prepareCart(ctx) {
   if (!ctx.memory.said.some((s) => ASKS_CART.test(norm(s)))) return { refused: "The shopper didn't ask for the cart. Don't add to it; mention they can, in finish." };
+  // Found in the eval, 27 Sep: "add 2 packs of oats to my cart" reached for the whole plan.
+  const latest = ctx.memory.said.at(-1) ?? "";
+  if (ASKS_CART.test(norm(latest)) && asksForParticularProducts(latest)) return { refused: "The shopper asked for particular products, not the whole plan: use edit_cart with their words." };
   const planId = currentPlanId(ctx);
   if (!planId) return { refused: "There is no plan to put in the cart. make_plan first." };
   const { data: plan } = await ctx.db.from("plan").select("id, achieved").eq("id", planId).maybeSingle();
@@ -461,19 +597,43 @@ async function planRules(ctx, args) {
   const pantryRemove = clean(args.pantry_remove);
   const unknownWords = [...pantryAdd, ...pantryRemove].filter((p) => !wordsOf(p).every((w) => ev.words.has(w)));
   if (unknownWords.length) return { refused: `Pantry items must be the shopper's own words; they didn't say "${unknownWords.join('", "')}".` };
-  const { data: row } = await ctx.db.from("household").select("keep_out").eq("id", ctx.household.id).maybeSingle();
+  const { data: row } = await ctx.db.from("household").select("keep_out, refused_brands, preferred_brands, waste_tolerance, repeat_tolerance, priorities, processing_ceiling, shelf_stable_only, cuisine_leaning").eq("id", ctx.household.id).maybeSingle();
   const held = new Set(row?.keep_out ?? []);
   const keepOut = new Set(held);
   for (const k of args.keep_out_add ?? []) keepOut.add(k);
   for (const k of args.keep_out_remove ?? []) keepOut.delete(k);
+
+  // The kitchen's standing rules (00052, 00054, 00057, 00075), as /store/household sets them.
+  const brandWords = [...(args.refuse_brands_add ?? []), ...(args.prefer_brands_add ?? []), ...(args.brands_remove ?? [])];
+  const unsaidBrand = brandWords.filter((b) => !wordsOf(b).every((w) => ev.words.has(w)));
+  if (unsaidBrand.length) return { refused: `The shopper didn't name the brand "${unsaidBrand.join('", "')}".` };
+  const lc = (list) => (list ?? []).map((b) => String(b).trim()).filter(Boolean);
+  const dropBrand = new Set(lc(args.brands_remove).map((b) => b.toLowerCase()));
+  const refused = [...new Set([...(row?.refused_brands ?? []).filter((b) => !dropBrand.has(b.toLowerCase())), ...lc(args.refuse_brands_add)])];
+  const preferred = [...new Set([...(row?.preferred_brands ?? []).filter((b) => !dropBrand.has(b.toLowerCase())), ...lc(args.prefer_brands_add)])];
+  const settings = {};
+  const set = (col, value, text, tone = "changed") => { if (value !== null && value !== undefined && value !== row?.[col]) settings[col] = { value, text, tone }; };
+  set("waste_tolerance", args.waste, `Leftover packs: ${{ none: "none", some: "a little", any: "don't mind" }[args.waste]}`);
+  set("repeat_tolerance", args.repeat, `Repeating last week's food: ${{ low: "rarely", usual: "as usual", high: "happily" }[args.repeat]}`);
+  set("processing_ceiling", args.processing_ceiling, `Most processed allowed: NOVA ${args.processing_ceiling}`);
+  set("shelf_stable_only", args.shelf_stable_only, args.shelf_stable_only ? "Only things that keep without a fridge" : "Fridge items allowed");
+  set("cuisine_leaning", args.cuisine, `Cooking: ${{ indian: "Indian", global: "global" }[args.cuisine] ?? args.cuisine}`);
+  if (Array.isArray(args.priorities) && args.priorities.length && args.priorities.join() !== (row?.priorities ?? []).join()) {
+    settings.priorities = { value: [...new Set(args.priorities)], text: `Priorities, first to last: ${[...new Set(args.priorities)].join(" › ").replace(/_/g, " ")}`, tone: "changed" };
+  }
+
   const rows = [
     ...[...keepOut].filter((k) => !held.has(k)).map((k) => ({ text: `Keep ${AVOID_BY_KEY[k]?.label ?? k} out of the house`, tone: AVOID_BY_KEY[k]?.kind === "allergen" ? "allergy" : "added" })),
     ...[...held].filter((k) => !keepOut.has(k)).map((k) => ({ text: `${AVOID_BY_KEY[k]?.label ?? k} allowed in the house again`, tone: "removed" })),
     ...pantryAdd.map((p) => ({ text: `In the pantry: ${p}`, tone: "added" })),
     ...pantryRemove.map((p) => ({ text: `Not in the pantry: ${p}`, tone: "removed" })),
+    ...lc(args.refuse_brands_add).map((b) => ({ text: `Never buy ${b}`, tone: "added" })),
+    ...lc(args.prefer_brands_add).map((b) => ({ text: `Prefer ${b}`, tone: "added" })),
+    ...lc(args.brands_remove).map((b) => ({ text: `No rule about ${b}`, tone: "removed" })),
+    ...Object.values(settings).map(({ text, tone }) => ({ text, tone })),
   ];
   if (!rows.length) return { refused: "Nothing would change." };
-  return { keepOut: [...keepOut], pantryAdd, pantryRemove, rows };
+  return { keepOut: [...keepOut], pantryAdd, pantryRemove, refused, preferred, settings: Object.fromEntries(Object.entries(settings).map(([k, v]) => [k, v.value])), rows };
 }
 
 async function prepareRules(ctx, args) {
@@ -489,7 +649,7 @@ async function executeRules(ctx, args, prepared) {
   const planned = await planRules(ctx, args);
   if (planned.refused) return refuse(`Not saved: ${planned.refused}`);
   if (fingerprint(planned) !== prepared.fp) return refuse("The kitchen rules changed since the shopper saw the card. Nothing was saved; call save_kitchen_rules again.");
-  const { error } = await ctx.db.from("household").update({ keep_out: planned.keepOut }).eq("id", ctx.household.id);
+  const { error } = await ctx.db.from("household").update({ keep_out: planned.keepOut, refused_brands: planned.refused, preferred_brands: planned.preferred, ...planned.settings }).eq("id", ctx.household.id);
   if (error) throw error;
   for (const label of planned.pantryAdd) {
     const { error: e } = await ctx.db.from("household_pantry").insert({ household_id: ctx.household.id, label });
@@ -529,11 +689,107 @@ async function executeWeighIn(ctx, args) {
   return { ok: true, summary: `Logged ${planned.kg} kg`, forModel: "Logged today's weight. The Track step shows the trend.", ui: { navigate: { href: "/store/plan?step=track", step: "track" } } };
 }
 
+// ── week_menu: the week's dishes, changed on the page ───────────────────────
+// The week of dishes is built in the browser from the plan (lib/plan/schedule.js);
+// a change to it is the page's own pickDishes / swapCells / clearPicks, run
+// through the bridge. KOI asks the page and says so; the page reports back.
+async function weekMenu(ctx, { action, slot, day, other_day: otherDay, person }) {
+  if (!currentPlanId(ctx)) return refuse("There is no plan yet, so no week of dishes. make_plan first.");
+  if (person && !ctx.saved.some((p) => norm(p.label) === norm(person))) return refuse(`${person} isn't a saved person.`);
+  if (action === "swap_days" && (!day || !otherDay)) return refuse("swap_days needs day and other_day.");
+  const menu = { action, slot: slot ?? null, day: day ?? null, otherDay: otherDay ?? null, person: person ?? null };
+  const what = action === "reset" ? "put the week's dishes back to KOI's picks"
+    : action === "swap_days" ? `swap ${day} and ${otherDay}${slot ? ` (${slot})` : ""}`
+      : `reshuffle ${person ? `${person}'s ` : ""}${slot ?? "meals"}${day ? ` on ${day}` : " for the week"}`;
+  return {
+    ok: true,
+    summary: `Asked the week to ${what}`,
+    forModel: `The page will ${what} and show the shopper what changed. Dishes a person can't have are never picked. Snacks and meals are shared by everyone eating them.`,
+    ui: { navigate: { href: "/store/plan?step=plan", step: "plan" }, menu },
+  };
+}
+
+// ── edit_cart (approval; the browser holds the cart) ───────────────────────
+async function prepareCartEdit(ctx, { changes }) {
+  const ev = ctx.evidence();
+  const catalogue = await ctx.catalogue();
+  const lines = [];
+  for (const c of changes ?? []) {
+    const words = String(c.product ?? "");
+    if (!wordsOf(words).every((w) => ev.words.has(w) || w.length <= 2)) return { refused: `The shopper didn't name "${words}".` };
+    const hit = productsNamed(words, catalogue.map((p) => ({ skuId: String(p.skuId ?? p.id), name: p.name })))[0];
+    if (!hit) return { refused: `No product called "${words}" in KOI's catalogue.` };
+    const packs = Number(c.packs);
+    if (c.mode !== "remove" && (!Number.isInteger(packs) || packs < 1 || packs > 20)) return { refused: "Packs must be a whole number from 1 to 20." };
+    if (c.mode !== "remove" && packs > 1 && !ev.numbers.has(packs)) return { refused: `The shopper didn't say ${packs} packs.` };
+    lines.push({ skuId: hit.skuId, name: hit.name, mode: c.mode, packs: c.mode === "remove" ? 0 : packs });
+  }
+  if (!lines.length) return { refused: "Nothing to change in the cart." };
+  return {
+    card: {
+      kind: "cart_edit",
+      title: "Change your cart?",
+      rows: lines.map((l) => ({ text: l.mode === "remove" ? `Remove ${l.name}` : l.mode === "set" ? `${l.name}: ${l.packs} ${l.packs === 1 ? "pack" : "packs"}` : `Add ${l.packs} × ${l.name}`, tone: l.mode === "remove" ? "removed" : "added" })),
+      lines,
+      note: "KOI doesn't check out. You review and pay in the cart.",
+    },
+    fp: fingerprint(lines),
+  };
+}
+async function executeCartEdit(ctx, args, prepared) {
+  return { ok: true, summary: "Changed your cart", forModel: `The shopper's cart was changed: ${prepared.card.rows.map((r) => r.text).join("; ")}.` };
+}
+
+// ── accept_track_proposal (approval) ───────────────────────────────────────
+async function planProposal(ctx) {
+  const me = ctx.saved.find((p) => p.is_account_holder);
+  if (!me) return { refused: "KOI doesn't know which saved person is the shopper. Ask which_person, then save_people with this_is_me." };
+  const { data: rows, error } = await ctx.db.from("member_checkin").select("checked_on, weight_kg").eq("member_id", me.memberId).order("checked_on");
+  if (error) throw error;
+  const read = trackRead(me, rows ?? []);
+  if (!read.allowed) return { refused: "Tracking is for adults only." };
+  if (!read.proposal) {
+    const why = read.status === "too_few" ? "There aren't enough weigh-ins yet (a few over two weeks)." : read.status === "on_track" ? "The trend is on track, so KOI suggests no change." : "KOI has no change to suggest.";
+    return { refused: `No suggestion: ${why}` };
+  }
+  return { me, proposal: read.proposal };
+}
+async function prepareProposal(ctx) {
+  const planned = await planProposal(ctx);
+  if (planned.refused) return planned;
+  const { me, proposal } = planned;
+  return {
+    card: { kind: "rules", title: `Change ${me.label}'s daily calories to ${proposal.kcal.toLocaleString("en-IN")} kcal?`, rows: [{ text: `${proposal.from.toLocaleString("en-IN")} → ${proposal.kcal.toLocaleString("en-IN")} kcal a day`, tone: "changed" }], note: "From the weigh-in trend, by energy balance. KOI moves a target at most 200 kcal at a time, and never below a safe floor." },
+    fp: fingerprint({ m: me.memberId, k: proposal.kcal }),
+  };
+}
+async function executeProposal(ctx, args, prepared) {
+  const planned = await planProposal(ctx);
+  if (planned.refused) return refuse(`Not changed: ${planned.refused}`);
+  if (fingerprint({ m: planned.me.memberId, k: planned.proposal.kcal }) !== prepared.fp) return refuse("The trend changed since the card was shown. Nothing was changed; call accept_track_proposal again.");
+  const form = { ...planned.me, target_kcal: String(planned.proposal.kcal), target_source: "stated" };
+  const { error } = await ctx.db.rpc("save_household_member", { p_household_id: ctx.household.id, p_member: memberPayload(form), p_avoids: mergeAvoids(planned.me.avoids, {}).avoids });
+  if (error) throw error;
+  await ctx.reload();
+  return { ok: true, summary: "Daily calories updated", forModel: `${planned.me.label}'s daily calorie target changed. The next plan uses it.`, ui: { householdChanged: true } };
+}
+
 const DAY_OPTIONS = [7, 5, 3, 14];
 
 function askCard(ctx, { topic, about, options }) {
   const labels = [...ctx.saved.map((p) => p.label), ...(ctx.memory.draft?.members ?? []).map((m) => m.label)];
   if (topic === "who") return { card: askCardFor([{ kind: "who" }]) };
+  if (topic === "age" || topic === "diet" || topic === "details") {
+    const held = ctx.saved.find((p) => norm(p.label) === norm(about ?? ""));
+    if (!held) return { refused: `about must be a saved person's label: ${ctx.saved.map((p) => p.label).join(", ") || "none"}.` };
+    if (topic === "details") {
+      if (!["adult_19_59", "senior_60_plus"].includes(held.age_band)) return { refused: `Body details are for adults. For ${held.label}, KOI needs only their age group and diet (topic=age or topic=diet).` };
+      // What they haven't said yet; if they've said it all, every field again, to update. The answers become a save card.
+      const fields = missingDetails(held).length ? missingDetails(held) : ["sex", "age_years", "height_cm", "weight_kg", "activity_level", "energy_goal"];
+      return { card: detailsCardFor(held, { saved: true, fields }) };
+    }
+    return { card: askCardFor([{ kind: topic, person: held.label }], { draft: { members: [held] } }) };
+  }
   if (topic === "days") {
     return { card: { kind: "ask", title: "One quick thing", questions: [{ id: "days", kind: "single", header: "Days", question: "How many days should KOI plan for?", allowOther: true, otherHint: "Or type a number of days (up to 14)", options: DAY_OPTIONS.map((n, i) => ({ key: `days:${n}`, label: `${n} days`, ...(i === 0 ? { recommended: true } : {}) })) }] } };
   }
@@ -571,6 +827,9 @@ export const TOOLS = Object.freeze({
   show: { kind: "ui", run: show },
   add_to_cart: { kind: "approval", prepare: prepareCart, execute: executeCart, clientExecutes: true },
   save_kitchen_rules: { kind: "approval", prepare: prepareRules, execute: executeRules },
+  week_menu: { kind: "ui", run: weekMenu, step: "plan" },
+  edit_cart: { kind: "approval", prepare: prepareCartEdit, execute: executeCartEdit, clientExecutes: true },
+  accept_track_proposal: { kind: "approval", prepare: prepareProposal, execute: executeProposal, step: "track" },
   log_weigh_in: { kind: "approval", prepare: prepareWeighIn, execute: executeWeighIn, step: "track" },
   ask_shopper: { kind: "ask", card: askCard },
   finish: { kind: "end", run: finish },

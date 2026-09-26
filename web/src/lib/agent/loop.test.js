@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 
 import { runSegment, newMemory, tasksFor } from "@/lib/agent/loop.js";
 import { rulesModel } from "@/lib/agent/rulesModel.js";
-import { gapsFor, askCardFor, applyAnswers, bandForAge } from "@/lib/agent/readiness.js";
+import { gapsFor, askCardFor, applyAnswers, bandForAge, detailsCardFor, detailsFrom } from "@/lib/agent/readiness.js";
+import { asksForParticularProducts } from "@/lib/agent/cartWords.js";
 import { sealMemory, openMemory } from "@/lib/agent/sign.js";
 import { checkSay } from "@/lib/agent/narration.js";
 import { evidenceFrom, isQuote } from "@/lib/agent/evidence.js";
@@ -98,9 +99,15 @@ test("the golden path pauses for the ages, then for approval, then for the cart,
   assert.equal(r.memory.pending.card.questions[0].id, "age:Kid 1");
   assert.ok(types(ctx.events).includes("ask"));
 
-  // 2. The answer: the draft is complete; the model saves → approval card.
+  // 2. The answer: the ages are complete; KOI asks the adult (Me) for their You-step details, once.
   ctx.events.length = 0;
   r = await runSegment({ memory: r.memory, request: { kind: "answer", answers: { "age:Kid 1": { option: "child_7_9" } } }, ctx, tools, model, rules: rulesModel });
+  assert.equal(r.memory.pending.card.kind, "details");
+  assert.equal(r.memory.pending.card.person, "Me");
+  assert.ok(r.memory.pending.card.optional);
+  r = await runSegment({ memory: r.memory, request: { kind: "answer", answers: { "age_years:Me": { value: 36 }, "weight_kg:Me": { value: 72.5 }, "sex:Me": { option: "male" } } }, ctx, tools, model, rules: rulesModel });
+  assert.equal(r.memory.draft.members[0].age_years, 36);
+  assert.equal(r.memory.draft.members[0].weight_kg, 72.5);
   assert.equal(r.outcome, "needs_shopper");
   assert.equal(r.memory.pending.kind, "approval");
   assert.equal(r.memory.draft.members[1].age_band, "child_7_9");
@@ -137,6 +144,9 @@ test("Not now on saving people saves nothing and tells the model", async () => {
   let r = await runSegment({ memory: newMemory(), request: { kind: "message", text: "me and my kid" }, ctx, tools, model, rules: rulesModel });
   r = await runSegment({ memory: r.memory, request: { kind: "answer", answers: { "age:Kid 1": { other: "she's 8" } } }, ctx, tools, model, rules: rulesModel });
   assert.equal(r.memory.draft.members[1].age_band, "child_7_9", "a typed age becomes its age group");
+  // Details are optional: skipping them moves on to the save.
+  r = await runSegment({ memory: r.memory, request: { kind: "answer", answers: {} }, ctx, tools, model, rules: rulesModel });
+  assert.equal(r.memory.pending.kind, "approval");
   r = await runSegment({ memory: r.memory, request: { kind: "decision", allow: false }, ctx, tools, model, rules: rulesModel });
   assert.equal(state.saved.length, 0);
   assert.equal(r.outcome, "done");
@@ -223,6 +233,22 @@ test("narration: no figures, no claims, no foods or people nobody mentioned", ()
   assert.ok(isQuote("no peanuts", ev));
   assert.equal(isQuote("no nuts at all", ev), false);
   assert.ok(ev.numbers.has(3500));
+});
+
+test("a cart request is the whole plan, or particular products (found in the eval)", () => {
+  for (const whole of ["put it in my cart", "add the plan to my cart", "add everything to my cart", "plan the week and put it in the cart", "buy it all"]) assert.equal(asksForParticularProducts(whole), false, whole);
+  for (const some of ["add 2 packs of oats to my cart", "put oats in my cart", "one more pack of dal in the cart", "add 3 x atta to cart"]) assert.equal(asksForParticularProducts(some), true, some);
+});
+
+test("age groups said in words, and a person's details from the details card", () => {
+  assert.equal(bandForAge("change my sons age to middle teens"), "teen_13_15");
+  assert.equal(bandForAge("she's in her late teens"), "teen_16_18");
+  assert.equal(bandForAge("our toddler"), "child_1_3");
+  const card = detailsCardFor({ label: "Wife", age_band: "adult_19_59" });
+  assert.deepEqual(card.questions.map((q) => q.field), ["sex", "age_years", "height_cm", "weight_kg", "activity_level", "energy_goal"]);
+  const { fields } = detailsFrom(card, { "age_years:Wife": { value: 34 }, "weight_kg:Wife": { value: 58.25 }, "height_cm:Wife": { value: 20 }, "sex:Wife": { option: "female" } });
+  assert.deepEqual(fields, { age_years: 34, weight_kg: 58.3, sex: "female" }, "out of range is dropped, never clamped");
+  assert.deepEqual(detailsCardFor({ label: "Son", age_band: "child_7_9" }).questions, [], "no body details for a child");
 });
 
 test("the digest names people and gaps, never what they eat or avoid", () => {

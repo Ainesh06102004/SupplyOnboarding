@@ -18,7 +18,7 @@
 // ============================================================================
 
 import { checkSay } from "./narration";
-import { applyAnswers, askCardFor, gapsFor, gapWords } from "./readiness";
+import { applyAnswers, gapsFor, gapWords, nextAskFor, detailsFrom } from "./readiness";
 import { evidenceFrom } from "./evidence";
 import { fingerprint } from "./sign";
 import { answerWords } from "./answers";
@@ -40,13 +40,16 @@ const TASKS = Object.freeze({
   add_to_cart: "Add to cart",
   save_kitchen_rules: "Save kitchen rules",
   log_weigh_in: "Log your weigh-in",
+  week_menu: "Change the week's dishes",
+  edit_cart: "Change your cart",
+  accept_track_proposal: "Update your daily calories",
   show: "Open the page",
   look: "Look at the plan",
 });
 const TASK_OF = { draft_people: "setup", save_people: "setup" };
 
 /** The run's checklist: what the message asked for, then anything else KOI did. KOI's words, derived, never the model's. */
-export function tasksFor(memory, { running = null } = {}) {
+export function tasksFor(memory, { running = null, finished = false } = {}) {
   const keys = [...(memory.intent?.keys ?? [])];
   for (const c of memory.turnCalls ?? []) {
     const k = TASK_OF[c.name] ?? c.name;
@@ -62,7 +65,9 @@ export function tasksFor(memory, { running = null } = {}) {
           : calls.some((c) => !c.ok && c.declined) ? "skipped"
             : "pending";
     return { key: k, label: TASKS[k], state };
-  });
+  // A task first guessed from the message that the run never started ("reshuffle the snacks"
+  // first read as a plan change) is not left on the list as if it were still to do.
+  }).filter((t) => !finished || t.state !== "pending");
 }
 
 function intentFor(text, { savedCount, hasPlan }) {
@@ -114,7 +119,9 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
   let outcome = null;
   let lastFp = null;
 
-  const evidence = () => evidenceFrom({ said: memory.said, produced: memory.produced, labels: ctx.labels(), products: ctx.products?.() ?? [] });
+  // Whether this segment actually moved the page: KOI may only say "it's on your screen" if so.
+  let navigated = false;
+  const evidence = () => ({ ...evidenceFrom({ said: memory.said, produced: memory.produced, labels: ctx.labels(), products: ctx.products?.() ?? [] }), navigated });
   ctx.evidence = evidence;
   ctx.memory = memory;
 
@@ -154,6 +161,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
     emit({ type: "tool_result", callId: call.callId, tool: call.name, ok: Boolean(result.ok), summary: result.summary ?? null, data: result.data ?? null, failed: Boolean(result.failed) });
     if (result.notice) emit({ type: "notice", text: result.notice, tone: "warn" });
     if (result.ui) emit({ type: "ui", ...result.ui });
+    if (result.ui?.navigate) navigated = true;
     emitTasks();
     return result;
   };
@@ -176,17 +184,43 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
     if (pending?.kind !== "ask") return { memory, outcome: "nothing_to_do", steps, turns, asks, approvals, model: null, source: memory.source };
     memory.pending = null;
     if (pending.origin === "gate") {
-      const applied = applyAnswers(memory.draft, pending.card, request.answers);
-      memory.draft = applied.draft;
-      memory.said.push(...applied.typed);
-      if (applied.who) {
-        memory.said.push(applied.who);
-        memory.items.push({ role: "user", content: applied.who });
+      if (pending.card.kind === "details") {
+        // The You step's details for someone drafted: onto the draft, saved with them.
+        const { fields, typed } = detailsFrom(pending.card, request.answers);
+        const member = memory.draft?.members?.find((m) => m.label === pending.card.person);
+        if (member) Object.assign(member, fields, { goalAsked: true });
+        memory.said.push(...typed);
+      } else {
+        const applied = applyAnswers(memory.draft, pending.card, request.answers);
+        memory.draft = applied.draft;
+        memory.said.push(...applied.typed);
+        if (applied.who) {
+          memory.said.push(applied.who);
+          memory.items.push({ role: "user", content: applied.who });
+        }
       }
       const gaps = gapsFor(memory.draft, { savedCount: state0.saved.length });
-      memory.items.push({ role: "developer", content: `The shopper answered KOI's questions. Missing now: ${gapWords(gaps)}.${!gaps.length && memory.draft ? " Next: save_people source=draft." : ""}` });
-      if (gaps.length && memory.draft) {
-        askNow(askCardFor(gaps, { draft: memory.draft }), { origin: "gate" });
+      const next = memory.draft ? nextAskFor(memory.draft, { savedCount: state0.saved.length, asked: memory.detailsAsked ?? {} }) : null;
+      memory.items.push({ role: "developer", content: `The shopper answered KOI's questions. Missing now: ${gapWords(gaps)}.${!next && memory.draft ? " Next: save_people source=draft." : ""}` });
+      if (next) {
+        if (next.details) memory.detailsAsked = { ...(memory.detailsAsked ?? {}), [next.details]: true };
+        askNow(next.card, { origin: "gate" });
+        return { memory, outcome, steps, turns, asks, approvals, model: null, source: memory.source };
+      }
+    } else if (pending.card.kind === "details" && pending.card.saved && tools.save_people) {
+      // A saved person's details: straight to the save card, which the shopper approves.
+      const { fields, typed } = detailsFrom(pending.card, request.answers);
+      memory.said.push(...typed);
+      const change = { person: pending.card.person, set_age_band: null, set_diet: null, set_goal: fields.energy_goal ?? null, set_pattern: null, set_sex: fields.sex ?? null, set_age_years: fields.age_years ?? null, set_height_cm: fields.height_cm ?? null, set_weight_kg: fields.weight_kg ?? null, set_target_weight_kg: null, set_activity: fields.activity_level ?? null, add_avoids: [], remove_avoids: [], avoid_severity: null, target_kcal: null, target_protein_g: null, add_favourites: [], remove_favourites: [], rename_to: null, remove_person: false };
+      const args = { source: "changes", changes: [change], this_is_me: null, say: null };
+      const prepared = Object.keys(fields).length ? await tools.save_people.prepare(ctx, args) : { refused: "the shopper skipped the details" };
+      // Skipped is an answer: asking again would loop (found live, 27 Sep).
+      memory.items.push(output(pending.callId, prepared.card ? `The shopper gave ${pending.card.person}'s details; KOI is showing them the save card.` : `Nothing to save: ${prepared.refused}. Don't ask again; finish.`));
+      if (prepared.card) {
+        memory.pending = { kind: "approval", callId: `synthetic_${pending.callId}`, synthetic: true, tool: "save_people", args, prepared };
+        emit({ type: "approval", card: prepared.card, tool: "save_people" });
+        emitTasks();
+        pause("approval");
         return { memory, outcome, steps, turns, asks, approvals, model: null, source: memory.source };
       }
     } else {
@@ -200,6 +234,8 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
     memory.pending = null;
     const tool = tools[pending.tool];
     approvals.push({ tool: pending.tool, decision: request.allow ? "allow" : "decline" });
+    // A card KOI raised itself (a saved person's details) answers no call of the model's: say it as a note.
+    const reply = (text) => memory.items.push(pending.synthetic ? { role: "developer", content: text } : output(pending.callId, text));
     if (request.allow) {
       emit({ type: "tool_started", callId: pending.callId, tool: pending.tool, step: tool.step ?? null });
       const started = now();
@@ -213,9 +249,10 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
       steps.push({ tool: pending.tool, ok: Boolean(result.ok), ms: now() - started });
       memory.turnCalls.push({ name: pending.tool, ok: Boolean(result.ok) });
       if (result.summary) memory.produced.push(result.summary);
-      memory.items.push(output(pending.callId, result.forModel));
+      reply(result.forModel);
       emit({ type: "tool_result", callId: pending.callId, tool: pending.tool, ok: Boolean(result.ok), summary: result.summary ?? null, data: result.data ?? null });
       if (result.ui) emit({ type: "ui", ...result.ui });
+      if (result.ui?.navigate) navigated = true;
       emitTasks();
       if (result.end) {
         outcome = "done";
@@ -224,9 +261,9 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
       }
     } else {
       memory.turnCalls.push({ name: pending.tool, ok: false, declined: true });
-      memory.items.push(output(pending.callId, pending.tool === "save_people"
-        ? "The shopper chose Not now: nothing was saved to the household. Carry on for this week only if you can, or finish."
-        : "The shopper chose Not now. Nothing was added. Finish."));
+      reply(pending.tool === "save_people"
+        ? "The shopper chose Not now: nothing was saved to the household. Don't ask about it again. Only if it was a food to avoid or a daily target can it apply to this week's plan (change_plan); otherwise finish."
+        : "The shopper chose Not now. Nothing was changed. Don't ask again; finish.");
       emit({ type: "tool_result", callId: pending.callId, tool: pending.tool, ok: false, summary: "Not now: nothing was saved", data: null, declined: true });
       emitTasks();
     }
@@ -334,6 +371,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
 
   if (outcome === "stopped") emit({ type: "notice", text: "Stopped. What KOI finished is kept.", tone: "info" });
   if (outcome !== "needs_shopper" && outcome !== "paused") {
+    emit({ type: "tasks", items: tasksFor(memory, { finished: true }) });
     emit({ type: "run_finished", outcome, planId: memory.planId, created: memory.created });
   }
   return { memory: outcome === "needs_shopper" || outcome === "paused" ? memory : settle(memory, caps), outcome, steps, turns, asks, approvals, model: modelName, source: memory.source };

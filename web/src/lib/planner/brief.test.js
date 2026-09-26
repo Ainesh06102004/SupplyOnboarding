@@ -10,6 +10,18 @@ import { readBrief, groundModelDraft, draftFrom, dietsNamed, budgetIn, BRIEF_JSO
 
 const draft = (text, model = null) => draftFrom(readBrief(text), model);
 
+test("a model's reading is held to the words: kids stay kids, and 'the younger one' is asked about (found live, 27 Sep)", () => {
+  const text = "plan this week's groceries for me, my wife and our two kids, we're vegetarian, the younger one is allergic to peanuts";
+  const g = (who, role, count, avoidKeys = ["peanuts"]) => ({ who, role, count, ageBand: null, dietType: "vegetarian", proteinG: null, kcal: null, avoidKeys });
+  const raw = { groups: [g("me", "adult", 1), g("my wife", "adult", 1), g("our two kids", "parent", 2)], days: 7, budget: null, unresolved: [] };
+  const grounded = groundModelDraft(raw, text);
+  assert.equal(grounded.groups[2].role, "child", "'our two kids' are kids, whatever the model called them");
+  assert.deepEqual(grounded.unplaced, ["peanuts"]);
+  const d = draftFrom(readBrief(text), grounded);
+  assert.deepEqual(d.members.map((m) => m.label), ["Me", "Wife", "Kid 1", "Kid 2"]);
+  assert.deepEqual(d.avoidEveryone, ["peanuts"], "KOI asks who the peanuts are for");
+});
+
 test("the founder's example drafts four people and asks what it was not told", () => {
   const d = draft("We're four, two adults and two kids, 120 g protein each for the adults");
   assert.deepEqual(d.members.map((m) => m.label), ["Adult 1", "Adult 2", "Kid 1", "Kid 2"]);

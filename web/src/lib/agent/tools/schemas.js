@@ -22,8 +22,8 @@ const quote = { type: ["string", "null"], description: "The part of the shopper'
 export const TOOL_SCHEMAS = Object.freeze([
   {
     name: "look",
-    description: "Read what is on screen: the household (labels and what is missing), the plan (cost, days, who is short), the basket (product names), the plan's explanation (shown on the page), or the page the shopper is on (e.g. the product they are viewing).",
-    parameters: strictObject({ what: { type: "string", enum: ["household", "plan", "basket", "explanation", "page"] }, say }),
+    description: "Read, and show the shopper in the chat: the household (labels, what is missing), the plan (cost, days, who is short), the basket (products and packs), the explanation (what KOI gave up and why), per_day (each person's daily calories, protein, carbs, fat in this plan — for 'my macros', 'Tuesday's protein'), menu (the week's dishes, day by day — for 'what's for dinner Tuesday'), or the page the shopper is on. It does NOT open anything on the page: use show for that.",
+    parameters: strictObject({ what: { type: "string", enum: ["household", "plan", "basket", "explanation", "per_day", "menu", "page"] }, say }),
   },
   {
     name: "draft_people",
@@ -32,7 +32,7 @@ export const TOOL_SCHEMAS = Object.freeze([
   },
   {
     name: "save_people",
-    description: "Save people to the household. The shopper must approve a card first; KOI shows it. source=draft saves the drafted people. source=changes updates saved people with values the shopper stated (a diet, an age group, a goal, foods to avoid or no longer avoid, a daily target). this_is_me names which label is the shopper.",
+    description: "Save people to the household (the Define and You steps). The shopper approves a card first; KOI shows it. source=draft saves the drafted people. source=changes updates SAVED people with what the shopper stated: age group (\"middle teens\" → teen_13_15), age in years, height, weight, target weight, sex, activity, goal, eating pattern, diet, foods to avoid or no longer avoid (with severity only if they said allergic/intolerant/never/dislikes), daily targets, favourite foods (their words), a new name, or remove_person=true to take someone out of the household. this_is_me names which label is the shopper. Use this — not change_plan — for anything about a person.",
     parameters: strictObject({
       source: { type: "string", enum: ["draft", "changes"] },
       changes: {
@@ -40,6 +40,12 @@ export const TOOL_SCHEMAS = Object.freeze([
         items: strictObject({
           person: { type: "string" },
           set_age_band: nullableEnum(AGE_BAND_KEYS),
+          set_age_years: { type: ["integer", "null"] },
+          set_height_cm: nullableNumber(),
+          set_weight_kg: nullableNumber(),
+          set_target_weight_kg: nullableNumber(),
+          set_sex: nullableEnum(["female", "male", "unspecified"]),
+          set_activity: nullableEnum(["sedentary", "light", "moderate", "heavy"]),
           set_diet: nullableEnum(PROFILE_DIET_KEYS),
           set_goal: nullableEnum(["maintain", "lose", "gain"]),
           set_pattern: nullableEnum(["balanced", "high_protein", "low_carb", "keto"]),
@@ -48,6 +54,10 @@ export const TOOL_SCHEMAS = Object.freeze([
           avoid_severity: nullableEnum(["allergy", "intolerance", "rule", "dislike"]),
           target_kcal: nullableNumber(),
           target_protein_g: nullableNumber(),
+          add_favourites: { type: "array", items: { type: "string" } },
+          remove_favourites: { type: "array", items: { type: "string" } },
+          rename_to: { type: ["string", "null"] },
+          remove_person: { type: "boolean" },
         }),
       },
       this_is_me: { type: ["string", "null"] },
@@ -86,14 +96,48 @@ export const TOOL_SCHEMAS = Object.freeze([
   },
   {
     name: "save_kitchen_rules",
-    description: "Save standing kitchen rules, after the shopper approves: foods kept out of the house for everyone (keep_out_add / keep_out_remove, as avoid keys), and what is already in the pantry (pantry_add / pantry_remove, the shopper's own words for it, e.g. \"rice\"). Only what the shopper said.",
+    description: "Save the household's standing kitchen rules (household settings), after the shopper approves: foods kept out of the house (keep_out_*), what is in the pantry (pantry_*, their words), brands never to buy or to prefer, leftover packs (waste: none/some/any), repeating last week's food (repeat: low/usual/high), what matters most in order (priorities), the most processed food allowed (processing_ceiling 1–4, NOVA), fridge-free only (shelf_stable_only), and cooking style (cuisine). null or empty leaves a setting as it is. Only what the shopper said.",
     parameters: strictObject({
       keep_out_add: enumArray(AVOID_KEYS),
       keep_out_remove: enumArray(AVOID_KEYS),
       pantry_add: { type: "array", items: { type: "string" } },
       pantry_remove: { type: "array", items: { type: "string" } },
+      refuse_brands_add: { type: "array", items: { type: "string" } },
+      prefer_brands_add: { type: "array", items: { type: "string" } },
+      brands_remove: { type: "array", items: { type: "string" } },
+      waste: nullableEnum(["none", "some", "any"]),
+      repeat: nullableEnum(["low", "usual", "high"]),
+      priorities: { type: ["array", "null"], items: { type: "string", enum: ["budget", "targets", "familiar", "less_processed", "variety"] } },
+      processing_ceiling: { type: ["integer", "null"] },
+      shelf_stable_only: { type: ["boolean", "null"] },
+      cuisine: nullableEnum(["indian", "global"]),
       say,
     }),
+  },
+  {
+    name: "week_menu",
+    description: "Change the week's dishes (the Plan step's week grid): reshuffle a meal (slot) for a day or the whole week, optionally only where a person eats it; swap two days (swap_days, day + other_day, one slot or all); or reset to KOI's own picks. The page makes the change; dishes someone can't have are never picked. For 'reshuffle the snacks', 'different breakfast on Tuesday', 'swap Monday and Wednesday dinner'.",
+    parameters: strictObject({
+      action: { type: "string", enum: ["reshuffle", "swap_days", "reset"] },
+      slot: nullableEnum(["breakfast", "lunch", "snack", "dinner", "drinks"]),
+      day: nullableEnum(["mon", "tue", "wed", "thu", "fri", "sat", "sun", "today", "tomorrow"]),
+      other_day: nullableEnum(["mon", "tue", "wed", "thu", "fri", "sat", "sun", "today", "tomorrow"]),
+      person: { type: ["string", "null"] },
+      say,
+    }),
+  },
+  {
+    name: "edit_cart",
+    description: "Change the cart after the shopper approves: add packs of a product, set how many, or remove it. product: the shopper's words for it. KOI never checks out.",
+    parameters: strictObject({
+      changes: { type: "array", items: strictObject({ product: { type: "string" }, mode: { type: "string", enum: ["add", "set", "remove"] }, packs: { type: "integer" } }) },
+      say,
+    }),
+  },
+  {
+    name: "accept_track_proposal",
+    description: "Track: use KOI's suggested daily calorie target from the shopper's weigh-in trend (the same suggestion the Track step offers), after they approve. Only for the account holder.",
+    parameters: strictObject({ say }),
   },
   {
     name: "log_weigh_in",
@@ -102,8 +146,8 @@ export const TOOL_SCHEMAS = Object.freeze([
   },
   {
     name: "ask_shopper",
-    description: "Ask the shopper something only they can decide, when it changes the result: who is eating, how many days, a budget, which person they mean, or a choice between options they mentioned. KOI writes the question. Ages, diets and who avoids what are asked by KOI automatically; don't ask those.",
-    parameters: strictObject({ topic: { type: "string", enum: ["who", "days", "budget", "which_person", "clarify"] }, about: { type: ["string", "null"] }, options: { type: "array", items: { type: "string" } }, say }),
+    description: "Ask the shopper something only they can decide: who is eating, how many days, a budget, which person they mean, a choice between options they mentioned, or — for a SAVED person (about = their label) — their age group (age), diet (diet), or their You-step details (details: age, sex, height, weight, activity, goal; KOI then shows a save card). KOI writes the question. While setting up new people KOI asks ages, diets, avoids and details by itself; don't ask those.",
+    parameters: strictObject({ topic: { type: "string", enum: ["who", "days", "budget", "which_person", "clarify", "age", "diet", "details"] }, about: { type: ["string", "null"] }, options: { type: "array", items: { type: "string" } }, say }),
   },
   {
     name: "finish",
@@ -123,5 +167,9 @@ export const AGENT_INSTRUCTIONS = [
   "Saving people and adding to the cart need the shopper's approval; KOI shows the card. If they decline, carry on without it. KOI cannot check out or place orders.",
   "If a tool refuses, read why and do what it says. Don't repeat the same call.",
   "Asked to change a plan when none exists (\"make it cheaper\", \"no dates\"): make_plan first with the shopper's words, then change_plan if anything is left to change.",
+  "You can do everything the store's pages can. Route by what the words are about: a PERSON (age, body, diet, goal, favourites, name, remove) → save_people or ask_shopper topic=details/age/diet; the week's DISHES (reshuffle, different breakfast, swap days) → week_menu; the BASKET (cheaper, add/leave out a food, swap a product, days, budget, a target for this plan) → change_plan; the HOUSE (keep out, pantry, brands, waste, repeats, priorities, processing, fridge-free, cuisine) → save_kitchen_rules; the CART → add_to_cart or edit_cart; WEIGHT → log_weigh_in / accept_track_proposal; QUESTIONS about the plan → look (plan, basket, per_day, menu, explanation).",
+  "\"Show me X\" or \"open X\" means show. Never say something is on the screen or shown unless show ran in this turn; look shows its result in the chat, not on the page.",
+  "When setting up new people, KOI asks each adult for their details (age, sex, height, weight, activity, goal) after ages and diets; let it, then save.",
+  "If something truly can't be done, say what KOI can do instead, in finish.",
   "Hinglish is normal (\"hum do hamare do\", \"4k budget\"). A medical condition is never a diet or target; leave it out.",
 ].join("\n");

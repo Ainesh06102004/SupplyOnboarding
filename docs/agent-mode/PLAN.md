@@ -319,4 +319,22 @@ Prompt, typed on any page: *"plan this week's groceries for me, my wife and our 
   3. KOI's own line said "Yes, it's okay for your son" over a "Not verified for peanuts" card. Narration now refuses verdict words.
   4. A save that changes nothing showed an empty card. It now refuses: "Son already has that".
   5. The model sent an unstated severity ("never"), which would have weakened Son's allergy. The card flagged it; now a severity counts only if the shopper's words say it.
+- **"Everything the pages can do", 27 Sep (from the user's own live tries).** The reports were:
+  - "Show me the plan" got "it's on screen", and it wasn't.
+  - No questions about the wife's details.
+  - "Change my son's age to middle teens" and "reshuffle my wife's snacks" became plan changes.
+  - "My macros for Tuesday" got no answer.
+- **What was built for them:**
+  - `show` always navigates. `look` never claims the page, and narration refuses "on screen" unless the run navigated.
+  - `save_people` covers every You-step field, renaming, removing a person and favourites, and understands "middle teens".
+  - During set-up KOI asks each adult for their details (a skippable card); for a saved person, `ask_shopper` topic=details leads to a save card.
+  - `change_plan` refuses profile and menu requests and routes them.
+  - `week_menu` (reshuffle, swap days, reset) runs on the page through the bridge, which also describes the week to KOI.
+  - `look` gains `per_day` (each person's daily figures, labelled as the plan's average) and `menu`.
+  - `edit_cart`, `accept_track_proposal`, and every household setting in `save_kitchen_rules`.
+  - `add_to_cart` refuses particular products ("add 2 packs of oats"), sending them to `edit_cart`.
+  - The household reader keeps "our two kids" as kids and asks who "the younger one" is.
+  - 429 retries use `retry-after`; the per-turn timeout is now 18 s.
+  - A skipped card is never asked again, and the checklist drops tasks that never ran.
+- **Checks.** Eval: 48 cases, 47/48 on gpt-5.4-mini. The one miss (an extra person saved on "add my mother") reproduced once in eight runs; the approval card would show it. Live, signed in, all five reports now behave; nothing was saved to the household (every card declined or skipped), and the week's dishes were reset.
 - Not built: `pick_dish` (the week grid already does it by tap) and `mark_have` (a one-week "we have rice" is a plan change).

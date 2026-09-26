@@ -111,6 +111,7 @@ const PROFILE_DIETS = new Set(DIET_TYPES.filter((d) => !d.forOnePlanOnly).map((d
  * @returns {{ form: object, changed: Array<{field, from, to}>, rejected: string[] }}
  */
 export function applyProfileSet(form, set = {}) {
+  const between = (lo, hi) => (v) => Number.isFinite(Number(v)) && Number(v) >= lo && Number(v) <= hi;
   const allowed = {
     age_band: (v) => BAND_KEYS.has(v),
     diet_type: (v) => PROFILE_DIETS.has(v),
@@ -120,7 +121,14 @@ export function applyProfileSet(form, set = {}) {
     activity_level: (v) => ["sedentary", "light", "moderate", "heavy"].includes(v),
     target_kcal: (v) => Number.isFinite(Number(v)) && Number(v) > 0 && Number(v) < 10000,
     target_protein_g: (v) => Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) < 1000,
+    // The body figures the You step takes (00050's bounds). Adults only: memberPayload drops them for anyone under 19.
+    age_years: between(1, 120),
+    height_cm: between(100, 250),
+    weight_kg: between(25, 300),
+    target_weight_kg: between(25, 300),
+    label: (v) => typeof v === "string" && v.trim().length > 0 && v.trim().length <= 40,
   };
+  const whole = new Set(["target_kcal", "target_protein_g", "age_years"]);
   const next = { ...form };
   const changed = [];
   const rejected = [];
@@ -128,11 +136,18 @@ export function applyProfileSet(form, set = {}) {
     if (value === null || value === undefined || value === "") continue;
     if (!allowed[field]) { rejected.push(field); continue; }
     if (!allowed[field](value)) { rejected.push(field); continue; }
-    const to = field.startsWith("target_") ? String(Math.round(Number(value))) : value;
+    const to = whole.has(field) ? String(Math.round(Number(value)))
+      : ["height_cm", "weight_kg", "target_weight_kg"].includes(field) ? String(Math.round(Number(value) * 10) / 10)
+        : field === "label" ? String(value).trim()
+          : value;
     if (String(next[field] ?? "") === String(to)) continue;
     changed.push({ field, from: next[field] ?? null, to });
     next[field] = to;
   }
-  if (changed.some((c) => c.field.startsWith("target_"))) next.target_source = "stated";
+  if (changed.some((c) => c.field === "target_kcal" || c.field === "target_protein_g")) next.target_source = "stated";
+  // A new body figure or goal re-suggests the targets, unless the shopper stated their own.
+  else if (changed.some((c) => ["age_band", "age_years", "height_cm", "weight_kg", "sex", "activity_level", "energy_goal", "eating_pattern"].includes(c.field)) && next.target_source !== "stated") {
+    next.target_source = "suggested";
+  }
   return { form: next, changed, rejected };
 }

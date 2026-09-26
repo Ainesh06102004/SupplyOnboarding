@@ -15,6 +15,7 @@ import { peopleOf } from "@/lib/plan/planView";
 import { goalShortLabel } from "@/lib/plan/goalCards";
 import { C, font, cardStyle, initialsOf, inr } from "./tokens";
 import { MonoLabel } from "./bits";
+import { useGlowing } from "@/components/agent/AgentProvider";
 
 const SWAPPABLE = { breakfast: ["breakfast"], lunch: ["lunch", "dinner"], dinner: ["lunch", "dinner"], snack: ["snack"], drinks: ["drinks"] };
 const amount = (a) => (a && a.amount ? `${a.amount}${a.unit ? ` ${a.unit}` : ""}` : null);
@@ -31,6 +32,8 @@ function Chip({ tone, children, title }) {
 
 export default function WeekGrid({ s }) {
   const week = s.week;
+  // A cell KOI's agent just changed glows for a moment.
+  const glowing = useGlowing();
   const [menu, setMenu] = useState(null); // { key, x, y }
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null);
@@ -177,6 +180,7 @@ export default function WeekGrid({ s }) {
                 <div
                   key={key}
                   data-cell={key}
+                  className={glowing("cell", key) ? "koi-glow" : undefined}
                   role="button"
                   tabIndex={0}
                   draggable={Boolean(cell.shared)}

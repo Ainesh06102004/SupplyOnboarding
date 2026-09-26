@@ -101,7 +101,10 @@ export function AgentProvider({ children }) {
     } catch { /* nothing to clear */ }
   }, [signedOut]);
 
-  const page = useCallback(() => pageFrom(pathname, searchParams(), { planId: bridgeRef.current?.current?.planId ?? null, cartCount }), [pathname, cartCount]);
+  const page = useCallback(() => {
+    const bridge = bridgeRef.current?.current;
+    return pageFrom(pathname, searchParams(), { planId: bridge?.planId ?? null, cartCount, week: bridge?.weekSummary?.() ?? null });
+  }, [pathname, cartCount]);
 
   // ── What a run asks of the page ───────────────────────────────────────────
   const shine = useCallback((highlight) => {
@@ -111,10 +114,27 @@ export function AgentProvider({ children }) {
       const next = { ...g };
       for (const m of highlight.members ?? []) next[`member:${m}`] = until;
       for (const s of highlight.skus ?? []) next[`sku:${s}`] = until;
+      for (const c of highlight.cells ?? []) next[`cell:${c}`] = until;
       return next;
     });
     setTimeout(() => setGlow((g) => Object.fromEntries(Object.entries(g).filter(([, t]) => t > Date.now()))), GLOW_MS + 50);
   }, []);
+
+  const pendingMenuRef = useRef(null);
+  const runMenu = useCallback((bridge, menu) => {
+    // The plan and its week may still be settling after a navigation or a change: give the page a moment, a few times.
+    const attempt = (tries) => setTimeout(() => {
+      const live = bridgeRef.current?.current ?? bridge;
+      const result = live?.menu?.(menu);
+      if ((!result || result.notReady) && tries < 6) {
+        attempt(tries + 1);
+        return;
+      }
+      dispatch({ type: "local", entry: { kind: "notice", tone: result?.changed ? "info" : "warn", text: result?.text ?? "The week's dishes couldn't be changed." } });
+      if (result?.cells?.length) shine({ cells: result.cells });
+    }, tries ? 900 : 600);
+    attempt(0);
+  }, [shine]);
 
   const onUi = useCallback((e) => {
     const bridge = bridgeRef.current?.current;
@@ -124,11 +144,17 @@ export function AgentProvider({ children }) {
       const lines = bridge?.explainLines?.() ?? null;
       dispatch({ type: "local", entry: { kind: "result", data: { kind: "explain", lines: lines ?? [{ text: "Open your plan to see how KOI made it." }] } } });
     }
-    if (e.navigate?.href && stateRef.current.follow) {
+    // Asked for ("show me the plan") always happens; following along only while Follow is on.
+    if (e.navigate?.href && (e.navigate.explicit || stateRef.current.follow)) {
       const here = `${window.location.pathname}${window.location.search}`;
       if (here !== e.navigate.href) router.push(e.navigate.href, { scroll: true });
     }
-  }, [router, shine]);
+    // The week's dishes change on the Plan page; if it isn't open yet, as soon as it is.
+    if (e.menu) {
+      if (bridge?.menu) runMenu(bridge, e.menu);
+      else pendingMenuRef.current = e.menu;
+    }
+  }, [router, shine, runMenu]);
 
   const onEvent = useCallback((e) => {
     if (e.type === "hello") return;
@@ -218,6 +244,25 @@ export function AgentProvider({ children }) {
 
   const decide = useCallback(async (allow) => {
     const pending = stateRef.current.pending;
+    if (allow && pending?.card?.kind === "cart_edit") {
+      // Exactly the approved changes, in this browser's cart.
+      try {
+        await hydrateCart();
+        const all = await fetchAllProducts();
+        const bySku = new Map(all.map((p) => [String(p.skuId), p]));
+        const cart = useCartStore.getState();
+        for (const line of pending.card.lines ?? []) {
+          const product = bySku.get(String(line.skuId));
+          if (!product) continue;
+          if (line.mode === "remove" || line.mode === "set") cart.removeFromCart(product.id);
+          const n = line.mode === "remove" ? 0 : line.packs;
+          for (let i = 0; i < n; i++) useCartStore.getState().addToCart(product);
+        }
+      } catch (err) {
+        dispatch({ type: "error", text: err?.message ?? "The cart couldn't be changed." });
+        return;
+      }
+    }
     if (allow && pending?.card?.kind === "cart") {
       // The cart lives in this browser: add exactly the approved lines, then tell KOI.
       try {
@@ -252,10 +297,16 @@ export function AgentProvider({ children }) {
 
   const registerBridge = useCallback((ref) => {
     bridgeRef.current = ref;
+    // A menu change asked for before the Plan page was open.
+    if (pendingMenuRef.current && ref.current?.menu) {
+      const menu = pendingMenuRef.current;
+      pendingMenuRef.current = null;
+      setTimeout(() => { if (bridgeRef.current === ref) runMenu(ref.current, menu); }, 900);
+    }
     return () => {
       if (bridgeRef.current === ref) bridgeRef.current = null;
     };
-  }, []);
+  }, [runMenu]);
 
   const undoRun = useCallback(() => bridgeRef.current?.current?.undoRun?.(), []);
 

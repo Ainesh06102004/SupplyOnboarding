@@ -74,8 +74,12 @@ export async function callStructured({ modelEnv, instructions, text, schemaName,
   }
 }
 
-/** One turn of the agent's loop: longer than a sentence read, because the loop is the whole job. */
-export const AGENT_TIMEOUT_MS = 12000;
+/**
+ * One turn of the agent's loop: longer than a sentence read, because the loop is
+ * the whole job. 12 s cut off slow-but-fine turns once the tool list grew
+ * (eval, 27 Sep); the loop's 40 s segment cap still bounds a run.
+ */
+export const AGENT_TIMEOUT_MS = 18000;
 
 /**
  * One turn of KOI's agent loop: the conversation so far in, one tool call out.
@@ -126,6 +130,13 @@ export async function callTools({ modelEnv, effortEnv = null, instructions, inpu
       });
       const json = await response.json().catch(() => null);
       if (response.status >= 500 && attempt < retries) continue;
+      // Rate-limited: wait what OpenAI asks (at most 4 s), up to twice. A shopper
+      // waiting a few seconds is better than the rules taking over a whole run.
+      if (response.status === 429 && attempt < Math.max(retries, 2)) {
+        const ms = Number(response.headers?.get?.("retry-after-ms")) || Number(response.headers?.get?.("retry-after")) * 1000 || 1500;
+        await new Promise((r) => setTimeout(r, Math.min(4000, Math.max(500, ms))));
+        continue;
+      }
       if (!response.ok) throw new Error(`OpenAI HTTP ${response.status}: ${json?.error?.code ?? json?.error?.type ?? "error"}`);
       return { ...readToolCall(json), model, ms: Date.now() - started };
     } catch (err) {

@@ -364,21 +364,33 @@ export function groundModelDraft(raw, message) {
   // An avoid counts only where the message names it (avoidWords.js).
   const namedAvoids = new Set(avoidKeysNamed(input));
 
+  // "The younger one is allergic to peanuts": said about one of them, not all.
+  // A model that puts it on everyone skips the question of who (found live, 27 Sep).
+  const aboutOne = /\b(the\s+)?(younger|youngest|older|oldest|elder|eldest|little|big|small|baby)\s+(one|kid|child|son|daughter)\b|\bone of (them|the kids|the children|us)\b/.test(text);
+  const groups = draft.groups;
+  const onAll = aboutOne && groups.length ? groups[0].avoidKeys.filter((k) => groups.every((g) => g.avoidKeys.includes(k))) : [];
+
   return {
+    unplaced: onAll.filter((k) => namedAvoids.has(k)),
     groups: draft.groups.map((g) => {
       // The group's own words, if they are the message's: "me", or a relationship word for its label.
       const plainWho = words(g.who);
       const who = plainWho && words(input, true).includes(` ${plainWho} `) ? plainWho : "";
+      // The role its own words name ("our two kids" are kids, whatever the model called them);
+      // a role the message never names at all is just a person.
+      const named = ROLE_KEYS.find((r) => ROLES[r].plural && new RegExp(`\\b(${ROLES[r].plural}|${ROLES[r].singular})\\b`).test(` ${who} `));
+      const saidAnywhere = (r) => r === "person" || (ROLES[r].plural && new RegExp(`\\b(${ROLES[r].plural}|${ROLES[r].singular})\\b`).test(text));
+      const role = named ?? (saidAnywhere(g.role) ? g.role : "person");
       return {
-        role: g.role,
+        role,
         count: g.count,
         me: g.count === 1 && /\b(me|i|myself)\b/.test(who),
         word: g.count === 1 ? singularWordsIn(who)[0] ?? null : null,
-        ageBand: bandAllowed(g.ageBand, g.role) ? g.ageBand : ROLES[g.role].ageBand,
+        ageBand: bandAllowed(g.ageBand, role) ? g.ageBand : ROLES[role].ageBand,
         dietType: g.dietType && diets.has(g.dietType) ? g.dietType : null,
         proteinG: g.proteinG !== null && stated.has(g.proteinG) ? g.proteinG : null,
         kcal: g.kcal !== null && stated.has(g.kcal) ? g.kcal : null,
-        avoidKeys: g.avoidKeys.filter((k) => namedAvoids.has(k)),
+        avoidKeys: g.avoidKeys.filter((k) => namedAvoids.has(k) && !onAll.includes(k)),
       };
     }),
     days: draft.days !== null && (stated.has(draft.days) || draft.days === weekWords) ? draft.days : null,
@@ -406,6 +418,8 @@ export function draftFrom(local, model = null) {
   const modelKeys = new Set(useModel ? model.groups.flatMap((g) => g.avoidKeys ?? []) : []);
   const everyone = new Set((local.avoidEveryone ?? []).filter((k) => !modelKeys.has(k)));
   if (useModel) for (const g of local.groups ?? []) for (const k of g.avoidKeys ?? []) if (!modelKeys.has(k)) everyone.add(k);
+  // Said about one of them ("the younger one"), and not placed: KOI asks who (lib/agent/readiness.js R4).
+  for (const k of model?.unplaced ?? []) everyone.add(k);
 
   const counters = {};
   const members = [];

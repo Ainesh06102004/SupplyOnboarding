@@ -91,11 +91,101 @@ export function askCardFor(gaps, { draft = null } = {}) {
   return { kind: "ask", title: questions.length > 1 ? "A couple of quick things" : "One quick thing", questions };
 }
 
-/** An age typed as a number ("8", "she's 8") → its age group. */
+/** Age groups said in words: "middle teens", "late teens", "a toddler", "over sixty". */
+const BAND_WORDS = Object.freeze([
+  ["teen_16_18", /\blate[- ]?teens?\b|\b(sixteen|seventeen|eighteen)\b/],
+  ["teen_13_15", /\b(early|mid|middle)[- ]?teens?\b|\b(thirteen|fourteen|fifteen)\b/],
+  ["child_10_12", /\bpre[- ]?teens?\b|\btweens?\b/],
+  ["child_1_3", /\btoddlers?\b/],
+  ["senior_60_plus", /\b(senior|elderly|retired|over sixty|sixty plus|60\s*\+|over 60)\b/],
+  ["adult_19_59", /\b(an adult|grown[- ]?up|adult now)\b/],
+]);
+
+/** An age typed as a number ("8", "she's 8") or an age group in words → its age group. */
 export function bandForAge(text) {
   const n = numbersOf(text).find((x) => x >= 1 && x <= 120);
-  if (!n) return null;
-  return AGE_BANDS.find((b) => n >= b.min && n <= b.max)?.key ?? null;
+  if (n) return AGE_BANDS.find((b) => n >= b.min && n <= b.max)?.key ?? null;
+  const said = String(text ?? "").toLowerCase();
+  return BAND_WORDS.find(([, re]) => re.test(said))?.[0] ?? null;
+}
+
+// ── The You step's details, asked of adults ────────────────────────────────
+// Not needed to plan (KOI falls back to ICMR-NIN's tables), so never blocking
+// and always skippable, but asked once for each adult: they are what make a
+// person's targets theirs (Mifflin–St Jeor needs age, sex, height, weight).
+const ADULT = new Set(["adult_19_59", "senior_60_plus"]);
+const SEX_OPTIONS = [{ key: "female", label: "Female" }, { key: "male", label: "Male" }, { key: "unspecified", label: "Prefer not to say" }];
+const ACTIVITY_OPTIONS = [
+  { key: "sedentary", label: "Mostly sitting" },
+  { key: "light", label: "Light exercise, a few days a week" },
+  { key: "moderate", label: "On their feet, or exercises most days" },
+  { key: "heavy", label: "Physical work, or trains hard" },
+];
+const GOAL_OPTIONS = [{ key: "maintain", label: "Stay as they are" }, { key: "lose", label: "Lose weight" }, { key: "gain", label: "Gain / build muscle" }];
+const NUMBER_FIELDS = Object.freeze({
+  age_years: { header: "Age", question: "Age in years", unit: "years", min: 19, max: 120 },
+  height_cm: { header: "Height", question: "Height", unit: "cm", min: 100, max: 250 },
+  weight_kg: { header: "Weight", question: "Weight", unit: "kg", min: 25, max: 300, step: 0.1 },
+});
+const blank = (v) => v === null || v === undefined || v === "";
+
+/** What an adult hasn't said yet, of the You step's details. */
+export function missingDetails(person) {
+  if (!ADULT.has(person?.age_band)) return [];
+  const out = [];
+  if (blank(person.sex)) out.push("sex");
+  for (const f of Object.keys(NUMBER_FIELDS)) if (blank(person[f])) out.push(f);
+  if (blank(person.activity_level)) out.push("activity_level");
+  if (blank(person.energy_goal) || (person.energy_goal === "maintain" && !person.goalAsked)) out.push("energy_goal");
+  return out;
+}
+
+/**
+ * The card that asks one adult for their details. Optional: "Skip" answers nothing.
+ * @param {{ label, age_band, ... }} person
+ * @param {{ saved?: boolean }} [opts] saved: the answers become a save (with approval), not a draft
+ */
+export function detailsCardFor(person, { saved = false, fields = null } = {}) {
+  const want = fields ?? missingDetails(person);
+  const questions = want.map((f) => {
+    if (NUMBER_FIELDS[f]) return { id: `${f}:${person.label}`, kind: "number", person: person.label, field: f, ...NUMBER_FIELDS[f], options: [] };
+    if (f === "sex") return { id: `sex:${person.label}`, kind: "single", person: person.label, field: f, header: "Sex", question: "Sex (for the energy estimate)", options: SEX_OPTIONS };
+    if (f === "activity_level") return { id: `activity_level:${person.label}`, kind: "single", person: person.label, field: f, header: "Activity", question: "How active are they?", options: ACTIVITY_OPTIONS };
+    return { id: `energy_goal:${person.label}`, kind: "single", person: person.label, field: "energy_goal", header: "Goal", question: "What are they working towards?", options: GOAL_OPTIONS.map((o) => (o.key === "maintain" ? { ...o, recommended: true } : o)) };
+  });
+  return { kind: "details", person: person.label, saved, optional: true, title: `About ${person.label}`, note: "Optional. It makes their daily targets theirs rather than a table's. Skip anything.", questions };
+}
+
+/** The details the shopper gave on a details card, as profile fields. Only in range; nothing guessed. */
+export function detailsFrom(card, answers = {}) {
+  const out = {};
+  const typed = [];
+  for (const q of card?.questions ?? []) {
+    const a = answers?.[q.id];
+    if (!a) continue;
+    if (q.kind === "number") {
+      const n = Number(a.value ?? a.other);
+      if (Number.isFinite(n) && n >= q.min && n <= q.max) {
+        out[q.field] = q.step ? Math.round(n * 10) / 10 : Math.round(n);
+        typed.push(`${q.header} ${out[q.field]} ${q.unit}`);
+      }
+    } else if (q.options.some((o) => o.key === a.option)) {
+      out[q.field] = a.option;
+      typed.push(`${q.header}: ${q.options.find((o) => o.key === a.option).label}`);
+    }
+  }
+  return { fields: out, typed };
+}
+
+/** The next thing to ask while setting people up: blocking gaps first, then each adult's details, once. */
+export function nextAskFor(draft, { savedCount = 0, asked = {} } = {}) {
+  const gaps = gapsFor(draft, { savedCount });
+  if (gaps.length) return { card: askCardFor(gaps, { draft }), gaps };
+  for (const m of draft?.members ?? []) {
+    if (asked[m.label]) continue;
+    if (missingDetails(m).length) return { card: detailsCardFor(m), details: m.label };
+  }
+  return null;
 }
 
 /**

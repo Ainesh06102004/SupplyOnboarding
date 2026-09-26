@@ -22,6 +22,9 @@ export const TOOL_LABELS = Object.freeze({
   add_to_cart: "Adding to your cart",
   save_kitchen_rules: "Saving your kitchen rules",
   log_weigh_in: "Logging your weigh-in",
+  week_menu: "Changing the week's dishes",
+  edit_cart: "Changing your cart",
+  accept_track_proposal: "Updating your daily calories",
   finish: "Wrapping up",
 });
 
@@ -45,7 +48,7 @@ const id = (p) => `${p}_${Date.now().toString(36)}_${(seq++).toString(36)}`;
 const updateEntry = (entries, match, patch) => entries.map((e) => (match(e) ? { ...e, ...(typeof patch === "function" ? patch(e) : patch) } : e));
 
 /** Result kinds worth a card of their own in the transcript. */
-const RESULT_KINDS = new Set(["plan", "change", "without", "check", "swaps", "products"]);
+const RESULT_KINDS = new Set(["plan", "change", "without", "check", "swaps", "products", "explain", "per_day", "menu", "basket"]);
 
 export function agentReducer(state, action) {
   switch (action.type) {

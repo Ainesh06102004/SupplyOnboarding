@@ -8,9 +8,10 @@
 // planner (which has its own evaluation, scripts/evalPlanner.mjs).
 // ============================================================================
 
-import { gapsFor, gapWords, askCardFor } from "../readiness";
+import { gapsFor, gapWords, askCardFor, nextAskFor, detailsCardFor } from "../readiness";
 import { readBrief, draftFrom } from "@/lib/planner/brief";
 import { ASKS_CART } from "../router";
+import { asksForParticularProducts } from "../cartWords";
 import { isQuote, norm } from "../evidence";
 
 /**
@@ -40,7 +41,17 @@ export function simulated(start = {}) {
   const quoted = (c, quote) => (quote && !isQuote(quote, c.evidence()) ? null : quote || c.memory.said.at(-1) || "");
 
   const tools = {
-    look: { kind: "read", run: async (c, { what }) => ({ ok: true, summary: "Looked", forModel: what === "household" ? `Saved: ${world.saved.map((p) => p.label).join(", ") || "none"}.` : world.planId ? `Plan with ${world.basket.join(", ")}.` : "No plan yet." }) },
+    look: {
+      kind: "read",
+      run: async (c, { what }) => {
+        world.looked = [...(world.looked ?? []), what];
+        if (what === "household") return { ok: true, summary: "Looked", forModel: `Saved: ${world.saved.map((p) => p.label).join(", ") || "none"}.` };
+        if (!world.planId) return { ok: false, forModel: "There is no plan yet. make_plan first." };
+        if (what === "menu") return { ok: true, summary: "Menu", forModel: "The week's dishes are shown in the chat: Mon: breakfast Poha; lunch Dal + Rice; snack Roasted Chana; dinner Paneer + Roti | Tue: breakfast Upma; lunch Rajma + Rice; snack Makhana; dinner Dal + Roti." };
+        if (what === "per_day") return { ok: true, summary: "Per day", forModel: "Per-person daily figures are shown in the chat (the plan's daily average)." };
+        return { ok: true, summary: "Looked", forModel: `Plan with ${world.basket.join(", ")} (shown in the chat).` };
+      },
+    },
     draft_people: {
       kind: "plan",
       run: async (c, { quote }) => {
@@ -53,7 +64,9 @@ export function simulated(start = {}) {
         const members = draft.members.filter((m) => !world.saved.some((s) => norm(s.label) === norm(m.label)));
         c.memory.draft = members.length ? { members, avoidEveryone: draft.avoidEveryone ?? [] } : null;
         const gaps = gapsFor(c.memory.draft, { savedCount: world.saved.length });
-        return { ok: true, summary: `Drafted ${members.length}`, forModel: `Drafted, not saved: ${members.map((m) => m.label).join(", ") || "nobody new"}. Missing: ${gapWords(gaps)}.${gaps.length ? " KOI is asking the shopper now." : members.length ? " Next: save_people source=draft." : ""}`, ask: gaps.length ? askCardFor(gaps, { draft: c.memory.draft }) : null };
+        const next = c.memory.draft ? nextAskFor(c.memory.draft, { savedCount: world.saved.length, asked: c.memory.detailsAsked ?? {} }) : null;
+        if (next?.details) c.memory.detailsAsked = { ...(c.memory.detailsAsked ?? {}), [next.details]: true };
+        return { ok: true, summary: `Drafted ${members.length}`, forModel: `Drafted, not saved: ${members.map((m) => m.label).join(", ") || "nobody new"}. Missing: ${gapWords(gaps)}.${next ? " KOI is asking the shopper now; wait for their answers." : members.length ? " Next: save_people source=draft." : ""}`, ask: next?.card ?? null };
       },
     },
     save_people: {
@@ -66,7 +79,7 @@ export function simulated(start = {}) {
           return { card: { kind: "save_people", people: c.memory.draft.members.map((m) => ({ label: m.label })) } };
         }
         const unknown = (args.changes ?? []).filter((ch) => !world.saved.some((s) => norm(s.label) === norm(ch.person)));
-        if (unknown.length) return { refused: `${unknown.map((u) => u.person).join(", ")} not saved.` };
+        if (unknown.length) return { refused: `${unknown.map((u) => u.person).join(", ")} is not a saved person. Saved: ${world.saved.map((p) => p.label).join(", ")}.` };
         return { card: { kind: "save_people", people: (args.changes ?? []).map((ch) => ({ label: ch.person })) } };
       },
       execute: async (c, args) => {
@@ -116,16 +129,31 @@ export function simulated(start = {}) {
       kind: "approval",
       prepare: async (c) => {
         if (!c.memory.said.some((s) => ASKS_CART.test(norm(s)))) return { refused: "The shopper didn't ask for the cart." };
+        const latest = c.memory.said.at(-1) ?? "";
+        if (ASKS_CART.test(norm(latest)) && asksForParticularProducts(latest)) return { refused: "The shopper asked for particular products, not the whole plan: use edit_cart with their words." };
         if (!world.planId) return { refused: "No plan to put in the cart." };
         return { card: { kind: "cart", lines: world.basket.map((n, i) => ({ skuId: String(i), name: n, packs: 1 })) } };
       },
       execute: async () => { world.cart = world.basket.length; return { ok: true, summary: "Added", forModel: "Added to the cart.", end: true }; },
     },
+    week_menu: { kind: "ui", run: async (c, args) => { if (!world.planId) return { ok: false, forModel: "There is no plan yet. make_plan first." }; world.menu = args; return { ok: true, summary: "Asked", forModel: "The page will change the week's dishes.", ui: { menu: args } }; } },
+    edit_cart: {
+      kind: "approval",
+      prepare: async (c, { changes }) => ((changes ?? []).length ? { card: { kind: "cart_edit", rows: [], lines: [] } } : { refused: "Nothing to change." }),
+      execute: async (c, { changes }) => { world.cartEdits = changes; return { ok: true, summary: "Changed", forModel: "Cart changed." }; },
+    },
+    accept_track_proposal: {
+      kind: "approval",
+      prepare: async () => (world.saved.some((p) => p.is_account_holder) ? { card: { kind: "rules", rows: [] } } : { refused: "KOI doesn't know which saved person is the shopper. Ask which_person, then save_people with this_is_me." }),
+      execute: async () => { world.proposalAccepted = true; return { ok: true, summary: "Updated", forModel: "Daily calories updated." }; },
+    },
     save_kitchen_rules: {
       kind: "approval",
-      prepare: async (c, args) => ((args.keep_out_add ?? []).length + (args.keep_out_remove ?? []).length + (args.pantry_add ?? []).length + (args.pantry_remove ?? []).length
-        ? { card: { kind: "rules", rows: [] } }
-        : { refused: "Nothing would change." }),
+      prepare: async (c, args) => {
+        const lists = ["keep_out_add", "keep_out_remove", "pantry_add", "pantry_remove", "refuse_brands_add", "prefer_brands_add", "brands_remove"].reduce((n, k) => n + (args[k] ?? []).length, 0);
+        const settings = ["waste", "repeat", "processing_ceiling", "shelf_stable_only", "cuisine"].some((k) => args[k] !== null && args[k] !== undefined) || (args.priorities ?? []).length > 0;
+        return lists || settings ? { card: { kind: "rules", rows: [] } } : { refused: "Nothing would change." };
+      },
       execute: async (c, args) => { world.rules = args; return { ok: true, summary: "Saved", forModel: "Saved the kitchen rules." }; },
     },
     log_weigh_in: {
@@ -140,7 +168,13 @@ export function simulated(start = {}) {
     },
     ask_shopper: {
       kind: "ask",
-      card: (c, { topic }) => ({ card: { kind: "ask", questions: [{ id: topic, header: topic, kind: "single", options: [{ key: "a", label: "7 days" }, { key: "b", label: "No budget" }] }] } }),
+      card: (c, { topic, about }) => {
+        world.askedTopics = [...(world.askedTopics ?? []), topic];
+        const held = world.saved.find((p) => norm(p.label) === norm(about ?? ""));
+        if (topic === "details") return held ? { card: detailsCardFor({ ...held, age_band: held.age_band ?? "adult_19_59" }, { saved: true, fields: ["age_years", "weight_kg"] }) } : { refused: "about must be a saved person's label." };
+        if (topic === "age" || topic === "diet") return held ? { card: askCardFor([{ kind: topic, person: held.label }], { draft: { members: [held] } }) } : { refused: "about must be a saved person's label." };
+        return { card: { kind: "ask", questions: [{ id: topic, header: topic, kind: "single", options: [{ key: "a", label: "7 days" }, { key: "b", label: "No budget" }] }] } };
+      },
     },
     finish: { kind: "end", run: async (c, { outcome }) => ({ ok: true, summary: "Done", forModel: "Finished.", end: true, outcome }) },
   };

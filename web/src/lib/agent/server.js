@@ -27,7 +27,23 @@ export function readPage(raw) {
     productId: typeof page.productId === "string" && page.productId.length <= 64 && /^[\w-]+$/.test(page.productId) ? page.productId : null,
     planId: typeof page.planId === "string" && UUID.test(page.planId) ? page.planId : null,
     cartCount: Number.isInteger(page.cartCount) && page.cartCount >= 0 ? Math.min(page.cartCount, 999) : 0,
+    week: readWeek(page.week),
   };
+}
+
+const SLOTS = ["breakfast", "lunch", "snack", "dinner", "drinks"];
+const clip = (s, n) => String(s ?? "").replace(/[<>]/g, "").slice(0, n);
+/**
+ * The week of dishes as the Plan page describes it: KOI's own dish names, per
+ * day and meal (lib/plan/schedule.js). Bounded, and never the shopper's text.
+ */
+function readWeek(raw) {
+  if (!Array.isArray(raw)) return null;
+  return raw.slice(0, 14).map((d) => ({
+    day: clip(d?.day, 12),
+    date: clip(d?.date, 10),
+    slots: Object.fromEntries(SLOTS.filter((s) => typeof d?.slots?.[s] === "string").map((s) => [s, clip(d.slots[s], 120)])),
+  })).filter((d) => d.day);
 }
 
 /**

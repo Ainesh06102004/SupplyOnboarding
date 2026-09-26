@@ -26,5 +26,5 @@ export function answerWords(card, answers) {
     parts.push(`${q.header}: ${picked.join(", ")}`);
     typed.push(picked.join(", "));
   }
-  return { forModel: parts.length ? `The shopper answered. ${parts.join("; ")}.` : "The shopper skipped the question.", typed };
+  return { forModel: parts.length ? `The shopper answered. ${parts.join("; ")}.` : "The shopper skipped the question. Don't ask it again; carry on without it or finish.", typed };
 }

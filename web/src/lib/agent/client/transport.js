@@ -21,7 +21,7 @@ export async function postSegment({ request, memory, page, signal, onEvent }) {
 const STEPS = ["define", "you", "plan", "pantry", "shop", "track"];
 
 /** Where the dock is: /store/plan?step=pantry → { route: "plan", step: "pantry" }. */
-export function pageFrom(pathname, searchParams, { planId = null, cartCount = 0 } = {}) {
+export function pageFrom(pathname, searchParams, { planId = null, cartCount = 0, week = null } = {}) {
   const path = String(pathname ?? "");
   const step = searchParams?.get?.("step");
   const product = path.match(/^\/store\/product\/([^/?#]+)/)?.[1] ?? null;
@@ -38,5 +38,7 @@ export function pageFrom(pathname, searchParams, { planId = null, cartCount = 0 
     productId: product ? decodeURIComponent(product) : null,
     planId,
     cartCount,
+    // The week's dishes, when the Plan page has built them: KOI's dish names only.
+    week: route === "plan" ? week : null,
   };
 }

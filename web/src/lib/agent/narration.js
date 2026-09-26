@@ -27,6 +27,7 @@ const FIGURE_WORDS = /\b(kcal|calories?|grams?|kg|kilos?|mg|percent|rupees?|rs)\
  * ("Yes — it's okay for your son") it drops them. Found live, 27 Sep.
  */
 const VERDICT = /\b(safe|unsafe|okay|ok|fine|suitable|allergy[- ]free|allergen[- ]free|nut[- ]free|can (?:eat|have)|good for|bad for|perfect for)\b|^\s*(yes|no)\b/i;
+const SCREEN = /\b(on (the |your )?(screen|page)|here(?:'|’)?s (the|your)|showing (you )?(the|your)|take a look|you can see|now showing|opened (it|the|your))\b/i;
 /** Words that talk about people KOI does not have. */
 const PERSON_WORDS = /\b(son|daughter|husband|wife|mother|father|mom|dad|mum|papa|mummy|grandma|grandpa|brother|sister|baby|kid|kids|child|children)\b/i;
 
@@ -48,6 +49,8 @@ export function checkSay(say, evidence, { enabled = process.env.KOI_AGENT_NARRAT
   if (words.some((w) => COUNTING.has(w) && !evidence.words.has(w))) return no("figure");
   if (!isClaimSafeText(text)) return no("claim");
   if (VERDICT.test(text)) return no("verdict");
+  // "It's on your screen" only when something was actually opened. (Live, 27 Sep: "the plan is on screen", and it wasn't.)
+  if (SCREEN.test(text) && !evidence.navigated) return no("screen");
   const lower = text.toLowerCase();
   if (MEDICAL_TERMS.some((t) => new RegExp(`\\b${String(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i").test(lower))) return no("medical");
   if (!foodsKnown(text, evidence)) return no("food");

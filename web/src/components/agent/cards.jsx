@@ -60,11 +60,21 @@ export function AskCard({ entry, active, onAnswer }) {
   const [picked, setPicked] = useState({});
   const [other, setOther] = useState({});
   const base = useId();
-  const complete = card.questions.every((q) => (q.kind === "text" ? (other[q.id] ?? "").trim() : picked[q.id]?.length || (other[q.id] ?? "").trim()));
+  const inRange = (q) => {
+    const n = Number(other[q.id]);
+    return (other[q.id] ?? "") !== "" && Number.isFinite(n) && n >= q.min && n <= q.max;
+  };
+  const answered = (q) => (q.kind === "number" ? inRange(q) : q.kind === "text" ? (other[q.id] ?? "").trim() : picked[q.id]?.length || (other[q.id] ?? "").trim());
+  // An optional card (a person's details) goes with whatever was answered; a required one needs every answer.
+  const complete = card.optional ? card.questions.some(answered) && card.questions.every((q) => q.kind !== "number" || (other[q.id] ?? "") === "" || inRange(q)) : card.questions.every(answered);
   const submit = () => {
     const answers = {};
     const summary = [];
     for (const q of card.questions) {
+      if (q.kind === "number") {
+        if (inRange(q)) { answers[q.id] = { value: Number(other[q.id]) }; summary.push(`${q.header} ${other[q.id]} ${q.unit}`); }
+        continue;
+      }
       const typed = (other[q.id] ?? "").trim();
       if (typed) { answers[q.id] = { other: typed }; summary.push(`${q.person ?? q.header}: ${typed}`); continue; }
       const keys = picked[q.id] ?? [];
@@ -83,7 +93,25 @@ export function AskCard({ entry, active, onAnswer }) {
       {card.questions.map((q) => (
         <fieldset key={q.id} className="ka-q" disabled={!active}>
           <legend>{q.question}</legend>
-          {q.kind === "text" ? (
+          {q.kind === "number" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                className="ka-other"
+                style={{ maxWidth: 140 }}
+                type="number"
+                inputMode="decimal"
+                min={q.min}
+                max={q.max}
+                step={q.step ?? 1}
+                value={other[q.id] ?? ""}
+                onChange={(e) => setOther((o) => ({ ...o, [q.id]: e.target.value.slice(0, 6) }))}
+                aria-label={`${q.question} (${q.unit})`}
+                aria-invalid={(other[q.id] ?? "") !== "" && !inRange(q)}
+              />
+              <span style={{ fontSize: 13, color: "#6b6f63" }}>{q.unit}</span>
+              {(other[q.id] ?? "") !== "" && !inRange(q) && <span style={{ fontSize: 12, color: "#b84535" }}>{q.min}–{q.max}</span>}
+            </div>
+          ) : q.kind === "text" ? (
             <textarea className="ka-other" rows={2} placeholder={q.placeholder ?? ""} value={other[q.id] ?? ""} onChange={(e) => setOther((o) => ({ ...o, [q.id]: e.target.value.slice(0, 200) }))} aria-label={q.question} />
           ) : (
             <>
@@ -123,8 +151,10 @@ export function AskCard({ entry, active, onAnswer }) {
           )}
         </fieldset>
       ))}
-      <div style={{ marginTop: 12 }}>
+      {card.note && <p style={{ margin: "10px 0 0", fontSize: 12, color: "#6b6f63" }}>{card.note}</p>}
+      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
         <button type="submit" className="ka-primary" disabled={!complete || !active}>Continue</button>
+        {card.optional && <button type="button" className="ka-secondary" disabled={!active} onClick={() => onAnswer({}, "Skipped")}>Skip</button>}
       </div>
     </form>
   );
@@ -153,8 +183,8 @@ export function ApprovalCard({ entry, active, onDecide }) {
     return (
       <div className="ka-card" style={{ fontSize: 13, color: "#6b6f63" }}>
         {entry.decided === "allow"
-          ? card.kind === "cart" ? `Added ${packs} ${packs === 1 ? "pack" : "packs"} to your cart.` : card.kind === "rules" ? "Saved." : `Saved ${card.people?.map((p) => p.label).join(", ")}.`
-          : card.kind === "cart" ? "Not added to the cart." : card.kind === "rules" ? "Not saved." : "Not saved. KOI keeps it to this week's plan."}
+          ? card.kind === "cart" ? `Added ${packs} ${packs === 1 ? "pack" : "packs"} to your cart.` : card.kind === "cart_edit" ? "Cart changed." : card.kind === "rules" ? "Saved." : `Saved ${card.people?.map((p) => p.label).join(", ")}.`
+          : card.kind === "cart" || card.kind === "cart_edit" ? "Cart left as it was." : card.kind === "rules" ? "Not saved." : "Not saved. KOI keeps it to this week's plan."}
       </div>
     );
   }
@@ -163,7 +193,7 @@ export function ApprovalCard({ entry, active, onDecide }) {
       <div className="ka-mono" style={{ color: "#c2683a", marginBottom: 6 }}>KOI needs your OK</div>
       <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>{card.title}</div>
       {card.kind === "save_people" && card.people.map((p, i) => <Person key={p.label} person={p} index={i} />)}
-      {card.kind === "rules" && (
+      {(card.kind === "rules" || card.kind === "cart_edit") && (
         <div style={{ margin: "2px 0 4px" }}>{card.rows.map((r, i) => <span key={i} className="ka-tag" data-tone={r.tone}>{r.text}</span>)}</div>
       )}
       {(card.kind === "save_people" || card.kind === "rules") && card.weakens && (
@@ -301,6 +331,58 @@ export function ResultCard({ data, onUndoRun, canUndoRun }) {
       <div className="ka-card">
         <div className="ka-mono" style={{ marginBottom: 6 }}>{`If you can't get ${data.name}`}</div>
         <p style={{ margin: 0, fontSize: 13 }}>KOI worked out what it would do instead. <Link href="/store/plan?step=plan" style={{ color: "#1f5c3a", fontWeight: 700 }}>See it on the plan</Link></p>
+      </div>
+    );
+  }
+  if (data.kind === "per_day") {
+    const UNIT = { kcal: "kcal", protein: "g protein", carbs: "g carbs", fat: "g fat" };
+    return (
+      <div className="ka-card">
+        <div className="ka-mono" style={{ marginBottom: 4 }}>A day of this plan, per person</div>
+        <p style={{ margin: "0 0 8px", fontSize: 12, color: "#6b6f63" }}>{`KOI plans ${data.days} days of food as a whole, so every day is the plan's daily average. Figures are from the labels.`}</p>
+        {data.people.map((p, i) => (
+          <div key={p.label} style={{ padding: "6px 0", borderTop: i ? "1px solid rgba(20,22,15,.06)" : "none" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{p.label}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
+              {p.rows.map((r) => (
+                <span key={r.nutrient} style={{ fontSize: 12.5 }}>
+                  <span style={{ fontFamily: "var(--ka-num)", fontWeight: 700 }}>{r.planned === null ? "—" : inr(r.planned)}</span>
+                  {r.asked !== null ? <span style={{ color: "#8c8c84" }}>{` / ${inr(r.asked)}`}</span> : null}
+                  {` ${UNIT[r.nutrient] ?? r.nutrient}`}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+        <p style={{ margin: "6px 0 0", fontSize: 11.5, color: "#8c8c84" }}>Planned / their target, a day.</p>
+      </div>
+    );
+  }
+  if (data.kind === "menu") {
+    const SLOT = { breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner", drinks: "Drinks" };
+    return (
+      <div className="ka-card">
+        <div className="ka-mono" style={{ marginBottom: 6 }}>{"The week's dishes"}</div>
+        {data.days.map((d) => (
+          <div key={`${d.day}${d.date}`} style={{ padding: "5px 0", borderTop: "1px solid rgba(20,22,15,.06)", fontSize: 12.5 }}>
+            <strong>{d.day}</strong>
+            {Object.entries(d.slots).map(([s, v]) => <div key={s} style={{ color: "#6b6f63" }}>{`${SLOT[s] ?? s}: ${v}`}</div>)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (data.kind === "basket") {
+    return (
+      <div className="ka-card">
+        <div className="ka-mono" style={{ marginBottom: 6 }}>{"What's in the plan"}</div>
+        {data.lines.map((l) => (
+          <div key={l.skuId} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "3px 0" }}>
+            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.name}</span>
+            <span style={{ fontFamily: "var(--ka-num)", fontWeight: 600, flex: "none" }}>{`× ${l.packs}`}</span>
+          </div>
+        ))}
+        <Link href="/store/plan?step=shop" className="ka-icon-btn" style={{ textDecoration: "none", color: "#1f5c3a", fontWeight: 700, display: "inline-block", marginTop: 6 }}>See the groceries</Link>
       </div>
     );
   }

@@ -28,7 +28,7 @@ import { readNdjson } from "@/lib/plan/stream";
 import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { avoidsFromWords } from "@/lib/plan/restrictions";
-import { buildWeek, productsFor } from "@/lib/plan/schedule";
+import { buildWeek, productsFor, alternativesFor } from "@/lib/plan/schedule";
 import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
 
 /** The shopper's own dish picks, kept in this browser, per household. */
@@ -510,7 +510,7 @@ export function usePlanSession() {
   // board, the request chips with their undo, and "Undo all of this".
   const agentRunRef = useRef(null);
   const latestRef = useRef({});
-  latestRef.current = { plan, compareTo, requests, picks, days, weekRootId, last, householdId, profiles, canUndoRun, undoRun };
+  latestRef.current = { plan, compareTo, requests, picks, days, weekRootId, last, householdId, profiles, canUndoRun, undoRun, week: null, eating: [], pickDishes: null, swapCells: null, clearPicks: null };
   const agentBridge = useMemo(() => {
     const bridge = {
       get planId() { return latestRef.current.plan?.planId ?? null; },
@@ -577,6 +577,73 @@ export function usePlanSession() {
         return p ? noteLines(p) : null;
       },
       undoRun: () => latestRef.current.undoRun(),
+      /** The week's dishes, by day and meal, in KOI's own dish names: what the agent may read. */
+      weekSummary() {
+        const w = latestRef.current.week;
+        if (!w) return null;
+        const labelOf = (id) => latestRef.current.profiles.find((p) => String(p.memberId) === String(id))?.label ?? "someone";
+        return w.days.map((d) => ({
+          day: d.label,
+          date: d.date,
+          slots: Object.fromEntries(w.slots.map((s) => {
+            const cell = w.cells[`${d.index}:${s}`];
+            const shared = cell?.shared?.dishes?.map((x) => x.name).join(" + ") ?? "";
+            const own = Object.entries(cell?.own ?? {}).map(([id, o]) => `${labelOf(id)}: ${o.dishes.map((x) => x.name).join(" + ")}`);
+            return [s, [shared, ...own.map((o) => `(${o})`)].filter(Boolean).join(" ") || "nothing planned"];
+          })),
+        }));
+      },
+      /** Change the week's dishes as the agent asked, with the page's own actions. */
+      menu({ action, slot = null, day = null, otherDay = null, person = null } = {}) {
+        const b = latestRef.current;
+        if (!b.plan || !b.week || !b.pickDishes) return { notReady: true };
+        const w = b.week;
+        const SHORT = { sun: "sun", mon: "mon", tue: "tue", wed: "wed", thu: "thu", fri: "fri", sat: "sat" };
+        const dayIndex = (d) => {
+          if (!d) return null;
+          if (d === "today") return 0;
+          if (d === "tomorrow") return w.days.length > 1 ? 1 : -1;
+          return w.days.find((x) => String(x.label).toLowerCase().startsWith(SHORT[d] ?? d))?.index ?? -1;
+        };
+        const dayName = (i) => w.days[i]?.label ?? `day ${i + 1}`;
+        if (action === "reset") {
+          b.clearPicks();
+          return { changed: 1, text: "The week's dishes are back to KOI's own picks." };
+        }
+        const slots = slot ? [slot] : w.slots;
+        if (action === "swap_days") {
+          const a = dayIndex(day);
+          const c = dayIndex(otherDay);
+          if (a < 0 || c < 0 || a === null || c === null) return { changed: 0, text: "Those days aren't in this plan's week." };
+          for (const s of slots) b.swapCells(`${a}:${s}`, `${c}:${s}`);
+          return { changed: slots.length, cells: slots.flatMap((s) => [`${a}:${s}`, `${c}:${s}`]), text: `Swapped ${dayName(a)} and ${dayName(c)}${slot ? ` (${slot})` : ""}.` };
+        }
+        // Reshuffle: each dish for another of its kind that everyone at that meal can have, none repeated.
+        const who = person ? b.profiles.find((p) => p.label?.toLowerCase() === String(person).toLowerCase()) : null;
+        const di = dayIndex(day);
+        if (di === -1) return { changed: 0, text: "That day isn't in this plan's week." };
+        const cells = Object.values(w.cells).filter((c) => slots.includes(c.slot) && (di === null || c.day === di) && c.shared && (!who || c.shared.eaters.includes(String(who.memberId))));
+        const used = new Set();
+        const changed = [];
+        let stuck = 0;
+        for (const cell of cells.sort((x, y) => x.day - y.day)) {
+          const alts = alternativesFor(cell, b.eating);
+          const next = cell.shared.dishes.map((d) => alts.find((a) => a.kind === d.kind && a.key !== d.key && !used.has(a.key)) ?? null);
+          if (next.every((n) => !n)) { stuck += 1; continue; }
+          const keys = cell.shared.dishes.map((d, i) => next[i]?.key ?? d.key);
+          keys.forEach((k) => used.add(k));
+          b.pickDishes(cell.key, keys);
+          changed.push({ key: cell.key, day: dayName(cell.day), to: cell.shared.dishes.map((d, i) => next[i]?.name ?? d.name).join(" + ") });
+        }
+        const what = slot ? ({ breakfast: "breakfasts", lunch: "lunches", snack: "snacks", dinner: "dinners", drinks: "drinks" }[slot]) : "meals";
+        if (!changed.length) return { changed: 0, text: `KOI found no other ${what} that everyone eating them can have from this basket.` };
+        const shared = who ? ` Meals are shared, so this is for everyone eating with ${who.label}.` : "";
+        return {
+          changed: changed.length,
+          cells: changed.map((c) => c.key),
+          text: `Reshuffled ${changed.length} ${what}: ${changed.slice(0, 4).map((c) => `${c.day} ${c.to}`).join(" · ")}${changed.length > 4 ? " …" : ""}.${stuck ? ` ${stuck} had nothing else everyone there can have.` : ""}${shared}`,
+        };
+      },
     };
     return bridge;
   }, [showPlan, load, saveNow]);
@@ -768,6 +835,8 @@ export function usePlanSession() {
     setPicks({});
     if (householdId) writePicks(householdId, {});
   }, [householdId]);
+  // The agent's bridge reaches the week of dishes through the same ref (defined above, filled here).
+  Object.assign(latestRef.current, { week, eating, pickDishes, swapCells, clearPicks });
 
   /** Packs of a line going to the cart: the plan's, unless the shopper changed it here. */
   const packsFor = useCallback((line) => (have.has(String(line.skuId)) ? 0 : qty[String(line.skuId)] ?? line.packs), [have, qty]);
