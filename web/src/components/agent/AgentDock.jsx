@@ -9,7 +9,8 @@
 // the page (a bottom sheet on phones), so the page stays the proof.
 // ============================================================================
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { upcomingFasts, dayLabel } from "@/lib/calendar/festivals";
 import dynamic from "next/dynamic";
 import { useAgent } from "./AgentProvider";
 import { TaskChecklist, ToolCard, AskCard, ApprovalCard, ResultCard } from "./cards";
@@ -38,6 +39,8 @@ export default function AgentDock() {
   const inputRef = useRef(null);
   const bodyRef = useRef(null);
   const state = agent?.state;
+  // A fasting festival within three weeks gets a suggestion of its own (lib/calendar/festivals.js).
+  const fasts = useMemo(() => upcomingFasts(), []);
   const running = state?.status === "running";
   const waiting = state?.status === "waiting";
 
@@ -138,7 +141,7 @@ export default function AgentDock() {
               <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 8 }}>
                 <p className="ka-say" style={{ margin: 0 }}>{"Tell me who's eating and what you need. I'll set up your household, plan the week and fill the cart, and I'll check with you before saving anything."}</p>
                 <div className="ka-chips">
-                  {["Plan this week for my family", "Make my last plan cheaper", "What can my son eat from here?"].map((s) => (
+                  {[...fasts.slice(0, 1).map((f) => `Plan ${f.name}${f.running ? "" : ` from ${dayLabel(f.start)}`} with someone fasting`), "Plan this week for my family", "Make my last plan cheaper", "What can my son eat from here?"].map((s) => (
                     <button key={s} type="button" className="ka-chip" onClick={() => agent.send(s)}>{s}</button>
                   ))}
                 </div>

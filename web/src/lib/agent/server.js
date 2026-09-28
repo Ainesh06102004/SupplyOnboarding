@@ -112,6 +112,6 @@ export function openaiModel() {
       maxOutputTokens: 900,
       signal,
     });
-    return { call: out.call, carry: out.carry, text: out.text, model: out.model };
+    return { call: out.call, carry: out.carry, text: out.text, model: out.model, usage: out.usage };
   };
 }

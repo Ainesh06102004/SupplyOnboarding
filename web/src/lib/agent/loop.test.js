@@ -6,6 +6,7 @@ import { runSegment, newMemory, tasksFor } from "@/lib/agent/loop.js";
 import { rulesModel } from "@/lib/agent/rulesModel.js";
 import { gapsFor, askCardFor, applyAnswers, bandForAge, detailsCardFor, detailsFrom } from "@/lib/agent/readiness.js";
 import { asksForParticularProducts } from "@/lib/agent/cartWords.js";
+import { upcomingFasts, festivalNamed } from "@/lib/calendar/festivals.js";
 import { sealMemory, openMemory } from "@/lib/agent/sign.js";
 import { checkSay } from "@/lib/agent/narration.js";
 import { evidenceFrom, isQuote } from "@/lib/agent/evidence.js";
@@ -249,6 +250,15 @@ test("age groups said in words, and a person's details from the details card", (
   const { fields } = detailsFrom(card, { "age_years:Wife": { value: 34 }, "weight_kg:Wife": { value: 58.25 }, "height_cm:Wife": { value: 20 }, "sex:Wife": { option: "female" } });
   assert.deepEqual(fields, { age_years: 34, weight_kg: 58.3, sex: "female" }, "out of range is dropped, never clamped");
   assert.deepEqual(detailsCardFor({ label: "Son", age_band: "child_7_9" }).questions, [], "no body details for a child");
+});
+
+test("fasting festivals: only published dates, named and upcoming", () => {
+  const sep28 = new Date("2026-09-28T10:00:00+05:30");
+  assert.deepEqual(upcomingFasts(sep28).map((f) => [f.name, f.inDays]), [["Navratri", 13]]);
+  assert.equal(upcomingFasts(new Date("2026-10-15T10:00:00+05:30"))[0].running, true, "running during it");
+  assert.equal(festivalNamed("plan navratri for us, mom is fasting", sep28).days, 9);
+  assert.equal(festivalNamed("plan the week", sep28), null);
+  assert.match(digestFor({ saved: [{ label: "Me" }], page: {}, today: sep28 }), /Navratri Sun, 11 Oct–Mon, 19 Oct \(9 days\)/);
 });
 
 test("the digest names people and gaps, never what they eat or avoid", () => {

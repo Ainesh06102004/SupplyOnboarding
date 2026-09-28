@@ -25,11 +25,14 @@ import { rulesModel } from "@/lib/agent/rulesModel";
 import { TOOLS } from "@/lib/agent/tools";
 import { loadContext, openaiModel, readPage } from "@/lib/agent/server";
 import { sealMemory, openMemory } from "@/lib/agent/sign";
+import { alert } from "@/lib/ops/alert";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_MESSAGE = 600;
+/** Segments a household may run in 24 hours (about ₹2 each on gpt-5.4-mini). */
+const DAILY_CAP = Math.max(1, Number(process.env.KOI_AGENT_DAILY_CAP) || 80);
 const MAX_BODY = 400_000;
 const PADDING = " ".repeat(1024);
 const bad = (error, status = 400) => NextResponse.json({ error }, { status });
@@ -98,9 +101,26 @@ export async function POST(request) {
       };
       emit({ type: "hello", pad: PADDING });
       let ctx = null;
+      let db = null;
+      const started = Date.now();
+      // One row per segment, success or not: tools, counts, cost; never words.
+      const log = async (row) => {
+        if (!ctx?.household?.id) return;
+        const { error: logError } = await db.from("plan_run").insert({ household_id: ctx.household.id, route: page.route, ms: Date.now() - started, ...row });
+        if (logError) console.error("[agent] log", logError.message);
+      };
       try {
-        const db = await getServerSupabase();
+        db = await getServerSupabase();
         ctx = await loadContext({ db, uid: user.uid, page, emit, signal: stop.signal });
+        // The daily cap: a person, not a script, and a bill with a ceiling.
+        if (ctx.household?.id) {
+          const since = new Date(Date.now() - 86_400_000).toISOString();
+          const { count } = await db.from("plan_run").select("id", { count: "exact", head: true }).eq("household_id", ctx.household.id).in("source", ["agent", "agent_rules"]).gte("created_at", since);
+          if ((count ?? 0) >= DAILY_CAP) {
+            emit({ type: "error", error: "That's KOI's limit for today. Your plan and cart are all still here; KOI will be back tomorrow." });
+            return;
+          }
+        }
         ctx.checkpoint = (m) => emit({ type: "memory", sealed: sealMemory(m, user.uid), checkpoint: true });
         const result = await runSegment({
           memory,
@@ -112,10 +132,13 @@ export async function POST(request) {
           newRunKey: randomUUID,
         });
         emit({ type: "memory", sealed: sealMemory(result.memory, user.uid) });
-        if (ctx.household?.id && (result.steps.length || result.asks || result.approvals.length)) {
-          const { error: logError } = await db.from("plan_run").insert({
-            household_id: ctx.household.id,
+        // The model not answering (the rules took over) is worth knowing about quickly.
+        if (result.modelFailed) await alert("agent_model", "Agent Mode fell back to KOI's rules: the model isn't answering (rate limit or outage?).");
+        if (result.steps.length || result.asks || result.approvals.length) {
+          await log({
             source: result.source === "agent_rules" ? "agent_rules" : "agent",
+            tokens_in: result.tokens?.in ?? 0,
+            tokens_out: result.tokens?.out ?? 0,
             steps: result.steps.slice(0, 24),
             plan_id: result.memory.planId ?? null,
             run_key: /^[0-9a-f-]{36}$/i.test(result.memory.runKey ?? "") ? result.memory.runKey : null,
@@ -125,13 +148,13 @@ export async function POST(request) {
             approvals: result.approvals,
             outcome: result.outcome ?? "done",
             model: result.model ? String(result.model).slice(0, 64) : null,
-            route: page.route,
           });
-          if (logError) console.error("[agent] log", logError.message);
         }
       } catch (err) {
         console.error("[agent]", err?.message ?? "failed");
         emit({ type: "error", error: "KOI couldn't finish that. What it finished is kept." });
+        await log({ source: "agent", steps: [], outcome: "error" }).catch(() => {});
+        await alert("agent_error", `An Agent Mode segment failed: ${String(err?.message ?? "unknown").slice(0, 160)}`);
       } finally {
         if (open) controller.close();
       }

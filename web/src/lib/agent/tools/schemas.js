@@ -66,8 +66,8 @@ export const TOOL_SCHEMAS = Object.freeze([
   },
   {
     name: "make_plan",
-    description: "Make a new week's plan for the saved household with KOI's planner. Reads days, budget, who and stated targets from the shopper's words. days and budget: only numbers the shopper gave, else null.",
-    parameters: strictObject({ quote, days: { type: ["integer", "null"] }, budget: nullableNumber(), say }),
+    description: "Make a new week's plan for the saved household with KOI's planner. Reads days, budget, who and stated targets from the shopper's words. days and budget: only numbers the shopper gave, else null. fasting: labels of people fasting for this plan (Navratri, a vrat), only if the shopper said so; naming a festival KOI knows (Navratri) sets the plan to its days.",
+    parameters: strictObject({ quote, days: { type: ["integer", "null"] }, budget: nullableNumber(), fasting: { type: "array", items: { type: "string" } }, say }),
   },
   {
     name: "change_plan",

@@ -118,6 +118,9 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
   let modelName = null;
   let outcome = null;
   let lastFp = null;
+  // What this segment cost the model, for the cap and /staff/agent (00083).
+  const tokens = { in: 0, out: 0 };
+  let modelFailed = false;
 
   // Whether this segment actually moved the page: KOI may only say "it's on your screen" if so.
   let navigated = false;
@@ -292,10 +295,13 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
         try {
           picked = await model({ memory, state, signal: ctx.signal });
           modelName = picked.model ?? modelName;
+          tokens.in += Number(picked.usage?.input_tokens) || 0;
+          tokens.out += Number(picked.usage?.output_tokens) || 0;
         } catch (err) {
           if (ctx.signal?.aborted) { outcome = "stopped"; break; }
           console.error("[agent] model", err?.message ?? "failed");
           useRules = true;
+          modelFailed = true;
           emit({ type: "notice", text: "KOI's AI didn't answer, so KOI's rules are finishing this.", tone: "info" });
         }
       }
@@ -374,7 +380,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
     emit({ type: "tasks", items: tasksFor(memory, { finished: true }) });
     emit({ type: "run_finished", outcome, planId: memory.planId, created: memory.created });
   }
-  return { memory: outcome === "needs_shopper" || outcome === "paused" ? memory : settle(memory, caps), outcome, steps, turns, asks, approvals, model: modelName, source: memory.source };
+  return { memory: outcome === "needs_shopper" || outcome === "paused" ? memory : settle(memory, caps), outcome, steps, turns, asks, approvals, model: modelName, source: memory.source, tokens, modelFailed };
 }
 
 /** A finished run keeps its words and results, not the model's encrypted reasoning, and not more than it needs. */

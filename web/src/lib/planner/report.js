@@ -255,6 +255,8 @@ export function planReport({ members = [], catalogue = [], solution = {}, days =
       id: member.id,
       label: member.label ?? null,
       goal: { energyGoal: member.energyGoal ?? "maintain", eatingPattern: member.eatingPattern ?? "balanced" },
+      // The diet this plan used for them (a fasting week, say), so the week's dishes follow it.
+      diet: member.dietType ?? null,
       asked,
       achieved,
       shortfall,

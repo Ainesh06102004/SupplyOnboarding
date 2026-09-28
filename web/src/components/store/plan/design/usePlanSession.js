@@ -777,8 +777,14 @@ export function usePlanSession() {
   // The week of dishes over the basket (lib/plan/schedule.js): the people in
   // this plan, their own picks on top.
   const eating = useMemo(() => {
-    const ids = new Set((plan?.report?.perMember ?? []).map((m) => String(m.id)));
-    return profiles.filter((p) => p.memberId && ids.has(String(p.memberId)));
+    const perMember = new Map((plan?.report?.perMember ?? []).map((m) => [String(m.id), m]));
+    // A diet chosen for this plan alone (a Navratri fast) shapes this week's dishes, not the profile.
+    return profiles
+      .filter((p) => p.memberId && perMember.has(String(p.memberId)))
+      .map((p) => {
+        const diet = perMember.get(String(p.memberId))?.diet;
+        return diet && diet !== p.diet_type ? { ...p, diet_type: diet } : p;
+      });
   }, [plan?.report?.perMember, profiles]);
   const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat }) : null), [plan, lines, eating, picks, repeat]);
 

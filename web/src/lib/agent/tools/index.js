@@ -36,6 +36,7 @@ import { swapsFor } from "@/lib/food/swaps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { noteLines } from "@/lib/plan/planView";
 import { trackRead } from "@/lib/plan/track";
+import { festivalNamed, FAST_WORDS } from "@/lib/calendar/festivals";
 import { blankProfile, memberPayload, profileProblems, SEVERITIES } from "@/lib/household/profile";
 import { mergeAvoids, applyProfileSet, withSuggestedTargets, weakens } from "@/lib/household/save";
 import { ASKS_CART } from "../router";
@@ -390,7 +391,7 @@ function planOutcome(result) {
   return `within budget: ${r.withinBudget === false ? "no" : r.withinBudget ? "yes" : "no budget set"}; short of a target: ${short.join(", ") || "nobody"}${materiallyShort(r) ? " (see the explanation)" : ""}`;
 }
 
-async function makePlan(ctx, { quote, days, budget }, callId) {
+async function makePlan(ctx, { quote, days, budget, fasting = [] }, callId) {
   if (!ctx.saved.length) return refuse("Nobody is saved yet. draft_people, then save_people source=draft, then make_plan.");
   if (ctx.memory.draft?.members?.length) return refuse(`${joinLabels(ctx.memory.draft.members.map((m) => m.label))} are drafted but not saved. Call save_people source=draft first (or plan without them if the shopper declined).`);
   const w = wordsFor(ctx, quote);
@@ -399,9 +400,21 @@ async function makePlan(ctx, { quote, days, budget }, callId) {
   if (days !== null && days !== undefined && !ev.numbers.has(Number(days))) return refuse(`The shopper didn't say ${days} days. Pass days=null.`);
   if (budget !== null && budget !== undefined && !ev.numbers.has(Number(budget))) return refuse(`The shopper didn't give a budget of ${budget}. Pass budget=null.`);
   const args = planArgs(w.text, ctx.savedRows, { days: 7, budget: null, memberIds: null, thisWeek: {} });
+  // A fast for this plan only (lib/calendar/festivals.js): only people the shopper said are fasting.
+  const festival = festivalNamed(ev.saidText);
+  if ((fasting ?? []).length) {
+    if (!FAST_WORDS.test(norm(ev.saidText)) && !festival) return refuse("The shopper didn't say anyone is fasting. Pass fasting=[].");
+    for (const label of fasting) {
+      const row = ctx.savedRows.find((r) => norm(r.label) === norm(label));
+      if (!row) return refuse(`${label} isn't a saved person.`);
+      const was = args.thisWeek[String(row.id)] ?? { dietType: null, prefer: [], skip: [], targets: {} };
+      args.thisWeek[String(row.id)] = { ...was, dietType: "fasting" };
+    }
+  }
+  const festivalDays = festival && days == null && !numbersOf(w.text).length ? festival.days : null;
   const result = await planForHousehold({
     householdId: ctx.household.id,
-    days: days ?? args.days ?? 7,
+    days: days ?? festivalDays ?? args.days ?? 7,
     budget: budget ?? args.budget ?? null,
     memberIds: args.memberIds,
     thisWeek: args.thisWeek,
