@@ -40,6 +40,43 @@ function settings(requested) {
   return { key, model };
 }
 
+/** The chat-completions body for one question about one image. Shared by live calls and the Batch API. */
+export function imageRequestBody({ model, system, prompt, imageBase64, mimeType, detail, schemaName, schema }) {
+  return {
+    model,
+    store: false,
+    messages: [
+      { role: "system", content: system },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail } },
+        ],
+      },
+    ],
+    response_format: { type: "json_schema", json_schema: { name: schemaName, strict: true, schema } },
+  };
+}
+
+/** A label transcription request, exactly as readLabel sends it (for OpenAI's Batch API: half the price, within 24 h). */
+export const labelRequestBody = ({ imageBase64, mimeType, model }) => imageRequestBody({
+  model, imageBase64, mimeType, system: LABEL_INSTRUCTIONS, prompt: "Transcribe this label.", detail: "high", schemaName: "label_reading", schema: LABEL_JSON_SCHEMA,
+});
+
+/** A chat-completions reply → { json, model, usage }. Throws on a refusal or non-JSON. */
+export function parseImageReply(body, requestedModel = null) {
+  const message = body?.choices?.[0]?.message;
+  if (message?.refusal) throw new Error(`The model declined to read this image: ${message.refusal}`);
+  let json;
+  try {
+    json = JSON.parse(message?.content ?? "");
+  } catch {
+    throw new Error("The model's reply was not JSON.");
+  }
+  return { json, model: body?.model || requestedModel, usage: body?.usage ?? null };
+}
+
 async function askAboutImage({ model: requested, system, prompt, imageBase64, mimeType, detail, schemaName, schema, timeoutMs }) {
   const { key, model } = settings(requested);
   const started = Date.now();
@@ -47,21 +84,7 @@ async function askAboutImage({ model: requested, system, prompt, imageBase64, mi
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     signal: AbortSignal.timeout(timeoutMs),
-    body: JSON.stringify({
-      model,
-      store: false,
-      messages: [
-        { role: "system", content: system },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail } },
-          ],
-        },
-      ],
-      response_format: { type: "json_schema", json_schema: { name: schemaName, strict: true, schema } },
-    }),
+    body: JSON.stringify(imageRequestBody({ model, system, prompt, imageBase64, mimeType, detail, schemaName, schema })),
   });
 
   if (!res.ok) {
