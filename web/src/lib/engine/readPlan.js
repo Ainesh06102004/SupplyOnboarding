@@ -40,7 +40,34 @@ export function costOf(usage, model, { batch = false } = {}) {
   return batch ? usd * BATCH_DISCOUNT : usd;
 }
 
-const PANEL = new Set(["label", "nutrition", "ingredients"]);
+export const PANEL = new Set(["label", "nutrition", "ingredients"]);
+
+/** What a sorted photo is, from what the sorting model saw (lib/engine/providers/openai.js panelsFrom). */
+export const kindFromPanels = (s) =>
+  s.nutrition_table && (s.ingredient_list || s.allergen_statement) ? "label"
+  : s.nutrition_table ? "nutrition"
+  : s.ingredient_list || s.allergen_statement ? "ingredients"
+  : s.printed_product_name ? "front"
+  : "other";
+
+/**
+ * How a new sorting model compares with the kinds already stored. What matters
+ * most is panel recall: a label photo sorted as "front" is never read.
+ * @param {Array<{ was: string, now: string }>} pairs
+ */
+export function sortingAgreement(pairs) {
+  const n = pairs.length;
+  const panels = pairs.filter((p) => PANEL.has(p.was));
+  const flagged = pairs.filter((p) => PANEL.has(p.now));
+  const pct = (a, b) => (b ? Math.round((1000 * a) / b) / 10 : null);
+  return {
+    photos: n,
+    sameKind: pct(pairs.filter((p) => p.was === p.now).length, n),
+    panelRecall: pct(panels.filter((p) => PANEL.has(p.now)).length, panels.length),
+    panelPrecision: pct(flagged.filter((p) => PANEL.has(p.was)).length, flagged.length),
+    missedPanels: panels.filter((p) => !PANEL.has(p.now)).length,
+  };
+}
 const area = (i) => (Number(i.width) || 0) * (Number(i.height) || 0);
 
 /**

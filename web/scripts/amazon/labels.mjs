@@ -4,7 +4,7 @@
 //       counts and a cost estimate; calls no model
 //   … labels.mjs                 read now (live API)
 //   … labels.mjs --batch         submit the reads to OpenAI's Batch API (half price, back within 24 h)
-//   … labels.mjs --collect <id>  fetch a finished batch and store the readings
+//   … labels.mjs --collect [<id>] store the readings from finished batches (all pending, or one)
 // Add --limit N to any of them.
 //
 // Same rule as KOI's label engine: two independent readings, only what both
@@ -13,12 +13,13 @@
 // API; and for a nutrition-only photo whose barcode is in Open Food Facts, one
 // model reading checked against Open Food Facts instead of a second model.
 // Readings stay in amazon_products.label_reading, with their usage and cost.
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import * as cache from "./cache.mjs";
 import { pool, withRateLimit } from "./oxylabs.mjs";
 import { selectAll, upsert } from "./db.mjs";
+import { submitInBatches, pendingBatches, fetchReplies, markCollected } from "./batch.mjs";
 
 const { readLabel, labelRequestBody, parseImageReply } = await import("../../src/lib/engine/providers/openai.js");
 const { LabelReading } = await import("../../src/lib/engine/labelSchema.js");
@@ -32,7 +33,7 @@ const LIMIT = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1
 const MODEL = process.env.KOI_LABEL_MODEL;
 const VERIFIER = process.env.KOI_LABEL_VERIFIER_MODEL;
 if (!MODEL || !VERIFIER) throw new Error("KOI_LABEL_MODEL and KOI_LABEL_VERIFIER_MODEL must be set");
-const BATCH_DIR = join(cache.CACHE, "batches");
+const JOB = "koi-amazon-labels";
 
 // ── What still needs reading ─────────────────────────────────────────────────
 async function workList() {
@@ -156,9 +157,6 @@ if (MODE === "plan") {
   process.exit(0);
 }
 
-const OAI = "https://api.openai.com/v1";
-const auth = { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` };
-
 if (MODE === "live") {
   let count = 0, agreed = 0, spent = 0;
   console.log(`labels: ${plan.length} photos to read (${plan.filter((p) => p.offCheck).length} checked against Open Food Facts)`);
@@ -177,55 +175,35 @@ if (MODE === "live") {
 }
 
 if (MODE === "batch") {
-  // One JSONL line per request; custom_id says which photo and which reader.
-  mkdirSync(BATCH_DIR, { recursive: true });
-  const lines = [];
-  for (const p of plan) {
+  // Both readings of a photo travel in the same batch; custom_id says which photo and which reader.
+  const ids = await submitInBatches(JOB, plan, async (p) => {
     const img = await photoPayload(p);
-    lines.push(JSON.stringify({ custom_id: `${p.sha256}|first`, method: "POST", url: "/v1/chat/completions", body: labelRequestBody({ ...img, model: MODEL }) }));
-    if (!p.offCheck) lines.push(JSON.stringify({ custom_id: `${p.sha256}|second`, method: "POST", url: "/v1/chat/completions", body: labelRequestBody({ ...img, model: VERIFIER }) }));
-  }
-  const form = new FormData();
-  form.append("purpose", "batch");
-  form.append("file", new Blob([lines.join("\n")], { type: "application/jsonl" }), "labels.jsonl");
-  const file = await (await fetch(`${OAI}/files`, { method: "POST", headers: auth, body: form })).json();
-  if (!file.id) throw new Error(`upload failed: ${JSON.stringify(file).slice(0, 300)}`);
-  const batch = await (await fetch(`${OAI}/batches`, {
-    method: "POST", headers: { ...auth, "Content-Type": "application/json" },
-    body: JSON.stringify({ input_file_id: file.id, endpoint: "/v1/chat/completions", completion_window: "24h", metadata: { job: "koi-amazon-labels" } }),
-  })).json();
-  if (!batch.id) throw new Error(`batch failed: ${JSON.stringify(batch).slice(0, 300)}`);
-  // What each photo is, for --collect (the batch only knows custom ids).
-  writeFileSync(join(BATCH_DIR, `${batch.id}.json`), JSON.stringify(plan.map((p) => ({ sha256: p.sha256, offCheck: p.offCheck, rows: rowsBySha.get(p.sha256) ?? [p.image] }))));
-  console.log(`batch ${batch.id}: ${lines.length} requests for ${plan.length} photos. Collect with --collect ${batch.id}`);
+    const requests = [{ custom_id: `${p.sha256}|first`, body: labelRequestBody({ ...img, model: MODEL }) }];
+    if (!p.offCheck) requests.push({ custom_id: `${p.sha256}|second`, body: labelRequestBody({ ...img, model: VERIFIER }) });
+    return { requests, entry: { sha256: p.sha256, offCheck: p.offCheck, rows: rowsBySha.get(p.sha256) ?? [p.image] } };
+  });
+  console.log(`labels: ${plan.length} photos in ${ids.length} batch(es). Collect with --collect (all) or --collect <id>`);
 }
 
 if (MODE === "collect") {
   const id = args[args.indexOf("--collect") + 1];
-  const manifestFile = join(BATCH_DIR, `${id}.json`);
-  if (!id || !existsSync(manifestFile)) throw new Error("--collect needs a batch id this machine submitted");
-  const status = await (await fetch(`${OAI}/batches/${id}`, { headers: auth })).json();
-  if (status.status !== "completed") {
-    console.log(`batch ${id}: ${status.status} (${status.request_counts?.completed ?? 0}/${status.request_counts?.total ?? "?"} done)`);
-    process.exit(0);
-  }
-  const text = await (await fetch(`${OAI}/files/${status.output_file_id}/content`, { headers: auth })).text();
-  const replies = new Map();
-  for (const line of text.split("\n").filter(Boolean)) {
-    const r = JSON.parse(line);
-    if (r.response?.status_code === 200) {
-      try { replies.set(r.custom_id, parseImageReply(r.response.body)); } catch { /* a refusal or non-JSON stays unread */ }
+  for (const batch of pendingBatches(JOB, id && !id.startsWith("--") ? id : null)) {
+    const replies = await fetchReplies(batch);
+    if (!replies) continue;
+    const reply = (key) => {
+      try { return replies.has(key) ? parseImageReply(replies.get(key)) : null; } catch { return null; /* a refusal or non-JSON stays unread */ }
+    };
+    let agreed = 0, spent = 0, stored = 0;
+    for (const p of batch.entries) {
+      const x = reply(`${p.sha256}|first`);
+      const y = p.offCheck ? null : reply(`${p.sha256}|second`);
+      if (!x || (!p.offCheck && !y)) continue;
+      const result = judge(x, y, p.offCheck);
+      if (result.agreed) agreed++;
+      spent += await store(p.rows, x, y, result, { secondSource: y ? "model" : "off", batchId: batch.id });
+      stored++;
     }
+    markCollected(batch, { stored, agreed, cost_usd: Math.round(spent * 1e6) / 1e6 });
+    console.log(`  batch ${batch.id}: ${stored} photos stored, ${agreed} agreed, $${spent.toFixed(3)} at batch prices`);
   }
-  let agreed = 0, spent = 0, stored = 0;
-  for (const p of JSON.parse(readFileSync(manifestFile, "utf8"))) {
-    const x = replies.get(`${p.sha256}|first`);
-    const y = p.offCheck ? null : replies.get(`${p.sha256}|second`);
-    if (!x || (!p.offCheck && !y)) continue;
-    const result = judge(x, y, p.offCheck);
-    if (result.agreed) agreed++;
-    spent += await store(p.rows, x, y, result, { secondSource: y ? "model" : "off", batchId: id });
-    stored++;
-  }
-  console.log(`batch ${id}: ${stored} photos stored, ${agreed} agreed, $${spent.toFixed(3)} at batch prices`);
 }

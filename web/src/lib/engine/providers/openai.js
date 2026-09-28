@@ -10,7 +10,8 @@
 //   classifyImage  does an image from a brand's store listing carry an
 //                  ingredient list, allergen statement or nutrition table? At
 //                  low detail: it decides only whether reading is worthwhile
-//                  (lib/engine/recheck.js).
+//                  (lib/engine/recheck.js). KOI_CLASSIFY_MODEL may name a
+//                  cheaper model for this; empty means KOI_LABEL_MODEL.
 //
 // What leaves KOI: the image and fixed instructions. No product id, no brand,
 // no shopper, nothing from Swiggy. `store: false` asks OpenAI not to retain the
@@ -145,27 +146,35 @@ const PANELS_INSTRUCTIONS = [
   "Front-of-pack shots, lifestyle photos and marketing graphics without those panels are false. Do not guess what the back of a pack says.",
 ].join("\n");
 
-/**
- * @param {{ imageBase64: string, mimeType: string }} image
- * @returns {Promise<{ shows: { ingredient_list, allergen_statement, nutrition_table, printed_product_name }, model: string }>}
- */
-export async function classifyImage({ imageBase64, mimeType }) {
-  const { json, model } = await askAboutImage({
-    imageBase64, mimeType,
-    system: PANELS_INSTRUCTIONS,
-    prompt: "What does this image show?",
-    detail: "low",
-    schemaName: "image_panels",
-    schema: PANELS_SCHEMA,
-    timeoutMs: CLASSIFY_TIMEOUT_MS,
-  });
+const PANELS_QUESTION = Object.freeze({
+  system: PANELS_INSTRUCTIONS, prompt: "What does this image show?", detail: "low", schemaName: "image_panels", schema: PANELS_SCHEMA,
+});
+
+// Sorting only decides whether a photo is worth reading, so it may run on a
+// cheaper model than reading does (KOI_CLASSIFY_MODEL; empty → KOI_LABEL_MODEL).
+const classifyModel = (requested) => requested || process.env.KOI_CLASSIFY_MODEL || undefined;
+
+/** The sorting request, exactly as classifyImage sends it (for the Batch API). */
+export const classifyRequestBody = ({ imageBase64, mimeType, model }) =>
+  imageRequestBody({ model: classifyModel(model) || process.env.KOI_LABEL_MODEL, imageBase64, mimeType, ...PANELS_QUESTION });
+
+/** A sorting reply's JSON → what the image shows. */
+export function panelsFrom(json) {
   return {
-    model,
-    shows: {
-      ingredient_list: json?.ingredient_list === true,
-      allergen_statement: json?.allergen_statement === true,
-      nutrition_table: json?.nutrition_table === true,
-      printed_product_name: typeof json?.printed_product_name === "string" ? json.printed_product_name.slice(0, 200) : null,
-    },
+    ingredient_list: json?.ingredient_list === true,
+    allergen_statement: json?.allergen_statement === true,
+    nutrition_table: json?.nutrition_table === true,
+    printed_product_name: typeof json?.printed_product_name === "string" ? json.printed_product_name.slice(0, 200) : null,
   };
+}
+
+/**
+ * @param {{ imageBase64: string, mimeType: string, model?: string }} image
+ * @returns {Promise<{ shows: { ingredient_list, allergen_statement, nutrition_table, printed_product_name }, model: string, usage: object|null }>}
+ */
+export async function classifyImage({ imageBase64, mimeType, model: requested }) {
+  const { json, model, usage } = await askAboutImage({
+    model: classifyModel(requested), imageBase64, mimeType, ...PANELS_QUESTION, timeoutMs: CLASSIFY_TIMEOUT_MS,
+  });
+  return { model, usage, shows: panelsFrom(json) };
 }

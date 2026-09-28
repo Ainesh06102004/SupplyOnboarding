@@ -6,7 +6,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { costOf, photosToRead, offSecondOpinion, PRICES } from "@/lib/engine/readPlan.js";
+import { costOf, photosToRead, offSecondOpinion, PRICES, kindFromPanels, sortingAgreement } from "@/lib/engine/readPlan.js";
+
+test("a sorted photo's kind: both panels is a label, a name alone is a front", () => {
+  const s = (o) => ({ nutrition_table: false, ingredient_list: false, allergen_statement: false, printed_product_name: null, ...o });
+  assert.equal(kindFromPanels(s({ nutrition_table: true, ingredient_list: true })), "label");
+  assert.equal(kindFromPanels(s({ nutrition_table: true, allergen_statement: true })), "label");
+  assert.equal(kindFromPanels(s({ nutrition_table: true })), "nutrition");
+  assert.equal(kindFromPanels(s({ allergen_statement: true })), "ingredients");
+  assert.equal(kindFromPanels(s({ printed_product_name: "Bar" })), "front");
+  assert.equal(kindFromPanels(s({})), "other");
+});
+
+test("a new sorting model is judged mostly on the label photos it would miss", () => {
+  const r = sortingAgreement([
+    { was: "label", now: "label" }, { was: "nutrition", now: "label" }, { was: "ingredients", now: "front" },
+    { was: "front", now: "front" }, { was: "other", now: "nutrition" },
+  ]);
+  assert.deepEqual(r, { photos: 5, sameKind: 40, panelRecall: 66.7, panelPrecision: 66.7, missedPanels: 1 });
+});
 
 const img = (asin, sha, kind, w = 1000, h = 1000) => ({ id: `${asin}-${sha}`, asin, sha256: sha, kind, width: w, height: h });
 
