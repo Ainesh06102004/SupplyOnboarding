@@ -152,3 +152,13 @@ test("the model's schema offers only KOI's keys, strictly", () => {
   assert.deepEqual([...item.required].sort(), Object.keys(item.properties).sort());
   assert.deepEqual(item.properties.ageBand.enum, [...AGE_BAND_KEYS, null]);
 });
+
+test("an age set off by commas sticks to its person, and an in-law is one person", () => {
+  const { members } = draftFrom(readBrief("Add my mother, 67, vegetarian, no onion or garlic, and my father-in-law, 70, he's diabetic. I'm vegetarian."));
+  const by = Object.fromEntries(members.map((m) => [m.label, m.age_band]));
+  assert.equal(by.Mother, "senior_60_plus");
+  assert.equal(by["Father in law"], "senior_60_plus");
+  assert.ok(!members.some((m) => /^Parent/.test(m.label)));
+  // A count after a comma is still a count, not an age.
+  assert.equal(draftFrom(readBrief("me, 2 kids and my wife")).members.length, 4);
+});

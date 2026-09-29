@@ -32,6 +32,7 @@ import { extractFacts } from "@/lib/recommendation/productFacts";
 import { filterEligible } from "@/lib/recommendation/eligibilityFilter";
 import { unverifiedFor } from "@/lib/recommendation/verification";
 import { interpret, resolveIntent } from "@/lib/ai/intent";
+import { MEDICAL_TERMS } from "@/lib/ai/intent/deterministic";
 import { swapsFor } from "@/lib/food/swaps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { noteLines } from "@/lib/plan/planView";
@@ -151,14 +152,19 @@ async function draftPeople(ctx, { quote }) {
   // Blocking gaps first; then, once each, an adult's You-step details (skippable).
   const next = ctx.memory.draft ? nextAskFor(ctx.memory.draft, { savedCount: ctx.saved.length, asked: ctx.memory.detailsAsked ?? {} }) : null;
   if (next?.details) ctx.memory.detailsAsked = { ...(ctx.memory.detailsAsked ?? {}), [next.details]: true };
-  const notice = (read.unresolved ?? []).length
-    ? `KOI can't plan around a health condition, so it left out "${read.unresolved.join('", "')}".`
-    : null;
+  // The health notice names only health words the shopper wrote. What else the
+  // reader couldn't place (a saved person's allergy, a never-buy rule, what's
+  // at home) is not a health condition: it goes to the model to handle.
+  // (Live, 29 Sep: "serious peanut allergy" and "atta at home" were called health conditions.)
+  const said = ` ${norm(latest || w.text)} `;
+  const medical = MEDICAL_TERMS.filter((t) => said.includes(` ${t} `)).filter((t, _, all) => !all.some((o) => o !== t && o.includes(t)));
+  const notice = medical.length ? `KOI can't plan around a health condition, so it left out "${medical.join('", "')}".` : null;
+  const rest = (read.unresolved ?? []).filter((u) => !MEDICAL_TERMS.some((t) => norm(u).includes(t)));
   const labels = members.map((m) => m.label);
   return {
     ok: true,
     summary: labels.length ? `Drafted ${labels.length} ${labels.length === 1 ? "person" : "people"}: ${joinLabels(labels)}` : "Found no one new to add",
-    forModel: `Drafted, not saved: ${labels.join(", ") || "nobody new"}. Missing: ${gapWords(gaps)}.${next ? " KOI is asking the shopper now; wait for their answers." : labels.length ? " Next: save_people source=draft." : ""}`,
+    forModel: `Drafted, not saved: ${labels.join(", ") || "nobody new"}. Missing: ${gapWords(gaps)}.${next ? " KOI is asking the shopper now; wait for their answers." : labels.length ? " Next: save_people source=draft." : ""}${rest.length ? ` Not placed on anyone new: ${rest.join("; ")}. After saving, handle what the shopper asked for: save_people source=changes for a saved person, save_kitchen_rules for never-buy and at-home items.` : ""}`,
     notice,
     ask: next?.card ?? null,
     data: { kind: "draft", people: labels },

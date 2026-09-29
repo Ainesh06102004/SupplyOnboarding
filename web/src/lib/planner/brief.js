@@ -61,7 +61,8 @@ export const ROLES = Object.freeze({
   adult: { label: "Adult", plural: "adults?|grown ups?|grownups?", singular: "wife|husband|partner|spouse", ageBand: "adult_19_59" },
   senior: { label: "Senior", plural: "seniors?|grandparents?|grandmothers?|grandfathers?|grandmas?|grandpas?|elderly", singular: "grandmother|grandfather|grandma|grandpa|nani|dadi|nana|dada", ageBand: "senior_60_plus" },
   // A parent's age is not implied (a parent of a 25-year-old is not 60+): named, never guessed.
-  parent: { label: "Parent", plural: "parents|in[- ]laws", singular: "mother|father|mom|mum|dad|papa|mummy|amma|appa|saas|sasur", ageBand: null },
+  // "father in law" before "father", so an in-law is one person, not a father plus someone.
+  parent: { label: "Parent", plural: "parents|in[- ]laws", singular: "father in law|mother in law|mother|father|mom|mum|dad|papa|mummy|amma|appa|saas|sasur", ageBand: null },
   teen: { label: "Teen", plural: "teens?|teenagers?", singular: "teen|teenager", ageBand: null },
   child: { label: "Kid", plural: "kids?|children|child|sons?|daughters?|toddlers?|babies|baby", singular: "kid|child|son|daughter|toddler|baby", ageBand: null },
   person: { label: "Person", plural: "", singular: "", ageBand: null },
@@ -84,8 +85,11 @@ const DIET_WORDS = Object.freeze([
   ["vegetarian", /(?<!non )\bveg(etarian)?\b/],
 ]);
 
-/** An age written about someone: "aged 8", "8 years", "14 year old", "who is 6". Capture 1 or 2. */
-const AGE = String.raw`\b(?:aged?|age|who is|who s|is)\s*(\d{1,2})\b(?!\s*(?:g\b|gm|grams?|kcal|cal|days?|people))|\b(\d{1,2})\s*(?:years?|yrs?|y o|yo)\b`;
+/**
+ * An age written about someone: "aged 8", "8 years", "14 year old", "who is 6",
+ * "just turned 10", or set off by commas, "my mother, 67, vegetarian". Capture 1, 2 or 3.
+ */
+const AGE = String.raw`\b(?:aged?|age|who is|who s|is|turned|turns)\s*(\d{1,2})\b(?!\s*(?:g\b|gm|grams?|kcal|cal|days?|people))|\b(\d{1,2})\s*(?:years?|yrs?|y o|yo)\b|,\s*(\d{1,2})\s*(?=,|;|$|\band\b)`;
 
 /** The age band an age falls in, or null. */
 const bandForAge = (age) => AGE_BANDS.find((b) => age >= b.min && age <= b.max) ?? null;
@@ -162,7 +166,8 @@ export function budgetIn(text) {
  */
 function clausesOf(text) {
   return String(text ?? "")
-    .split(/[.;:()\n]|\s[-–—]\s|,(?!\d)/)
+    // A comma before an age set off by commas ("my mother, 67, vegetarian") keeps the age with its person.
+    .split(/[.;:()\n]|\s[-–—]\s|,(?!\d)(?!\s*\d{1,2}\s*(?:,|$))/)
     .flatMap((part) => normalise(part).split(/\band\b(?=\s+(?:\d|one|two|three|four|five|six|a|an|my|our|the|he|she|i)\b)/))
     .map((c) => c.trim())
     .filter(Boolean);
@@ -206,7 +211,7 @@ export function readBrief(message) {
     }
     here.push(...fresh);
     const age = clause.match(new RegExp(AGE));
-    const band = age ? bandForAge(Number(age[1] ?? age[2])) : null;
+    const band = age ? bandForAge(Number(age[1] ?? age[2] ?? age[3])) : null;
     if (band) here.forEach((g) => { g.ageBand = band.key; });
     groups.push(...fresh);
     return here;
@@ -354,7 +359,7 @@ export function groundModelDraft(raw, message) {
   if (draft.groups.reduce((sum, g) => sum + g.count, 0) > MAX_MEMBERS) return null;
 
   // Ages written in the message, read the same way readBrief reads them.
-  const ages = [...text.matchAll(new RegExp(AGE, "g"))].map((m) => Number(m[1] ?? m[2]));
+  const ages = [...text.matchAll(new RegExp(AGE, "g"))].map((m) => Number(m[1] ?? m[2] ?? m[3]));
   const bandAllowed = (band, role) => {
     if (!band) return false;
     if (band === ROLES[role]?.ageBand) return true;
