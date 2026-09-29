@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import { runSegment, newMemory, tasksFor } from "@/lib/agent/loop.js";
 import { rulesModel } from "@/lib/agent/rulesModel.js";
-import { gapsFor, askCardFor, applyAnswers, bandForAge, detailsCardFor, detailsFrom } from "@/lib/agent/readiness.js";
+import { gapsFor, askCardFor, applyAnswers, bandForAge, bandsNamed, detailsCardFor, detailsFrom } from "@/lib/agent/readiness.js";
 import { asksForParticularProducts } from "@/lib/agent/cartWords.js";
 import { upcomingFasts, festivalNamed } from "@/lib/calendar/festivals.js";
 import { sealMemory, openMemory } from "@/lib/agent/sign.js";
@@ -266,4 +266,12 @@ test("the digest names people and gaps, never what they eat or avoid", () => {
   assert.match(text, /Saved people: Me/);
   assert.match(text, /age group for Kid 1/);
   assert.doesNotMatch(text, /jain|peanut/i);
+});
+
+test("a message about several people states every age in it, not just the first", () => {
+  const bands = bandsNamed("Son just turned 10, wants 90 g protein. Add my mother, 67, and my father-in-law, 70.");
+  assert.ok(bands.has("child_10_12"));
+  assert.ok(bands.has("senior_60_plus"));
+  assert.ok(!bands.has("teen_13_15"));
+  assert.ok(bandsNamed("our toddler and a late teen").has("teen_16_18"));
 });

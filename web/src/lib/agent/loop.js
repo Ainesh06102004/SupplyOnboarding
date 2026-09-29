@@ -24,7 +24,15 @@ import { fingerprint } from "./sign";
 import { answerWords } from "./answers";
 import { routeMessage } from "./router";
 
-export const CAPS = Object.freeze({ turns: 10, tools: 16, ms: 40_000, segments: 4, refusalsBeforeRules: 2, items: 80 });
+// refusalsBeforeRules: a refusal tells the model what to fix, so it gets a few
+// tries before the rules take over (29 Sep: a five-person message lost its
+// household edits after two refused saves).
+export const CAPS = Object.freeze({ turns: 10, tools: 16, ms: 40_000, segments: 4, refusalsBeforeRules: 4, items: 80 });
+
+// Why a tool said no, in development only: refusals can quote labels and foods.
+const logRefusal = (tool, why) => {
+  if (process.env.NODE_ENV !== "production") console.warn("[agent] refused", tool, String(why ?? "").slice(0, 200));
+};
 
 /** A fresh conversation. */
 export function newMemory() {
@@ -331,6 +339,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
       if (tool.kind === "ask") {
         const built = tool.card(ctx, call.args);
         if (built.refused) {
+          logRefusal(call.name, built.refused);
           memory.items.push(output(call.callId, built.refused));
           refusals += 1;
         } else {
@@ -342,6 +351,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
           memory.items.push(output(call.callId, `Can't save yet: ${gapWords(prepared.gaps)} is missing. KOI is asking the shopper now.`));
           askNow(prepared.card, { origin: "gate" });
         } else if (prepared.refused) {
+          logRefusal(call.name, prepared.refused);
           memory.items.push(output(call.callId, prepared.refused));
           memory.turnCalls.push({ name: call.name, ok: false });
           steps.push({ tool: call.name, ok: false, ms: 0 });
@@ -357,7 +367,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
         memory.items.push(output(call.callId, result.forModel));
         // A whole call and its result: a safe point to hand the browser, should the shopper stop next.
         ctx.checkpoint?.(memory);
-        if (!result.ok) refusals += 1; else refusals = 0;
+        if (!result.ok) { refusals += 1; logRefusal(call.name, result.forModel); } else refusals = 0;
         if (result.ask) askNow(result.ask, { origin: "gate" });
         else if (result.end) {
           outcome = result.outcome === "cannot_do" ? "cannot_do" : result.outcome === "nothing_to_do" ? "nothing_to_do" : "done";

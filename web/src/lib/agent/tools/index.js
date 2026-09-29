@@ -43,7 +43,7 @@ import { ASKS_CART } from "../router";
 import { asksForParticularProducts } from "../cartWords";
 import { planArgs } from "../planArgs";
 import { isQuote, numbersOf, norm, wordsOf } from "../evidence";
-import { gapsFor, gapWords, askCardFor, bandForAge, nextAskFor, detailsCardFor, missingDetails } from "../readiness";
+import { gapsFor, gapWords, askCardFor, bandsNamed, nextAskFor, detailsCardFor, missingDetails } from "../readiness";
 import { fingerprint } from "../sign";
 
 const AVOID_BY_KEY = Object.fromEntries(FOODS_AVOID.map((a) => [a.key, a]));
@@ -174,7 +174,10 @@ const SEVERITY_WORDS = {
 };
 const GOAL_WORDS = { lose: /\b(lose|losing|cut|slim|weight down)\b/, gain: /\b(gain|bulk|build muscle|put on)\b/, maintain: /\b(maintain|stay the same|stay as|keep my weight|keep (his|her|their) weight)\b/ };
 const PATTERN_WORDS = { high_protein: /\b(high|more|extra) protein\b|\bprotein\b/, low_carb: /\blow[- ]?carbs?\b|\bless carbs?\b/, keto: /\bketo\b/, balanced: /\bbalanced\b|\bnormal\b/ };
-const SEX_WORDS = { female: /\b(female|woman|she|her)\b/, male: /\b(male|man|he|him|his)\b/, unspecified: /\b(prefer not|rather not say|not say)\b/ };
+// A relationship says it too: a message about "my wife" and "my mother" needn't say "she".
+const SEX_WORDS = {
+  female: /\b(female|woman|she|her|wife|mother|mom|mum|maa|daughter|sister|grandmother|grandma|nani|dadi|aunt|mother in law)\b/,
+  male: /\b(male|man|he|him|his|husband|father|dad|papa|son|brother|grandfather|grandpa|nana|dada|uncle|father in law)\b/, unspecified: /\b(prefer not|rather not say|not say)\b/ };
 const ACTIVITY_WORDS = {
   sedentary: /\b(sedentary|sits?|sitting|desk|not active|inactive)\b/,
   light: /\b(light|lightly|a few days|walks?|walking)\b/,
@@ -191,7 +194,8 @@ function unsupported(change, ev) {
   const named = new Set(avoidKeysNamed(said));
   for (const k of [...(change.add_avoids ?? []), ...(change.remove_avoids ?? [])]) if (!named.has(k)) out.push(`avoid ${k}`);
   // An age group from a number or from words ("middle teens"), or one of KOI's own options the shopper picked.
-  if (change.set_age_band && bandForAge(said) !== change.set_age_band && !said.includes(norm(labelOf(AGE_BANDS, change.set_age_band)))) out.push(`age group ${change.set_age_band}`);
+  // Any age in the message may be this person's: "son is 10, my mother 67" states two.
+  if (change.set_age_band && !bandsNamed(said).has(change.set_age_band) && !said.includes(norm(labelOf(AGE_BANDS, change.set_age_band)))) out.push(`age group ${change.set_age_band}`);
   if (change.set_goal && !GOAL_WORDS[change.set_goal]?.test(said)) out.push(`goal ${change.set_goal}`);
   if (change.set_pattern && !PATTERN_WORDS[change.set_pattern]?.test(said)) out.push(`eating pattern ${change.set_pattern}`);
   if (change.set_sex && !SEX_WORDS[change.set_sex]?.test(said)) out.push(`sex ${change.set_sex}`);

@@ -101,6 +101,21 @@ const BAND_WORDS = Object.freeze([
   ["adult_19_59", /\b(an adult|grown[- ]?up|adult now)\b/],
 ]);
 
+/**
+ * Every age group a message states, for a message about several people ("son
+ * is 10, my mother 67"): each number that could be an age, and age words.
+ */
+export function bandsNamed(text) {
+  const bands = new Set();
+  for (const n of numbersOf(text)) {
+    const band = n >= 1 && n <= 120 ? AGE_BANDS.find((b) => n >= b.min && n <= b.max)?.key : null;
+    if (band) bands.add(band);
+  }
+  const said = String(text ?? "").toLowerCase();
+  for (const [band, re] of BAND_WORDS) if (re.test(said)) bands.add(band);
+  return bands;
+}
+
 /** An age typed as a number ("8", "she's 8") or an age group in words → its age group. */
 export function bandForAge(text) {
   const n = numbersOf(text).find((x) => x >= 1 && x <= 120);
