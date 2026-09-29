@@ -63,14 +63,16 @@ function suppliersOf(line, basket) {
  * @param {object} [input.overrides] { "day:slot": { dishes: [dishKey, …] } } — the shopper's own picks
  * @param {"low"|"usual"|"high"} [input.repeat]
  * @param {Array} [input.dishes] defaults to dishData.js
+ * @param {Array} [input.atHome] plan.explanation.products_at_home: { skuId, name, categoryKey }
  */
-export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), overrides = {}, repeat = "usual", dishes = DISHES }) {
+export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [] }) {
   const d = Math.max(1, Math.min(14, Number(days) || 7));
-  // What the kitchen already has (report.products_at_home) is not bought but is
-  // cooked: it can be a dish's staple for anyone the dish itself suits (dishFor
-  // reads the recipe's allergens, so atta at home is no roti for a gluten intolerance).
+  // What the kitchen already has (plan.explanation.products_at_home) is not
+  // bought but is cooked: it can be a dish's staple for anyone the dish itself
+  // suits (dishFor reads the recipe's allergens, so atta at home is no roti for
+  // a gluten intolerance).
   const bought = new Set(lines.map((l) => String(l.skuId)));
-  const atHome = (report.products_at_home ?? [])
+  const atHome = (home ?? [])
     .filter((h) => !bought.has(String(h.skuId)))
     .map((h) => ({ ...h, skuId: String(h.skuId), atHome: true }));
   const basket = [...lines, ...atHome].map((l) => ({ ...l, skuId: String(l.skuId), ingredients: ingredientsIn(l.name) }));

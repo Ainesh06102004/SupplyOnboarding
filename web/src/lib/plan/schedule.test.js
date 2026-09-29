@@ -218,10 +218,10 @@ test("rice and dal at home still make lunch and dinner, though the plan doesn't 
   const bought = lines.filter((l) => !["rice", "moong"].includes(l.skuId));
   const r = {
     whoEatsWhat: report.whoEatsWhat.map((w) => ({ ...w, allowed: w.allowed.filter((a) => !["rice", "moong"].includes(a.skuId)) })),
-    products_at_home: lines.filter((l) => ["rice", "moong"].includes(l.skuId)),
   };
-  const without = buildWeek({ report: { whoEatsWhat: r.whoEatsWhat }, lines: bought, people, days: 3, start });
-  const withHome = buildWeek({ report: r, lines: bought, people, days: 3, start });
+  const atHome = lines.filter((l) => ["rice", "moong"].includes(l.skuId));
+  const without = buildWeek({ report: r, lines: bought, people, days: 3, start });
+  const withHome = buildWeek({ report: r, lines: bought, people, days: 3, start, atHome });
   const dinners = (w) => [0, 1, 2].filter((d) => w.cells[`${d}:dinner`].shared).length;
   assert.ok(dinners(withHome) > dinners(without));
   assert.equal(dinners(withHome), 3);

@@ -786,7 +786,7 @@ export function usePlanSession() {
         return diet && diet !== p.diet_type ? { ...p, diet_type: diet } : p;
       });
   }, [plan?.report?.perMember, profiles]);
-  const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat }) : null), [plan, lines, eating, picks, repeat]);
+  const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat, atHome: plan.explanation?.products_at_home ?? [] }) : null), [plan, lines, eating, picks, repeat]);
 
   /** Put these dishes in this cell (a swap from the menu). */
   const pickDishes = useCallback((cellKey, dishKeys) => setPicks((all) => {
