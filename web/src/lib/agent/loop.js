@@ -280,7 +280,9 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
       emitTasks();
     }
   }
-  memory.segment += 1;
+  // Only running out of time counts toward the cap: an answer or an Allow is the
+  // shopper's own step. (29 Sep: four approvals capped a run before its plan.)
+  if (request.kind !== "answer" && request.kind !== "decision") memory.segment += 1;
   if (memory.segment > caps.segments) {
     outcome = "capped";
     emit({ type: "run_finished", outcome, planId: memory.planId, created: memory.created });
