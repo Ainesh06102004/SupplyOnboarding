@@ -38,11 +38,11 @@ import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { noteLines } from "@/lib/plan/planView";
 import { trackRead } from "@/lib/plan/track";
 import { festivalNamed, FAST_WORDS } from "@/lib/calendar/festivals";
-import { blankProfile, memberPayload, profileProblems, SEVERITIES } from "@/lib/household/profile";
+import { blankProfile, memberPayload, profileProblems, profilesNamedIn, SEVERITIES } from "@/lib/household/profile";
 import { mergeAvoids, applyProfileSet, withSuggestedTargets, weakens } from "@/lib/household/save";
 import { ASKS_CART } from "../router";
 import { asksForParticularProducts } from "../cartWords";
-import { planArgs } from "../planArgs";
+import { planArgs, ME_AS_OBJECT } from "../planArgs";
 import { isQuote, numbersOf, norm, wordsOf } from "../evidence";
 import { gapsFor, gapWords, askCardFor, bandsNamed, nextAskFor, detailsCardFor, missingDetails } from "../readiness";
 import { fingerprint } from "../sign";
@@ -88,6 +88,11 @@ async function look(ctx, { what }) {
   if (what === "menu") {
     // The week's dishes are built in the browser; the page describes them (kinds and names only).
     const week = ctx.page.week;
+    // Mid-run the browser hasn't sent the dishes yet: once there is a plan, the
+    // Plan page shows them, so move on rather than ask again (29 Sep: two refusals ended the run).
+    if (!week?.length && currentPlanId(ctx)) {
+      return { ok: true, summary: "The dishes are on the Plan page", forModel: "The Plan page shows this week's dishes to the shopper (show target=plan_step step=plan if it isn't open). KOI can read them from the shopper's next message. Carry on with the rest of the request." };
+    }
     if (!week?.length) return refuse("KOI can only read the week's dishes on the Plan page. Call show target=plan_step step=plan first, then look what=menu.");
     return {
       ok: true,
@@ -156,7 +161,8 @@ async function draftPeople(ctx, { quote }) {
   // reader couldn't place (a saved person's allergy, a never-buy rule, what's
   // at home) is not a health condition: it goes to the model to handle.
   // (Live, 29 Sep: "serious peanut allergy" and "atta at home" were called health conditions.)
-  const said = ` ${norm(latest || w.text)} `;
+  // Bare words: "he's diabetic." ends in a full stop.
+  const said = ` ${wordsOf(latest || w.text).join(" ")} `;
   const medical = MEDICAL_TERMS.filter((t) => said.includes(` ${t} `)).filter((t, _, all) => !all.some((o) => o !== t && o.includes(t)));
   const notice = medical.length ? `KOI can't plan around a health condition, so it left out "${medical.join('", "')}".` : null;
   const rest = (read.unresolved ?? []).filter((u) => !MEDICAL_TERMS.some((t) => norm(u).includes(t)));
@@ -389,7 +395,17 @@ async function executeSave(ctx, args, prepared) {
   if (args.source === "draft") ctx.memory.draft = null;
   await ctx.reload();
   const labels = planned.people.map((p) => p.label);
-  return { ok: true, summary: `Saved ${joinLabels(labels)}`, forModel: `Saved to the household: ${labels.join(", ")}.`, ui: { householdChanged: true, highlight: { members: labels } } };
+  // New people saved from a message that also talks about people already saved
+  // ("add my mother … Son has a peanut allergy"): point the model back at them.
+  // (Live, 29 Sep: the model saved the new two and never changed Son or Wife.)
+  let also = "";
+  if (args.source === "draft") {
+    const latest = String(ctx.memory.said.at(-1) ?? "").replace(ME_AS_OBJECT, " ");
+    const others = profilesNamedIn(latest, ctx.saved.map((p) => ({ memberId: String(p.memberId), label: p.label, relation: p.relation ?? "" })))
+      .map((p) => p.label).filter((l) => !labels.some((x) => norm(x) === norm(l)));
+    if (others.length) also = ` The message also talks about ${others.join(", ")}, already saved: if it asks to change them (diet, age, a food to avoid, a target), call save_people source=changes for them next, before the plan.`;
+  }
+  return { ok: true, summary: `Saved ${joinLabels(labels)}`, forModel: `Saved to the household: ${labels.join(", ")}.${also}`, ui: { householdChanged: true, highlight: { members: labels } } };
 }
 
 // ── make_plan / change_plan ─────────────────────────────────────────────────
@@ -632,7 +648,7 @@ async function planRules(ctx, args) {
   if (unsaidBrand.length) return { refused: `The shopper didn't name the brand "${unsaidBrand.join('", "')}".` };
   const lc = (list) => (list ?? []).map((b) => String(b).trim()).filter(Boolean);
   const dropBrand = new Set(lc(args.brands_remove).map((b) => b.toLowerCase()));
-  const refused = [...new Set([...(row?.refused_brands ?? []).filter((b) => !dropBrand.has(b.toLowerCase())), ...lc(args.refuse_brands_add)])];
+  const refusedBrands = [...new Set([...(row?.refused_brands ?? []).filter((b) => !dropBrand.has(b.toLowerCase())), ...lc(args.refuse_brands_add)])];
   const preferred = [...new Set([...(row?.preferred_brands ?? []).filter((b) => !dropBrand.has(b.toLowerCase())), ...lc(args.prefer_brands_add)])];
   const settings = {};
   const set = (col, value, text, tone = "changed") => { if (value !== null && value !== undefined && value !== row?.[col]) settings[col] = { value, text, tone }; };
@@ -656,7 +672,7 @@ async function planRules(ctx, args) {
     ...Object.values(settings).map(({ text, tone }) => ({ text, tone })),
   ];
   if (!rows.length) return { refused: "Nothing would change." };
-  return { keepOut: [...keepOut], pantryAdd, pantryRemove, refused, preferred, settings: Object.fromEntries(Object.entries(settings).map(([k, v]) => [k, v.value])), rows };
+  return { keepOut: [...keepOut], pantryAdd, pantryRemove, refusedBrands, preferred, settings: Object.fromEntries(Object.entries(settings).map(([k, v]) => [k, v.value])), rows };
 }
 
 async function prepareRules(ctx, args) {
@@ -672,7 +688,7 @@ async function executeRules(ctx, args, prepared) {
   const planned = await planRules(ctx, args);
   if (planned.refused) return refuse(`Not saved: ${planned.refused}`);
   if (fingerprint(planned) !== prepared.fp) return refuse("The kitchen rules changed since the shopper saw the card. Nothing was saved; call save_kitchen_rules again.");
-  const { error } = await ctx.db.from("household").update({ keep_out: planned.keepOut, refused_brands: planned.refused, preferred_brands: planned.preferred, ...planned.settings }).eq("id", ctx.household.id);
+  const { error } = await ctx.db.from("household").update({ keep_out: planned.keepOut, refused_brands: planned.refusedBrands, preferred_brands: planned.preferred, ...planned.settings }).eq("id", ctx.household.id);
   if (error) throw error;
   for (const label of planned.pantryAdd) {
     const { error: e } = await ctx.db.from("household_pantry").insert({ household_id: ctx.household.id, label });

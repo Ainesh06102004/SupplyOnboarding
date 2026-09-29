@@ -275,3 +275,11 @@ test("a message about several people states every age in it, not just the first"
   assert.ok(!bands.has("teen_13_15"));
   assert.ok(bandsNamed("our toddler and a late teen").has("teen_16_18"));
 });
+
+test("'show me the dishes' doesn't make the plan Me's alone", async () => {
+  const { planArgs } = await import("@/lib/agent/planArgs.js");
+  const members = [{ id: 1, label: "Me" }, { id: 2, label: "Wife" }, { id: 3, label: "Son" }];
+  const d = { days: 7, budget: null, memberIds: null, thisWeek: {} };
+  assert.equal(planArgs("plan 5 days under Rs 4000, show me the dishes and put it in my cart", members, d).memberIds, null);
+  assert.deepEqual(planArgs("plan just for me and my wife", members, d).memberIds, ["1", "2"]);
+});

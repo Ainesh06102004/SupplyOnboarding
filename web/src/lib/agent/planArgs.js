@@ -16,11 +16,15 @@ export const EVERYONE = /\b(?:all of us|everyone|everybody|every one|whole (?:fa
  * @param {{ days, budget, memberIds, thisWeek }} defaults
  * @returns {{ days: number, budget: number|null, memberIds: string[]|null, thisWeek: object }}
  */
+/** "Show me the dishes", "give me a list": "me" as the one being shown, not the one being planned for. */
+export const ME_AS_OBJECT =/\b(?:show|tell|give|let|help|get|send|remind|find|bring|take|walk|ping|text|message)\s+me\b/gi;
+
 export function planArgs(text, members, defaults) {
   const asked = readFollowUp(text);
   const profiles = members.map((m) => ({ memberId: String(m.id), label: m.label, relation: m.relation ?? "" }));
   const everyone = EVERYONE.test(text);
-  const named = everyone ? [] : profilesNamedIn(text, profiles);
+  // (Live, 29 Sep: "plan 5 days … show me the dishes" planned for Me alone.)
+  const named = everyone ? [] : profilesNamedIn(String(text ?? "").replace(ME_AS_OBJECT, " "), profiles);
   const memberIds = named.length ? named.map((p) => p.memberId) : defaults.memberIds;
   const thisWeek = { ...(defaults.thisWeek ?? {}) };
   for (const t of asked.targets ?? []) {

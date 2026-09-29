@@ -262,6 +262,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
       if (result.summary) memory.produced.push(result.summary);
       reply(result.forModel);
       emit({ type: "tool_result", callId: pending.callId, tool: pending.tool, ok: Boolean(result.ok), summary: result.summary ?? null, data: result.data ?? null });
+      if (result.ok && pending.args?.say) sayIt(pending.args.say);
       if (result.ui) emit({ type: "ui", ...result.ui });
       if (result.ui?.navigate) navigated = true;
       emitTasks();
@@ -334,7 +335,9 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
         break;
       }
       lastFp = fp;
-      if (call.args?.say) sayIt(call.args.say);
+      // A save speaks once it is saved, a question once it is asked: said first,
+      // "I've saved your kitchen notes" stood over a refused save (29 Sep).
+      if (call.args?.say && tool.kind !== "approval" && tool.kind !== "ask") sayIt(call.args.say);
 
       if (tool.kind === "ask") {
         const built = tool.card(ctx, call.args);
@@ -343,6 +346,7 @@ export async function runSegment({ memory, request, ctx, tools, model, rules, no
           memory.items.push(output(call.callId, built.refused));
           refusals += 1;
         } else {
+          if (call.args?.say) sayIt(call.args.say);
           askNow(built.card, { origin: "model", callId: call.callId, tool: call.name });
         }
       } else if (tool.kind === "approval") {
