@@ -109,7 +109,9 @@ export function openaiModel() {
       instructions: AGENT_INSTRUCTIONS,
       input,
       tools: TOOL_SCHEMAS,
-      maxOutputTokens: 900,
+      // Reasoning counts against this. 900 ran out on a long, many-person
+      // message (29 Sep) and dropped the run to the rules; billing is per token used.
+      maxOutputTokens: 4000,
       signal,
     });
     return { call: out.call, carry: out.carry, text: out.text, model: out.model, usage: out.usage };
