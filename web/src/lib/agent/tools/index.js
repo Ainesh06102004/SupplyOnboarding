@@ -405,6 +405,11 @@ async function executeSave(ctx, args, prepared) {
       .map((p) => p.label).filter((l) => !labels.some((x) => norm(x) === norm(l)));
     if (others.length) also = ` The message also talks about ${others.join(", ")}, already saved: if it asks to change them (diet, age, a food to avoid, a target), call save_people source=changes for them next, before the plan.`;
   }
+  // Kitchen rules in the same message ("never buy Maggi", "we have atta at home"):
+  // saved before the plan so it leaves them out. (Live, 29 Sep: skipped; the cart bought the atta.)
+  const rulesSaid = /\b(never buy|don t buy|do not buy|no more|already have|have at home|at home|in the pantry)\b/.test(wordsOf(ctx.memory.said.at(-1) ?? "").join(" "));
+  const rulesSaved = (ctx.memory.turnCalls ?? []).some((c) => c.name === "save_kitchen_rules" && c.ok);
+  if (rulesSaid && !rulesSaved) also += " The message also gives kitchen rules (brands never to buy, what's already at home): call save_kitchen_rules with them before make_plan.";
   return { ok: true, summary: `Saved ${joinLabels(labels)}`, forModel: `Saved to the household: ${labels.join(", ")}.${also}`, ui: { householdChanged: true, highlight: { members: labels } } };
 }
 
