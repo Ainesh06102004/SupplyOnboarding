@@ -212,3 +212,19 @@ test("someone who eats no meals at home is not at the table", () => {
   assert.ok(!week.cells["0:lunch"].shared?.eaters.includes("me"));
   assert.ok(week.cells["0:dinner"].shared?.eaters.includes("me") || week.cells["0:dinner"].own.me);
 });
+
+test("rice and dal at home still make lunch and dinner, though the plan doesn't buy them", () => {
+  // The basket without rice and moong: they're in the kitchen already.
+  const bought = lines.filter((l) => !["rice", "moong"].includes(l.skuId));
+  const r = {
+    whoEatsWhat: report.whoEatsWhat.map((w) => ({ ...w, allowed: w.allowed.filter((a) => !["rice", "moong"].includes(a.skuId)) })),
+    products_at_home: lines.filter((l) => ["rice", "moong"].includes(l.skuId)),
+  };
+  const without = buildWeek({ report: { whoEatsWhat: r.whoEatsWhat }, lines: bought, people, days: 3, start });
+  const withHome = buildWeek({ report: r, lines: bought, people, days: 3, start });
+  const dinners = (w) => [0, 1, 2].filter((d) => w.cells[`${d}:dinner`].shared).length;
+  assert.ok(dinners(withHome) > dinners(without));
+  assert.equal(dinners(withHome), 3);
+  // Nothing at home is an addition to anyone's plate: it wasn't bought.
+  for (const id of ["me", "wife", "son"]) assert.ok(!withHome.additions[id].some((a) => ["rice", "moong"].includes(a.skuId)));
+});

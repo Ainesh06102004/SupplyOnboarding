@@ -66,7 +66,14 @@ function suppliersOf(line, basket) {
  */
 export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), overrides = {}, repeat = "usual", dishes = DISHES }) {
   const d = Math.max(1, Math.min(14, Number(days) || 7));
-  const basket = lines.map((l) => ({ ...l, skuId: String(l.skuId), ingredients: ingredientsIn(l.name) }));
+  // What the kitchen already has (report.products_at_home) is not bought but is
+  // cooked: it can be a dish's staple for anyone the dish itself suits (dishFor
+  // reads the recipe's allergens, so atta at home is no roti for a gluten intolerance).
+  const bought = new Set(lines.map((l) => String(l.skuId)));
+  const atHome = (report.products_at_home ?? [])
+    .filter((h) => !bought.has(String(h.skuId)))
+    .map((h) => ({ ...h, skuId: String(h.skuId), atHome: true }));
+  const basket = [...lines, ...atHome].map((l) => ({ ...l, skuId: String(l.skuId), ingredients: ingredientsIn(l.name) }));
   const byDish = new Map(dishes.map((dish) => [dish.key, dish]));
   const eats = new Map((report.whoEatsWhat ?? []).map((w) => [String(w.member), new Map((w.allowed ?? []).filter((a) => Number(a.packs) > 0).map((a) => [String(a.skuId), a]))]));
   const everyone = people.map((p) => String(p.memberId));
@@ -87,7 +94,7 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
     for (const line of dish.lines.filter((l) => l.supply === "shelf")) {
       // Every product that can fill the line is used by it: two rices both go
       // into the rice, rather than one being left over as an "addition".
-      const suppliers = suppliersOf(line, basket).filter((b) => theirs.has(b.skuId));
+      const suppliers = suppliersOf(line, basket).filter((b) => theirs.has(b.skuId) || b.atHome);
       if (suppliers.length) suppliers.forEach((b) => used.push({ skuId: b.skuId, anchor: isAnchor(line) }));
       else if (isAnchor(line)) return null; // the staple isn't in their basket
     }

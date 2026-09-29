@@ -348,6 +348,13 @@ async function solveAndStore({ db, householdId, zoneId, availability, members, c
     // Kept out of the house for everyone (household.keep_out), with the reason in words.
     products_kept_out: named(model.excluded.filter((e) => e.reason === "kept_out_of_house"), catalogue)
       .map((e) => ({ ...e, because: refusalReason({ flag: e.flag, rule: "avoided" }) })),
+    // In the kitchen already (household_pantry): not bought, but the week's
+    // dishes still cook with them (lib/plan/schedule.js). (29 Sep: rice, atta and
+    // toor dal at home left every lunch and dinner without a dish.)
+    products_at_home: model.excluded.filter((e) => e.reason === "already_in_your_kitchen").map((e) => {
+      const item = catalogue.find((i) => i.skuId === e.skuId);
+      return { skuId: e.skuId, name: item?.name ?? null, categoryKey: item?.categoryKey ?? null };
+    }).filter((e) => e.name && e.categoryKey),
     products_not_plannable: unplannable,
     products_not_candidates: model.excluded.filter((e) => e.reason === "not_a_candidate").length,
     // Packs bigger than the household can eat in the period (PORTION_RULE).

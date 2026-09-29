@@ -214,7 +214,8 @@ export default function WeekGrid({ s }) {
                   {(mine || notMine || adds.length > 0 || notes?.leaveOut?.length > 0 || notes?.notVerifiedFor?.length > 0 || others.length > 0) && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
                       {mine && <Chip tone="goal">{s.active.label}: {mine.dishes.map((x) => x.name).join(" + ")}</Chip>}
-                      {notMine && <Chip tone="cut" title={notMine}>Not for {s.active.label}</Chip>}
+                      {/* "Not for Me" only beside a dish others have; an empty slot isn't about Me. */}
+                      {notMine && cell.shared && <Chip tone="cut" title={notMine}>Not for {s.active.label}</Chip>}
                       {notes?.leaveOut?.map((i) => <Chip key={i} tone="cut">−{i.toLowerCase()}</Chip>)}
                       {adds.map((a) => <Chip key={a.skuId} tone="goal">+{a.asDish ? `${a.asDish.name} (${a.name}` : a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}{a.asDish ? ")" : ""}</Chip>)}
                       {notes?.notVerifiedFor?.length > 0 && <Chip tone="warn" title="A spice blend can hide anything">Check for {notes.notVerifiedFor.join(", ")}</Chip>}
