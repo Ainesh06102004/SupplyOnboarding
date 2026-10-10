@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plan — Pantry</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#0f3d2e}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+</style>
+</helmet>
+<div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17; background: #f6f5f1; width: 100%; min-height: 1380px">
+
+<header style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 32px; border-bottom: 1px solid rgba(20,22,15,.07); background: rgba(246,245,241,.9); flex-wrap: wrap">
+<a href="#" style="display: flex; align-items: center; gap: 5px; text-decoration: none"><span class="disp" style="font-size: 24px; color: #0f3d2e">KOI</span><span style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b; margin-top: 9px"></span></a>
+<nav aria-label="Store" style="display: flex; gap: 4px"><a href="Shop.dc.html" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px">Shop</a><a href="#" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans'; color: #1f5c3a; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #e8f1ea">Plan</a><a href="Orders.dc.html" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px">Orders</a></nav>
+<div style="flex: 1"></div>
+<button type="button" style="width: 240px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #fff; border: 1px solid rgba(20,22,15,.1); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans'; color: #6b6f63"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6f63" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Search or ask KOI</button>
+<button type="button" aria-label="Account" style="width: 40px; height: 40px; border-radius: 50%; background: #1f5c3a; color: #fff; border: 0; font: 700 13px 'Plus Jakarta Sans'">ME</button>
+<a href="ShopCartSheet.dc.html" style="height: 40px; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans'; color: #fff; text-decoration: none">Cart<span class="num" style="background: #DDF247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px; font-size: 13px">1</span></a>
+</header>
+
+<div style="height: 58px; display: flex; align-items: center; gap: 20px; padding: 0 32px; background: rgba(250,249,246,.94); border-bottom: 1px solid rgba(20,22,15,.07)">
+<span class="mono" style="color: #1f5c3a; width: 190px">Plan · week of 12 Oct</span>
+<nav aria-label="Plan steps" style="flex: 1; display: flex; justify-content: center; gap: 4px; flex-wrap: wrap">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="6"><a href="{{st.href}}" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px 6px 6px; border-radius: 999px; text-decoration: none; font: 600 13.5px 'Plus Jakarta Sans'; color: {{st.color}}; background: {{st.bg}}; box-shadow: {{st.shadow}}"><span class="num" style="width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; background: {{st.dotBg}}; color: {{st.dotColor}}">{{st.mark}}</span>{{st.label}}</a></sc-for>
+</nav>
+<div style="width: 190px; display: flex; justify-content: flex-end; align-items: center; gap: 10px"><div style="display: flex"><sc-for list="{{people}}" as="p" hint-placeholder-count="6"><span style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid #faf9f6; margin-left: -7px; display: inline-flex; align-items: center; justify-content: center; font: 700 9.5px 'Plus Jakarta Sans'; color: #fff; background: {{p.c}}">{{p.i}}</span></sc-for></div><a href="#" style="font: 600 13px 'Plus Jakarta Sans'; text-decoration: none">Household</a></div>
+</div>
+
+<main style="max-width: 1080px; margin: 0 auto; padding: 36px 32px 80px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="mono">Step 4 of 6</span>
+<h1 style="margin: 0; font-size: 38px; font-weight: 800; letter-spacing: -.025em; line-height: 1.08">What's already at home?</h1>
+<p style="margin: 0; font-size: 16px; color: #6b6f63; max-width: 640px; line-height: 1.55">Tick what you have. KOI puts the rest of this week's plan in your cart — anything you added yourself stays where it is.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 8px 0">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 10px"><span class="mono" style="color: #1f5c3a">From this week's plan · {{count}} products</span><span style="font-size: 13px; color: #6b6f63"><span class="num">{{haveCount}}</span> at home</span></div>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="10">
+<div style="display: flex; align-items: center; gap: 14px; padding: 11px 22px; border-top: 1px solid #f0eee7; opacity: {{l.fade}}">
+<div style="width: 48px; height: 48px; border-radius: 12px; background: {{l.plate}}; display: flex; align-items: center; justify-content: center; flex: none; overflow: hidden">
+<sc-if value="{{l.img}}" hint-placeholder-val="{{false}}"><img src="{{l.img}}" alt="" style="width: 44px; height: 44px; object-fit: contain; mix-blend-mode: multiply"></sc-if>
+<sc-if value="{{l.noImg}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8fae98" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 19c8 0 14-6 14-14C11 5 5 11 5 19zM5 19l7-7"/></svg></sc-if>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600; text-decoration: {{l.strike}}">{{l.name}}</span><span class="mono" style="letter-spacing: .06em">{{l.size}} · <span class="num">{{l.packs}}</span> {{l.packWord}}</span></div>
+<span class="num" style="width: 70px; text-align: right; font-size: 15px; color: {{l.moneyColor}}">₹{{l.cost}}</span>
+<button type="button" onClick="{{l.toggle}}" aria-pressed="{{l.have}}" style="width: 104px; height: 36px; border-radius: 999px; font: 600 13px 'Plus Jakarta Sans'; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: {{l.btnBorder}}; background: {{l.btnBg}}; color: {{l.btnColor}}">{{l.btnLabel}}</button>
+</div>
+</sc-for>
+</section>
+
+<section style="background: #faf9f6; border: 1px dashed rgba(20,22,15,.18); border-radius: 22px; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 700">You'll also need</span><span class="mono">For the week's dishes · not sold on KOI yet</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{alsoNeed}}" as="a" hint-placeholder-count="6"><span style="font-size: 13.5px; background: #fff; border: 1px solid rgba(20,22,15,.08); border-radius: 999px; padding: 6px 12px">{{a}}</span></sc-for>
+</div>
+</section>
+</div>
+
+<aside style="position: sticky; top: 140px; display: flex; flex-direction: column; gap: 14px">
+<section style="background: #0f3d2e; border-radius: 22px; padding: 22px; color: #fff; display: flex; flex-direction: column; gap: 14px">
+<span class="mono" style="color: #9fe7c4">Your cart for the week</span>
+<div style="display: flex; align-items: baseline; gap: 10px"><span class="num" style="font-size: 40px; letter-spacing: -.02em">₹{{total}}</span><span class="mono" style="color: rgba(255,255,255,.7)">MRP</span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="background: rgba(255,255,255,.07); border-radius: 14px; padding: 10px 12px"><span class="num" style="font-size: 20px">{{buyCount}}</span><div class="mono" style="color: rgba(255,255,255,.7); margin-top: 2px">Products</div></div>
+<div style="background: rgba(255,255,255,.07); border-radius: 14px; padding: 10px 12px"><span class="num" style="font-size: 20px">{{packs}}</span><div class="mono" style="color: rgba(255,255,255,.7); margin-top: 2px">Packs</div></div>
+</div>
+<a href="PlanCart.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #9fe7c4; color: #0f3d2e; text-decoration: none; font: 700 15.5px 'Plus Jakarta Sans'; border-radius: 14px; padding: 15px">Put this week in my cart <span aria-hidden="true">→</span></a>
+<p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,.72)">Puts the plan's packs in your one cart. Pressing it again replaces them — it never doubles. Your own items stay.</p>
+</section>
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px; padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: #f4f1e9; display: flex; align-items: center; justify-content: center; flex: none"><img src="/_blob/6b46d92120ccba28b5a1c8a9eb180b1a" alt="" style="width: 36px; height: 36px; object-fit: contain; mix-blend-mode: multiply"></div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span class="mono">Already in your cart</span><span style="font-size: 13.5px; font-weight: 600">California Almonds · you added it</span></div>
+<span class="mono" style="color: #1f5c3a">Stays</span>
+</div>
+</aside>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(20,22,15,.08); padding-top: 22px">
+<a href="#" style="font: 600 15px 'Plus Jakarta Sans'; text-decoration: none; color: #6b6f63">← Back to Plan</a>
+<span class="mono">Figures: sample from the saved plan, 10 Oct</span>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1380}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { have: { oil: true } }; }
+  renderVals() {
+    const base = [
+      { id: 'chivda', name: 'Chivda Mix - Patal Poha', size: '150 g', packs: 5, cost: 750, img: '/_blob/2db82c323b3c3949794f5978b11fc4a2' },
+      { id: 'pb', name: 'Natural Peanut Butter Crunch', size: '1000 g', packs: 1, cost: 549 },
+      { id: 'madras', name: 'Madras Mixture', size: '250 g', packs: 3, cost: 540 },
+      { id: 'chana', name: 'Kabuli Chana', size: '1000 g', packs: 2, cost: 380 },
+      { id: 'moong', name: 'Split Moong Dal', size: '1000 g', packs: 2, cost: 360 },
+      { id: 'namkeen', name: 'Moong Dal Namkeen', size: '400 g', packs: 3, cost: 360 },
+      { id: 'oats', name: 'Oats', size: '1000 g', packs: 1, cost: 199 },
+      { id: 'besan', name: 'Besan', size: '500 g', packs: 2, cost: 160 },
+      { id: 'oil', name: 'Refined Sunflower Oil', size: '800 g', packs: 1, cost: 145 },
+      { id: 'maida', name: 'Maida', size: '1000 g', packs: 2, cost: 110 }
+    ];
+    const have = this.state.have;
+    const lines = base.map((l) => {
+      const h = !!have[l.id];
+      return {
+        ...l,
+        img: l.img || false, noImg: !l.img, plate: l.img ? '#f4f1e9' : '#eef3ee',
+        packWord: l.packs === 1 ? 'pack' : 'packs',
+        have: h, fade: h ? '0.55' : '1', strike: h ? 'line-through' : 'none', moneyColor: h ? '#a7a89c' : '#1c1e17',
+        btnLabel: h ? '✓ Have it' : 'Have it', btnBg: h ? '#e8f1ea' : '#fff', btnColor: h ? '#1f5c3a' : '#1c1e17',
+        btnBorder: h ? '1px solid #cfe3d6' : '1px solid rgba(20,22,15,.14)',
+        cost: l.cost.toLocaleString('en-IN'),
+        toggle: () => this.setState({ have: { ...this.state.have, [l.id]: !this.state.have[l.id] } })
+      };
+    });
+    const buying = base.filter((l) => !have[l.id]);
+    const total = buying.reduce((s, l) => s + l.cost, 0);
+    return {
+      lines,
+      count: base.length,
+      haveCount: base.length - buying.length,
+      buyCount: buying.length,
+      packs: buying.reduce((s, l) => s + l.packs, 0),
+      total: total.toLocaleString('en-IN'),
+      alsoNeed: ['Onion', 'Tomato', 'Ginger', 'Green chilli', 'Curry leaves', 'Salt'],
+      steps: [
+        { label: 'Define', mark: '✓', href: '#', color: '#1f5c3a', bg: 'transparent', shadow: 'none', dotBg: '#1f5c3a', dotColor: '#fff' },
+        { label: 'You', mark: '✓', href: '#', color: '#1f5c3a', bg: 'transparent', shadow: 'none', dotBg: '#1f5c3a', dotColor: '#fff' },
+        { label: 'Plan', mark: '✓', href: '#', color: '#1f5c3a', bg: 'transparent', shadow: 'none', dotBg: '#1f5c3a', dotColor: '#fff' },
+        { label: 'Pantry', mark: '4', href: '#', color: '#1c1e17', bg: '#fff', shadow: '0 1px 3px rgba(20,22,15,.1)', dotBg: '#1f5c3a', dotColor: '#fff' },
+        { label: 'Cart', mark: '5', href: 'PlanCart.dc.html', color: '#6b6f63', bg: 'transparent', shadow: 'none', dotBg: '#eceae3', dotColor: '#6b6f63' },
+        { label: 'Track', mark: '6', href: '#', color: '#8c8c84', bg: 'transparent', shadow: 'none', dotBg: '#eceae3', dotColor: '#8c8c84' }
+      ],
+      people: [ { i: 'ME', c: '#1f5c3a' }, { i: 'WI', c: '#c2683a' }, { i: 'K1', c: '#3a6ea5' }, { i: 'K2', c: '#9a5ba6' }, { i: 'MO', c: '#b07d2b' }, { i: 'FA', c: '#2f8050' } ]
+    };
+  }
+}
+</script>
+</body>
+</html>

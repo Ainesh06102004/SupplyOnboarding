@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edge states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e9e7e0}
+a{color:#1f5c3a}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+.frame{background:#f6f5f1;border-radius:22px;border:1px solid rgba(20,22,15,.08);padding:20px;display:flex;flex-direction:column;gap:14px;min-height:300px;box-sizing:border-box}
+.cap{font-size:13px;color:#6b6f63;line-height:1.5}
+</style>
+</helmet>
+<div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17; background: #e9e7e0; padding: 48px; box-sizing: border-box; width: 100%">
+<div style="max-width: 1344px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Plan · signed out (inside the shell)</span>
+<div class="frame">
+<div style="display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(20,22,15,.07); padding-bottom: 12px"><span class="disp" style="font-size: 20px; color: #0f3d2e">KOI</span><span style="font: 600 12.5px 'Plus Jakarta Sans'; color: #6b6f63; margin-left: 12px">Shop</span><span style="font: 700 12.5px 'Plus Jakarta Sans'; color: #1f5c3a; background: #e8f1ea; border-radius: 999px; padding: 4px 10px">Plan</span><span style="flex: 1"></span><span style="font: 700 12px 'Plus Jakarta Sans'; color: #fff; background: #0f3d2e; border-radius: 999px; padding: 6px 11px">Cart</span></div>
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+<span class="mono" style="color: #1f5c3a">Plan</span>
+<span style="font-size: 21px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2">A week of groceries, planned around everyone at home</span>
+<span class="cap">Sign in with your phone to save your household. Its people and targets are yours alone.</span>
+<button type="button" style="align-self: flex-start; font: 700 14px 'Plus Jakarta Sans'; background: #1f5c3a; color: #fff; border: 0; border-radius: 12px; padding: 12px 18px">Sign in with phone</button>
+</div>
+</div>
+<span class="cap">The header, cart and tab bar stay. The cart already works signed out.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Cart step · plan not in the cart yet</span>
+<div class="frame">
+<span style="font-size: 22px; font-weight: 800; letter-spacing: -.02em">Your cart</span>
+<div style="background: #0f3d2e; border-radius: 18px; padding: 18px; color: #fff; display: flex; flex-direction: column; gap: 10px">
+<span class="mono" style="color: #9fe7c4">This week's plan · for 6</span>
+<span style="font-size: 16px; font-weight: 700">Not in your cart yet</span>
+<span style="display: flex; gap: 14px; align-items: baseline"><span class="num" style="font-size: 26px">₹3,408</span><span class="mono" style="color: rgba(255,255,255,.7)"><span class="num">9</span> products · after what's at home</span></span>
+<button type="button" style="font: 700 14.5px 'Plus Jakarta Sans'; background: #9fe7c4; color: #0f3d2e; border: 0; border-radius: 12px; padding: 12px">Put this week in my cart</button>
+</div>
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 16px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center"><span class="mono">Also in your cart</span><span style="font-size: 13.5px; font-weight: 600">California Almonds · <span class="num">₹450</span></span></div>
+</div>
+<span class="cap">Reached directly (a link, the agent's "show me the shop") before Pantry's button. One clear call, never an empty page.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Plan changed · "See what changed"</span>
+<div class="frame">
+<div style="background: #faece2; border: 1px solid #f0d2bf; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 14.5px; font-weight: 700; color: #7a3d1c">Your plan changed since you added it</span>
+<div style="background: #fff; border-radius: 12px; display: flex; flex-direction: column">
+<div style="display: flex; gap: 10px; padding: 9px 12px; font-size: 13.5px"><span class="num" style="color: #1f5c3a; width: 14px">+</span><span style="flex: 1">Daily Dry Fruit Mix</span><span class="num">× 1</span></div>
+<div style="display: flex; gap: 10px; padding: 9px 12px; font-size: 13.5px; border-top: 1px solid #f0eee7"><span class="num" style="color: #1f5c3a; width: 14px">+</span><span style="flex: 1">Gorakhpur Kalanamak Rice</span><span class="num">× 2</span></div>
+<div style="display: flex; gap: 10px; padding: 9px 12px; font-size: 13.5px; border-top: 1px solid #f0eee7"><span class="num" style="color: #b84535; width: 14px">−</span><span style="flex: 1; text-decoration: line-through; color: #6b6f63">Maida</span><span class="num" style="color: #6b6f63">× 2</span></div>
+<div style="display: flex; gap: 10px; padding: 9px 12px; font-size: 13.5px; border-top: 1px solid #f0eee7"><span class="num" style="color: #c2683a; width: 14px">~</span><span style="flex: 1">Chivda Mix - Patal Poha</span><span class="num">5 → 4</span></div>
+</div>
+<div style="display: flex; gap: 8px"><button type="button" style="flex: 1; font: 600 13.5px 'Plus Jakarta Sans'; background: transparent; color: #7a3d1c; border: 1px solid #e3b79b; border-radius: 11px; padding: 10px">Keep my cart</button><button type="button" style="flex: 1; font: 700 13.5px 'Plus Jakarta Sans'; background: #c2683a; color: #fff; border: 0; border-radius: 11px; padding: 10px">Update cart</button></div>
+</div>
+</div>
+<span class="cap">Only the plan's share moves. Items you added yourself are never touched by an update.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">After "Update cart"</span>
+<div class="frame" style="justify-content: flex-end">
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; opacity: .55"><span class="mono" style="color: #1f5c3a">This week's plan · for 6</span><span style="height: 10px; width: 70%; background: #eceae3; border-radius: 5px"></span><span style="height: 10px; width: 50%; background: #f0eee7; border-radius: 5px"></span></div>
+<div role="status" style="background: #1c1e17; color: #fff; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fe7c4" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span style="flex: 1; font-size: 14px; font-weight: 600">Cart updated to the new plan</span><button type="button" style="font: 700 13.5px 'Plus Jakarta Sans'; background: transparent; color: #9fe7c4; border: 0">Undo</button></div>
+</div>
+<span class="cap">Undo restores the cart exactly as it was, including the shopper's own edits.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">A plan line the shopper changed</span>
+<div class="frame">
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 16px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+<div style="width: 46px; height: 46px; border-radius: 12px; background: #f4f1e9; display: flex; align-items: center; justify-content: center"><img src="/_blob/2db82c323b3c3949794f5978b11fc4a2" alt="" style="width: 40px; height: 40px; object-fit: contain; mix-blend-mode: multiply"></div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Chivda Mix - Patal Poha</span><span class="mono" style="letter-spacing: .06em">150 g · <span style="color: #c2683a">plan said <span class="num">5</span></span></span></div>
+<span style="display: inline-flex; align-items: center; background: #faf9f6; border: 1px solid rgba(20,22,15,.1); border-radius: 11px; height: 34px; font: 600 16px 'Plus Jakarta Sans'; color: #1f5c3a"><span style="width: 30px; text-align: center">−</span><span class="num" style="width: 18px; text-align: center; color: #1c1e17; font-size: 14px">7</span><span style="width: 30px; text-align: center">+</span></span>
+</div>
+<div style="padding: 9px 14px; border-top: 1px solid #f0eee7; font-size: 12.5px; color: #6b6f63"><span class="mono" style="letter-spacing: .06em">1 at home</span> · Refined Sunflower Oil · <a href="#" style="text-decoration: none; font-weight: 600">Put it back</a></div>
+</div>
+</div>
+<span class="cap">Going above the plan is fine and stays yours: 5 from the plan, 2 extra. A later plan update replaces only the 5.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Empty cart (sheet or page)</span>
+<div class="frame" style="align-items: center; justify-content: center; text-align: center">
+<span style="width: 64px; height: 64px; border-radius: 50%; background: #fff; border: 1px solid rgba(20,22,15,.08); display: inline-flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8fae98" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14l-1.5 11h-11z"/><path d="M9 7a3 3 0 016 0"/></svg></span>
+<span style="font-size: 19px; font-weight: 800; letter-spacing: -.02em">Your cart is empty</span>
+<span class="cap" style="max-width: 280px">Plan the week and KOI fills it, or pick things yourself.</span>
+<div style="display: flex; gap: 8px"><button type="button" style="font: 700 14px 'Plus Jakarta Sans'; background: #1f5c3a; color: #fff; border: 0; border-radius: 12px; padding: 11px 16px">Plan this week</button><button type="button" style="font: 600 14px 'Plus Jakarta Sans'; background: #fff; border: 1px solid rgba(20,22,15,.14); border-radius: 12px; padding: 11px 16px">Browse the shop</button></div>
+</div>
+<span class="cap">Two honest routes in, no filler products.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Hand-off failed</span>
+<div class="frame">
+<div style="background: #fdf0ee; border: 1px solid #f2c9c2; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 700; color: #b84535"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b84535" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Swiggy didn't answer</span>
+<span class="cap">Nothing was sent and your Swiggy cart wasn't touched. Your KOI cart is exactly as it was.</span>
+<div style="display: flex; gap: 8px"><button type="button" style="font: 700 14px 'Plus Jakarta Sans'; background: #1f5c3a; color: #fff; border: 0; border-radius: 12px; padding: 11px 16px">Try again</button><button type="button" style="font: 600 14px 'Plus Jakarta Sans'; background: #fff; border: 1px solid rgba(20,22,15,.14); border-radius: 12px; padding: 11px 16px">Back to cart</button></div>
+</div>
+</div>
+<span class="cap">Hand-off is exactly-once on the server; a retry can never send the basket twice.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Nothing can go</span>
+<div class="frame">
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; font-weight: 700">None of this basket can go to Swiggy right now</span>
+<span class="cap">Each item is either out of stock near you or not matched yet. Nothing leaves your cart.</span>
+<button type="button" style="align-self: flex-start; font: 600 14px 'Plus Jakarta Sans'; background: #fff; border: 1px solid rgba(20,22,15,.14); border-radius: 12px; padding: 10px 16px">Back to cart</button>
+</div>
+</div>
+<span class="cap">"Send to Swiggy" is disabled; the reason sits on each line above it.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono">Checkout · signed out</span>
+<div class="frame">
+<div style="background: #fff; border-radius: 18px; box-shadow: 0 24px 60px -20px rgba(15,61,46,.35); padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 18px; font-weight: 800; letter-spacing: -.02em">Sign in to check out</span>
+<span class="cap">Your cart stays as it is.</span>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Phone number<span style="display: flex; align-items: center; gap: 8px; border: 1px solid #d9d7cd; border-radius: 12px; padding: 0 12px; height: 46px"><span class="num" style="color: #6b6f63">+91</span><input type="tel" placeholder="98XXX XXXXX" style="flex: 1; border: 0; outline: none; font: 500 15px 'Space Grotesk'; background: transparent"></span></label>
+<button type="button" style="font: 700 14.5px 'Plus Jakarta Sans'; background: #1f5c3a; color: #fff; border: 0; border-radius: 12px; padding: 12px">Send code</button>
+</div>
+</div>
+<span class="cap">The existing LoginSheet, restyled; checkout resumes after the code.</span>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

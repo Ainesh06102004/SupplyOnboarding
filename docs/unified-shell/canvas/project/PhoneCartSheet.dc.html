@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone — CartSheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+.step{width:32px;height:34px;border:0;background:transparent;font:600 16px 'Plus Jakarta Sans';color:#1f5c3a}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #f6f5f1; font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17">
+
+<div aria-hidden="true" style="position: absolute; inset: 0">
+<div style="height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid rgba(20,22,15,.07)"><span class="disp" style="font-size: 22px; color: #0f3d2e">KOI</span></div>
+<div style="padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="height: 220px; background: #fff; border-radius: 18px; border: 1px solid rgba(20,22,15,.07)"></div><div style="height: 220px; background: #fff; border-radius: 18px; border: 1px solid rgba(20,22,15,.07)"></div><div style="height: 220px; background: #fff; border-radius: 18px; border: 1px solid rgba(20,22,15,.07)"></div><div style="height: 220px; background: #fff; border-radius: 18px; border: 1px solid rgba(20,22,15,.07)"></div>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(15,30,22,.42)"></div>
+
+<section role="dialog" aria-label="Your cart" style="position: absolute; left: 0; right: 0; bottom: 0; height: 742px; background: #f6f5f1; border-radius: 28px 28px 0 0; box-shadow: 0 -20px 50px -20px rgba(15,61,46,.45); display: flex; flex-direction: column">
+<div style="display: flex; justify-content: center; padding: 10px 0 4px"><span style="width: 44px; height: 5px; border-radius: 999px; background: rgba(20,22,15,.18)"></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 18px 12px">
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font: 800 22px 'Plus Jakarta Sans'; letter-spacing: -.02em">Your cart</span><span class="mono"><span class="num">10</span> products</span></div>
+<button type="button" aria-label="Close" style="width: 36px; height: 36px; border-radius: 50%; background: #fff; border: 1px solid rgba(20,22,15,.1)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1c1e17" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
+<div style="flex: 1; overflow: hidden; padding: 0 16px; display: flex; flex-direction: column; gap: 12px">
+<div role="status" style="background: #faece2; border: 1px solid #f0d2bf; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 10px">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13.5px; font-weight: 700; color: #7a3d1c">Your plan changed</span><span style="font-size: 12.5px; color: #8a5434"><span class="num">2</span> added · <span class="num">1</span> removed</span></span>
+<button type="button" style="font: 700 13px 'Plus Jakarta Sans'; background: #c2683a; color: #fff; border: 0; border-radius: 11px; padding: 10px 12px">Update cart</button>
+</div>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px"><span style="width: 34px; height: 34px; border-radius: 10px; background: #e8f1ea; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4"/></svg></span><span style="flex: 1; display: flex; flex-direction: column"><span class="mono" style="color: #1f5c3a">This week's plan · for 6</span><span style="font-size: 13px; font-weight: 600"><span class="num">9</span> products · <span class="num">21</span> packs</span></span><span class="num" style="font-size: 15px">₹3,408</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6b6f63" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+<div style="display: flex; padding: 0 14px 12px 22px"><sc-for list="{{thumbs}}" as="t" hint-placeholder-count="5"><span style="width: 36px; height: 36px; border-radius: 10px; border: 2px solid #fff; margin-left: -8px; background: {{t.bg}}; display: inline-flex; align-items: center; justify-content: center; overflow: hidden"><sc-if value="{{t.img}}" hint-placeholder-val="{{false}}"><img src="{{t.img}}" alt="" style="width: 30px; height: 30px; object-fit: contain; mix-blend-mode: multiply"></sc-if><sc-if value="{{t.more}}" hint-placeholder-val="{{false}}"><span class="num" style="font-size: 11px; color: #6b6f63">{{t.more}}</span></sc-if></span></sc-for><span style="flex: 1"></span><a href="PhonePlanCart.dc.html" style="font: 600 13px 'Plus Jakarta Sans'; text-decoration: none; align-self: center">Open in Plan →</a></div>
+</section>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px">
+<div style="padding: 10px 14px 4px"><span class="mono">Also in your cart</span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 14px 12px">
+<div style="width: 44px; height: 44px; border-radius: 11px; background: #f4f1e9; display: flex; align-items: center; justify-content: center; flex: none"><img src="/_blob/6b46d92120ccba28b5a1c8a9eb180b1a" alt="" style="width: 40px; height: 40px; object-fit: contain; mix-blend-mode: multiply"></div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13.5px; font-weight: 600">California Almonds</span><span class="mono" style="letter-spacing: .05em">200 g · ₹<span class="num">450</span></span></div>
+<div style="display: inline-flex; align-items: center; background: #faf9f6; border: 1px solid rgba(20,22,15,.1); border-radius: 11px; height: 34px"><button type="button" class="step" aria-label="Remove">−</button><span class="num" style="width: 18px; text-align: center; font-size: 14px">1</span><button type="button" class="step" aria-label="One more">+</button></div>
+</div>
+</section>
+</div>
+
+<div style="background: #fff; border-top: 1px solid rgba(20,22,15,.08); padding: 14px 18px 26px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 14.5px; font-weight: 700">MRP total</span><span class="num" style="font-size: 24px">₹3,858</span></div>
+<span style="font-size: 11.5px; color: #6b6f63; line-height: 1.45">Swiggy shows the final price, fees and delivery before you pay.</span>
+<a href="PhoneCheckout.dc.html" style="display: flex; justify-content: center; align-items: center; height: 52px; background: #1f5c3a; color: #fff; text-decoration: none; font: 700 16px 'Plus Jakarta Sans'; border-radius: 14px">Checkout →</a>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      thumbs: [
+        { img: '/_blob/2db82c323b3c3949794f5978b11fc4a2', bg: '#f4f1e9', more: false },
+        { img: false, bg: '#eef3ee', more: false },
+        { img: false, bg: '#eef3ee', more: false },
+        { img: false, bg: '#eef3ee', more: false },
+        { img: false, bg: '#f4f3ee', more: '+5' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

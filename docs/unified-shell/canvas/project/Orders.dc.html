@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orders</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#0f3d2e}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+.thumb{width:44px;height:44px;border-radius:11px;background:#f4f1e9;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #fff;margin-left:-8px}
+</style>
+</helmet>
+<div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17; background: #f6f5f1; width: 100%; min-height: 1200px">
+
+<header style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 32px; border-bottom: 1px solid rgba(20,22,15,.07); background: rgba(246,245,241,.9); flex-wrap: wrap">
+<a href="#" style="display: flex; align-items: center; gap: 5px; text-decoration: none"><span class="disp" style="font-size: 24px; color: #0f3d2e">KOI</span><span style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b; margin-top: 9px"></span></a>
+<nav aria-label="Store" style="display: flex; gap: 4px"><a href="Shop.dc.html" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px">Shop</a><a href="PlanPantry.dc.html" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px">Plan</a><a href="#" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans'; color: #1f5c3a; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #e8f1ea">Orders</a></nav>
+<div style="flex: 1"></div>
+<button type="button" style="width: 240px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #fff; border: 1px solid rgba(20,22,15,.1); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans'; color: #6b6f63"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6f63" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Search or ask KOI</button>
+<button type="button" aria-label="Account" style="width: 40px; height: 40px; border-radius: 50%; background: #1f5c3a; color: #fff; border: 0; font: 700 13px 'Plus Jakarta Sans'">ME</button>
+<a href="ShopCartSheet.dc.html" style="height: 40px; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans'; color: #fff; text-decoration: none">Cart<span class="num" style="background: #DDF247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px; font-size: 13px">2</span></a>
+</header>
+
+<main style="max-width: 1080px; margin: 0 auto; padding: 36px 32px 80px; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<h1 style="margin: 0; font-size: 38px; font-weight: 800; letter-spacing: -.025em">Orders</h1>
+<div role="tablist" style="display: inline-flex; background: #fff; border: 1px solid rgba(20,22,15,.1); border-radius: 999px; padding: 4px"><button type="button" role="tab" aria-selected="true" style="font: 700 13.5px 'Plus Jakarta Sans'; background: #1f5c3a; color: #fff; border: 0; border-radius: 999px; padding: 8px 16px">Active</button><button type="button" role="tab" aria-selected="false" style="font: 600 13.5px 'Plus Jakarta Sans'; background: transparent; color: #6b6f63; border: 0; border-radius: 999px; padding: 8px 16px">Past</button></div>
+</div>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: #1f5c3a; background: #e8f1ea; border: 1px solid #cfe3d6; border-radius: 999px; padding: 4px 11px; align-self: flex-start"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Handed off to Swiggy</span>
+<span style="font-size: 18px; font-weight: 700; letter-spacing: -.01em">Saturday, 10 Oct</span>
+</div>
+<a href="#" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none; background: #0f3d2e; color: #fff; border-radius: 14px; padding: 10px 14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fe7c4" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4"/></svg><span style="display: flex; flex-direction: column"><span class="mono" style="color: #9fe7c4">Week plan · for 6</span><span style="font-size: 13.5px; font-weight: 700">Week of 12 Oct · Track →</span></span></a>
+</div>
+<div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+<div style="display: flex; padding-left: 8px">
+<span class="thumb"><img src="/_blob/2db82c323b3c3949794f5978b11fc4a2" alt="" style="width: 38px; height: 38px; object-fit: contain; mix-blend-mode: multiply"></span>
+<span class="thumb"><img src="/_blob/6b46d92120ccba28b5a1c8a9eb180b1a" alt="" style="width: 38px; height: 38px; object-fit: contain; mix-blend-mode: multiply"></span>
+<span class="thumb" style="background: #eef3ee"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8fae98" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 19c8 0 14-6 14-14C11 5 5 11 5 19zM5 19l7-7"/></svg></span>
+<span class="thumb num" style="background: #f4f3ee; font-size: 12.5px; color: #6b6f63">+5</span>
+</div>
+<span style="font-size: 14px; color: #6b6f63"><span class="num" style="color: #1c1e17">8</span> products went to Swiggy · <span class="num" style="color: #1c1e17">2</span> left out</span>
+<span style="flex: 1"></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end"><span class="num" style="font-size: 20px">₹2,874</span><span class="mono" style="letter-spacing: .06em">Swiggy's price at hand-off</span></span>
+</div>
+<div style="display: flex; gap: 10px; border-top: 1px solid #f0eee7; padding-top: 14px; flex-wrap: wrap">
+<button type="button" style="font: 600 14px 'Plus Jakarta Sans'; background: #fff; color: #1c1e17; border: 1px solid rgba(20,22,15,.14); border-radius: 12px; padding: 10px 16px">It arrived</button>
+<button type="button" style="font: 600 14px 'Plus Jakarta Sans'; background: #fff; color: #1c1e17; border: 1px solid rgba(20,22,15,.14); border-radius: 12px; padding: 10px 16px">Build this basket again</button>
+<span style="flex: 1"></span>
+<button type="button" style="font: 600 14px 'Plus Jakarta Sans'; background: transparent; color: #1f5c3a; border: 0">Details</button>
+</div>
+</section>
+
+<section style="background: #faf9f6; border: 1px dashed rgba(20,22,15,.2); border-radius: 22px; padding: 18px 22px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+<div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 4px"><span class="mono">Unfinished basket</span><span style="font-size: 15px; font-weight: 600">You stopped before the hand-off on 8 Oct · <span class="num">3</span> products</span></div>
+<button type="button" style="font: 600 14px 'Plus Jakarta Sans'; background: transparent; color: #6b6f63; border: 0">Discard</button>
+<a href="ShopCartSheet.dc.html" style="font: 700 14px 'Plus Jakarta Sans'; background: #1f5c3a; color: #fff; border-radius: 12px; padding: 11px 16px; text-decoration: none">Finish this basket →</a>
+</section>
+<p style="margin: 0; font-size: 13px; color: #6b6f63; line-height: 1.5">"Finish this basket" puts the draft's own items back in your cart before checkout. "Build this basket again" restores every product at the quantity you sent.</p>
+</div>
+
+<aside style="display: flex; flex-direction: column; gap: 14px">
+<section style="background: #0f3d2e; border-radius: 22px; padding: 20px; color: #fff; display: flex; flex-direction: column; gap: 10px">
+<span class="mono" style="color: #9fe7c4">This week</span>
+<span style="font-size: 17px; font-weight: 700; line-height: 1.35">Your week is ordered.</span>
+<span style="font-size: 13.5px; color: rgba(255,255,255,.75); line-height: 1.5">Log a weigh-in on Track whenever you like — KOI compares it with the plan's arithmetic.</span>
+<a href="#" style="font: 700 14px 'Plus Jakarta Sans'; background: #9fe7c4; color: #0f3d2e; border-radius: 12px; padding: 11px 14px; text-decoration: none; text-align: center">Open Track</a>
+</section>
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+<span class="mono">In your cart now</span>
+<span style="font-size: 14px; color: #6b6f63; line-height: 1.5">The <span class="num" style="color: #1c1e17">2</span> products Swiggy couldn't take stayed in your cart, so nothing is lost.</span>
+<a href="ShopCartSheet.dc.html" style="font: 600 13.5px 'Plus Jakarta Sans'; text-decoration: none">Open cart →</a>
+</section>
+</aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

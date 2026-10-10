@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CartSheet — desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#0f3d2e}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+.step{width:32px;height:34px;border:0;background:transparent;font:600 16px 'Plus Jakarta Sans';color:#1f5c3a;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17; background: #f6f5f1">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column">
+<div style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 32px; border-bottom: 1px solid rgba(20,22,15,.07)"><span class="disp" style="font-size: 24px; color: #0f3d2e">KOI</span><span style="font: 700 14px 'Plus Jakarta Sans'; color: #1f5c3a; background: #e8f1ea; border-radius: 999px; padding: 8px 14px">Shop</span><span style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63">Plan</span><span style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63">Orders</span></div>
+<div style="padding: 28px 32px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; max-width: 1240px">
+<sc-for list="{{ghost}}" as="g" hint-placeholder-count="8"><div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px"><div style="height: 190px; border-radius: 16px; background: #f4f1e9; display: flex; align-items: center; justify-content: center"><img src="{{g}}" alt="" style="width: 150px; height: 150px; object-fit: contain; mix-blend-mode: multiply"></div><div style="height: 12px; width: 60%; background: #eceae3; border-radius: 6px"></div><div style="height: 12px; width: 40%; background: #f0eee7; border-radius: 6px"></div></div></sc-for>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(15,30,22,.38)"></div>
+
+<aside role="dialog" aria-label="Your cart" style="position: absolute; top: 0; right: 0; bottom: 0; width: 440px; background: #f6f5f1; box-shadow: 0 24px 60px -20px rgba(15,61,46,.45); display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 22px 14px; border-bottom: 1px solid rgba(20,22,15,.07)">
+<div style="display: flex; align-items: baseline; gap: 10px"><span style="font-size: 22px; font-weight: 800; letter-spacing: -.02em">Your cart</span><span class="mono"><span class="num">{{lineCount}}</span> products</span></div>
+<a href="Shop.dc.html" aria-label="Close" style="width: 38px; height: 38px; border-radius: 50%; background: #fff; border: 1px solid rgba(20,22,15,.1); display: inline-flex; align-items: center; justify-content: center; text-decoration: none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1c1e17" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></a>
+</div>
+
+<div style="flex: 1; overflow: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+<sc-if value="{{planChanged}}" hint-placeholder-val="{{false}}">
+<div role="status" style="background: #faece2; border: 1px solid #f0d2bf; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 14px; font-weight: 700; color: #7a3d1c">Your plan changed since you added it</span>
+<span style="font-size: 13px; color: #8a5434"><span class="num">2</span> added · <span class="num">1</span> removed. Nothing has moved yet.</span>
+<div style="display: flex; gap: 8px"><button type="button" style="flex: 1; font: 600 13.5px 'Plus Jakarta Sans'; background: transparent; color: #7a3d1c; border: 1px solid #e3b79b; border-radius: 11px; padding: 9px">See what changed</button><button type="button" style="flex: 1; font: 700 13.5px 'Plus Jakarta Sans'; background: #c2683a; color: #fff; border: 0; border-radius: 11px; padding: 9px">Update cart</button></div>
+</div>
+</sc-if>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px; overflow: hidden">
+<button type="button" onClick="{{toggle}}" aria-expanded="{{open}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fbfaf7; border: 0; text-align: left; cursor: pointer; font-family: inherit">
+<span style="width: 36px; height: 36px; border-radius: 10px; background: #e8f1ea; display: inline-flex; align-items: center; justify-content: center; flex: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4"/></svg></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 1px"><span class="mono" style="color: #1f5c3a">This week's plan · for 6</span><span style="font-size: 13.5px; color: #1c1e17; font-weight: 600"><span class="num">9</span> products · <span class="num">21</span> packs</span></span>
+<span class="num" style="font-size: 16px">₹3,408</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6f63" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="transform: {{chev}}"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+<sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+<sc-for list="{{planLines}}" as="l" hint-placeholder-count="9">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-top: 1px solid #f0eee7"><span style="flex: 1; font-size: 13.5px">{{l.name}}</span><span class="mono" style="letter-spacing: .06em">× <span class="num">{{l.packs}}</span></span><span class="num" style="width: 56px; text-align: right; font-size: 13.5px">₹{{l.cost}}</span></div>
+</sc-for>
+</sc-if>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-top: 1px solid #f0eee7"><span style="font-size: 12.5px; color: #6b6f63">Edit packs and what's at home in the Plan</span><a href="PlanCart.dc.html" style="font: 600 13px 'Plus Jakarta Sans'; text-decoration: none">Open in Plan →</a></div>
+</section>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 18px; overflow: hidden">
+<div style="padding: 12px 16px 8px"><span class="mono">Also in your cart</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid #f0eee7">
+<div style="width: 48px; height: 48px; border-radius: 12px; background: #f4f1e9; display: flex; align-items: center; justify-content: center; flex: none"><img src="/_blob/6b46d92120ccba28b5a1c8a9eb180b1a" alt="" style="width: 42px; height: 42px; object-fit: contain; mix-blend-mode: multiply"></div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">California Almonds</span><span class="mono" style="letter-spacing: .06em">Open Secret · 200 g</span></div>
+<div style="display: inline-flex; align-items: center; background: #faf9f6; border: 1px solid rgba(20,22,15,.1); border-radius: 11px; height: 34px"><button type="button" class="step" aria-label="One fewer" onClick="{{dec}}">−</button><span class="num" style="width: 20px; text-align: center; font-size: 14px">{{qty}}</span><button type="button" class="step" aria-label="One more" onClick="{{inc}}">+</button></div>
+<span class="num" style="width: 56px; text-align: right; font-size: 14.5px">₹{{ownAmount}}</span>
+</div>
+</section>
+</div>
+
+<div style="border-top: 1px solid rgba(20,22,15,.08); padding: 16px 22px 22px; display: flex; flex-direction: column; gap: 12px; background: #fff">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 700">MRP total</span><span class="num" style="font-size: 26px; letter-spacing: -.02em">₹{{total}}</span></div>
+<span style="font-size: 12px; color: #6b6f63; line-height: 1.45">MRP from KOI's catalogue. Swiggy shows the final price, fees and delivery before you pay.</span>
+<div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px">
+<a href="PlanCart.dc.html" style="font: 600 14.5px 'Plus Jakarta Sans'; text-align: center; text-decoration: none; color: #1c1e17; border: 1px solid rgba(20,22,15,.14); border-radius: 13px; padding: 13px">View full cart</a>
+<a href="Checkout.dc.html" style="font: 700 15px 'Plus Jakarta Sans'; text-align: center; text-decoration: none; color: #fff; background: #1f5c3a; border-radius: 13px; padding: 13px">Checkout →</a>
+</div>
+</div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"planChanged":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: false, qty: 1 }; }
+  renderVals() {
+    const qty = this.state.qty;
+    const fmt = (n) => n.toLocaleString('en-IN');
+    return {
+      planChanged: this.props.planChanged ?? false,
+      open: this.state.open,
+      chev: this.state.open ? 'rotate(180deg)' : 'none',
+      toggle: () => this.setState({ open: !this.state.open }),
+      qty,
+      inc: () => this.setState({ qty: this.state.qty + 1 }),
+      dec: () => this.setState({ qty: Math.max(0, this.state.qty - 1) }),
+      ownAmount: fmt(qty * 450),
+      total: fmt(3408 + qty * 450),
+      lineCount: 9 + (qty > 0 ? 1 : 0),
+      planLines: [
+        { name: 'Chivda Mix - Patal Poha', packs: 5, cost: 750 },
+        { name: 'Natural Peanut Butter Crunch', packs: 1, cost: 549 },
+        { name: 'Madras Mixture', packs: 3, cost: 540 },
+        { name: 'Kabuli Chana', packs: 2, cost: 380 },
+        { name: 'Split Moong Dal', packs: 2, cost: 360 },
+        { name: 'Moong Dal Namkeen', packs: 3, cost: 360 },
+        { name: 'Oats', packs: 1, cost: 199 },
+        { name: 'Besan', packs: 2, cost: 160 },
+        { name: 'Maida', packs: 2, cost: 110 }
+      ],
+      ghost: ['/_blob/6b46d92120ccba28b5a1c8a9eb180b1a', '/_blob/7ddab595a7d1162f0191d88e9ea41c2e', '/_blob/d1f18d7f1dda2b24e779164e38ed2c1e', '/_blob/2db82c323b3c3949794f5978b11fc4a2', '/_blob/d9579e22bd885784f634ff32d06238a6', '/_blob/8bdf4a27c061b07a721eeb67274a8423', '/_blob/3d1b8f66c43c838d23581a06e303a4fa', '/_blob/3bc819f8ba1ab15a7291aee5390ff2a4']
+    };
+  }
+}
+</script>
+</body>
+</html>

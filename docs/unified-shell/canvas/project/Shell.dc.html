@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>StoreHeader, PlanBar, MobileTabBar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e9e7e0}
+a{color:#1f5c3a}a:hover{color:#0f3d2e}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+</style>
+</helmet>
+<div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17; background: #e9e7e0; padding: 48px; box-sizing: border-box; width: 100%">
+<div style="max-width: 1344px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px">
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="mono">StoreHeader · app — every in-app page</span>
+<div style="background: #f6f5f1; border-radius: 18px; overflow: hidden; border: 1px solid rgba(20,22,15,.08)">
+<header style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 28px; background: rgba(246,245,241,.86); border-bottom: 1px solid rgba(20,22,15,.07)">
+<a href="#" style="display: flex; align-items: center; gap: 5px; text-decoration: none"><span class="disp" style="font-size: 24px; color: #0f3d2e; letter-spacing: -.02em">KOI</span><span style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b; margin-top: 9px"></span></a>
+<nav aria-label="Store" style="display: flex; gap: 4px">
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Shop</a>
+<a href="#" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans'; color: #1f5c3a; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #e8f1ea">Plan</a>
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Orders</a>
+</nav>
+<div style="flex: 1"></div>
+<button type="button" style="width: 280px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #fff; border: 1px solid rgba(20,22,15,.1); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans'; color: #6b6f63"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6f63" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span style="flex: 1; text-align: left">Search or ask KOI</span><span class="mono" style="border: 1px solid rgba(20,22,15,.12); border-radius: 6px; padding: 2px 6px; letter-spacing: .04em">⌘K</span></button>
+<button type="button" style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #fff; border: 1px solid rgba(20,22,15,.1); border-radius: 999px; font: 600 13.5px 'Plus Jakarta Sans'; color: #1c1e17"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Delhi <span class="num" style="color: #6b6f63; font-weight: 500">110001</span></button>
+<button type="button" aria-label="Account" style="width: 40px; height: 40px; border-radius: 50%; background: #1f5c3a; color: #fff; border: 0; font: 700 13px 'Plus Jakarta Sans'">ME</button>
+<button type="button" style="height: 40px; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border: 0; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans'; color: #fff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14l-1.5 11h-11z"/><path d="M9 7a3 3 0 016 0"/></svg>Cart<span class="num" style="background: #DDF247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px; font-size: 13px">10</span></button>
+</header>
+<div style="height: 64px; display: flex; align-items: center; padding: 0 28px"><span style="font-size: 13.5px; color: #6b6f63">Off-white at 86% with a 16 px blur and one hairline. Same on shop grid, product, cart, orders, profile, household and Plan. The cart button is the one deep-green object in the bar; its count is lime.</span></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="mono">StoreHeader · editorial — over the forest hero (landing, shop hero), turns app after 24 px</span>
+<div style="border-radius: 18px; overflow: hidden; background: radial-gradient(120% 140% at 50% 0%, #0f6b4c 0%, #083D2D 70%)">
+<header style="height: 72px; display: flex; align-items: center; gap: 28px; padding: 0 28px">
+<a href="#" style="display: flex; align-items: center; gap: 5px; text-decoration: none"><span class="disp" style="font-size: 24px; color: #fff; letter-spacing: -.02em">KOI</span><span style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b; margin-top: 9px"></span></a>
+<nav aria-label="Store" style="display: flex; gap: 4px">
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,.12)">Shop</a>
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: rgba(255,255,255,.78); text-decoration: none; padding: 8px 14px">Plan</a>
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: rgba(255,255,255,.78); text-decoration: none; padding: 8px 14px">Orders</a>
+</nav>
+<div style="flex: 1"></div>
+<button type="button" style="width: 280px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans'; color: rgba(255,255,255,.8)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span style="flex: 1; text-align: left">Search or ask KOI</span></button>
+<button type="button" style="height: 40px; padding: 0 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; font: 600 13.5px 'Plus Jakarta Sans'; color: #fff">Sign in</button>
+<button type="button" style="height: 40px; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #DDF247; border: 0; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans'; color: #083D2D"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#083D2D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14l-1.5 11h-11z"/><path d="M9 7a3 3 0 016 0"/></svg>Cart<span class="num" style="font-size: 13px">3</span></button>
+</header>
+<div style="padding: 34px 28px 46px; display: flex; flex-direction: column; gap: 8px; align-items: center"><span class="disp" style="font-size: 54px; line-height: .92; letter-spacing: -.03em; text-transform: uppercase; color: #fff; text-align: center">Shop like you have<br><span style="color: #DDF247">a nutritionist.</span></span></div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="mono">StoreHeader + PlanBar — the Plan joins the store instead of replacing its header</span>
+<div style="background: #f6f5f1; border-radius: 18px; overflow: hidden; border: 1px solid rgba(20,22,15,.08)">
+<header style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 28px; border-bottom: 1px solid rgba(20,22,15,.07)">
+<a href="#" style="display: flex; align-items: center; gap: 5px; text-decoration: none"><span class="disp" style="font-size: 24px; color: #0f3d2e">KOI</span><span style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b; margin-top: 9px"></span></a>
+<nav aria-label="Store" style="display: flex; gap: 4px"><a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px">Shop</a><a href="#" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans'; color: #1f5c3a; text-decoration: none; padding: 8px 14px; border-radius: 999px; background: #e8f1ea">Plan</a><a href="#" style="font: 600 14px 'Plus Jakarta Sans'; color: #6b6f63; text-decoration: none; padding: 8px 14px">Orders</a></nav>
+<div style="flex: 1"></div>
+<button type="button" aria-label="Search" style="width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 1px solid rgba(20,22,15,.1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1c1e17" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+<button type="button" aria-label="Account" style="width: 40px; height: 40px; border-radius: 50%; background: #1f5c3a; color: #fff; border: 0; font: 700 13px 'Plus Jakarta Sans'">ME</button>
+<button type="button" style="height: 40px; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border: 0; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans'; color: #fff">Cart<span class="num" style="background: #DDF247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px; font-size: 13px">10</span></button>
+</header>
+<div style="height: 60px; display: flex; align-items: center; gap: 20px; padding: 0 28px; background: rgba(250,249,246,.92); border-bottom: 1px solid rgba(20,22,15,.07)">
+<span class="mono" style="color: #1f5c3a; width: 190px">Plan · week of 12 Oct</span>
+<nav aria-label="Plan steps" style="flex: 1; display: flex; justify-content: center; gap: 4px">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="6">
+<a href="#" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px 6px 6px; border-radius: 999px; text-decoration: none; font: 600 13.5px 'Plus Jakarta Sans'; color: {{st.color}}; background: {{st.bg}}; box-shadow: {{st.shadow}}"><span class="num" style="width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; background: {{st.dotBg}}; color: {{st.dotColor}}">{{st.mark}}</span>{{st.label}}</a>
+</sc-for>
+</nav>
+<div style="width: 190px; display: flex; justify-content: flex-end; align-items: center; gap: 10px">
+<div style="display: flex">
+<sc-for list="{{people}}" as="p" hint-placeholder-count="6"><span style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid #faf9f6; margin-left: -7px; display: inline-flex; align-items: center; justify-content: center; font: 700 9.5px 'Plus Jakarta Sans'; color: #fff; background: {{p.c}}">{{p.i}}</span></sc-for>
+</div>
+<a href="#" style="font: 600 13px 'Plus Jakarta Sans'; text-decoration: none">Household</a>
+</div>
+</div>
+<div style="padding: 18px 28px; font-size: 13.5px; color: #6b6f63">Steps keep their numbered pills from the founder's design; "Shop" is now <b style="color: #1c1e17">Cart</b> (its URL stays <span class="mono" style="letter-spacing: .04em">?step=shop</span>, so the agent and links still work). The household row folds into avatars on the right; "Household" opens the members. Sticky at top 64.</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="mono">StoreHeader · focused — checkout only: no nav, no search, no tab bar, no dock pill</span>
+<div style="background: #f6f5f1; border-radius: 18px; overflow: hidden; border: 1px solid rgba(20,22,15,.08)">
+<header style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 28px; border-bottom: 1px solid rgba(20,22,15,.07)">
+<a href="#" style="display: flex; align-items: center; gap: 5px; text-decoration: none"><span class="disp" style="font-size: 24px; color: #0f3d2e">KOI</span><span style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b; margin-top: 9px"></span></a>
+<ol style="flex: 1; display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0; padding: 0; list-style: none; font: 600 13.5px 'Plus Jakarta Sans'">
+<li style="display: inline-flex; gap: 7px; align-items: center; color: #1f5c3a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Cart</li>
+<li aria-hidden="true" style="color: #a7a89c">›</li>
+<li aria-current="step" style="display: inline-flex; gap: 7px; align-items: center; color: #1c1e17; background: #fff; border: 1px solid rgba(20,22,15,.1); padding: 6px 12px; border-radius: 999px"><span class="num" style="font-size: 12px; color: #1f5c3a">2</span>Checkout</li>
+<li aria-hidden="true" style="color: #a7a89c">›</li>
+<li style="color: #8c8c84">Hand-off to Swiggy</li>
+</ol>
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; text-decoration: none">← Back to cart</a>
+</header>
+<div style="padding: 18px 28px; font-size: 13.5px; color: #6b6f63">The wordmark is the only way out besides "Back to cart". Same tokens, same type — the page just stops competing for attention.</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="mono">Phone — one bottom stack (--koi-bottom-chrome)</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="width: 390px; height: 300px; background: #f6f5f1; border-radius: 28px; position: relative; overflow: hidden; border: 1px solid rgba(20,22,15,.1); margin: 0 auto">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid rgba(20,22,15,.07); background: rgba(246,245,241,.9)"><span class="disp" style="font-size: 22px; color: #0f3d2e">KOI</span><span style="width: 6px; height: 6px; border-radius: 50%; background: #e8743b; margin-top: 8px"></span><span style="flex: 1"></span><button type="button" aria-label="Search" style="width: 38px; height: 38px; border-radius: 50%; background: #fff; border: 1px solid rgba(20,22,15,.1)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1c1e17" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button><button type="button" style="height: 38px; padding: 0 12px; border-radius: 999px; background: #fff; border: 1px solid rgba(20,22,15,.1); font: 600 12.5px 'Plus Jakarta Sans'">Delhi</button></div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 92px; height: 52px; border-radius: 26px; background: rgba(250,249,246,.78); border: 1px solid rgba(255,255,255,.6); box-shadow: 0 12px 40px rgba(31,92,58,.18); display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #e8743b"></span><span style="flex: 1; font-size: 14px; color: #8c8c84">Tell KOI what you need…</span><span style="width: 36px; height: 36px; border-radius: 50%; background: #1f5c3a; display: inline-flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span></div>
+<nav aria-label="Tabs" style="position: absolute; left: 16px; right: 16px; bottom: 16px; height: 64px; border-radius: 22px; background: rgba(255,255,255,.96); box-shadow: 0 10px 30px rgba(15,61,46,.12); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<sc-for list="{{tabsHome}}" as="t" hint-placeholder-count="5"><a href="#" style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans'; color: {{t.color}}; position: relative"><span style="width: 36px; height: 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: {{t.bg}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"/></svg></span>{{t.label}}<sc-if value="{{t.badge}}" hint-placeholder-val="{{false}}"><span class="num" style="position: absolute; top: -4px; right: 14px; background: #DDF247; color: #0f3d2e; font-size: 10px; border-radius: 999px; padding: 0 5px">{{t.badge}}</span></sc-if></a></sc-for>
+</nav>
+</div>
+<span style="font-size: 13px; color: #6b6f63; text-align: center">Browsing: tab bar, dock pill above it. Nothing else floats.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="width: 390px; height: 300px; background: #f6f5f1; border-radius: 28px; position: relative; overflow: hidden; border: 1px solid rgba(20,22,15,.1); margin: 0 auto">
+<div style="position: absolute; left: 16px; right: 16px; top: 18px; display: flex; flex-direction: column; gap: 8px"><span class="mono" style="color: #1f5c3a">This week's plan · for 6</span><div style="height: 58px; background: #fff; border-radius: 16px; border: 1px solid rgba(20,22,15,.07)"></div><div style="height: 58px; background: #fff; border-radius: 16px; border: 1px solid rgba(20,22,15,.07)"></div></div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 92px; height: 56px; display: flex; gap: 8px">
+<button type="button" aria-label="Ask KOI" style="width: 56px; height: 56px; flex: none; border-radius: 50%; background: rgba(250,249,246,.85); border: 1px solid rgba(255,255,255,.6); box-shadow: 0 12px 40px rgba(31,92,58,.18); display: inline-flex; align-items: center; justify-content: center"><span class="disp" style="font-size: 18px; color: #0f3d2e">K</span></button>
+<a href="#" style="flex: 1; height: 56px; border-radius: 18px; background: #0f3d2e; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; box-shadow: 0 12px 30px -12px rgba(15,61,46,.6)"><span style="display: flex; flex-direction: column"><span class="num" style="font-size: 17px">₹3,858</span><span class="mono" style="color: #9fe7c4; font-size: 9.5px">10 products · MRP</span></span><span style="flex: 1"></span><span style="background: #9fe7c4; color: #0f3d2e; font: 700 14px 'Plus Jakarta Sans'; border-radius: 12px; padding: 10px 14px">Checkout →</span></a>
+</div>
+<nav aria-label="Tabs" style="position: absolute; left: 16px; right: 16px; bottom: 16px; height: 64px; border-radius: 22px; background: rgba(255,255,255,.96); box-shadow: 0 10px 30px rgba(15,61,46,.12); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center">
+<sc-for list="{{tabsCart}}" as="t" hint-placeholder-count="5"><a href="#" style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans'; color: {{t.color}}; position: relative"><span style="width: 36px; height: 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: {{t.bg}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"/></svg></span>{{t.label}}<sc-if value="{{t.badge}}" hint-placeholder-val="{{false}}"><span class="num" style="position: absolute; top: -4px; right: 14px; background: #DDF247; color: #0f3d2e; font-size: 10px; border-radius: 999px; padding: 0 5px">{{t.badge}}</span></sc-if></a></sc-for>
+</nav>
+</div>
+<span style="font-size: 13px; color: #6b6f63; text-align: center">On a cart surface the total bar takes layer 2; the dock shrinks to a round K beside it — same row, never stacked.</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="width: 390px; height: 300px; background: #f6f5f1; border-radius: 28px; position: relative; overflow: hidden; border: 1px solid rgba(20,22,15,.1); margin: 0 auto">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid rgba(20,22,15,.07)"><span class="disp" style="font-size: 22px; color: #0f3d2e">KOI</span><span style="width: 6px; height: 6px; border-radius: 50%; background: #e8743b; margin-top: 8px"></span><span style="flex: 1"></span><span class="mono" style="color: #1f5c3a">Plan</span></div>
+<div style="position: absolute; left: 0; right: 0; top: 56px; height: 52px; display: flex; align-items: center; gap: 6px; padding: 0 16px; background: #faf9f6; border-bottom: 1px solid rgba(20,22,15,.07); overflow: hidden">
+<sc-for list="{{steps}}" as="st" hint-placeholder-count="6"><span style="flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px 5px 5px; border-radius: 999px; font: 600 12.5px 'Plus Jakarta Sans'; color: {{st.color}}; background: {{st.bg}}"><span class="num" style="width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; background: {{st.dotBg}}; color: {{st.dotColor}}">{{st.mark}}</span>{{st.label}}</span></sc-for>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; top: 124px; display: flex; align-items: center; justify-content: space-between"><span style="font: 800 22px 'Plus Jakarta Sans'; letter-spacing: -.02em">Your cart</span><button type="button" style="display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid rgba(20,22,15,.1); border-radius: 999px; padding: 4px 10px 4px 4px; font: 600 12.5px 'Plus Jakarta Sans'"><span style="display: flex"><span style="width: 22px; height: 22px; border-radius: 50%; background: #1f5c3a"></span><span style="width: 22px; height: 22px; border-radius: 50%; background: #c2683a; margin-left: -6px"></span><span style="width: 22px; height: 22px; border-radius: 50%; background: #3a6ea5; margin-left: -6px"></span></span>6 people</button></div>
+</div>
+<span style="font-size: 13px; color: #6b6f63; text-align: center">PlanBar on phones: steps scroll sideways, the current one snaps into view; the household sits behind one button.</span>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const done = { color: '#1f5c3a', bg: 'transparent', shadow: 'none', dotBg: '#1f5c3a', dotColor: '#fff', mark: '✓' };
+    const steps = [
+      { ...done, label: 'Define' }, { ...done, label: 'You' }, { ...done, label: 'Plan' }, { ...done, label: 'Pantry' },
+      { label: 'Cart', color: '#1c1e17', bg: '#fff', shadow: '0 1px 3px rgba(20,22,15,.1)', dotBg: '#1f5c3a', dotColor: '#fff', mark: '5' },
+      { label: 'Track', color: '#8c8c84', bg: 'transparent', shadow: 'none', dotBg: '#eceae3', dotColor: '#8c8c84', mark: '6' }
+    ];
+    const people = [
+      { i: 'ME', c: '#1f5c3a' }, { i: 'WI', c: '#c2683a' }, { i: 'K1', c: '#3a6ea5' }, { i: 'K2', c: '#9a5ba6' }, { i: 'MO', c: '#b07d2b' }, { i: 'FA', c: '#2f8050' }
+    ];
+    const icons = {
+      home: 'M4 11l8-7 8 7v9H4z',
+      shop: 'M4 9h16l-1 11H5zM8 9V7a4 4 0 018 0v2',
+      plan: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4',
+      cart: 'M5 7h14l-1.5 11h-11zM9 7a3 3 0 016 0',
+      you: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c1-4 4-6 8-6s7 2 8 6'
+    };
+    const tab = (label, key, active, badge) => ({ label, icon: icons[key], color: active ? '#1f5c3a' : '#8c8c84', bg: active ? '#e8f1ea' : 'transparent', badge: badge || false });
+    return {
+      steps, people,
+      tabsHome: [tab('Home', 'home', false), tab('Shop', 'shop', true), tab('Plan', 'plan', false), tab('Cart', 'cart', false, '3'), tab('You', 'you', false)],
+      tabsCart: [tab('Home', 'home', false), tab('Shop', 'shop', false), tab('Plan', 'plan', true), tab('Cart', 'cart', false, '10'), tab('You', 'you', false)]
+    };
+  }
+}
+</script>
+</body>
+</html>

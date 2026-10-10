@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KOI system sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#0f3d2e}
+.mono{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#6b6f63}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.01em}
+.disp{font-family:'Bricolage Grotesque',sans-serif;font-weight:800}
+</style>
+</helmet>
+<div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c1e17; background: #f6f5f1; padding: 56px 48px 72px; box-sizing: border-box; width: 100%">
+<div style="max-width: 1344px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px">
+
+<header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px"><span class="disp" style="font-size: 30px; color: #0f3d2e; letter-spacing: -.02em">KOI</span><span style="width: 9px; height: 9px; border-radius: 50%; background: #e8743b; margin-top: 10px"></span></div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 800; letter-spacing: -.025em; line-height: 1.05">One in-app language</h1>
+<p style="margin: 0; font-size: 16px; color: #6b6f63; max-width: 640px; line-height: 1.55">The Plan page's look, promoted to every in-app surface: shop grid, product, cart, checkout, orders, profile. The forest-and-lime editorial voice stays only for the landing and shop hero headlines.</p>
+</div>
+<div class="mono">Tokens · type · primitives · 10 Oct 2026</div>
+</header>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em">Colour</h2><span class="mono">components/store/system/tokens.js · app/store/koi.css</span></div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: start; border-top: 1px solid #f0eee7; padding-top: 18px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700">{{g.name}}</span><span style="font-size: 12.5px; color: #6b6f63; line-height: 1.45">{{g.note}}</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<sc-for list="{{g.swatches}}" as="s" hint-placeholder-count="4">
+<div style="width: 156px; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 14px; border: 1px solid rgba(20,22,15,.08); background: {{s.hex}}"></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">{{s.name}}</span><span class="mono" style="letter-spacing: .06em">{{s.hex}}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+<div style="display: flex; gap: 10px; align-items: center; background: #f4f3ee; border-radius: 14px; padding: 12px 14px; font-size: 13px; color: #5a5d53"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>Retired: the sage app shell (#F2F6EC, #E2E8D8, #0E4032), the second lime #C8F23E, Hanken body text, and the purple shadcn theme on store pages.</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em">Type — four tiers, one job each</h2></div>
+<div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f0eee7; padding-top: 16px"><span class="mono">Plus Jakarta Sans · UI · 400–800</span><span style="font-size: 30px; font-weight: 800; letter-spacing: -.025em">Your week, in one cart</span><span style="font-size: 15px; color: #6b6f63">Body copy, buttons, product names, headings in-app.</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f0eee7; padding-top: 16px"><span class="mono">Space Grotesk · every figure</span><span class="num" style="font-size: 34px; color: #1f5c3a">₹3,553 · 10 items · 6 people</span><span style="font-size: 15px; color: #6b6f63">₹, packs, kcal, counts. Nothing numeric is set in any other face.</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f0eee7; padding-top: 16px"><span class="mono">IBM Plex Mono · labels</span><span class="mono" style="font-size: 13px; color: #1c1e17">This week's plan · for 6 · week of 12 Oct</span><span style="font-size: 15px; color: #6b6f63">Eyebrows, metadata, system lines. 10–11 px, uppercase, +0.12em.</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #f0eee7; padding-top: 16px"><span class="mono">Bricolage Grotesque 800 · display only</span><span class="disp" style="font-size: 40px; letter-spacing: -.03em; text-transform: uppercase; line-height: .95; color: #083D2D">Shop like you have <span style="color: #2f8050">a nutritionist.</span></span><span style="font-size: 15px; color: #6b6f63">The wordmark, the landing hero, the shop hero. Never inside a card.</span></div>
+</div>
+
+<div style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em">Shape &amp; depth</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; border-top: 1px solid #f0eee7; padding-top: 16px">
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="height: 76px; border-radius: 22px; background: #fff; border: 1px solid rgba(20,22,15,.12)"></div><span class="mono">Card · 22</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="height: 76px; border-radius: 14px; background: #faf9f6; border: 1px solid rgba(20,22,15,.08)"></div><span class="mono">Tile · 14</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="height: 76px; border-radius: 12px; background: #1f5c3a"></div><span class="mono">Control · 12</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="height: 76px; border-radius: 999px; background: #e8f1ea; border: 1px solid #cfe3d6"></div><span class="mono">Pill · 999</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-top: 6px">
+<div style="height: 96px; border-radius: 18px; background: #fff; border: 1px solid rgba(20,22,15,.07); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box"><span class="mono">Hairline · default</span></div>
+<div style="height: 96px; border-radius: 18px; background: #fff; box-shadow: 0 24px 60px -20px rgba(15,61,46,.35); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box"><span class="mono">Sheet</span></div>
+<div style="height: 96px; border-radius: 18px; background: #fff; box-shadow: 0 12px 32px rgba(0,0,0,.18); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box"><span class="mono">Toast</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #f0eee7; padding-top: 16px">
+<span class="mono">Wordmark</span>
+<div style="display: flex; gap: 14px">
+<div style="flex: 1; height: 72px; border-radius: 16px; background: #f6f5f1; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="disp" style="font-size: 28px; color: #0f3d2e">KOI</span><span style="width: 8px; height: 8px; border-radius: 50%; background: #e8743b; margin-top: 10px"></span></div>
+<div style="flex: 1; height: 72px; border-radius: 16px; background: #083D2D; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="disp" style="font-size: 28px; color: #fff">KOI</span><span style="width: 8px; height: 8px; border-radius: 50%; background: #e8743b; margin-top: 10px"></span></div>
+</div>
+<span style="font-size: 12.5px; color: #6b6f63">The store's heavy "KOI" with the founder design's orange dot — one mark for both moods.</span>
+</div>
+</div>
+</section>
+
+<section style="background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 28px; display: flex; flex-direction: column; gap: 22px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em">Primitives</h2>
+
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: center; border-top: 1px solid #f0eee7; padding-top: 18px">
+<span style="font-size: 14px; font-weight: 700">Button</span>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+<button type="button" style="font: 600 15px 'Plus Jakarta Sans', sans-serif; background: #1f5c3a; color: #fff; border: 0; border-radius: 13px; padding: 14px 24px; cursor: pointer">Put this week in my cart</button>
+<button type="button" style="font: 600 15px 'Plus Jakarta Sans', sans-serif; background: #fff; color: #1c1e17; border: 1px solid rgba(20,22,15,.14); border-radius: 13px; padding: 13px 22px; cursor: pointer">See what changed</button>
+<button type="button" style="font: 600 15px 'Plus Jakarta Sans', sans-serif; background: transparent; color: #1f5c3a; border: 0; padding: 13px 8px; cursor: pointer">← Back</button>
+<span style="display: inline-flex; background: #0f3d2e; border-radius: 16px; padding: 10px"><button type="button" style="font: 700 15px 'Plus Jakarta Sans', sans-serif; background: #9fe7c4; color: #0f3d2e; border: 0; border-radius: 12px; padding: 12px 20px; cursor: pointer">Update cart</button></span>
+<button type="button" style="font: 600 15px 'Plus Jakarta Sans', sans-serif; background: #1f5c3a; color: #fff; border: 0; border-radius: 13px; padding: 14px 24px; opacity: .72; display: inline-flex; gap: 10px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff"></span>Adding…</button>
+<button type="button" disabled style="font: 600 15px 'Plus Jakarta Sans', sans-serif; background: #eceae3; color: #8c8c84; border: 0; border-radius: 13px; padding: 14px 24px">Checkout</button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: center; border-top: 1px solid #f0eee7; padding-top: 18px">
+<span style="font-size: 14px; font-weight: 700">Pill</span>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" style="font: 600 13.5px 'Plus Jakarta Sans', sans-serif; background: #1f5c3a; color: #fff; border: 0; border-radius: 999px; padding: 9px 16px">All</button>
+<button type="button" style="font: 600 13.5px 'Plus Jakarta Sans', sans-serif; background: #fff; color: #1c1e17; border: 1px solid rgba(20,22,15,.12); border-radius: 999px; padding: 8px 15px">High protein</button>
+<button type="button" style="font: 600 13.5px 'Plus Jakarta Sans', sans-serif; background: #fff; color: #1c1e17; border: 1px solid rgba(20,22,15,.12); border-radius: 999px; padding: 8px 15px">No palm oil</button>
+<button type="button" style="font: 600 13.5px 'Plus Jakarta Sans', sans-serif; background: #e8f1ea; color: #1f5c3a; border: 1px solid #cfe3d6; border-radius: 999px; padding: 8px 15px; display: inline-flex; gap: 8px; align-items: center">In your plan <span class="num" style="font-size: 12px; background: #1f5c3a; color: #fff; border-radius: 999px; padding: 1px 7px">10</span></button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: center; border-top: 1px solid #f0eee7; padding-top: 18px">
+<span style="font-size: 14px; font-weight: 700">QtyStepper</span>
+<div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start">
+<div style="display: inline-flex; align-items: center; background: #faf9f6; border: 1px solid rgba(20,22,15,.1); border-radius: 12px; height: 40px">
+<button type="button" aria-label="Remove" style="width: 40px; height: 40px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b84535" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+<span class="num" style="width: 28px; text-align: center; font-size: 15px">1</span>
+<button type="button" aria-label="Add one" style="width: 40px; height: 40px; border: 0; background: transparent; font: 600 18px 'Plus Jakarta Sans'; color: #1f5c3a">+</button>
+</div><span class="mono">At 1 · − removes</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start">
+<div style="display: inline-flex; align-items: center; background: #faf9f6; border: 1px solid rgba(20,22,15,.1); border-radius: 12px; height: 40px">
+<button type="button" aria-label="One fewer" style="width: 40px; height: 40px; border: 0; background: transparent; font: 600 18px 'Plus Jakarta Sans'; color: #1f5c3a">−</button>
+<span class="num" style="width: 28px; text-align: center; font-size: 15px">5</span>
+<button type="button" aria-label="One more" style="width: 40px; height: 40px; border: 0; background: transparent; font: 600 18px 'Plus Jakarta Sans'; color: #1f5c3a">+</button>
+</div><span class="mono">n</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start">
+<button type="button" style="font: 700 14px 'Plus Jakarta Sans', sans-serif; background: #1f5c3a; color: #fff; border: 0; border-radius: 12px; height: 40px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+<span class="mono">Not in cart</span></div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: center; border-top: 1px solid #f0eee7; padding-top: 18px">
+<span style="font-size: 14px; font-weight: 700">Money · MonoLabel</span>
+<div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: baseline">
+<span class="num" style="font-size: 30px">₹3,553</span>
+<span style="display: inline-flex; gap: 6px; align-items: baseline"><span class="num" style="font-size: 20px">₹450</span><span class="mono">MRP</span></span>
+<span style="display: inline-flex; gap: 8px; align-items: baseline"><span class="mono">price null →</span><span style="font-size: 14px; color: #6b6f63">nothing renders (never ₹0)</span></span>
+<span class="mono" style="color: #1f5c3a">This week's plan · for 6</span>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: start; border-top: 1px solid #f0eee7; padding-top: 18px">
+<span style="font-size: 14px; font-weight: 700; padding-top: 6px">ProductThumb · Card</span>
+<div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: stretch">
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 88px; height: 88px; border-radius: 16px; background: #f4f1e9; display: flex; align-items: center; justify-content: center; overflow: hidden"><img src="/_blob/6b46d92120ccba28b5a1c8a9eb180b1a" alt="California Almonds pack" style="width: 78px; height: 78px; object-fit: contain; mix-blend-mode: multiply"></div><span class="mono">Pack shot</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 88px; height: 88px; border-radius: 16px; background: #eef3ee; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8fae98" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 19c8 0 14-6 14-14C11 5 5 11 5 19zM5 19l7-7"/></svg></div><span class="mono">No image</span></div>
+<div style="width: 220px; background: #fff; border: 1px solid rgba(20,22,15,.07); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span class="mono">Card</span><span style="font-size: 15px; font-weight: 700">Plain</span><span style="font-size: 13px; color: #6b6f63">White, hairline, no shadow.</span></div>
+<div style="width: 220px; background: #fff; border: 2px solid #2f8050; border-radius: 22px; padding: 17px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 16px 30px -18px rgba(47,128,80,.5)"><span class="mono" style="color: #1f5c3a">Card</span><span style="font-size: 15px; font-weight: 700">Selected</span><span style="font-size: 13px; color: #6b6f63">2 px accent + soft green drop.</span></div>
+<div style="width: 220px; background: #0f3d2e; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span class="mono" style="color: #9fe7c4">KOI speaks</span><span style="font-size: 15px; font-weight: 700; color: #fff">Deep</span><span style="font-size: 13px; color: rgba(255,255,255,.72)">Totals, KOI's read, the plan's cart call.</span></div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: start; border-top: 1px solid #f0eee7; padding-top: 18px">
+<span style="font-size: 14px; font-weight: 700; padding-top: 6px">AddedToast</span>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<div role="status" style="width: 380px; background: #fff; border-radius: 18px; box-shadow: 0 12px 32px rgba(0,0,0,.18); padding: 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px; align-items: center">
+<div style="width: 52px; height: 52px; border-radius: 12px; background: #f4f1e9; display: flex; align-items: center; justify-content: center; flex: none"><img src="/_blob/6b46d92120ccba28b5a1c8a9eb180b1a" alt="" style="width: 46px; height: 46px; object-fit: contain; mix-blend-mode: multiply"></div>
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0"><span style="display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 700; color: #1f5c3a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Added to cart</span><span style="font-size: 14.5px; font-weight: 700">California Almonds</span><span class="mono" style="letter-spacing: .06em">Open Secret · 200 g · <span class="num">2</span> in cart</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; text-decoration: none; text-align: center; color: #1c1e17; border: 1px solid rgba(20,22,15,.14); border-radius: 12px; padding: 11px">View cart</a>
+<a href="#" style="font: 600 14px 'Plus Jakarta Sans'; text-decoration: none; text-align: center; color: #fff; background: #1f5c3a; border-radius: 12px; padding: 11px">Checkout</a>
+</div>
+</div>
+<p style="margin: 0; max-width: 360px; font-size: 13.5px; color: #6b6f63; line-height: 1.55">Names the item and the pack, says how many are now in the cart, and offers exactly two next steps. No price in the toast — the cart shows it. Drops from the cart button on desktop; sits above the tab bar on phones.</p>
+</div>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      groups: [
+        { name: 'Ground & surface', note: 'Every in-app page sits on the off-white ground; cards are white.', swatches: [
+          { name: 'bg', hex: '#f6f5f1' }, { name: 'surface', hex: '#ffffff' }, { name: 'surface2', hex: '#faf9f6' }, { name: 'quiet', hex: '#f4f3ee' }, { name: 'divider', hex: '#f0eee7' } ] },
+        { name: 'Ink', note: 'Small text uses ink2 (4.6:1 on bg). muted is for 14 px bold and up.', swatches: [
+          { name: 'ink', hex: '#1c1e17' }, { name: 'ink2', hex: '#6b6f63' }, { name: 'muted', hex: '#8c8c84' } ] },
+        { name: 'Green', note: 'Primary actions, active states, KOI-speaks panels.', swatches: [
+          { name: 'primary', hex: '#1f5c3a' }, { name: 'accent', hex: '#2f8050' }, { name: 'deep', hex: '#0f3d2e' }, { name: 'mint', hex: '#9fe7c4' }, { name: 'tint', hex: '#e8f1ea' }, { name: 'tintBorder', hex: '#cfe3d6' } ] },
+        { name: 'Warm', note: 'Needs-you moments: a changed plan, the logo dot.', swatches: [
+          { name: 'warm', hex: '#c2683a' }, { name: 'warmTint', hex: '#faece2' }, { name: 'logoDot', hex: '#e8743b' } ] },
+        { name: 'Status', note: 'Always with a mark (✓ ! ×), never colour alone.', swatches: [
+          { name: 'red', hex: '#b84535' }, { name: 'redTint', hex: '#fdf0ee' }, { name: 'warn', hex: '#856404' }, { name: 'warnTint', hex: '#fff3cd' }, { name: 'blue', hex: '#1a5276' }, { name: 'blueTint', hex: '#e8f0fb' } ] },
+        { name: 'Editorial only', note: 'Landing hero, shop hero, and the cart-count badge.', swatches: [
+          { name: 'forest', hex: '#083D2D' }, { name: 'lime', hex: '#DDF247' } ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
