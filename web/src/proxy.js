@@ -31,7 +31,7 @@
 // GUEST BROWSING IS THE DEFAULT:
 // /store, /store/shop, /store/product/* and /store/cart are deliberately absent
 // below. A shopper fills a cart signed out and is asked to sign in only at
-// checkout — see StoreNavigation for the same rule in the UI.
+// checkout — see components/store/shell/StoreChrome.jsx for the same rule in the UI.
 // ============================================================================
 
 import { NextResponse } from 'next/server';

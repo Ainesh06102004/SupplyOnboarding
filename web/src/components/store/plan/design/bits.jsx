@@ -102,7 +102,7 @@ export function Toast({ toast }) {
       ? { background: C.redBg, color: C.redText, border: `1px solid ${C.redBorder}` }
       : { background: C.primary, color: "#fff", border: "none" };
   return (
-    <div role="status" aria-live="polite" style={{ position: "fixed", left: "50%", bottom: 96, transform: "translateX(-50%)", zIndex: 120, maxWidth: "calc(100vw - 32px)", width: "max-content", borderRadius: 14, padding: "12px 18px", font: font(600, 13), boxShadow: "0 12px 32px rgba(0,0,0,.22)", animation: "koiUp .3s ease both", textAlign: "center", ...tone }}>
+    <div role="status" aria-live="polite" style={{ position: "fixed", left: "50%", bottom: "calc(var(--koi-bottom-chrome, 0px) + 96px)", transform: "translateX(-50%)", zIndex: 120, maxWidth: "calc(100vw - 32px)", width: "max-content", borderRadius: 14, padding: "12px 18px", font: font(600, 13), boxShadow: "0 12px 32px rgba(0,0,0,.22)", animation: "koiUp .3s ease both", textAlign: "center", ...tone }}>
       {toast.text}
     </div>
   );

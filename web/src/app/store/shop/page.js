@@ -13,12 +13,12 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import EditorialNav from "@/components/store/landing/EditorialNav";
 import { C } from "@/components/store/landing/tokens";
 import { getSeedCatalogue, GOALS, INGREDIENTS, SORTS } from "@/components/store/shop/shopData";
 import { useCatalogue } from "@/lib/data/useCatalogue";
 import { averageScore } from "@/lib/score";
 import CommandSearch from "@/components/store/shop/CommandSearch";
+import { OPEN_SHOP_SEARCH } from "@/components/store/shell/StoreHeader";
 import { demandTerms } from "@/lib/demand/terms";
 import { reportDemand } from "@/lib/demand/report";
 import { GoalSetupModal } from "@/components/store/shop/GoalSetup";
@@ -35,18 +35,10 @@ import { attachSupply } from "@/lib/marketplace/browser";
 import { useGoalStore } from "@/store/goalStore";
 import {
   ShopHero, FeaturedEditorial, Shelf, GoalRail, IngredientStrip,
-  FilterBar, FilterDrawer, ProductGrid, MiniCart,
+  FilterBar, FilterDrawer, ProductGrid,
 } from "@/components/store/shop/ShopSections";
 import { KoiScoreModal, CompareModal, WhyKoiDrawer } from "@/components/store/shop/ProductOverlays";
 
-const SHOP_LINKS = [
-  { label: "Collections", href: "#collections" },
-  { label: "Ingredients", href: "#ingredients" },
-  { label: "Shop all", href: "#grid" },
-  // The planner and, through the account menu, the household (§9.10.2). This
-  // page renders its own header, so a link in StoreNavigation never shows here.
-  { label: "Plan", href: "/store/plan" },
-];
 
 export default function ShopPage() {
   const router = useRouter();
@@ -110,7 +102,7 @@ export default function ShopPage() {
   const [selectedCompareProduct, setSelectedCompareProduct] = useState(null);
   const [selectedInsightProduct, setSelectedInsightProduct] = useState(null);
 
-  // ⌘K / Ctrl+K to summon the command search
+  // ⌘K / Ctrl+K, or the store header's search, summons the command search.
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -118,8 +110,13 @@ export default function ShopPage() {
         setSearchOpen(true);
       }
     };
+    const onHeader = () => setSearchOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_SHOP_SEARCH, onHeader);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_SHOP_SEARCH, onHeader);
+    };
   }, []);
 
   const categories = useMemo(() => {
@@ -321,6 +318,20 @@ export default function ShopPage() {
     scrollToId(readBack ? "intent" : "grid");
   };
 
+  // Words typed into the header's search on another page arrive as ?q=. They
+  // were dropped before — nothing here read them. Read once, after the
+  // catalogue is in, so the demand count is taken against real products.
+  const askedQuery = useRef(null);
+  useEffect(() => {
+    if (askedQuery.current !== null || !products.length) return undefined;
+    const q = new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+    askedQuery.current = q;
+    if (!q) return undefined;
+    const t = setTimeout(() => applyFromSearch({ query: q.slice(0, 200) }), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on the first catalogue
+  }, [products.length]);
+
   const removeChip = (chip) => {
     const next = removeFromIntent(intent, chip);
     setIntent(!isEmptyIntent(next) || next.unresolved.length ? next : null);
@@ -361,9 +372,7 @@ export default function ShopPage() {
     : activeCategory;
 
   return (
-    <div className="koi-shop relative w-full overflow-x-clip" style={{ background: C.offwhite }}>
-      <EditorialNav links={SHOP_LINKS} onSearchClick={() => setSearchOpen(true)} />
-
+    <div className="koi-shop relative w-full overflow-x-clip" style={{ background: "var(--koi-bg)" }}>
       <main>
           <ShopHero
             onOpenSearch={() => setSearchOpen(true)}
@@ -485,8 +494,6 @@ export default function ShopPage() {
       <KoiScoreModal product={selectedScoreProduct} onClose={() => setSelectedScoreProduct(null)} />
       <CompareModal product={selectedCompareProduct} onClose={() => setSelectedCompareProduct(null)} />
       <WhyKoiDrawer product={selectedInsightProduct} onClose={() => setSelectedInsightProduct(null)} />
-
-      <MiniCart />
 
       {/* Shared keyframes + utilities (GPU-accelerated, motion-aware) */}
       <style jsx global>{`

@@ -8,7 +8,6 @@
 // ============================================================================
 
 import { useMemo } from "react";
-import EditorialNav from "@/components/store/landing/EditorialNav";
 import HeroEditorial from "@/components/store/landing/HeroEditorial";
 import { FeaturedCollection, BestRated } from "@/components/store/landing/ProductSections";
 import { getLandingFixtures } from "@/components/store/landing/tokens";
@@ -35,8 +34,6 @@ export default function StoreHomePage() {
 
   return (
     <div className="koi-landing relative w-full overflow-x-clip" style={{ background: "#F9F8F4" }}>
-      <EditorialNav />
-
       <main>
         <HeroEditorial product={hero} loading={status === "loading"} />
         <FeaturedCollection product={editorial} />

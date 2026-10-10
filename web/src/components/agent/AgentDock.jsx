@@ -12,6 +12,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { upcomingFasts, dayLabel } from "@/lib/calendar/festivals";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
+import { useCartUi } from "@/store/cartUiStore";
 import { useAgent } from "./AgentProvider";
 import { TaskChecklist, ToolCard, AskCard, ApprovalCard, ResultCard } from "./cards";
 import "./agent.css";
@@ -34,6 +36,10 @@ function StopIcon() {
 
 export default function AgentDock() {
   const agent = useAgent();
+  const pathname = usePathname() ?? "";
+  // A phone cart surface shows its total bar on layer 2; the dock becomes a
+  // round K beside it rather than stacking on top (app/store/koi.css).
+  const compact = useCartUi((s) => s.totalBar);
   const [text, setText] = useState("");
   const [ph, setPh] = useState(0);
   const inputRef = useRef(null);
@@ -73,7 +79,8 @@ export default function AgentDock() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [state?.entries?.length, state?.pending]);
 
-  if (!agent) return null;
+  // Checkout is the one page with nothing but the checkout on it.
+  if (!agent || pathname.startsWith("/store/checkout")) return null;
 
   const submit = (e) => {
     e?.preventDefault?.();
@@ -88,7 +95,8 @@ export default function AgentDock() {
   return (
     <div className="koi-agent">
       {!state.open && (
-        <form className="ka-dock ka-glass" data-state={dockState} onSubmit={submit} role="search" aria-label="Ask KOI">
+        <form className="ka-dock ka-glass" data-state={dockState} data-compact={compact ? "true" : undefined} onSubmit={submit} role="search" aria-label="Ask KOI">
+          <button type="button" className="ka-k" onClick={agent.open} aria-label="Ask KOI">K</button>
           <span className="ka-dot" aria-hidden="true" />
           {running || waiting ? (
             <button type="button" onClick={agent.open} style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", textAlign: "left", cursor: "pointer", padding: "10px 0" }} aria-label="Open KOI's conversation">

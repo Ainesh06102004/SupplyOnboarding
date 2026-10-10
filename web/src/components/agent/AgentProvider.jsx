@@ -15,7 +15,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
-import { fetchAllProducts } from "@/lib/data/productFetcher";
+import { getCatalogue, putPlanInCart } from "@/lib/cart/client";
 import { agentReducer, initialAgentState, persistable } from "@/lib/agent/client/reducer";
 import { postSegment, pageFrom } from "@/lib/agent/client/transport";
 
@@ -245,18 +245,20 @@ export function AgentProvider({ children }) {
   const decide = useCallback(async (allow) => {
     const pending = stateRef.current.pending;
     if (allow && pending?.card?.kind === "cart_edit") {
-      // Exactly the approved changes, in this browser's cart.
+      // Exactly the approved changes, in this browser's one cart. These are the
+      // shopper's own packs: "set" and "remove" change the line; "add" adds.
       try {
         await hydrateCart();
-        const all = await fetchAllProducts();
+        const all = await getCatalogue();
         const bySku = new Map(all.map((p) => [String(p.skuId), p]));
         const cart = useCartStore.getState();
         for (const line of pending.card.lines ?? []) {
           const product = bySku.get(String(line.skuId));
           if (!product) continue;
-          if (line.mode === "remove" || line.mode === "set") cart.removeFromCart(product.id);
-          const n = line.mode === "remove" ? 0 : line.packs;
-          for (let i = 0; i < n; i++) useCartStore.getState().addToCart(product);
+          const inCart = cart.items.some((i) => String(i.skuId) === String(product.skuId));
+          if (line.mode === "remove") cart.setQty(String(product.skuId), 0);
+          else if (line.mode === "set" && inCart) cart.setQty(String(product.skuId), line.packs);
+          else cart.add(product, line.packs);
         }
       } catch (err) {
         dispatch({ type: "error", text: err?.message ?? "The cart couldn't be changed." });
@@ -264,17 +266,14 @@ export function AgentProvider({ children }) {
       }
     }
     if (allow && pending?.card?.kind === "cart") {
-      // The cart lives in this browser: add exactly the approved lines, then tell KOI.
+      // The whole plan, through the one bridge: it replaces the plan's share of
+      // the cart (never doubles) and keeps what the shopper marked at home.
       try {
-        await hydrateCart();
-        const all = await fetchAllProducts();
-        const bySku = new Map(all.map((p) => [String(p.skuId), p]));
-        const { addToCart } = useCartStore.getState();
-        for (const line of pending.card.lines ?? []) {
-          const product = bySku.get(String(line.skuId));
-          if (!product) continue;
-          for (let i = 0; i < line.packs; i++) addToCart(product);
-        }
+        await putPlanInCart({
+          planId: pending.card.planId ?? null,
+          basket: pending.card.lines ?? [],
+          atHome: useCartStore.getState().plan?.atHome ?? [],
+        });
       } catch (err) {
         dispatch({ type: "error", text: err?.message ?? "The cart couldn't be filled." });
         return;

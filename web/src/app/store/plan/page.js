@@ -4,21 +4,26 @@
 // /store/plan — Plan
 //
 // The founder's Nutrition Planner design (KOI - Nutrition Planner.html) on
-// KOI's own backend: Define → You → Plan → Pantry → Shop → Track. The step is
-// in the address (?step=), so Back works.
+// KOI's own backend: Define → You → Plan → Pantry → Cart → Track. The step is
+// in the address (?step=), so Back works. Step five's key is still `shop`
+// (links, the agent's tools and its eval use it); it is labelled Cart, because
+// it is the store's one cart, not a second one.
+//
+// The page sits inside the store's shell: the shared StoreHeader above, the
+// PlanBar (steps + household) under it. Signed out, it keeps the shell and
+// offers sign-in in one card, instead of a bare page with its own logo.
 //
 // Every figure on these screens comes from the planner (/api/plan/run), a
 // label, or goals.js's cited suggestion. Where the design showed a number KOI
 // cannot back — a success probability, body fat, a "you save" — the screen
-// shows what KOI does know instead, or nothing. Track is the design's own
-// screen, marked as a preview of sample numbers.
+// shows what KOI does know instead, or nothing.
 // ============================================================================
 
-import { Suspense, useCallback, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AccountButton from "@/components/auth/AccountButton";
+import LoginSheet from "@/components/auth/LoginSheet";
 import { usePlanSession } from "@/components/store/plan/design/usePlanSession";
-import Header, { STEPS } from "@/components/store/plan/design/Header";
+import PlanBar, { STEPS } from "@/components/store/plan/design/PlanBar";
 import DefineStep from "@/components/store/plan/design/DefineStep";
 import YouStep from "@/components/store/plan/design/YouStep";
 import PlanStep from "@/components/store/plan/design/PlanStep";
@@ -27,7 +32,10 @@ import ShopStep from "@/components/store/plan/design/ShopStep";
 import TrackStep from "@/components/store/plan/design/TrackStep";
 import { Toast } from "@/components/store/plan/design/bits";
 import { C, font } from "@/components/store/plan/design/tokens";
+import { Button, MonoLabel } from "@/components/store/system/primitives";
 import { useAgent, useAgentBridge } from "@/components/agent/AgentProvider";
+import { useCartUi } from "@/store/cartUiStore";
+import { peopleOf } from "@/lib/plan/planView";
 
 export default function PlanPage() {
   return (
@@ -43,6 +51,26 @@ function Loading() {
       <span aria-hidden="true" style={{ display: "inline-block", width: 12, height: 12, marginRight: 8, border: `2px solid ${C.track}`, borderTopColor: C.accent, borderRadius: "50%", animation: "koiSpin .8s linear infinite", verticalAlign: "-2px" }} />
       Loading your household…
     </div>
+  );
+}
+
+function SignedOut() {
+  const [open, setOpen] = useState(false);
+  return (
+    <main className="koi-page" style={{ maxWidth: 720 }}>
+      <section className="ks-card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 12, animation: "koiUp .4s ease" }}>
+        <MonoLabel tone="green">Plan</MonoLabel>
+        <h1 style={{ margin: 0, font: font(800, 30, "sans", 1.15), letterSpacing: "-.025em" }}>A week of groceries, planned around everyone at home</h1>
+        <p style={{ margin: 0, font: font(400, 15, "sans", 1.55), color: C.ink2, maxWidth: 560 }}>
+          Sign in with your phone to save your household. Its people and their targets are yours alone — nobody else can read them. Your cart already works signed out.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
+          <Button onClick={() => setOpen(true)}>Sign in with phone</Button>
+          <Button href="/store/shop" variant="secondary">Browse the shop</Button>
+        </div>
+      </section>
+      <LoginSheet open={open} onOpenChange={setOpen} next="/store/plan" />
+    </main>
   );
 }
 
@@ -74,31 +102,28 @@ function Plan() {
     }
   }, [nav, go, setNav]);
 
+  // The plan on screen is the freshest there is: every cart surface compares
+  // the basket it was filled from against this one.
+  const setLatestPlan = useCartUi((st) => st.setLatestPlan);
+  const people = useMemo(() => (s.plan?.report ? peopleOf(s.plan.report, s.plan.days ?? 7).length : 0), [s.plan]);
+  useEffect(() => {
+    if (s.session === undefined) return;
+    setLatestPlan(s.plan?.report ? { planId: s.plan.planId ?? null, basket: s.plan.report.basket ?? [], members: people } : null);
+  }, [s.session, s.plan, people, setLatestPlan]);
+
   const at = STEPS.findIndex((x) => x.key === step);
   const next = () => go(STEPS[Math.min(STEPS.length - 1, at + 1)].key);
   const back = () => go(STEPS[Math.max(0, at - 1)].key);
 
   if (s.session === undefined) return <Loading />;
+  if (!s.session) return <SignedOut />;
 
-  if (!s.session) {
-    return (
-      <div className="koi-page" style={{ maxWidth: 640 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 28 }}>
-          <div style={{ width: 11, height: 11, borderRadius: "50%", background: C.logoDot }} />
-          <span style={{ font: font(700, 22, "num"), color: C.primary }}>KOI</span>
-        </div>
-        <h1 style={{ font: font(700, 34, "sans", 1.1), letterSpacing: "-.02em", margin: "0 0 10px" }}>Plan</h1>
-        <p style={{ font: font(400, 15, "sans", 1.55), color: C.ink2, margin: "0 0 20px" }}>
-          Sign in to plan for your household. Your household and its targets are yours alone — nobody else can read them.
-        </p>
-        <AccountButton />
-      </div>
-    );
-  }
+  const household = s.profiles.length;
+  const weekLabel = household ? `Plan · for ${household}` : "Plan";
 
   return (
     <>
-      <Header
+      <PlanBar
         step={step}
         onStep={go}
         profiles={s.profiles}
@@ -107,6 +132,7 @@ function Plan() {
         keyOf={s.keyOf}
         onAddMember={s.addMember}
         saveState={s.saveState}
+        weekLabel={weekLabel}
       />
       <main className="koi-page">
         {s.error && (
@@ -118,7 +144,7 @@ function Plan() {
         {step === "define" && <DefineStep s={s} onNext={next} onPlan={() => go("plan")} />}
         {step === "you" && <YouStep s={s} onBack={back} onNext={next} />}
         {step === "plan" && <PlanStep s={s} onBack={back} onNext={next} />}
-        {step === "pantry" && <PantryStep s={s} onBack={back} onNext={next} />}
+        {step === "pantry" && <PantryStep s={s} onBack={back} onNext={() => go("shop")} />}
         {step === "shop" && <ShopStep s={s} onBack={back} onNext={next} />}
         {step === "track" && <TrackStep s={s} onBack={back} />}
       </main>

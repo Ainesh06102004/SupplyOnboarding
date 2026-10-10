@@ -23,7 +23,8 @@ import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { readFollowUp } from "@/lib/planner/followup";
 import { withSuggestedTargets } from "@/lib/household/save";
 import { profileFromRow, memberPayload, avoidsPayload, blankProfile, profileProblems, profilesNamedIn, profilesNamed } from "@/lib/household/profile";
-import { categoriesFrom, enrichBasket, noteLines } from "@/lib/plan/planView";
+import { categoriesFrom, enrichBasket, noteLines, peopleOf } from "@/lib/plan/planView";
+import { putPlanInCart } from "@/lib/cart/client";
 import { readNdjson } from "@/lib/plan/stream";
 import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
@@ -864,37 +865,41 @@ export function usePlanSession() {
     notify(pantryError ? "It could not be kept." : "Kept in your pantry — later plans won't buy it.", pantryError ? "error" : "info");
   }, [householdId, notify]);
 
+  // What was ticked "have it" last time comes back with the cart's plan record,
+  // so the Pantry opens as the shopper left it.
+  const seededHave = useRef(false);
+  useEffect(() => {
+    if (seededHave.current || !plan) return undefined;
+    seededHave.current = true;
+    let alive = true;
+    hydrateCart().then(() => {
+      const atHome = useCartStore.getState().plan?.atHome;
+      if (alive && atHome?.length) setHave(new Set(atHome.map(String)));
+    });
+    return () => { alive = false; };
+  }, [plan]);
+
+  /**
+   * "Put this week in my cart": the one bridge (lib/cart/client.js). It
+   * REPLACES the plan's share of the one cart — pressing it again, from the
+   * Pantry, the Cart step or the agent, never doubles a pack — and keeps the
+   * shopper's own items and extra packs.
+   */
   const addToCart = useCallback(async () => {
-    if (!plan) return;
+    if (!plan) return null;
     const planId = plan.planId;
     setCartResult({ planId, busy: true });
     try {
-      // Restore the saved cart first: adding before it loads would write an empty cart over it.
-      await hydrateCart();
-      const all = products.length ? products : await fetchAllProducts();
-      const bySku = new Map(all.map((p) => [String(p.skuId), p]));
-      const { addToCart: add } = useCartStore.getState();
-      let packs = 0;
-      let count = 0;
-      const missing = [];
-      for (const line of lines) {
-        const n = packsFor(line);
-        if (!n) continue;
-        const product = bySku.get(String(line.skuId));
-        if (!product) {
-          missing.push(line.name ?? "a product");
-          continue;
-        }
-        for (let i = 0; i < n; i++) add(product);
-        packs += n;
-        count += 1;
-      }
-      setCartResult({ planId, packs, products: count, missing });
-      notify(`Added ${packs} ${packs === 1 ? "pack" : "packs"} to your cart.`);
+      const members = peopleOf(plan.report ?? {}, plan.days ?? 7).length || null;
+      const result = await putPlanInCart({ planId, basket: plan.report?.basket ?? [], atHome: have, members, products });
+      setCartResult({ planId, packs: result.packs, products: result.products, missing: result.missing });
+      notify(`This week's plan is in your cart: ${result.products} ${result.products === 1 ? "product" : "products"}, ${result.packs} ${result.packs === 1 ? "pack" : "packs"}.`);
+      return result;
     } catch (err) {
-      setCartResult({ planId, error: err?.message ?? "The basket could not be added to the cart." });
+      setCartResult({ planId, error: err?.message ?? "The plan could not be put in the cart." });
+      return null;
     }
-  }, [plan, products, lines, packsFor, notify]);
+  }, [plan, have, products, notify]);
 
   // "Put it in my cart" from the agent, once the plan it means is the one on screen.
   useEffect(() => {

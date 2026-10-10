@@ -3,7 +3,7 @@
 // ============================================================================
 // KOI SHOP - Editorial sections & interactive shell
 // Hero (search trigger) · FeaturedEditorial · Shelf · GoalRail ·
-// IngredientStrip · FilterBar · FilterDrawer · ProductGrid · MiniCart
+// IngredientStrip · FilterBar · FilterDrawer · ProductGrid
 // ============================================================================
 
 import React, { useEffect, useState, useRef } from "react";
@@ -14,7 +14,7 @@ import {
   X, Check, SlidersHorizontal, ChevronDown, Filter, Baby, Heart, Flame, Command, ShoppingBag, ArrowRight, Sprout, Zap
 } from "lucide-react";
 import Image from "next/image";
-import { useCartStore } from "@/store/cartStore";
+import { useAddToCart } from "@/components/store/cart/CartLayer";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Reveal, Eyebrow, Marquee, ScoreRing, ArrowButton, Grain } from "@/components/store/landing/primitives";
 import { PRICE_OPTIONS, SCORE_OPTIONS, DIETARY_OPTIONS } from "./shopData";
@@ -203,7 +203,7 @@ export function ShopHero({ onOpenSearch, onSuggest, stats }) {
 
 // ── Featured editorial spotlight ────────────────────────────────────────────
 export function FeaturedEditorial({ product, onSelect }) {
-  const addToCart = useCartStore((s) => s.addToCart);
+  const addToCart = useAddToCart();
   if (!product) return null;
   return (
     <section id="collections" className="relative scroll-mt-24" style={{ background: C.offwhite }}>
@@ -263,17 +263,17 @@ export function FeaturedEditorial({ product, onSelect }) {
 }
 
 // ── Reusable horizontal shelf ───────────────────────────────────────────────
-export function Shelf({ id, eyebrow, title, subtitle, products, handlers, background = C.offwhite }) {
+export function Shelf({ id, eyebrow, title, subtitle, products, handlers, background = "var(--koi-bg)" }) {
   if (!products?.length) return null;
   return (
     <section id={id} className="relative scroll-mt-24" style={{ background }}>
-      <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:px-12 lg:py-16">
+      <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-14">
         <Reveal>
           <div className="flex items-end justify-between gap-4">
             <div>
-              {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-              <h2 className="mt-4 font-extrabold uppercase leading-[0.92] tracking-[-0.02em] text-[#083D2D]" style={{ ...HEADING, fontSize: "clamp(1.9rem, 4vw, 3.2rem)" }}>{title}</h2>
-              {subtitle && <p className="mt-2 text-[14px] font-medium text-[#101412]/55" style={BODY}>{subtitle}</p>}
+              {eyebrow && <span className="ks-mono" style={{ color: "var(--koi-primary)" }}>{eyebrow}</span>}
+              <h2 className="mt-2 text-[#1c1e17]" style={{ font: "800 clamp(1.5rem, 2.6vw, 2rem)/1.1 var(--koi-sans-stack)", letterSpacing: "-.025em" }}>{title}</h2>
+              {subtitle && <p className="mt-1.5 text-[14px] text-[#6b6f63]">{subtitle}</p>}
             </div>
           </div>
         </Reveal>
@@ -384,7 +384,7 @@ export function FilterBar({
 }) {
   const [sortOpen, setSortOpen] = useState(false);
   return (
-    <div id="grid" className="sticky top-[64px] z-40 scroll-mt-24 border-y border-[#083D2D]/8 backdrop-blur-xl" style={{ background: "rgba(249,248,244,0.85)" }}>
+    <div id="grid" className="sticky top-[var(--koi-header-h)] z-40 scroll-mt-24 border-y border-[rgba(20,22,15,.07)] backdrop-blur-xl" style={{ background: "rgba(246,245,241,0.92)" }}>
       <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-12">
         {/* category chips */}
         <div className="hide-scrollbar flex flex-1 items-center gap-2 overflow-x-auto">
@@ -396,9 +396,9 @@ export function FilterBar({
                 onClick={() => setActiveCategory(cat)}
                 className="shrink-0 rounded-full border px-4 py-1.5 text-[13px] font-bold transition-all"
                 style={{
-                  background: active ? C.forest : "#fff",
-                  color: active ? "#fff" : C.forest,
-                  borderColor: active ? C.forest : "rgba(8,61,45,0.14)",
+                  background: active ? "#1f5c3a" : "#fff",
+                  color: active ? "#fff" : "#1c1e17",
+                  borderColor: active ? "#1f5c3a" : "rgba(20,22,15,0.14)",
                 }}
               >
                 {cat}
@@ -406,7 +406,7 @@ export function FilterBar({
             );
           })}
           {context && (
-            <button onClick={onClearContext} className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: `${C.lime}`, color: C.forest }}>
+            <button onClick={onClearContext} className="flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold" style={{ background: "#e8f1ea", borderColor: "#cfe3d6", color: "#1f5c3a" }}>
               {context} <X className="h-3.5 w-3.5" />
             </button>
           )}
@@ -418,7 +418,7 @@ export function FilterBar({
           <div className="relative">
             <button
               onClick={() => setSortOpen((s) => !s)}
-              className="flex items-center gap-2 rounded-full border border-[#083D2D]/12 bg-white px-3 py-2 text-[13px] font-bold text-[#083D2D] transition-colors hover:bg-[#F2F6EC]"
+              className="flex items-center gap-2 rounded-full border border-[#083D2D]/12 bg-white px-3 py-2 text-[13px] font-bold text-[#083D2D] transition-colors hover:bg-[#f6f5f1]"
             >
               <SlidersHorizontal className="h-4 w-4 md:hidden" />
               <span className="hidden md:inline">Sort: {activeSort}</span>
@@ -432,7 +432,7 @@ export function FilterBar({
                     <button
                       key={s}
                       onClick={() => { setActiveSort(s); setSortOpen(false); }}
-                      className="flex w-full items-center justify-between px-4 py-2.5 text-left text-[13px] font-semibold transition-colors hover:bg-[#F2F6EC]"
+                      className="flex w-full items-center justify-between px-4 py-2.5 text-left text-[13px] font-semibold transition-colors hover:bg-[#f6f5f1]"
                       style={{ color: activeSort === s ? C.forest : "rgba(8,61,45,0.6)" }}
                     >
                       {s} {activeSort === s && <Check className="h-4 w-4" />}
@@ -444,7 +444,7 @@ export function FilterBar({
           </div>
           <button
             onClick={onOpenFilter}
-            className="relative flex items-center gap-2 rounded-full border border-[#083D2D]/12 bg-white px-3 py-2 text-[13px] font-bold text-[#083D2D] transition-colors hover:bg-[#F2F6EC]"
+            className="relative flex items-center gap-2 rounded-full border border-[#083D2D]/12 bg-white px-3 py-2 text-[13px] font-bold text-[#083D2D] transition-colors hover:bg-[#f6f5f1]"
           >
             <Filter className="h-4 w-4" />
             <span className="hidden md:inline">Filter</span>
@@ -539,7 +539,7 @@ export function FilterDrawer({
         </div>
 
         <div className="flex gap-3 border-t border-[#083D2D]/10 bg-[#F9F8F4] p-5">
-          <button onClick={onClear} className="flex-1 rounded-full border border-[#083D2D]/14 bg-white py-3 text-[14px] font-bold text-[#083D2D] transition-colors hover:bg-[#F2F6EC]">Clear</button>
+          <button onClick={onClear} className="flex-1 rounded-full border border-[#083D2D]/14 bg-white py-3 text-[14px] font-bold text-[#083D2D] transition-colors hover:bg-[#f6f5f1]">Clear</button>
           <button onClick={onClose} className="flex-[2] rounded-full py-3 text-[14px] font-bold text-white transition-colors" style={{ background: C.forest }}>Show results</button>
         </div>
       </div>
@@ -550,11 +550,11 @@ export function FilterDrawer({
 // ── Main product grid ───────────────────────────────────────────────────────
 export function ProductGrid({ title, products, handlers, onClear, catalogueEmpty = false }) {
   return (
-    <section className="relative" style={{ background: C.offwhite }}>
-      <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
-        <div className="mb-8 flex items-end justify-between">
-          <h2 className="font-extrabold uppercase leading-[0.92] tracking-[-0.02em] text-[#083D2D]" style={{ ...HEADING, fontSize: "clamp(1.9rem, 4vw, 3rem)" }}>{title}</h2>
-          <span className="text-[13px] font-semibold text-[#101412]/50">{products.length} products</span>
+    <section className="relative" style={{ background: "var(--koi-bg)" }}>
+      <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
+        <div className="mb-6 flex items-end justify-between">
+          <h2 className="text-[#1c1e17]" style={{ font: "800 clamp(1.5rem, 2.6vw, 2rem)/1.1 var(--koi-sans-stack)", letterSpacing: "-.025em" }}>{title}</h2>
+          <span className="ks-mono"><span className="ks-num">{products.length}</span> products · MRP</span>
         </div>
 
         {products.length > 0 ? (
@@ -591,40 +591,5 @@ export function ProductGrid({ title, products, handlers, onClear, catalogueEmpty
         )}
       </div>
     </section>
-  );
-}
-
-// ── Sticky mini cart ────────────────────────────────────────────────────────
-export function MiniCart() {
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const items = useCartStore((s) => s.items);
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(t);
-  }, []);
-  if (!mounted) return null;
-  const totalItems = items.reduce((n, i) => n + i.quantity, 0);
-  const subtotal = items.reduce((n, i) => n + i.price * i.quantity, 0);
-  if (totalItems === 0) return null;
-
-  return (
-    <div className="fixed inset-x-0 bottom-24 z-[80] px-4 duration-300 animate-in slide-in-from-bottom-6 md:bottom-6 md:left-auto md:right-8 md:w-[360px] md:px-0">
-      <div className="flex items-center justify-between rounded-2xl border border-[#083D2D]/10 bg-white p-4 shadow-[0_18px_50px_rgba(8,61,45,0.2)]">
-        <div>
-          <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#083D2D]/50">
-            <ShoppingBag className="h-3 w-3" /> {totalItems} item{totalItems > 1 ? "s" : ""}
-          </span>
-          <span className="text-[19px] font-extrabold leading-none text-[#083D2D]" style={HEADING}>₹{subtotal.toLocaleString()}</span>
-        </div>
-        <button
-          onClick={() => router.push("/store/cart")}
-          className="group flex items-center gap-2 rounded-xl px-5 py-3 text-[13px] font-bold text-white transition-transform hover:-translate-y-0.5"
-          style={{ background: C.forest }}
-        >
-          View cart <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </button>
-      </div>
-    </div>
   );
 }
