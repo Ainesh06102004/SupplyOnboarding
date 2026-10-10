@@ -21,6 +21,8 @@ import KitchenRules from "@/components/store/household/KitchenRules";
 import PhraseLog from "@/components/store/household/PhraseLog";
 import { Plus, Loader2, Pencil, Trash2, Sparkles, UserRound } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLoginUi } from "@/store/loginUiStore";
 import { loadGoalProfile } from "@/lib/supabase/goalProfileService";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 import { AGE_BANDS } from "@/lib/planner/brief";
@@ -395,11 +397,17 @@ export default function HouseholdPage() {
     setEditing(null);
   }, [show]);
 
+  // Re-read when the shopper signs in or out here: it used to read once, on
+  // opening, so signing in from this page left the signed-out message up.
+  const { user: authUser, loading: authLoading } = useAuth();
+  const authUid = authLoading ? "loading" : authUser?.uid ?? "signed-out";
+  const openLogin = useLoginUi((st) => st.openLogin);
   useEffect(() => {
+    if (authUid === "loading") return undefined;
     let live = true;
     readHousehold().then((result) => { if (live) show(result); });
     return () => { live = false; };
-  }, [show]);
+  }, [show, authUid]);
 
   const members = useMemo(() => (state.members ?? []).map(profileFromRow), [state.members]);
   // The brands on the shelf, so a brand rule can be typed with the shop's own
@@ -507,6 +515,7 @@ export default function HouseholdPage() {
       <main className="mx-auto max-w-3xl px-5 py-16">
         <h1 className="text-2xl font-bold text-[#1c1e17]" style={HEADING}>Your household</h1>
         <p className="mt-2 text-[13px] text-[#6b6f63]">Sign in to keep a profile for everyone you shop for. Only you can read it.</p>
+        <button type="button" onClick={() => openLogin()} className="ks-btn mt-5" data-variant="primary">Sign in with phone</button>
       </main>
     );
   }

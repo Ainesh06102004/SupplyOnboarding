@@ -21,6 +21,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLoginUi } from "@/store/loginUiStore";
 import { AGE_BANDS } from "@/lib/planner/brief";
 import { ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
 import { DIET_TYPES, FOODS_AVOID, FOODS_LOVE, MEALS, GOAL_PROFILES } from "@/lib/recommendation/config";
@@ -122,11 +124,16 @@ export default function YourDataPage() {
   }, []);
   const load = useCallback(async () => show(await readEverything()), [show]);
 
+  // Re-read on sign-in or sign-out here, not only on opening.
+  const { user: authUser, loading: authLoading } = useAuth();
+  const authUid = authLoading ? "loading" : authUser?.uid ?? "signed-out";
+  const openLogin = useLoginUi((st) => st.openLogin);
   useEffect(() => {
+    if (authUid === "loading") return undefined;
     let live = true;
     readEverything().then((result) => { if (live) show(result); });
     return () => { live = false; };
-  }, [show]);
+  }, [show, authUid]);
 
   /** Run deletes as the shopper, then show what is left. */
   const remove = async (...queries) => {
@@ -145,6 +152,7 @@ export default function YourDataPage() {
       <main className="mx-auto max-w-3xl px-5 py-16">
         <h1 className="text-2xl font-bold text-[#1c1e17]">What KOI keeps about you</h1>
         <p className="mt-2 text-[13px] text-[#6b6f63]">Sign in to see and delete what KOI has stored for your account.</p>
+        <button type="button" onClick={() => openLogin()} className="ks-btn mt-5" data-variant="primary">Sign in with phone</button>
       </main>
     );
   }

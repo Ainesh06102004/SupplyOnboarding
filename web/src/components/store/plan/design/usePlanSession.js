@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllProducts } from "@/lib/data/productFetcher";
 import { isTestSku } from "@/lib/data/testCatalogue";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
@@ -195,6 +196,24 @@ export function usePlanSession() {
     })();
     return () => { live = false; };
   }, [load]);
+
+  // Signing in (or out) on this page reloads the household. It used to read
+  // the session once, when the page opened, so a shopper who signed in from
+  // the Plan's own sign-in card stayed looking at it.
+  const { user: authUser, loading: authLoading } = useAuth();
+  const authUid = authLoading ? undefined : authUser?.uid ?? null;
+  const seenUid = useRef(undefined);
+  useEffect(() => {
+    if (authUid === undefined) return undefined;
+    if (seenUid.current === undefined) {
+      seenUid.current = authUid;
+      return undefined;
+    }
+    if (seenUid.current === authUid) return undefined;
+    seenUid.current = authUid;
+    const t = setTimeout(() => { load(); }, 0);
+    return () => clearTimeout(t);
+  }, [authUid, load]);
 
   const categories = useMemo(() => categoriesFrom(products), [products]);
   const stockedKeys = useMemo(() => categories.map((c) => c.key), [categories]);

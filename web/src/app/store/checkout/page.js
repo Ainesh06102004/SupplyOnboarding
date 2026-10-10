@@ -25,6 +25,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore, isDescribable } from "@/store/cartStore";
+import { useLoginUi } from "@/store/loginUiStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { averageScore } from "@/lib/score";
 import { packs, totals } from "@/lib/cart/lines";
@@ -62,6 +63,7 @@ export default function CheckoutPage() {
   const hydrated = useCartStore((state) => state.hydrated);
   const resolved = useCartStore((state) => state.resolved);
   const removeLines = useCartStore((state) => state.removeLines);
+  const openLogin = useLoginUi((state) => state.openLogin);
 
   // Hand-off lines must carry a real SKU and price, so an unresolved reference
   // cannot be checked out — but it must not be mistaken for an empty basket
@@ -247,7 +249,13 @@ export default function CheckoutPage() {
       : canHandOff
         ? "Review what Swiggy has"
         : "Save this basket";
-  const why = !user?.uid ? "Sign in to continue" : !address ? "Add a delivery address to continue" : null;
+  // Signed out (a session that lapsed after proxy.js let them in), the button
+  // itself signs in — a sentence saying "sign in" with nothing to press was a
+  // dead end.
+  const signedOut = !user?.uid;
+  const onCta = signedOut ? () => openLogin() : handleReview;
+  const cta = signedOut ? "Sign in to continue" : ctaLabel;
+  const why = signedOut ? null : !address ? "Add a delivery address to continue" : null;
 
   return (
     <main className="ks-page" style={{ display: "flex", flexDirection: "column", gap: 20, paddingBottom: plan ? 64 : 140 }}>
@@ -343,7 +351,7 @@ export default function CheckoutPage() {
             <p style={{ margin: 0, font: "400 12.5px/1.5 var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>{SWIGGY_NOTE}</p>
             {!plan && (
               <div className="ks-hide-phone" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Button size="lg" block onClick={handleReview} disabled={blocked} busy={isProcessing}>{ctaLabel}</Button>
+                <Button size="lg" block onClick={onCta} disabled={!signedOut && blocked} busy={isProcessing}>{cta}</Button>
                 {why && <span style={{ textAlign: "center", font: "600 12.5px var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>{why}</span>}
               </div>
             )}
@@ -368,7 +376,7 @@ export default function CheckoutPage() {
               <MonoLabel>MRP total</MonoLabel>
               <Money value={all.total} size={19} />
             </div>
-            <Button size="lg" onClick={handleReview} disabled={blocked} busy={isProcessing} style={{ flex: 1 }}>{ctaLabel}</Button>
+            <Button size="lg" onClick={onCta} disabled={!signedOut && blocked} busy={isProcessing} style={{ flex: 1 }}>{cta}</Button>
           </div>
           {why && <span style={{ textAlign: "center", font: "600 12px var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>{why}</span>}
         </div>

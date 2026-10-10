@@ -5,7 +5,7 @@ import { Plus, MapPin, Check, Trash2, Edit2, AlertCircle, User as UserIcon } fro
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import LocationModal from "@/components/store/LocationModal";
-import LoginSheet from "@/components/auth/LoginSheet";
+import { useLoginUi } from "@/store/loginUiStore";
 
 export default function AddressManager({ onSelect, selectedAddressId }) {
   const { user } = useAuth();
@@ -14,7 +14,10 @@ export default function AddressManager({ onSelect, selectedAddressId }) {
   const [error, setError] = useState(null);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  // The store's one sign-in sheet. It used to be a copy here with `next`
+  // hard-wired to /store/checkout, so signing in from Profile's address book
+  // sent the shopper to checkout. Signed in, this component re-renders itself.
+  const openLogin = useLoginUi((s) => s.openLogin);
   const [editData, setEditData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -134,13 +137,12 @@ export default function AddressManager({ onSelect, selectedAddressId }) {
           <UserIcon className="w-8 h-8 text-[#6b6f63] mx-auto mb-3 opacity-50" />
           <p className="text-[#6b6f63] font-medium mb-4">Please log in to manage your addresses.</p>
           <button 
-            onClick={() => setIsLoginOpen(true)}
+            onClick={() => openLogin()}
             className="px-5 py-2.5 bg-[#1f5c3a] text-white rounded-xl font-bold hover:bg-[#155A47] transition-colors inline-flex items-center gap-2"
           >
             Login or Signup
           </button>
         </div>
-        <LoginSheet open={isLoginOpen} onOpenChange={setIsLoginOpen} next="/store/checkout" />
       </>
     );
   }

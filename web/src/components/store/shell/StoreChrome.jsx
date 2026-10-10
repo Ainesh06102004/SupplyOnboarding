@@ -14,12 +14,13 @@
 //     The Plan page reports its own, fresher plan instead (usePlanSession).
 // ============================================================================
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LoginSheet from "@/components/auth/LoginSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCartStore } from "@/store/cartStore";
 import { useCartUi } from "@/store/cartUiStore";
+import { useLoginUi } from "@/store/loginUiStore";
 import { fetchLatestPlan } from "@/lib/cart/client";
 import StoreHeader from "./StoreHeader";
 import MobileTabBar from "./MobileTabBar";
@@ -49,20 +50,19 @@ function Chrome() {
   const pathname = usePathname() ?? "/store";
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [loginOpen, setLoginOpen] = useState(false);
-  // Where the shopper was heading when the gate stopped them. Held in state
-  // because the URL params it came from are wiped immediately below.
-  const [loginNext, setLoginNext] = useState(null);
-  const [loginRequired, setLoginRequired] = useState(false);
+  // The ONE sign-in sheet for the store (store/loginUiStore.js): every "Sign
+  // in" anywhere opens this instance, so none can be trapped by its parent.
+  const login = useLoginUi();
+  const openLogin = login.openLogin;
   const mode = headerModeFor(pathname);
 
   useEffect(() => {
     const reason = searchParams.get("login");
     if (reason !== "required" && reason !== "failed") return undefined;
     const t = setTimeout(() => {
-      setLoginOpen(true);
-      setLoginRequired(reason === "required");
-      setLoginNext(searchParams.get("next"));
+      // Where the shopper was heading when the gate stopped them — kept in the
+      // sheet's state, because the URL params it came from are wiped below.
+      openLogin({ required: reason === "required", next: searchParams.get("next") });
       // So a refresh or a shared link does not reopen the sheet.
       const params = new URLSearchParams(searchParams);
       params.delete("login");
@@ -71,7 +71,7 @@ function Chrome() {
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     }, 0);
     return () => clearTimeout(t);
-  }, [searchParams, pathname, router]);
+  }, [searchParams, pathname, router, openLogin]);
 
   useLatestPlan(pathname);
 
@@ -87,20 +87,13 @@ function Chrome() {
     <>
       <StoreHeader pathname={pathname} mode={mode} />
       {mode !== "focused" && (
-        <MobileTabBar
-          pathname={pathname}
-          onSignIn={() => {
-            // Chosen, not forced — the sheet keeps its guest option.
-            setLoginRequired(false);
-            setLoginNext(null);
-            setLoginOpen(true);
-          }}
-        />
+        // Chosen, not forced — the sheet keeps its guest option.
+        <MobileTabBar pathname={pathname} onSignIn={() => openLogin()} />
       )}
       <CartSheet />
       <AddedToast />
       <UpdatedToast />
-      <LoginSheet open={loginOpen} onOpenChange={setLoginOpen} next={loginNext} required={loginRequired} />
+      <LoginSheet open={login.open} onOpenChange={login.setOpen} next={login.next} required={login.required} />
     </>
   );
 }

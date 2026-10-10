@@ -29,6 +29,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { useCartUi } from "@/store/cartUiStore";
+import { useLoginUi } from "@/store/loginUiStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCatalogue } from "@/lib/cart/client";
 import { lineKey } from "@/lib/cart/lines";
@@ -75,6 +76,7 @@ export default function OrdersPage() {
   const router = useRouter();
   const { user } = useAuth();
   const openSheet = useCartUi((s) => s.openSheet);
+  const openLogin = useLoginUi((s) => s.openLogin);
 
   const [intents, setIntents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,7 +177,7 @@ export default function OrdersPage() {
 
   // ─── SIGNED OUT ───
   if (!loading && !user?.uid) {
-    return <EmptyShell title="Sign in to see your baskets" body="Your fulfilment history is tied to your KOI account." cta="Go to the shop" href="/store/shop" />;
+    return <EmptyShell title="Sign in to see your baskets" body="Your fulfilment history is tied to your KOI account." cta="Sign in with phone" onCta={() => openLogin()} />;
   }
 
   if (loading) {
@@ -372,14 +374,14 @@ export default function OrdersPage() {
   );
 }
 
-function EmptyShell({ title, body, cta, href }) {
+function EmptyShell({ title, body, cta, href, onCta }) {
   return (
     <main className="ks-page" style={{ maxWidth: 640 }}>
       <section className="ks-card" style={{ padding: 32, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12 }}>
         <span style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--koi-quiet)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#8fae98" }}><Icon.Bag style={{ width: 26, height: 26 }} /></span>
         <h1 style={{ margin: 0, font: "800 22px var(--koi-sans-stack)", letterSpacing: "-.02em" }}>{title}</h1>
         <p style={{ margin: 0, font: "400 14.5px/1.55 var(--koi-sans-stack)", color: "var(--koi-ink2)", maxWidth: 420 }}>{body}</p>
-        <Button href={href}>{cta} →</Button>
+        {onCta ? <Button onClick={onCta}>{cta}</Button> : <Button href={href}>{cta} →</Button>}
       </section>
     </main>
   );

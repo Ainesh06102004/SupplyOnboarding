@@ -23,9 +23,17 @@
 // disables while in flight. None of this is security — Supabase rate-limits
 // server-side and that is the control that matters — it is there so an
 // impatient shopper tapping a button four times costs one message, not four.
+//
+// WHY IT RENDERS THROUGH A PORTAL:
+// The sheet is a `position: fixed` overlay, and a fixed element is positioned
+// against the nearest ancestor with a transform, filter or backdrop-filter —
+// not the viewport. The store header has a backdrop-filter, so a sheet opened
+// from its "Sign in" button was 63 px tall and invisible. Rendering into the
+// store root (or <body>) means no ancestor can trap it, wherever it is opened.
 // ============================================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { X, ShieldCheck, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -89,7 +97,23 @@ export default function LoginSheet({
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  if (!open) return null;
+  // While open: the page behind does not scroll, the number field takes focus,
+  // and focus goes back to whatever opened the sheet when it closes.
+  const panelRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const opener = document.activeElement;
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    const t = setTimeout(() => panelRef.current?.querySelector("input")?.focus(), 40);
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = overflow;
+      if (opener && typeof opener.focus === "function") opener.focus();
+    };
+  }, [open]);
+
+  if (!open || typeof document === "undefined") return null;
 
   /**
    * Every close path runs through here, which is also where state resets — an
@@ -197,14 +221,25 @@ export default function LoginSheet({
         ? "Sign in to continue"
         : "Sign in to KOI";
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-[#1f5c3a]/40 backdrop-blur-sm transition-opacity"
+      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-[rgba(15,30,22,.42)] backdrop-blur-sm transition-opacity"
       role="dialog"
       aria-modal="true"
       aria-labelledby="koi-login-title"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && !loading) {
+          e.stopPropagation();
+          dismiss();
+        }
+      }}
+      onClick={(e) => {
+        // A tap on the dimmed backdrop is a dismiss, except mid-checkout, where
+        // the explicit close button stays the only way out.
+        if (e.target === e.currentTarget && !required && !loading) dismiss();
+      }}
     >
-      <div className="bg-white w-full md:w-[440px] rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200">
+      <div ref={panelRef} className="bg-white w-full md:w-[440px] rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200" style={{ fontFamily: "var(--koi-sans), 'Plus Jakarta Sans', system-ui, sans-serif" }}>
 
         <div className="flex items-center justify-between p-5 border-b border-[#e7e5de]">
           <div className="flex items-center gap-2">
@@ -386,6 +421,7 @@ export default function LoginSheet({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.querySelector(".koi-store") ?? document.body
   );
 }

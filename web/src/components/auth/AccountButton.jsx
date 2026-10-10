@@ -26,7 +26,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, ChevronDown, Users, Settings, CalendarCheck, Shield, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import LoginSheet from "@/components/auth/LoginSheet";
+import { useLoginUi } from "@/store/loginUiStore";
 import { signOutUser } from "@/lib/auth/supabaseAuth";
 
 /** Where the account menu goes. The household is the one shoppers ask for. */
@@ -53,7 +53,7 @@ const STYLES = {
  */
 export default function AccountButton({ variant = "app", className = "" }) {
   const { user, loading } = useAuth();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const openLogin = useLoginUi((st) => st.openLogin);
   const s = STYLES[variant] ?? STYLES.app;
 
   // Same footprint, nothing to read. Prevents both the wrong-state flash and
@@ -74,23 +74,20 @@ export default function AccountButton({ variant = "app", className = "" }) {
     return <AccountMenu label={label} styles={s} className={className} />;
   }
 
+  // No `next`: the shopper chose to sign in from wherever they were, so there
+  // is nowhere else they were trying to get to. The store's one sheet
+  // (StoreChrome) opens; it used to be a copy mounted right here, inside the
+  // header, whose backdrop-filter trapped it at 63 px tall.
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsLoginOpen(true)}
-        aria-label="Sign in to KOI"
-        className={`${s.shell} ${className}`}
-      >
-        <User className={s.icon} strokeWidth={2.2} />
-        <span className={s.label}>Sign in</span>
-      </button>
-
-      {/* No `next`: the shopper chose to sign in from wherever they were, so
-          there is nowhere else they were trying to get to. The sheet closes and
-          leaves them on the page. */}
-      <LoginSheet open={isLoginOpen} onOpenChange={setIsLoginOpen} />
-    </>
+    <button
+      type="button"
+      onClick={() => openLogin()}
+      aria-label="Sign in to KOI"
+      className={`${s.shell} ${className}`}
+    >
+      <User className={s.icon} strokeWidth={2.2} />
+      <span className={s.label}>Sign in</span>
+    </button>
   );
 }
 

@@ -19,9 +19,9 @@
 // shows what KOI does know instead, or nothing.
 // ============================================================================
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import LoginSheet from "@/components/auth/LoginSheet";
+import { useLoginUi } from "@/store/loginUiStore";
 import { usePlanSession } from "@/components/store/plan/design/usePlanSession";
 import PlanBar, { STEPS } from "@/components/store/plan/design/PlanBar";
 import DefineStep from "@/components/store/plan/design/DefineStep";
@@ -55,7 +55,7 @@ function Loading() {
 }
 
 function SignedOut() {
-  const [open, setOpen] = useState(false);
+  const openLogin = useLoginUi((st) => st.openLogin);
   return (
     <main className="koi-page" style={{ maxWidth: 720 }}>
       <section className="ks-card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 12, animation: "koiUp .4s ease" }}>
@@ -65,11 +65,10 @@ function SignedOut() {
           Sign in with your phone to save your household. Its people and their targets are yours alone — nobody else can read them. Your cart already works signed out.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-          <Button onClick={() => setOpen(true)}>Sign in with phone</Button>
+          <Button onClick={() => openLogin()}>Sign in with phone</Button>
           <Button href="/store/shop" variant="secondary">Browse the shop</Button>
         </div>
       </section>
-      <LoginSheet open={open} onOpenChange={setOpen} next="/store/plan" />
     </main>
   );
 }
