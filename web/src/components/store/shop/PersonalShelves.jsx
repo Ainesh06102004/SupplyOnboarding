@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Check, Sparkles, CircleHelp } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useAddToCart } from "@/components/store/cart/CartLayer";
 import { useGoalStore } from "@/store/goalStore";
 import { recommend } from "@/lib/recommendation";
 import { C, HEADING, BODY } from "@/components/store/landing/tokens";
@@ -19,8 +20,8 @@ import { Reveal, Eyebrow, ScoreRing, ProductImage } from "@/components/store/lan
 function RecoCard({ dto, onSelect }) {
   const { product, score, reasons, cautions = [] } = dto;
   const items = useCartStore((s) => s.items);
-  const addToCart = useCartStore((s) => s.addToCart);
-  const inCart = items.some((i) => i.id === product.id);
+  const addToCart = useAddToCart();
+  const inCart = items.some((i) => String(i.productId ?? i.id) === String(product.id));
 
   return (
     <div

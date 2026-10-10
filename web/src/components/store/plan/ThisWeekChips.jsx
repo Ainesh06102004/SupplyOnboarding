@@ -44,7 +44,7 @@ export default function ThisWeekChips({ categories = [], prefer = [], skip = [],
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#5A6B5A]">This week</span>
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6b6f63]">This week</span>
         <span className="text-[11px] text-[#8A9A8A]">
           {wanted || skipped
             ? [wanted && `${wanted} more of`, skipped && `${skipped} skipped`].filter(Boolean).join(" · ")
@@ -63,7 +63,7 @@ export default function ThisWeekChips({ categories = [], prefer = [], skip = [],
               title={SAYS[state]}
               className={[
                 "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] transition-colors",
-                state === "want" && "bg-[#0E4032] font-semibold text-white",
+                state === "want" && "bg-[#1f5c3a] font-semibold text-white",
                 state === "skip" && "bg-[#083D2D]/[0.06] text-[#8A9A8A] line-through",
                 state === "none" && "bg-white text-[#3E4E3E] ring-1 ring-inset ring-[#083D2D]/10 hover:ring-[#083D2D]/25",
               ].filter(Boolean).join(" ")}

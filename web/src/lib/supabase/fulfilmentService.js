@@ -150,7 +150,10 @@ export const fulfilmentService = {
    *
    * @param {string} uid
    * @param {Array} items cart lines
-   * @param {{ addressId?: string|null, address?: object|null, zoneId?: string|null }} [context]
+   * @param {{ addressId?: string|null, address?: object|null, zoneId?: string|null, nutritionPlanId?: string|null }} [context]
+   *   `nutritionPlanId` is the household plan whose packs are in the basket
+   *   (00085), so Orders can link back to it. A plan the shopper cannot read is
+   *   dropped to null by the database, never trusted from here.
    */
   async openDraft(uid, items = [], context = {}) {
     if (!uid) return null;
@@ -170,6 +173,7 @@ export const fulfilmentService = {
       address_id: context.addressId ?? null,
       address_snapshot: context.address ?? null,
       zone_id: context.zoneId ?? null,
+      nutrition_plan_id: UUID.test(String(context.nutritionPlanId ?? "")) ? String(context.nutritionPlanId) : null,
     };
 
     const { data, error } = existing

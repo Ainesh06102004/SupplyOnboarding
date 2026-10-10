@@ -16,13 +16,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Plus, Check, ArrowUpRight, ClipboardCheck } from "lucide-react";
-import { useCartStore } from "@/store/cartStore";
+import { useAddToCart } from "@/components/store/cart/CartLayer";
 import { C, HEADING, BODY } from "./tokens";
 import { Reveal, ScoreRing, Meter, ArrowButton, Eyebrow, ProductImage } from "./primitives";
 
 // Add-to-cart button with a brief confirmation state.
 function AddButton({ product, dark = false }) {
-  const addToCart = useCartStore((s) => s.addToCart);
+  const addToCart = useAddToCart();
   const [added, setAdded] = useState(false);
   const onAdd = (e) => {
     e.preventDefault();

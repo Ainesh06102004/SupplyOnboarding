@@ -18,7 +18,7 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
-const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5A6B5A]";
+const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6b6f63]";
 
 const when = (iso) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
@@ -36,15 +36,15 @@ export default function PhraseLog({ on, misses = [], onToggle, onForget, busy = 
   return (
     <section className="rounded-3xl bg-white/70 p-5 ring-1 ring-inset ring-[#083D2D]/8">
       <span className={LABEL}>Help KOI understand you</span>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-[#5A6B5A]">
+      <p className="mt-1.5 text-[12px] leading-relaxed text-[#6b6f63]">
         When KOI can&apos;t do something you asked for in the chat, it can keep what you typed so the misunderstanding
         can be fixed. Only the ones it couldn&apos;t do, never the ones it could. Deleted after 90 days, and yours to
         read or delete here at any time.
       </p>
 
-      <label className="mt-3 flex items-center gap-2.5 text-[12.5px] text-[#0E4032]">
+      <label className="mt-3 flex items-center gap-2.5 text-[12.5px] text-[#1c1e17]">
         <input type="checkbox" checked={Boolean(on)} disabled={busy} onChange={(e) => onToggle(e.target.checked)}
-               className="h-3.5 w-3.5 accent-[#0E4032]" />
+               className="h-3.5 w-3.5 accent-[#1f5c3a]" />
         Keep what I typed when KOI can&apos;t do it
       </label>
 
@@ -52,7 +52,7 @@ export default function PhraseLog({ on, misses = [], onToggle, onForget, busy = 
         <div className="mt-3 border-t border-[#083D2D]/8 pt-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-                    className="text-[12px] font-semibold text-[#0E4032] hover:underline">
+                    className="text-[12px] font-semibold text-[#1c1e17] hover:underline">
               {misses.length} {misses.length === 1 ? "message" : "messages"} kept
             </button>
             <button type="button" onClick={() => onForget(null)} disabled={busy}
@@ -65,10 +65,10 @@ export default function PhraseLog({ on, misses = [], onToggle, onForget, busy = 
               {misses.map((miss) => (
                 <li key={miss.id} className="rounded-xl bg-[#083D2D]/[0.04] px-3 py-2 text-[12px]">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[#0E4032]">&ldquo;{miss.said}&rdquo;</p>
+                    <p className="text-[#1c1e17]">&ldquo;{miss.said}&rdquo;</p>
                     <button type="button" onClick={() => onForget(miss.id)} disabled={busy}
                             aria-label="Delete this message"
-                            className="shrink-0 text-[#5A6B5A] hover:text-[#B4453C] disabled:opacity-40">
+                            className="shrink-0 text-[#6b6f63] hover:text-[#B4453C] disabled:opacity-40">
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </div>

@@ -199,14 +199,14 @@ export default function LoginSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-[#0E4032]/40 backdrop-blur-sm transition-opacity"
+      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-[#1f5c3a]/40 backdrop-blur-sm transition-opacity"
       role="dialog"
       aria-modal="true"
       aria-labelledby="koi-login-title"
     >
       <div className="bg-white w-full md:w-[440px] rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200">
 
-        <div className="flex items-center justify-between p-5 border-b border-[#E2E8D8]">
+        <div className="flex items-center justify-between p-5 border-b border-[#e7e5de]">
           <div className="flex items-center gap-2">
             {step === "OTP" && (
               <button
@@ -215,15 +215,15 @@ export default function LoginSheet({
                   setCode("");
                 }}
                 aria-label="Change number"
-                className="w-8 h-8 rounded-full bg-[#F2F6EC] flex items-center justify-center hover:bg-[#E2E8D8] transition-colors"
+                className="w-8 h-8 rounded-full bg-[#f6f5f1] flex items-center justify-center hover:bg-[#e7e5de] transition-colors"
               >
-                <ArrowLeft className="w-4 h-4 text-[#0E4032]" />
+                <ArrowLeft className="w-4 h-4 text-[#1c1e17]" />
               </button>
             )}
             <h2
               id="koi-login-title"
-              className="text-lg font-bold text-[#0E4032]"
-              style={{ fontFamily: "var(--font-koi-heading)" }}
+              className="text-lg font-bold text-[#1c1e17]"
+             
             >
               {title}
             </h2>
@@ -231,9 +231,9 @@ export default function LoginSheet({
           <button
             onClick={dismiss}
             aria-label="Close"
-            className="w-8 h-8 rounded-full bg-[#F2F6EC] flex items-center justify-center hover:bg-[#E2E8D8] transition-colors"
+            className="w-8 h-8 rounded-full bg-[#f6f5f1] flex items-center justify-center hover:bg-[#e7e5de] transition-colors"
           >
-            <X className="w-4 h-4 text-[#0E4032]" />
+            <X className="w-4 h-4 text-[#1c1e17]" />
           </button>
         </div>
 
@@ -241,7 +241,7 @@ export default function LoginSheet({
 
           {step === "PHONE" && (
             <>
-              <p className="text-[14px] text-[#5A6B5A] leading-relaxed font-medium">
+              <p className="text-[14px] text-[#6b6f63] leading-relaxed font-medium">
                 {required
                   ? "Checkout, orders and your saved details need an account. Your cart is waiting for you — nothing is lost."
                   : "Sign in to save addresses, keep your diet profile, and see past orders."}
@@ -251,12 +251,12 @@ export default function LoginSheet({
                 <div className="space-y-2">
                   <label
                     htmlFor="koi-phone"
-                    className="text-sm font-semibold text-[#0E4032]"
+                    className="text-sm font-semibold text-[#1c1e17]"
                   >
                     Mobile number
                   </label>
-                  <div className="flex bg-[#F2F6EC] border border-[#E2E8D8] rounded-xl overflow-hidden focus-within:border-[#0E4032]/40 focus-within:bg-white transition-colors">
-                    <div className="px-4 py-3 border-r border-[#E2E8D8] text-[#5A6B5A] font-bold text-[15px] flex items-center bg-[#EDF2E6]">
+                  <div className="flex bg-[#f6f5f1] border border-[#e7e5de] rounded-xl overflow-hidden focus-within:border-[#1f5c3a]/40 focus-within:bg-white transition-colors">
+                    <div className="px-4 py-3 border-r border-[#e7e5de] text-[#6b6f63] font-bold text-[15px] flex items-center bg-[#EDF2E6]">
                       +91
                     </div>
                     <input
@@ -270,7 +270,7 @@ export default function LoginSheet({
                       onChange={(e) =>
                         setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
                       }
-                      className="flex-1 bg-transparent px-4 py-3 text-[15px] font-bold text-[#0E4032] focus:outline-none placeholder:font-normal placeholder:text-[#5A6B5A]/60"
+                      className="flex-1 bg-transparent px-4 py-3 text-[15px] font-bold text-[#1c1e17] focus:outline-none placeholder:font-normal placeholder:text-[#6b6f63]/60"
                     />
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export default function LoginSheet({
                 <button
                   type="submit"
                   disabled={loading || !isValidMobile(phone)}
-                  className="w-full flex items-center justify-center gap-2 bg-[#0E4032] text-white h-12 rounded-xl font-bold hover:bg-[#155A47] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1f5c3a] text-white h-12 rounded-xl font-bold hover:bg-[#155A47] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                   {loading ? "Sending code..." : "Send code"}
@@ -288,18 +288,18 @@ export default function LoginSheet({
               {GOOGLE_ENABLED && (
                 <>
                   <div className="flex items-center gap-3">
-                    <span className="h-px flex-1 bg-[#E2E8D8]" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#5A6B5A]/70">
+                    <span className="h-px flex-1 bg-[#e7e5de]" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#6b6f63]/70">
                       or
                     </span>
-                    <span className="h-px flex-1 bg-[#E2E8D8]" />
+                    <span className="h-px flex-1 bg-[#e7e5de]" />
                   </div>
 
                   <button
                     type="button"
                     onClick={handleGoogle}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 border border-[#E2E8D8] bg-white text-[#0E4032] h-12 rounded-xl font-bold hover:bg-[#EDF2E6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-3 border border-[#e7e5de] bg-white text-[#1c1e17] h-12 rounded-xl font-bold hover:bg-[#EDF2E6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <GoogleIcon />
                     Continue with Google
@@ -307,9 +307,9 @@ export default function LoginSheet({
                 </>
               )}
 
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-[#EDF2E6] border border-[#E2E8D8]">
-                <ShieldCheck className="w-5 h-5 text-[#2D7A5E] shrink-0" />
-                <p className="text-[12px] text-[#5A6B5A] leading-relaxed font-medium">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-[#EDF2E6] border border-[#e7e5de]">
+                <ShieldCheck className="w-5 h-5 text-[#2f8050] shrink-0" />
+                <p className="text-[12px] text-[#6b6f63] leading-relaxed font-medium">
                   We&apos;ll text you a one-time code. By continuing you agree to
                   our Terms of Service and Privacy Policy.
                 </p>
@@ -319,9 +319,9 @@ export default function LoginSheet({
 
           {step === "OTP" && (
             <>
-              <p className="text-[14px] text-[#5A6B5A] leading-relaxed font-medium">
+              <p className="text-[14px] text-[#6b6f63] leading-relaxed font-medium">
                 We sent a 6-digit code to{" "}
-                <span className="font-bold text-[#0E4032]">
+                <span className="font-bold text-[#1c1e17]">
                   {formatForDisplay(sentTo)}
                 </span>
                 .
@@ -331,7 +331,7 @@ export default function LoginSheet({
                 <div className="space-y-2">
                   <label
                     htmlFor="koi-otp"
-                    className="text-sm font-semibold text-[#0E4032]"
+                    className="text-sm font-semibold text-[#1c1e17]"
                   >
                     Verification code
                   </label>
@@ -346,14 +346,14 @@ export default function LoginSheet({
                     onChange={(e) =>
                       setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
                     }
-                    className="w-full bg-[#F2F6EC] border border-[#E2E8D8] rounded-xl px-4 py-3 text-[22px] font-bold text-[#0E4032] tracking-[0.5em] text-center focus:outline-none focus:border-[#0E4032]/40 focus:bg-white transition-colors placeholder:text-[#5A6B5A]/30 placeholder:tracking-[0.5em]"
+                    className="w-full bg-[#f6f5f1] border border-[#e7e5de] rounded-xl px-4 py-3 text-[22px] font-bold text-[#1c1e17] tracking-[0.5em] text-center focus:outline-none focus:border-[#1f5c3a]/40 focus:bg-white transition-colors placeholder:text-[#6b6f63]/30 placeholder:tracking-[0.5em]"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading || code.length !== 6}
-                  className="w-full flex items-center justify-center gap-2 bg-[#0E4032] text-white h-12 rounded-xl font-bold hover:bg-[#155A47] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1f5c3a] text-white h-12 rounded-xl font-bold hover:bg-[#155A47] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                   {loading ? "Verifying..." : "Verify and continue"}
@@ -364,7 +364,7 @@ export default function LoginSheet({
                 type="button"
                 onClick={handleResend}
                 disabled={cooldown > 0 || loading}
-                className="w-full text-[13px] font-bold text-[#0E4032] h-10 rounded-xl hover:bg-[#F2F6EC] transition-colors disabled:text-[#5A6B5A]/60 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                className="w-full text-[13px] font-bold text-[#1c1e17] h-10 rounded-xl hover:bg-[#f6f5f1] transition-colors disabled:text-[#6b6f63]/60 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               >
                 {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
               </button>
@@ -378,7 +378,7 @@ export default function LoginSheet({
             <button
               type="button"
               onClick={dismiss}
-              className="w-full flex items-center justify-center gap-2 text-[#5A6B5A] h-11 rounded-xl font-bold text-[14px] hover:text-[#0E4032] hover:bg-[#F2F6EC] transition-colors"
+              className="w-full flex items-center justify-center gap-2 text-[#6b6f63] h-11 rounded-xl font-bold text-[14px] hover:text-[#1c1e17] hover:bg-[#f6f5f1] transition-colors"
             >
               Continue browsing as guest
               <ArrowRight className="w-4 h-4" />

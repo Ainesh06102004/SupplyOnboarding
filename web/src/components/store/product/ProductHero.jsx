@@ -94,11 +94,11 @@ export default function ProductHero({ product }) {
   const isPhoto = active === "lifestyle";
 
   return (
-    <section className="relative" style={{ background: C.offwhite }}>
+    <section className="relative" style={{ background: "var(--koi-bg)" }}>
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
           {/* Gallery */}
-          <Reveal className="lg:sticky lg:top-24 lg:self-start">
+          <Reveal className="lg:sticky lg:top-[calc(var(--koi-header-h)+24px)] lg:self-start">
             <Viewer product={product} active={active} isPhoto={isPhoto} onExpand={() => setLightbox(true)} />
             {keys.length > 1 && (
               <div className="mt-4 flex gap-3">
@@ -111,7 +111,7 @@ export default function ProductHero({ product }) {
                       onClick={() => setActive(k)}
                       aria-label={`View ${LABELS[k] || k}`}
                       className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all duration-200 sm:h-24 sm:w-24"
-                      style={{ borderColor: on ? C.forest : "transparent", background: photo ? "#000" : C.cream, opacity: on ? 1 : 0.7 }}
+                      style={{ borderColor: on ? "#1f5c3a" : "transparent", background: photo ? "#000" : "#f4f1e9", opacity: on ? 1 : 0.7 }}
                     >
                       <Image src={product.image[k]} alt="" fill className={photo ? "object-cover" : "object-contain p-2"} style={{ mixBlendMode: photo ? "normal" : "multiply" }} />
                       <span className="absolute inset-x-0 bottom-0 bg-black/30 py-0.5 text-center text-[8px] font-bold uppercase tracking-wide text-white">{LABELS[k]}</span>
@@ -126,14 +126,14 @@ export default function ProductHero({ product }) {
           <div className="flex flex-col">
             <Reveal delay={60}>
               <div className="flex items-center gap-2.5">
-                <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#16A06E]">{product.brand}</span>
-                <span className="h-1 w-1 rounded-full bg-[#083D2D]/25" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#083D2D]/45">{product.subcategory || product.category}</span>
+                <span className="ks-mono" style={{ color: "#1f5c3a" }}>{product.brand}</span>
+                <span className="h-1 w-1 rounded-full bg-[rgba(20,22,15,.25)]" />
+                <span className="ks-mono">{product.subcategory || product.category}</span>
               </div>
-              <h1 className="mt-3 font-extrabold leading-[0.98] tracking-[-0.02em] text-[#083D2D]" style={{ ...HEADING, fontSize: "clamp(2rem, 4.5vw, 3.4rem)" }}>
+              <h1 className="mt-3 text-[#1c1e17]" style={{ font: "800 clamp(2rem, 4vw, 2.75rem)/1.05 var(--koi-sans-stack)", letterSpacing: "-.03em" }}>
                 {product.name}
               </h1>
-              <p className="mt-5 max-w-md text-[17px] leading-relaxed text-[#101412]/60" style={BODY}>
+              <p className="mt-4 max-w-md text-[16px] leading-relaxed text-[#6b6f63]">
                 {product.philosophy}
               </p>
             </Reveal>
@@ -143,16 +143,16 @@ export default function ProductHero({ product }) {
                 unconditionally, reading .g off a grade that is null for the
                 11 of 18 listed products with no screening report. */}
             <Reveal delay={140}>
-              <div className="mt-6 inline-flex items-center gap-2.5 self-start rounded-full border border-[#083D2D]/10 bg-white/60 py-1.5 pl-1.5 pr-4">
+              <div className="mt-5 inline-flex items-center gap-2.5 self-start rounded-full border border-[rgba(20,22,15,.1)] bg-white py-1.5 pl-1.5 pr-4">
                 {product.trust?.scored ? (
                   <>
                     <ScoreRing score={product.score} size={34} stroke={3} label={null} />
-                    <span className="text-[12px] font-bold text-[#083D2D]">
-                      KOI score {product.score} out of 100
+                    <span className="text-[12.5px] font-bold text-[#1c1e17]">
+                      KOI score <span className="ks-num">{product.score}</span> out of 100
                     </span>
                   </>
                 ) : (
-                  <span className="px-2 text-[12px] font-bold text-[#083D2D]/60">
+                  <span className="px-2 text-[12.5px] font-bold text-[#6b6f63]">
                     Listed · label review in progress
                   </span>
                 )}
@@ -160,14 +160,14 @@ export default function ProductHero({ product }) {
             </Reveal>
 
             <Reveal delay={200}>
-              <div className="mt-7 flex items-baseline gap-3">
-                <span className="text-[34px] font-extrabold leading-none text-[#083D2D]" style={HEADING}>₹{product.price}</span>
-                <span className="text-[14px] font-medium text-[#101412]/50">{product.weight}</span>
+              <div className="mt-6 flex items-baseline gap-3">
+                {Number(product.price) > 0 && <span className="ks-num text-[34px] leading-none text-[#1c1e17]">₹{Number(product.price).toLocaleString("en-IN")}</span>}
+                <span className="ks-mono">MRP{product.weight && product.weight !== "N/A" ? ` · ${product.weight}` : ""}</span>
               </div>
               {product.dietary?.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {product.dietary.map((d) => (
-                    <span key={d} className="inline-flex items-center gap-1 rounded-full bg-[#EAF8F0] px-3 py-1 text-[11.5px] font-bold text-[#0C6B4C]">
+                    <span key={d} className="inline-flex items-center gap-1 rounded-full bg-[#e8f1ea] px-3 py-1 text-[11.5px] font-bold text-[#1f5c3a]">
                       <Check className="h-3 w-3" strokeWidth={3} /> {d}
                     </span>
                   ))}

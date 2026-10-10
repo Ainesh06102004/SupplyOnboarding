@@ -8,16 +8,16 @@
 //
 // Business logic preserved: fetchAllProducts(), cart, routing. Adds a curated
 // fallback so a product link never dead-loops on an empty DB, and finally
-// wires Add-to-Cart (which the old page never did).
+// wires Add-to-Cart (which the old page never did). The page wears the store's
+// one header now (StoreChrome); its own back/KOI/cart top bar is gone.
 // ============================================================================
 
 import React, { useEffect, useMemo, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ShoppingBag, Leaf } from "lucide-react";
+import { Leaf } from "lucide-react";
 import { getSeedCatalogue } from "@/components/store/shop/shopData";
 import { useCatalogue } from "@/lib/data/useCatalogue";
 import { buildProductVM } from "@/components/store/product/productData";
-import { useCartStore } from "@/store/cartStore";
 import { useGoalStore } from "@/store/goalStore";
 import { useLocation } from "@/contexts/LocationContext";
 import { useProductSupply } from "@/lib/marketplace/useProductSupply";
@@ -34,34 +34,6 @@ import {
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { isTestSku } from "@/lib/data/testCatalogue";
 import { swapsFor } from "@/lib/food/swaps";
-
-function TopBar() {
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const items = useCartStore((s) => s.items);
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(t);
-  }, []);
-  const count = mounted ? items.reduce((n, i) => n + i.quantity, 0) : 0;
-
-  return (
-    <header className="sticky top-0 z-50 border-b border-[#083D2D]/8 backdrop-blur-xl" style={{ background: "rgba(249,248,244,0.82)" }}>
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
-        <button onClick={() => router.back()} aria-label="Go back" className="grid h-9 w-9 place-items-center rounded-full border border-[#083D2D]/10 bg-white/60 text-[#083D2D] transition-colors hover:bg-white">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <button onClick={() => router.push("/store/shop")} className="text-[15px] font-extrabold tracking-tight text-[#083D2D]" style={HEADING}>KOI</button>
-        <button onClick={() => router.push("/store/cart")} aria-label="Cart" className="relative grid h-9 w-9 place-items-center rounded-full bg-[#083D2D] text-white transition-transform hover:-translate-y-0.5">
-          <ShoppingBag className="h-4 w-4" />
-          {count > 0 && (
-            <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-extrabold text-[#083D2D]" style={{ background: C.lime }}>{count}</span>
-          )}
-        </button>
-      </div>
-    </header>
-  );
-}
 
 export default function ProductDetailPage({ params }) {
   const { id } = use(params);
@@ -126,7 +98,7 @@ export default function ProductDetailPage({ params }) {
   // Loading (only until fetch resolves and only if not already in fallback)
   if (!vm && !loaded) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center" style={{ background: C.offwhite }}>
+      <div className="flex min-h-screen flex-col items-center justify-center" style={{ background: "var(--koi-bg)" }}>
         <Leaf className="mb-4 h-8 w-8 animate-bounce" style={{ color: C.forest }} />
         <p className="text-[15px] font-semibold text-[#083D2D]" style={{ fontFamily: "var(--font-koi-body)" }}>Loading product…</p>
       </div>
@@ -136,7 +108,7 @@ export default function ProductDetailPage({ params }) {
   // Not found
   if (!vm) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center" style={{ background: C.offwhite }}>
+      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center" style={{ background: "var(--koi-bg)" }}>
         <h1 className="text-[28px] font-extrabold text-[#083D2D]" style={HEADING}>Product not found</h1>
         <p className="mt-2 text-[15px] text-[#083D2D]/55">This item may have been delisted or the link is out of date.</p>
         <button onClick={() => router.push("/store/shop")} className="mt-6 rounded-full px-6 py-3 text-[14px] font-bold text-white" style={{ background: C.forest }}>Back to shop</button>
@@ -145,9 +117,7 @@ export default function ProductDetailPage({ params }) {
   }
 
   return (
-    <div className="koi-product relative w-full overflow-x-clip pb-28" style={{ background: C.offwhite }}>
-      <TopBar />
-
+    <div className="koi-product ks-page-pad relative w-full overflow-x-clip pb-16" style={{ background: "var(--koi-bg)" }}>
       <main>
         <ProductHero product={vm} />
         <div ref={sentinel} aria-hidden="true" className="h-0" />

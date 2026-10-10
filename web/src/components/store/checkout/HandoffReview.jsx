@@ -20,14 +20,14 @@
 // screened alternatives and the shopper chooses. Swapping food into someone's
 // basket on their behalf — however good the match looks to a scoring function
 // — is not a decision KOI gets to make for them.
+//
+// Drawn in the store's one in-app language (components/store/system/tokens).
 // ============================================================================
 
 import React, { useState } from "react";
 import Link from "next/link";
-import {
-  Check, CircleSlash, CircleHelp, AlertTriangle, ArrowUpRight, Link2Off, Loader2,
-} from "lucide-react";
-import { C, HEADING, BODY } from "@/components/store/landing/tokens";
+import { CircleSlash, CircleHelp, AlertTriangle, ArrowUpRight, Link2Off, Loader2 } from "lucide-react";
+import { C } from "@/components/store/system/tokens";
 import { hasScore } from "@/lib/score";
 
 const REASON_COPY = {
@@ -42,7 +42,6 @@ const REASON_COPY = {
     // The honest version. KOI has never established which Swiggy product
     // corresponds to the thing it screened, and guessing from the name could
     // put different food in someone's basket.
-    label2: true,
     detail: "KOI hasn't confirmed which Swiggy product this is, so we won't guess.",
   },
   quantity_capped: {
@@ -57,26 +56,20 @@ const REASON_COPY = {
   },
 };
 
-function Line({ name, brand, quantity, price, score, muted = false }) {
+function Line({ name, brand, quantity, price, score }) {
   return (
-    <div className={`flex items-center gap-3 py-2.5 ${muted ? "opacity-70" : ""}`}>
-      <div className="min-w-0 flex-1">
-        {brand && (
-          <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">{brand}</div>
-        )}
-        <div className="truncate text-[13.5px] font-bold text-[#0E4032]" style={HEADING}>{name}</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: `1px solid ${C.divider}` }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}><path d="M5 12l5 5 9-10" /></svg>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {brand && <div className="ks-mono" style={{ letterSpacing: ".08em" }}>{brand}</div>}
+        <div style={{ font: "600 14px var(--koi-sans-stack)", color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
       </div>
       {hasScore(score) && (
-        <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold"
-              style={{ background: C.mint, color: C.forest }}>
-          {Math.round(Number(score))}
-        </span>
+        <span className="ks-num" style={{ flex: "none", borderRadius: 999, padding: "1px 8px", fontSize: 11, background: C.tint, color: C.primary }}>{Math.round(Number(score))}</span>
       )}
-      <span className="shrink-0 text-[12px] font-semibold text-[#5A6B5A]">×{quantity}</span>
+      <span className="ks-mono" style={{ flex: "none", letterSpacing: ".06em" }}>× <span className="ks-num">{quantity}</span></span>
       {price !== null && price !== undefined && (
-        <span className="shrink-0 w-16 text-right text-[13px] font-extrabold tabular-nums text-[#0E4032]" style={HEADING}>
-          ₹{price}
-        </span>
+        <span className="ks-num" style={{ flex: "none", width: 64, textAlign: "right", fontSize: 14, color: C.ink }}>₹{price}</span>
       )}
     </div>
   );
@@ -105,50 +98,40 @@ export default function HandoffReview({ plan, byId = {}, onCommit, onBack, commi
   const nothingToSend = accepted.length === 0;
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
       {/* What Swiggy will take */}
-      <section className="bg-white rounded-2xl border border-[#E2E8D8] p-5 md:p-6">
-        <div className="flex items-baseline justify-between gap-4 mb-1">
-          <h2 className="text-lg font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>
-            Going to Swiggy
-          </h2>
-          <span className="text-[12px] font-bold uppercase tracking-wider text-[#5A6B5A]">
-            {accepted.length} {accepted.length === 1 ? "item" : "items"}
-          </span>
+      <section className="ks-card" data-tone="selected" style={{ padding: 22 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, marginBottom: 6 }}>
+          <h2 style={{ margin: 0, font: "700 17px var(--koi-sans-stack)", color: C.ink }}>Going to Swiggy</h2>
+          <span className="ks-mono"><span className="ks-num">{accepted.length}</span> {accepted.length === 1 ? "product" : "products"}</span>
         </div>
 
         {accepted.length ? (
-          <div className="divide-y divide-[#E2E8D8]">
+          <div>
             {accepted.map((a) => {
               const p = look(a.koiSkuId);
-              return (
-                <Line key={a.koiSkuId} name={p.name ?? "Item"} brand={p.brand}
-                      quantity={a.quantity} price={a.unitPrice} score={p.score} />
-              );
+              return <Line key={a.koiSkuId} name={p.name ?? "Item"} brand={p.brand} quantity={a.quantity} price={a.unitPrice} score={p.score} />;
             })}
           </div>
         ) : (
-          <p className="mt-2 text-[13px] leading-relaxed text-[#5A6B5A]" style={BODY}>
-            None of this basket can be fulfilled from Swiggy right now.
+          <p style={{ margin: "8px 0 0", font: "400 13.5px/1.55 var(--koi-sans-stack)", color: C.ink2 }}>
+            None of this basket can go to Swiggy right now. Each item says why below, and nothing leaves your cart.
           </p>
         )}
 
         {/* A total is shown only when every line resolved. A subtotal that
             quietly omits an unresolved line is a number KOI cannot stand
             behind — so when it is incomplete we say why instead. */}
-        <div className="mt-4 pt-4 border-t border-[#E2E8D8]">
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.divider}` }}>
           {plan.totals?.complete && plan.totals?.subtotal !== null ? (
-            <div className="flex items-baseline justify-between">
-              <span className="text-[13px] font-semibold text-[#5A6B5A]">Swiggy&apos;s prices, this basket</span>
-              <span className="text-[18px] font-extrabold tabular-nums text-[#0E4032]" style={HEADING}>
-                ₹{plan.totals.subtotal.toLocaleString()}
-              </span>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <span style={{ font: "600 13.5px var(--koi-sans-stack)", color: C.ink2 }}>Swiggy&apos;s prices, this basket</span>
+              <span className="ks-num" style={{ fontSize: 20, color: C.ink }}>₹{plan.totals.subtotal.toLocaleString("en-IN")}</span>
             </div>
           ) : (
-            <p className="text-[12px] leading-relaxed text-[#5A6B5A]" style={BODY}>
-              No total yet — some items below couldn&apos;t be priced. Swiggy shows the final
-              amount at their checkout.
+            <p style={{ margin: 0, font: "400 12.5px/1.55 var(--koi-sans-stack)", color: C.ink2 }}>
+              No total yet — some items below couldn&apos;t be priced. Swiggy shows the final amount at their checkout.
             </p>
           )}
         </div>
@@ -156,61 +139,47 @@ export default function HandoffReview({ plan, byId = {}, onCommit, onBack, commi
 
       {/* What it won't, and what KOI would get instead */}
       {rejected.length > 0 && (
-        <section className="rounded-2xl border p-5 md:p-6" style={{ borderColor: `${C.orange}33`, background: "#FFF6F0" }}>
-          <h2 className="text-lg font-bold text-[#0E4032] mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>
-            Can&apos;t be sent
-          </h2>
-          <p className="text-[12.5px] leading-relaxed text-[#5A6B5A] mb-4" style={BODY}>
-            These stay in your KOI basket. We won&apos;t swap anything in without you choosing it.
+        <section style={{ borderRadius: 22, border: `1px solid ${C.warmBorder}`, background: "#fdf6f0", padding: 20 }}>
+          <h2 style={{ margin: "0 0 4px", font: "700 17px var(--koi-sans-stack)", color: C.warmInk }}>Not going · <span className="ks-num">{rejected.length}</span></h2>
+          <p style={{ margin: "0 0 14px", font: "400 13px/1.55 var(--koi-sans-stack)", color: C.ink2 }}>
+            These stay in your KOI cart. We won&apos;t swap anything in without you choosing it.
           </p>
 
-          <ul className="space-y-4">
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
             {rejected.map((r) => {
               const p = look(r.koiSkuId);
               const copy = REASON_COPY[r.reason] ?? REASON_COPY.unknown;
               const Icon = copy.icon;
               const subs = r.substitutes ?? [];
               return (
-                <li key={r.koiSkuId} className="rounded-xl bg-white/70 p-3.5 border border-[#083D2D]/6">
-                  <div className="flex items-start gap-2.5">
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.orange }} />
-                    <div className="min-w-0 flex-1">
-                      {p.brand && (
-                        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">{p.brand}</div>
-                      )}
-                      <div className="text-[13.5px] font-bold text-[#0E4032]" style={HEADING}>{p.name ?? "Item"}</div>
-                      <div className="mt-1 text-[12px] font-semibold" style={{ color: C.orange }}>{copy.label}</div>
-                      <p className="mt-0.5 text-[12px] leading-relaxed text-[#5A6B5A]" style={BODY}>{copy.detail}</p>
+                <li key={r.koiSkuId} style={{ borderRadius: 14, background: "#fff", padding: 14, border: `1px solid ${C.line}` }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <Icon style={{ width: 16, height: 16, marginTop: 2, flex: "none", color: C.warm }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {p.brand && <div className="ks-mono" style={{ letterSpacing: ".08em" }}>{p.brand}</div>}
+                      <div style={{ font: "600 14px var(--koi-sans-stack)", color: C.ink }}>{p.name ?? "Item"}</div>
+                      <div style={{ marginTop: 4, font: "700 12.5px var(--koi-sans-stack)", color: C.warm }}>{copy.label}</div>
+                      <p style={{ margin: "2px 0 0", font: "400 12.5px/1.5 var(--koi-sans-stack)", color: C.ink2 }}>{copy.detail}</p>
                     </div>
                   </div>
 
                   {subs.length > 0 && (
-                    <div className="mt-3 pl-7">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5A6B5A]">
-                        Screened alternatives in stock
-                      </p>
-                      <ul className="mt-2 space-y-1.5">
+                    <div style={{ marginTop: 12, paddingLeft: 26 }}>
+                      <p className="ks-mono" style={{ margin: 0 }}>Screened alternatives in stock</p>
+                      <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                         {subs.map((s) => (
                           <li key={s.id ?? s.externalId}>
-                            <Link href={`/store/product/${s.id}`}
-                                  className="group flex items-center gap-2.5 rounded-lg border border-[#083D2D]/8 bg-white px-3 py-2 transition-colors hover:border-[#083D2D]/20">
-                              <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold text-[#0E4032]" style={HEADING}>
-                                {s.name}
-                              </span>
+                            <Link href={`/store/product/${s.id}`} style={{ display: "flex", alignItems: "center", gap: 10, borderRadius: 10, border: `1px solid ${C.line2}`, background: "#fff", padding: "8px 12px", textDecoration: "none" }}>
+                              <span style={{ flex: 1, minWidth: 0, font: "600 13px var(--koi-sans-stack)", color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</span>
                               {hasScore(s.score) && (
-                                <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold"
-                                      style={{ background: C.mint, color: C.forest }}>
-                                  {Math.round(Number(s.score))}
-                                </span>
+                                <span className="ks-num" style={{ flex: "none", borderRadius: 999, padding: "1px 7px", fontSize: 10, background: C.tint, color: C.primary }}>{Math.round(Number(s.score))}</span>
                               )}
-                              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-[#083D2D]/25 group-hover:text-[#083D2D]/60" />
+                              <ArrowUpRight style={{ width: 14, height: 14, flex: "none", color: C.muted }} />
                             </Link>
                             {/* Why KOI offers this one: the recorded reason and its
                                 figures (food.substitution_edge), never "healthier". */}
                             {(s.why ?? []).length > 0 && (
-                              <p className="mt-1 px-3 text-[11px] leading-relaxed text-[#5A6B5A]" style={BODY}>
-                                {s.why.join(" · ")}
-                              </p>
+                              <p style={{ margin: "4px 0 0", padding: "0 12px", font: "400 11.5px/1.5 var(--koi-sans-stack)", color: C.ink2 }}>{s.why.join(" · ")}</p>
                             )}
                           </li>
                         ))}
@@ -226,25 +195,18 @@ export default function HandoffReview({ plan, byId = {}, onCommit, onBack, commi
 
       {/* The destructive bit, said out loud */}
       {replaces && !nothingToSend && (
-        <section className="rounded-2xl border border-[#B8860B]/35 bg-[#B8860B]/[0.07] p-5">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "#B8860B" }} />
+        <section style={{ borderRadius: 18, background: C.quiet, padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <AlertTriangle style={{ width: 20, height: 20, marginTop: 1, flex: "none", color: C.warnText }} />
             <div>
-              <h3 className="text-[14px] font-bold text-[#0E4032]">This replaces your Swiggy cart</h3>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-[#5A6B5A]" style={BODY}>
+              <h3 style={{ margin: 0, font: "700 15px var(--koi-sans-stack)", color: C.ink }}>This replaces your Swiggy cart</h3>
+              <p style={{ margin: "4px 0 0", font: "400 13px/1.55 var(--koi-sans-stack)", color: C.ink2 }}>
                 Swiggy keeps one cart per account. Continuing clears whatever is in it now and
                 puts this basket there instead. Anything you had saved on Swiggy will be gone.
               </p>
-              <label className="mt-3 flex cursor-pointer items-center gap-2.5">
-                <input
-                  type="checkbox"
-                  checked={confirmed}
-                  onChange={(e) => setConfirmed(e.target.checked)}
-                  className="h-4 w-4 rounded border-[#0E4032]/30 accent-[#0E4032]"
-                />
-                <span className="text-[12.5px] font-semibold text-[#0E4032]">
-                  I understand — replace my Swiggy cart
-                </span>
+              <label style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} style={{ width: 18, height: 18, accentColor: C.primary }} />
+                <span style={{ font: "600 13.5px var(--koi-sans-stack)", color: C.ink }}>I understand — replace my Swiggy cart</span>
               </label>
             </div>
           </div>
@@ -252,34 +214,34 @@ export default function HandoffReview({ plan, byId = {}, onCommit, onBack, commi
       )}
 
       {error && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] font-medium text-red-800">
+        <div role="alert" style={{ borderRadius: 14, border: `1px solid ${C.redBorder}`, background: C.redBg, padding: "12px 14px", font: "500 13.5px/1.5 var(--koi-sans-stack)", color: C.redText }}>
           {error}
         </div>
       )}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row">
-        <button
-          onClick={onBack}
-          disabled={committing}
-          className="flex-1 py-3.5 rounded-xl bg-white text-[#0E4032] font-bold text-[14px] border border-[#E2E8D8] hover:bg-[#F2F6EC] transition-colors disabled:opacity-50"
-        >
-          Back to basket
+      <div style={{ display: "flex", flexWrap: "wrap-reverse", gap: 10 }}>
+        <button type="button" onClick={onBack} disabled={committing} className="ks-btn" data-variant="secondary" style={{ flex: "1 1 160px" }}>
+          Back to checkout
         </button>
         <button
+          type="button"
           onClick={() => onCommit(plan.planId)}
           disabled={committing || nothingToSend || (replaces && !confirmed) || !plan.persisted}
-          className="flex-1 py-3.5 rounded-xl bg-[#0E4032] disabled:bg-[#5A6B5A]/40 text-white font-bold text-[14px] shadow-md hover:bg-[#0E4032]/90 transition-all flex items-center justify-center gap-2"
+          className="ks-btn"
+          data-variant="primary"
+          data-size="lg"
+          style={{ flex: "2 1 220px" }}
         >
-          {committing ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>
-                      : <><Check className="h-4 w-4 text-[#C8F23E]" strokeWidth={3} /> Send to Swiggy</>}
+          {committing ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</> : <>Send to Swiggy <span aria-hidden="true">→</span></>}
         </button>
       </div>
+      <p style={{ margin: 0, textAlign: "center", font: "400 12.5px var(--koi-sans-stack)", color: C.ink2 }}>Opens Swiggy to pay. KOI never takes payment.</p>
 
       {/* `persisted` false means the plan was not stored, so exactly-once
           cannot be guaranteed. Better to refuse than to risk replacing a cart
           twice from a plan nothing is tracking. */}
       {!plan.persisted && (
-        <p className="text-center text-[12px] font-semibold text-[#B8860B]">
+        <p style={{ margin: 0, textAlign: "center", font: "600 12.5px var(--koi-sans-stack)", color: C.warnText }}>
           Couldn&apos;t save this hand-off, so we won&apos;t send it. Please try again.
         </p>
       )}

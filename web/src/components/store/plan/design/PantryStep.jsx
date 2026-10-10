@@ -6,12 +6,18 @@
 // record of a cart before it, so the comparison is the one it can make
 // honestly: your last plan against this one. Unticking a line means "I have
 // this at home": it stays in the plan and is left out of the cart.
+//
+// It ends with "Put this week in my cart": the plan's packs go into the store's
+// ONE cart (lib/cart/client.js putPlanInCart), replacing whatever the plan put
+// there before — pressing it again never doubles — and the shopper's own items
+// stay. Then the Cart step shows that cart.
 
 import Link from "next/link";
 import { useMemo } from "react";
 import { proteinSources, peopleOf, rupees } from "@/lib/plan/planView";
 import { C, font, cardStyle, inr } from "./tokens";
 import { StepHead, Footer, MonoLabel } from "./bits";
+import { useCartStore } from "@/store/cartStore";
 
 function Check({ on, onClick, label }) {
   return (
@@ -30,6 +36,8 @@ export default function PantryStep({ s, onBack, onNext }) {
   const sources = useMemo(() => proteinSources(lines, days), [lines, days]);
   const labelsById = Object.fromEntries((plan?.report?.perMember ?? []).map((m) => [String(m.id), m.label ?? "Someone"]));
   const swappedIn = new Set(s.requests.filter((r) => !r.undone && r.kind === "upgrade").flatMap((r) => (r.basketChange?.added ?? []).map((a) => String(a.skuId))));
+  const cartPlan = useCartStore((st) => st.plan);
+  const ownCount = useCartStore((st) => st.items.filter((i) => !(Number(i.fromPlan) > 0)).length);
 
   if (!plan) {
     return (
@@ -49,6 +57,13 @@ export default function PantryStep({ s, onBack, onNext }) {
   const cartTotal = buying.reduce((sum, l) => sum + (l.price ? l.price * s.packsFor(l) : 0), 0);
   const priceless = buying.filter((l) => !l.price).length;
   const weekly = lines.filter((l) => !swappedIn.has(String(l.skuId)));
+  // The cart already holds exactly this plan, with these things at home.
+  const homeNow = [...s.have].map(String).sort().join("|");
+  const inCart = Boolean(cartPlan && cartPlan.planId === plan.planId && [...(cartPlan.atHome ?? [])].map(String).sort().join("|") === homeNow);
+  const putInCart = async () => {
+    const done = await s.addToCart();
+    if (done) onNext();
+  };
   const swapped = lines.filter((l) => swappedIn.has(String(l.skuId)));
 
   const Row = ({ line }) => {
@@ -142,7 +157,7 @@ export default function PantryStep({ s, onBack, onNext }) {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 18, position: "sticky", top: 124 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, position: "sticky", top: "calc(var(--koi-header-h) + 74px)" }}>
           <div style={{ ...cardStyle, padding: 20, borderRadius: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
               <span style={{ font: font(700, 15) }}>This plan&apos;s nutrition</span>
@@ -180,23 +195,47 @@ export default function PantryStep({ s, onBack, onNext }) {
           </div>
 
           <div style={{ background: C.deep, borderRadius: 20, padding: 20, color: "#fff" }}>
-            <MonoLabel color={C.mintMuted}>Total cart · {buying.length} {buying.length === 1 ? "item" : "items"} selected</MonoLabel>
-            <div style={{ font: font(700, 32, "num"), marginTop: 6 }}>{rupees(cartTotal)}</div>
-            <div style={{ font: font(500, 12), color: "rgba(255,255,255,.7)", marginTop: 2 }}>
-              at MRP{priceless ? ` · ${priceless} without a price` : ""}{s.have.size ? ` · ${s.have.size} you have at home` : ""}
+            <MonoLabel color={C.mint}>Your cart for the week</MonoLabel>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+              <span style={{ font: font(700, 34, "num"), letterSpacing: "-.02em" }}>{rupees(cartTotal)}</span>
+              <span style={{ font: font(500, 10, "mono"), letterSpacing: ".12em", color: "rgba(255,255,255,.7)" }}>MRP</span>
             </div>
-            <button type="button" onClick={s.addToCart} disabled={!buying.length || s.cartResult?.busy} style={{ cursor: "pointer", width: "100%", marginTop: 16, background: C.mint, color: C.deep, border: "none", borderRadius: 13, padding: 14, font: font(600, 14) }}>
-              {s.cartResult?.busy ? "Adding…" : s.cartResult?.planId === plan.planId && !s.cartResult.error ? "Added ✓ — add again" : "Add all to cart →"}
-            </button>
-            {s.cartResult?.planId === plan.planId && s.cartResult.packs > 0 && (
-              <Link href="/store/cart" style={{ display: "block", textAlign: "center", marginTop: 10, font: font(600, 13), color: C.mint }}>Go to cart</Link>
+            <div className="koi-two" style={{ marginTop: 12, gap: 10 }}>
+              <div style={{ background: "rgba(255,255,255,.07)", borderRadius: 14, padding: "10px 12px" }}>
+                <div style={{ font: font(700, 20, "num") }}>{buying.length}</div>
+                <MonoLabel color="rgba(255,255,255,.7)" size={9}>Products</MonoLabel>
+              </div>
+              <div style={{ background: "rgba(255,255,255,.07)", borderRadius: 14, padding: "10px 12px" }}>
+                <div style={{ font: font(700, 20, "num") }}>{buying.reduce((n, l) => n + s.packsFor(l), 0)}</div>
+                <MonoLabel color="rgba(255,255,255,.7)" size={9}>Packs</MonoLabel>
+              </div>
+            </div>
+            <div style={{ font: font(500, 12), color: "rgba(255,255,255,.7)", marginTop: 8 }}>
+              {priceless ? `${priceless} without a price · ` : ""}{s.have.size ? `${s.have.size} at home, left out` : "Nothing marked at home"}
+            </div>
+            {inCart ? (
+              <>
+                <button type="button" onClick={onNext} style={{ cursor: "pointer", width: "100%", marginTop: 16, background: C.mint, color: C.deep, border: "none", borderRadius: 13, padding: 15, font: font(700, 15) }}>
+                  In your cart ✓ — open it →
+                </button>
+                <p style={{ font: font(400, 12, "sans", 1.5), color: "rgba(255,255,255,.72)", margin: "10px 0 0" }}>Change what&apos;s at home and press again: the plan&apos;s packs are replaced, never doubled.</p>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={putInCart} disabled={!buying.length || s.cartResult?.busy} style={{ cursor: "pointer", width: "100%", marginTop: 16, background: C.mint, color: C.deep, border: "none", borderRadius: 13, padding: 15, font: font(700, 15) }}>
+                  {s.cartResult?.busy ? "Putting it in your cart…" : cartPlan ? "Update my cart to this plan →" : "Put this week in my cart →"}
+                </button>
+                <p style={{ font: font(400, 12, "sans", 1.5), color: "rgba(255,255,255,.72)", margin: "10px 0 0" }}>
+                  Puts the plan&apos;s packs in your one cart. Pressing it again replaces them — it never doubles.{ownCount ? ` The ${ownCount} ${ownCount === 1 ? "thing" : "things"} you added yourself stay.` : ""}
+                </p>
+              </>
             )}
             {s.cartResult?.missing?.length > 0 && <p style={{ font: font(500, 11), color: "#f5b8ae", margin: "8px 0 0" }}>Not in the shop right now: {s.cartResult.missing.join(", ")}</p>}
             {s.cartResult?.error && <p style={{ font: font(500, 11), color: "#f5b8ae", margin: "8px 0 0" }}>{s.cartResult.error}</p>}
           </div>
         </div>
       </div>
-      <Footer onBack={onBack} next={{ label: "Go to the shop", onClick: onNext }} />
+      <Footer onBack={onBack} next={{ label: inCart ? "Open your cart" : "Go to your cart", onClick: onNext }} />
     </div>
   );
 }

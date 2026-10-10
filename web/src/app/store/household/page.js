@@ -32,8 +32,8 @@ import {
 
 const HEADING = { fontFamily: "var(--font-koi-heading)" };
 const INPUT = "mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]";
-const LABEL = "text-[12px] font-semibold text-[#0E4032]";
-const HINT = "mt-1 block text-[11px] text-[#5A6B5A]";
+const LABEL = "text-[12px] font-semibold text-[#1c1e17]";
+const HINT = "mt-1 block text-[11px] text-[#6b6f63]";
 const HARD_ALLERGENS = FOODS_AVOID.filter((a) => a.mode === "hard" && a.kind === "allergen");
 
 const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
@@ -72,7 +72,7 @@ function Choice({ options, value, onChange, name }) {
     <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label={name}>
       {options.map((o) => (
         <button key={o.key} type="button" role="radio" aria-checked={value === o.key} onClick={() => onChange(o.key)}
-                className={`rounded-full border px-2.5 py-1 text-[11.5px] ${value === o.key ? "border-[#0E4032] bg-[#0E4032] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11.5px] ${value === o.key ? "border-[#1f5c3a] bg-[#1f5c3a] text-white" : "border-[#083D2D]/15 bg-white text-[#1c1e17]"}`}>
           {o.label}
         </button>
       ))}
@@ -147,8 +147,8 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
   }
 
   return (
-    <div className="rounded-2xl border border-[#0E4032]/25 bg-white p-4 md:p-5">
-      <h2 className="text-[15px] font-bold text-[#0E4032]" style={HEADING}>{form.memberId ? `Edit ${form.label || "this person"}` : "Add someone"}</h2>
+    <div className="rounded-2xl border border-[#1f5c3a]/25 bg-white p-4 md:p-5">
+      <h2 className="text-[15px] font-bold text-[#1c1e17]" style={HEADING}>{form.memberId ? `Edit ${form.label || "this person"}` : "Add someone"}</h2>
 
       {/* Who */}
       <fieldset className="mt-4">
@@ -208,18 +208,18 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
 
         {adult && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-2 text-[12.5px] text-[#0E4032]">
+            <label className="inline-flex items-center gap-2 text-[12.5px] text-[#1c1e17]">
               <input id="profile-is-me" type="checkbox" checked={form.is_account_holder} disabled={anotherHolder && !form.is_account_holder}
                      onChange={(e) => set({ is_account_holder: e.target.checked })} />
               This is me
             </label>
-            {anotherHolder && !form.is_account_holder && <span className="text-[11px] text-[#5A6B5A]">Someone else in the household is already you.</span>}
+            {anotherHolder && !form.is_account_holder && <span className="text-[11px] text-[#6b6f63]">Someone else in the household is already you.</span>}
             {form.is_account_holder && (
-              <button type="button" onClick={fillFromGoalSetup} className="inline-flex items-center gap-1.5 rounded-xl border border-[#083D2D]/15 px-2.5 py-1 text-[11.5px] font-semibold text-[#0E4032]">
+              <button type="button" onClick={fillFromGoalSetup} className="inline-flex items-center gap-1.5 rounded-xl border border-[#083D2D]/15 px-2.5 py-1 text-[11.5px] font-semibold text-[#1c1e17]">
                 <UserRound className="h-3.5 w-3.5" /> Fill from my goal setup
               </button>
             )}
-            {setupNote && <span className="text-[11px] text-[#5A6B5A]">{setupNote}</span>}
+            {setupNote && <span className="text-[11px] text-[#6b6f63]">{setupNote}</span>}
           </div>
         )}
       </fieldset>
@@ -241,7 +241,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             const on = form.avoids.some((x) => x.key === a.key);
             return (
               <button key={a.key} type="button" aria-pressed={on} onClick={() => toggleAvoid(a.key)}
-                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#0E4032] bg-[#0E4032] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
+                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#1f5c3a] bg-[#1f5c3a] text-white" : "border-[#083D2D]/15 bg-white text-[#1c1e17]"}`}>
                 {a.emoji} {a.label}
               </button>
             );
@@ -253,12 +253,12 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
               const entry = FOODS_AVOID.find((x) => x.key === a.key);
               return (
                 <div key={a.key} className="flex flex-wrap items-center gap-2 text-[12px]">
-                  <span className="min-w-[8rem] font-semibold text-[#0E4032]">{entry?.label ?? a.key}</span>
+                  <span className="min-w-[8rem] font-semibold text-[#1c1e17]">{entry?.label ?? a.key}</span>
                   <Choice name={`How strictly: ${entry?.label ?? a.key}`} options={severitiesFor(a.key)} value={a.severity} onChange={(severity) => setSeverity(a.key, severity)} />
                 </div>
               );
             })}
-            <p className="text-[11px] text-[#5A6B5A]">
+            <p className="text-[11px] text-[#6b6f63]">
               {SEVERITIES.map((s) => `${s.label}: ${s.hint.toLowerCase()}`).join(" · ")}. Anything but a dislike is never given to them.
             </p>
           </div>
@@ -289,7 +289,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             </label>
           </>
         ) : (
-          <p className="mt-2 text-[12px] text-[#5A6B5A]">
+          <p className="mt-2 text-[12px] text-[#6b6f63]">
             Children and teenagers are planned for their age&apos;s needs (ICMR-NIN 2020). KOI sets no weight goal or diet
             pattern for anyone under 19, and keeps no weight or height for them.
           </p>
@@ -310,12 +310,12 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
           </label>
         </div>
         <button type="button" onClick={suggest}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-[#0E4032] px-3 py-1.5 text-[12px] font-semibold text-[#0E4032]">
+                className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-[#1f5c3a] px-3 py-1.5 text-[12px] font-semibold text-[#1c1e17]">
           <Sparkles className="h-3.5 w-3.5" /> Suggest targets
         </button>
         {suggestion && (
-          <div className="mt-3 rounded-xl bg-[#083D2D]/[0.03] p-3 text-[12px] text-[#5A6B5A]">
-            <p className="font-semibold text-[#0E4032]">
+          <div className="mt-3 rounded-xl bg-[#083D2D]/[0.03] p-3 text-[12px] text-[#6b6f63]">
+            <p className="font-semibold text-[#1c1e17]">
               {suggestion.kcal.toLocaleString("en-IN")} kcal and {Math.round(suggestion.protein)} g protein a day
               {suggestion.carbsMax !== null ? `, at most ${suggestion.carbsMax} g carbohydrate` : ""}
             </p>
@@ -325,7 +325,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             <p className="mt-1">A typical person&apos;s needs, not advice for this person. Change them if you know better.</p>
             <button type="button"
                     onClick={() => { set({ target_kcal: String(suggestion.kcal), target_protein_g: String(Math.round(suggestion.protein)), target_source: suggestion.source }); setSuggestion(null); }}
-                    className="mt-2 rounded-xl bg-[#0E4032] px-3 py-1.5 text-[12px] font-bold text-white">
+                    className="mt-2 rounded-xl bg-[#1f5c3a] px-3 py-1.5 text-[12px] font-bold text-white">
               Use these
             </button>
           </div>
@@ -346,7 +346,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             const on = form.meals_from_home.includes(meal.key);
             return (
               <button key={meal.key} type="button" aria-pressed={on} onClick={() => toggleMeal(meal.key)}
-                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#16A06E] bg-[#16A06E]/10 text-[#0E4032]" : "border-[#083D2D]/10 bg-white text-[#5A6B5A]"}`}>
+                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#16A06E] bg-[#16A06E]/10 text-[#1c1e17]" : "border-[#083D2D]/10 bg-white text-[#6b6f63]"}`}>
                 {meal.label}
               </button>
             );
@@ -368,16 +368,16 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
       </fieldset>
 
       {problems.length > 0 && (
-        <ul className="mt-4 space-y-0.5 text-[11.5px] text-[#5A6B5A]">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
+        <ul className="mt-4 space-y-0.5 text-[11.5px] text-[#6b6f63]">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
       )}
       {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" onClick={save} disabled={saving || problems.length > 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#0E4032] px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40">
+                className="inline-flex items-center gap-2 rounded-xl bg-[#1f5c3a] px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40">
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {saving ? "Saving…" : "Save profile"}
         </button>
-        <button type="button" onClick={onCancel} className="text-[12.5px] font-semibold text-[#5A6B5A] hover:text-[#0E4032]">Cancel</button>
+        <button type="button" onClick={onCancel} className="text-[12.5px] font-semibold text-[#6b6f63] hover:text-[#1c1e17]">Cancel</button>
       </div>
     </div>
   );
@@ -501,12 +501,12 @@ export default function HouseholdPage() {
     else await reload();
   }
 
-  if (state.loading) return <main className="mx-auto max-w-3xl px-5 py-16 text-[#5A6B5A]"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</main>;
+  if (state.loading) return <main className="mx-auto max-w-3xl px-5 py-16 text-[#6b6f63]"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</main>;
   if (!state.user) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
-        <h1 className="text-2xl font-bold text-[#0E4032]" style={HEADING}>Your household</h1>
-        <p className="mt-2 text-[13px] text-[#5A6B5A]">Sign in to keep a profile for everyone you shop for. Only you can read it.</p>
+        <h1 className="text-2xl font-bold text-[#1c1e17]" style={HEADING}>Your household</h1>
+        <p className="mt-2 text-[13px] text-[#6b6f63]">Sign in to keep a profile for everyone you shop for. Only you can read it.</p>
       </main>
     );
   }
@@ -514,17 +514,17 @@ export default function HouseholdPage() {
   const holder = members.find((m) => m.is_account_holder);
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10">
+    <main className="ks-page-pad mx-auto max-w-6xl px-5 py-10">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
-          <h1 className="text-[26px] font-bold leading-none tracking-tight text-[#0E4032]" style={HEADING}>Your household</h1>
-          <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[#5A6B5A]">
+          <h1 className="text-[26px] font-bold leading-none tracking-tight text-[#1c1e17]" style={HEADING}>Your household</h1>
+          <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[#6b6f63]">
             Everyone you shop for, and how you shop. Plans read this and never change it. Only you can see it.
           </p>
         </div>
         <p className="text-[11.5px]">
           <Link href="/store/plan" className="font-semibold text-[#16A06E] hover:underline">Plan</Link>
-          <span className="text-[#5A6B5A]"> · </span>
+          <span className="text-[#6b6f63]"> · </span>
           <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">What KOI keeps</Link>
         </p>
       </header>
@@ -540,33 +540,33 @@ export default function HouseholdPage() {
           <div key={m.memberId} className="rounded-2xl bg-white/70 p-4 ring-1 ring-inset ring-[#083D2D]/8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[14px] font-bold text-[#0E4032]">
-                  {m.label}{m.relation ? <span className="font-normal text-[#5A6B5A]"> · {m.relation}</span> : null}
+                <p className="text-[14px] font-bold text-[#1c1e17]">
+                  {m.label}{m.relation ? <span className="font-normal text-[#6b6f63]"> · {m.relation}</span> : null}
                   {m.is_account_holder && <span className="ml-2 rounded-full bg-[#16A06E]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[#16A06E]">You</span>}
                 </p>
-                <p className="mt-0.5 text-[12px] text-[#5A6B5A]">{profileSummary(m)}</p>
+                <p className="mt-0.5 text-[12px] text-[#6b6f63]">{profileSummary(m)}</p>
                 {m.avoids.length > 0 && (
-                  <p className="mt-0.5 text-[12px] text-[#5A6B5A]">
+                  <p className="mt-0.5 text-[12px] text-[#6b6f63]">
                     {m.avoids.map((a) => `${FOODS_AVOID.find((x) => x.key === a.key)?.label ?? a.key} (${SEVERITIES.find((s) => s.key === a.severity)?.label.toLowerCase() ?? a.severity})`).join(", ")}
                   </p>
                 )}
-                <p className="mt-1 text-[11px] text-[#5A6B5A]">
+                <p className="mt-1 text-[11px] text-[#6b6f63]">
                   {(state.versions[m.memberId] ?? []).length > 1
                     ? `Saved ${(state.versions[m.memberId] ?? []).length} times, last on ${when(state.versions[m.memberId][0].changed_at)}`
                     : `Saved on ${when(state.versions[m.memberId]?.[0]?.changed_at)}`}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setEditing(m)} className="inline-flex items-center gap-1 rounded-xl border border-[#083D2D]/15 px-2.5 py-1 text-[12px] font-semibold text-[#0E4032]">
+                <button type="button" onClick={() => setEditing(m)} className="inline-flex items-center gap-1 rounded-xl border border-[#083D2D]/15 px-2.5 py-1 text-[12px] font-semibold text-[#1c1e17]">
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </button>
                 {removing === m.memberId ? (
                   <span className="flex items-center gap-2 text-[12px]">
                     <button type="button" onClick={() => remove(m.memberId)} className="font-semibold text-[#B4453C]">Remove {m.label}</button>
-                    <button type="button" onClick={() => setRemoving(null)} className="text-[#5A6B5A]">Keep</button>
+                    <button type="button" onClick={() => setRemoving(null)} className="text-[#6b6f63]">Keep</button>
                   </span>
                 ) : (
-                  <button type="button" onClick={() => setRemoving(m.memberId)} className="text-[#5A6B5A] hover:text-[#0E4032]" aria-label={`Remove ${m.label}`}>
+                  <button type="button" onClick={() => setRemoving(m.memberId)} className="text-[#6b6f63] hover:text-[#1c1e17]" aria-label={`Remove ${m.label}`}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
@@ -580,7 +580,7 @@ export default function HouseholdPage() {
                         anotherHolder={Boolean(holder)} onCancel={() => setEditing(null)} onSaved={reload} />
         ) : (
           <button type="button" onClick={() => setEditing({ ...blankProfile(), label: members.length ? "" : "Me", is_account_holder: !members.length })}
-                  className="inline-flex w-fit items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-semibold text-[#0E4032] ring-1 ring-inset ring-[#083D2D]/15 hover:bg-white/60">
+                  className="inline-flex w-fit items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-semibold text-[#1c1e17] ring-1 ring-inset ring-[#083D2D]/15 hover:bg-white/60">
             <Plus className="h-4 w-4" /> Add someone
           </button>
         )}
@@ -605,8 +605,8 @@ export default function HouseholdPage() {
       <div className="min-w-0 space-y-6 lg:sticky lg:top-6">
       {refusedAllergens.length > 0 && (
         <section className="rounded-3xl bg-[#B4453C]/[0.04] p-5 ring-1 ring-inset ring-[#B4453C]/15">
-          <p className="text-[12px] font-semibold text-[#0E4032]">Keep out of the house</p>
-          <p className="mt-0.5 text-[11.5px] text-[#5A6B5A]">
+          <p className="text-[12px] font-semibold text-[#1c1e17]">Keep out of the house</p>
+          <p className="mt-0.5 text-[11.5px] text-[#6b6f63]">
             Normally a product one person can&apos;t eat is still bought for the others. For a serious allergy, switch it on
             and nothing containing it is bought for anyone.
           </p>
@@ -615,8 +615,8 @@ export default function HouseholdPage() {
               const on = keepOut.includes(entry.key);
               return (
                 <button key={entry.key} type="button" aria-pressed={on} disabled={keepOutBusy} onClick={() => toggleKeepOut(entry.key)}
-                        className={`rounded-full border px-2.5 py-1 text-[11.5px] disabled:opacity-50 ${on ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/15 bg-white text-[#0E4032]"}`}>
-                  {entry.emoji} {entry.label} <span className={on ? "text-white/80" : "text-[#5A6B5A]"}>({who.join(", ")})</span>{on ? " · kept out" : ""}
+                        className={`rounded-full border px-2.5 py-1 text-[11.5px] disabled:opacity-50 ${on ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/15 bg-white text-[#1c1e17]"}`}>
+                  {entry.emoji} {entry.label} <span className={on ? "text-white/80" : "text-[#6b6f63]"}>({who.join(", ")})</span>{on ? " · kept out" : ""}
                 </button>
               );
             })}

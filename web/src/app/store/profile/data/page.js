@@ -45,7 +45,7 @@ function ConfirmDelete({ what, onConfirm, label = "Delete" }) {
   }
   return (
     <span className="inline-flex flex-wrap items-center gap-2 text-[11.5px]">
-      <span className="text-[#0E4032]">Delete {what} for good?</span>
+      <span className="text-[#1c1e17]">Delete {what} for good?</span>
       <button type="button" disabled={busy}
               onClick={async () => {
                 setBusy(true);
@@ -55,7 +55,7 @@ function ConfirmDelete({ what, onConfirm, label = "Delete" }) {
               className="rounded-md bg-[#B4453C] px-2 py-0.5 font-semibold text-white disabled:opacity-40">
         {busy ? "Deleting…" : "Yes, delete"}
       </button>
-      <button type="button" disabled={busy} onClick={() => setAsking(false)} className="font-semibold text-[#5A6B5A] hover:underline">Cancel</button>
+      <button type="button" disabled={busy} onClick={() => setAsking(false)} className="font-semibold text-[#6b6f63] hover:underline">Cancel</button>
       {failed && <span className="text-[#B4453C]">{failed}</span>}
     </span>
   );
@@ -65,10 +65,10 @@ function Section({ title, children, action }) {
   return (
     <section className="rounded-2xl border border-[#083D2D]/10 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-bold text-[#0E4032]">{title}</h2>
+        <h2 className="text-[15px] font-bold text-[#1c1e17]">{title}</h2>
         {action}
       </div>
-      <div className="mt-2 space-y-1.5 text-[12.5px] text-[#5A6B5A]">{children}</div>
+      <div className="mt-2 space-y-1.5 text-[12.5px] text-[#6b6f63]">{children}</div>
     </section>
   );
 }
@@ -138,13 +138,13 @@ export default function YourDataPage() {
   };
 
   if (user === undefined || (user && !data && !error)) {
-    return <main className="mx-auto max-w-3xl px-5 py-16 text-[#5A6B5A]"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</main>;
+    return <main className="mx-auto max-w-3xl px-5 py-16 text-[#6b6f63]"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</main>;
   }
   if (!user) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
-        <h1 className="text-2xl font-bold text-[#0E4032]">What KOI keeps about you</h1>
-        <p className="mt-2 text-[13px] text-[#5A6B5A]">Sign in to see and delete what KOI has stored for your account.</p>
+        <h1 className="text-2xl font-bold text-[#1c1e17]">What KOI keeps about you</h1>
+        <p className="mt-2 text-[13px] text-[#6b6f63]">Sign in to see and delete what KOI has stored for your account.</p>
       </main>
     );
   }
@@ -156,9 +156,9 @@ export default function YourDataPage() {
   const planCount = (householdId) => (d.plans ?? []).filter((p) => p.household_id === householdId).length;
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12">
-      <h1 className="text-2xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>What KOI keeps about you</h1>
-      <p className="mt-2 text-[13px] leading-relaxed text-[#5A6B5A]">
+    <main className="ks-page-pad mx-auto max-w-3xl px-5 py-12">
+      <h1 className="text-2xl font-bold text-[#1c1e17]">What KOI keeps about you</h1>
+      <p className="mt-2 text-[13px] leading-relaxed text-[#6b6f63]">
         Everything stored against your account, and a way to delete each part. Only you can read it. Deleting cannot be undone.
       </p>
       {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
@@ -207,7 +207,7 @@ export default function YourDataPage() {
           {(d.households ?? []).length ? d.households.map((h) => (
             <div key={h.id} className="rounded-xl bg-[#083D2D]/[0.03] p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-semibold text-[#0E4032]">
+                <p className="font-semibold text-[#1c1e17]">
                   {h.label || "Household"} · {planCount(h.id)} {planCount(h.id) === 1 ? "plan" : "plans"} · since {date(h.created_at)}
                   {(h.keep_out ?? []).length > 0 && ` · keeps ${h.keep_out.map((k) => labelOf(FOODS_AVOID, k)).join(", ")} out of the house`}
                 </p>
@@ -272,7 +272,7 @@ export default function YourDataPage() {
           <p>{d.swiggy?.connected ? `Connected${d.swiggy.expiresAt ? `, until ${date(d.swiggy.expiresAt)}` : ""}.` : "Not connected."}</p>
           {(d.orders ?? []).length > 0 && (
             <>
-              <p className="pt-1 font-semibold text-[#0E4032]">Baskets handed to Swiggy</p>
+              <p className="pt-1 font-semibold text-[#1c1e17]">Baskets handed to Swiggy</p>
               {d.orders.map((o) => <p key={o.id}>{date(o.created_at)} · {o.item_count} items · {o.state}</p>)}
               <p className="text-[11.5px]">Kept as the record of what was sent, so they are not deleted here.</p>
             </>

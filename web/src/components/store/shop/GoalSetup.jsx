@@ -515,7 +515,7 @@ export function GoalSetupModal({ open, onClose }) {
         {/* footer */}
         <div className="flex shrink-0 items-center gap-3 border-t border-[#083D2D]/8 bg-white px-6 py-4">
           {step > 0 && (
-            <button onClick={() => setStep((s) => s - 1)} className="inline-flex items-center gap-1.5 rounded-full border border-[#083D2D]/12 px-5 py-3 text-[14px] font-bold text-[#083D2D] transition-colors hover:bg-[#F2F6EC]">
+            <button onClick={() => setStep((s) => s - 1)} className="inline-flex items-center gap-1.5 rounded-full border border-[#083D2D]/12 px-5 py-3 text-[14px] font-bold text-[#083D2D] transition-colors hover:bg-[#f6f5f1]">
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
           )}

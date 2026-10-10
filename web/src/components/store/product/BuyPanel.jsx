@@ -1,32 +1,42 @@
 "use client";
 
 // ============================================================================
-// KOI PRODUCT - Purchase panel + always-visible sticky buy bar
-// Wires the real cart (add with quantity), wishlist (local), share.
+// KOI PRODUCT - Purchase panel + the sticky buy bar
+// Adds to the store's ONE cart with a quantity, and confirms it the same way
+// every add does (useAddToCart → AddedToast). Wishlist is local; share is the
+// platform's.
 //
 // Says nothing about stock or delivery unless a supply source actually told us.
 // Both claims used to be hardcoded here - a static "In stock" and an ETA
 // computed as "two days from now" - which asserted facts KOI had no way to
-// know. See lib/availability.js.
+// know. See lib/availability.js. It also used to say "every KOI order is
+// verified against its label before it ships": KOI ships nothing (Swiggy
+// does), so the line now says what KOI actually did — screen the product.
+//
+// The sticky bar sits under the store header on desktop (the agent dock owns
+// the bottom centre) and on layer 2 of the phone's bottom stack, where the
+// dock shrinks to a round K beside it.
 // ============================================================================
 
 import React, { useEffect, useState } from "react";
-import { ShoppingBag, Plus, Minus, Heart, Share2, Truck, Check, ShieldCheck } from "lucide-react";
-import Image from "next/image";
+import { Heart, Share2, Truck, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cartStore";
+import { useCartUi } from "@/store/cartUiStore";
+import { lineKey, packs } from "@/lib/cart/lines";
+import { useAddToCart } from "@/components/store/cart/CartLayer";
 import { availabilityOf, canClaimAvailability, AVAILABILITY } from "@/lib/availability";
-import { C, HEADING, BODY } from "@/components/store/landing/tokens";
+import { C } from "@/components/store/system/tokens";
+import { Button, Money, MonoLabel, ProductThumb, QtyStepper } from "@/components/store/system/primitives";
 
-function useAddToCart(product) {
-  const addToCart = useCartStore((s) => s.addToCart);
-  const increaseQty = useCartStore((s) => s.increaseQty);
-  return (qty = 1) => {
-    const item = product.raw || product;
-    addToCart(item);
-    for (let i = 1; i < qty; i++) increaseQty(item.id);
-    toast.success(`Added ${qty > 1 ? `${qty} × ` : ""}${product.name} to cart`);
-  };
+/** The catalogue product behind a product view model. */
+const itemOf = (product) => product.raw || product;
+
+/** How many of this product are already in the cart. */
+function useInCart(product) {
+  const item = itemOf(product);
+  const key = lineKey({ skuId: item.skuId, productId: item.id });
+  return useCartStore((s) => packs(s.items.find((i) => lineKey(i) === key)?.quantity));
 }
 
 /**
@@ -36,22 +46,14 @@ function useAddToCart(product) {
  */
 function StockLine({ product }) {
   if (!canClaimAvailability(product)) return null;
-
-  const state = availabilityOf(product);
-  const outOfStock = state === AVAILABILITY.UNAVAILABLE;
-
+  const outOfStock = availabilityOf(product) === AVAILABILITY.UNAVAILABLE;
   return (
-    <div className="mb-4 flex items-center gap-1.5 text-[12.5px] font-semibold">
-      <span
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ background: outOfStock ? C.orange : C.emerald }}
-      />
-      <span style={{ color: outOfStock ? C.orange : C.green }}>
-        {outOfStock ? "Not available right now" : "In stock"}
-      </span>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, font: "600 12.5px var(--koi-sans-stack)" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: outOfStock ? C.warm : C.accent }} />
+      <span style={{ color: outOfStock ? C.warm : C.primary }}>{outOfStock ? "Not available right now" : "In stock"}</span>
       {product.deliveryEta ? (
-        <span className="ml-auto inline-flex items-center gap-1.5 text-[#083D2D]/55">
-          <Truck className="h-3.5 w-3.5" /> {product.deliveryEta}
+        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: C.ink2 }}>
+          <Truck style={{ width: 14, height: 14 }} /> {product.deliveryEta}
         </span>
       ) : null}
     </div>
@@ -69,99 +71,80 @@ async function shareProduct(name) {
 export default function BuyPanel({ product }) {
   const [qty, setQty] = useState(1);
   const [saved, setSaved] = useState(false);
-  const add = useAddToCart(product);
+  const add = useAddToCart();
+  const inCart = useInCart(product);
+  const openSheet = useCartUi((s) => s.openSheet);
+  const price = Number(product.price);
 
   return (
-    <div className="rounded-[24px] border border-[#083D2D]/10 bg-white/70 p-5 backdrop-blur-md shadow-[0_10px_40px_rgba(8,61,45,0.06)]">
+    <div className="ks-card" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
       <StockLine product={product} />
 
-      <div className="flex items-center gap-3">
-        {/* qty */}
-        <div className="flex items-center rounded-full border border-[#083D2D]/12 bg-white">
-          <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity" className="grid h-11 w-11 place-items-center rounded-full text-[#083D2D] transition-colors hover:bg-[#F2F6EC]">
-            <Minus className="h-4 w-4" />
-          </button>
-          <span className="w-6 text-center text-[15px] font-bold text-[#083D2D]" style={HEADING}>{qty}</span>
-          <button onClick={() => setQty((q) => q + 1)} aria-label="Increase quantity" className="grid h-11 w-11 place-items-center rounded-full text-[#083D2D] transition-colors hover:bg-[#F2F6EC]">
-            <Plus className="h-4 w-4" />
-          </button>
+      <div style={{ display: "flex", gap: 10 }}>
+        <QtyStepper value={qty} onChange={setQty} label={product.name} min={1} removable={false} size="lg" />
+        <Button size="lg" onClick={() => add(itemOf(product), qty)} style={{ flex: 1 }}>
+          Add to cart{Number.isFinite(price) && price > 0 && <> · <Money value={price * qty} /></>}
+        </Button>
+      </div>
+
+      {inCart > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.tint, border: `1px solid ${C.tintBorder}`, borderRadius: 14, padding: "10px 12px" }}>
+          <span style={{ flex: 1, font: "600 13.5px var(--koi-sans-stack)", color: C.primary }}><span className="ks-num">{inCart}</span> already in your cart</span>
+          <button type="button" onClick={openSheet} style={{ border: 0, background: "none", cursor: "pointer", font: "600 13px var(--koi-sans-stack)", color: C.primary }}>View cart</button>
         </div>
+      )}
 
-        {/* add */}
-        <button
-          onClick={() => add(qty)}
-          className="group flex flex-1 items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(8,61,45,0.28)]"
-          style={{ background: C.forest }}
-        >
-          <ShoppingBag className="h-4 w-4" />
-          Add to cart · ₹{product.price * qty}
-        </button>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+        <Button variant="secondary" size="sm" onClick={() => setSaved((s) => !s)} aria-pressed={saved}>
+          <Heart style={{ width: 16, height: 16, color: saved ? C.warm : C.ink }} fill={saved ? C.warm : "none"} /> {saved ? "Saved" : "Save"}
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => shareProduct(product.name)}>
+          <Share2 style={{ width: 16, height: 16 }} /> Share
+        </Button>
       </div>
 
-      {/* secondary actions */}
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <button
-          onClick={() => setSaved((s) => !s)}
-          className="flex items-center justify-center gap-2 rounded-full border border-[#083D2D]/12 py-2.5 text-[13px] font-bold text-[#083D2D] transition-colors hover:bg-[#F2F6EC]"
-        >
-          <Heart className="h-4 w-4" fill={saved ? C.orange : "none"} style={{ color: saved ? C.orange : C.forest }} />
-          {saved ? "Saved" : "Save"}
-        </button>
-        <button
-          onClick={() => shareProduct(product.name)}
-          className="flex items-center justify-center gap-2 rounded-full border border-[#083D2D]/12 py-2.5 text-[13px] font-bold text-[#083D2D] transition-colors hover:bg-[#F2F6EC]"
-        >
-          <Share2 className="h-4 w-4" /> Share
-        </button>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2 border-t border-[#083D2D]/8 pt-4 text-[12px] font-medium text-[#083D2D]/55" style={BODY}>
-        <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: C.emerald }} />
-        Every KOI order is verified against its label before it ships.
+      <div style={{ display: "flex", alignItems: "center", gap: 8, borderTop: `1px solid ${C.divider}`, paddingTop: 12, font: "400 12.5px/1.5 var(--koi-sans-stack)", color: C.ink2 }}>
+        <ShieldCheck style={{ width: 16, height: 16, flex: "none", color: C.accent }} />
+        This product passed KOI&apos;s label screen. Swiggy delivers; KOI never takes payment.
       </div>
     </div>
   );
 }
 
-// Always-visible slim purchase bar (appears after the hero scrolls away).
+// The slim purchase bar, once the hero has scrolled away.
 export function StickyBuyBar({ product, sentinelRef }) {
   const [show, setShow] = useState(false);
-  const add = useAddToCart(product);
+  const add = useAddToCart();
+  const setTotalBar = useCartUi((s) => s.setTotalBar);
+  const inCart = useInCart(product);
 
   useEffect(() => {
     const el = sentinelRef?.current;
-    if (!el) return;
+    if (!el) return undefined;
     const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting), { rootMargin: "-80px 0px 0px 0px" });
     io.observe(el);
     return () => io.disconnect();
   }, [sentinelRef]);
 
+  // While it shows, it holds layer 2 of the phone's bottom stack.
+  useEffect(() => {
+    setTotalBar(show);
+    return () => setTotalBar(false);
+  }, [show, setTotalBar]);
+
   return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-[70] transition-all duration-300"
-      style={{ transform: show ? "translateY(0)" : "translateY(110%)", opacity: show ? 1 : 0 }}
-    >
-      <div className="mx-auto max-w-5xl px-3 pb-3 sm:px-6 sm:pb-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-[#083D2D]/10 bg-white/90 p-2.5 pl-3 shadow-[0_18px_50px_rgba(8,61,45,0.18)] backdrop-blur-xl sm:p-3 sm:pl-4">
-          <span className="hidden h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl sm:grid" style={{ background: C.cream }}>
-            {product.image?.hero ? (
-              <Image src={product.image.hero} alt="" width={48} height={48} className="object-contain p-1" style={{ mixBlendMode: "multiply" }} />
-            ) : null}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-bold text-[#083D2D]" style={HEADING}>{product.name}</div>
-            <div className="text-[12px] font-semibold text-[#083D2D]/55">₹{product.price} · {product.weight}</div>
-          </div>
-          <button
-            onClick={() => add(1)}
-            className="flex shrink-0 items-center gap-2 rounded-full px-5 py-3 text-[14px] font-bold text-white transition-transform hover:-translate-y-0.5"
-            style={{ background: C.forest }}
-          >
-            <ShoppingBag className="h-4 w-4" />
-            <span className="hidden sm:inline">Add to cart</span>
-            <span className="sm:hidden">Add</span>
-          </button>
+    <div className="ks-buybar" data-show={show ? "true" : "false"} aria-hidden={!show}>
+      <div className="ks-buybar-inner">
+        <span className="ks-hide-phone"><ProductThumb src={product.image?.hero || null} size={44} radius={11} /></span>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <span style={{ font: "700 14px var(--koi-sans-stack)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{product.name}</span>
+          <MonoLabel style={{ letterSpacing: ".06em" }}>
+            <Money value={product.price} />{product.weight && product.weight !== "N/A" ? ` · ${product.weight}` : ""}{inCart ? ` · ${inCart} in cart` : ""}
+          </MonoLabel>
         </div>
+        <Button size="sm" onClick={() => add(itemOf(product), 1)} tabIndex={show ? 0 : -1}>
+          <span className="ks-hide-phone">Add to cart</span><span className="ks-show-phone">Add</span>
+        </Button>
       </div>
     </div>
   );
