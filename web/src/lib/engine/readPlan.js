@@ -31,6 +31,9 @@ const family = (model) => Object.keys(PRICES).find((k) => String(model ?? "").st
  * @returns {number|null} null when the model's price isn't known
  */
 export function costOf(usage, model, { batch = false } = {}) {
+  // OpenRouter's reply says what it charged (`usage.cost`, in USD). A charge
+  // beats any price list, and it is the only price KOI has for an open model.
+  if (usage && usage.cost !== null && usage.cost !== undefined && Number.isFinite(Number(usage.cost))) return Number(usage.cost);
   const p = PRICES[family(model)];
   if (!p || !usage) return null;
   const cached = Number(usage.prompt_tokens_details?.cached_tokens) || 0;

@@ -1,8 +1,10 @@
 // ============================================================================
-// KOI ENGINE — OpenAI vision adapter
+// KOI ENGINE — Vision adapter (OpenAI, and anything that speaks its dialect)
 //
 // SERVER ONLY. Two questions, both asked of one image with strict structured
-// output:
+// output, of whichever reader the setting names — an OpenAI model, an open
+// model hosted on OpenRouter, or one on KOI's own GPU (providers/readers.js
+// says how a name becomes an address):
 //
 //   readLabel      transcribe a label (LABEL_JSON_SCHEMA), at high detail.
 //                  Not validated here — the pipeline parses it again with Zod,
@@ -16,54 +18,46 @@
 // What leaves KOI: the image and fixed instructions. No product id, no brand,
 // no shopper, nothing from Swiggy. `store: false` asks OpenAI not to retain the
 // exchange as a stored completion; zero data retention beyond that is an
-// account-level agreement (see the implementation plan, §15).
+// account-level agreement (see the implementation plan, §15). OpenRouter is
+// asked the same (`data_collection: "deny"`), and a local reader sends nothing
+// anywhere.
 //
-// Both settings are required and fail loudly when absent: OPENAI_API_KEY, and
-// KOI_LABEL_MODEL — a vision-capable model id chosen by the evaluation set, not
-// a default buried here.
+// The settings are required and fail loudly when absent: KOI_LABEL_MODEL — a
+// vision-capable model chosen by the evaluation set, not a default buried here
+// — and the key of whichever provider it names (OPENAI_API_KEY,
+// OPENROUTER_API_KEY), or KOI_LOCAL_VISION_URL for a local one.
 // ============================================================================
 
 import "server-only";
 
 import { LABEL_INSTRUCTIONS, LABEL_JSON_SCHEMA } from "../labelSchema";
+import { EngineConfigError, chatBody, readerFor, replyJson } from "./readers";
 
-const ENDPOINT = "https://api.openai.com/v1/chat/completions";
+export { EngineConfigError };
+
 const TIMEOUT_MS = 120_000;
 const CLASSIFY_TIMEOUT_MS = 30_000;
 
-export class EngineConfigError extends Error {}
-
-function settings(requested) {
-  const key = process.env.OPENAI_API_KEY;
-  const model = requested || process.env.KOI_LABEL_MODEL;
-  if (!key) throw new EngineConfigError("OPENAI_API_KEY is not set. Add it to web/.env.local.");
-  if (!model) throw new EngineConfigError("KOI_LABEL_MODEL is not set. Add a vision-capable OpenAI model id to web/.env.local.");
-  return { key, model };
-}
-
-/** The chat-completions body for one question about one image. Shared by live calls and the Batch API. */
-export function imageRequestBody({ model, system, prompt, imageBase64, mimeType, detail, schemaName, schema }) {
-  return {
-    model,
-    store: false,
-    messages: [
-      { role: "system", content: system },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail } },
-        ],
-      },
-    ],
-    response_format: { type: "json_schema", json_schema: { name: schemaName, strict: true, schema } },
-  };
-}
-
-/** A label transcription request, exactly as readLabel sends it (for OpenAI's Batch API: half the price, within 24 h). */
-export const labelRequestBody = ({ imageBase64, mimeType, model }) => imageRequestBody({
-  model, imageBase64, mimeType, system: LABEL_INSTRUCTIONS, prompt: "Transcribe this label.", detail: "high", schemaName: "label_reading", schema: LABEL_JSON_SCHEMA,
+const LABEL_QUESTION = Object.freeze({
+  system: LABEL_INSTRUCTIONS, prompt: "Transcribe this label.", detail: "high", schemaName: "label_reading", schema: LABEL_JSON_SCHEMA,
 });
+
+/**
+ * The body for OpenAI's Batch API (half the price, back within 24 h). Batching
+ * is OpenAI's service, not a dialect: an open reader named here would be sent
+ * to a queue that cannot run it, so it is refused rather than lost.
+ */
+export function imageRequestBody({ model, ...question }) {
+  const reader = readerFor(model || process.env.KOI_LABEL_MODEL);
+  if (reader.provider !== "openai") {
+    throw new EngineConfigError(`The Batch API is OpenAI's; ${reader.name} cannot go through it. Read it live instead.`);
+  }
+  return chatBody(reader, question);
+}
+
+/** A label transcription request, exactly as readLabel sends it, for the Batch API. */
+export const labelRequestBody = ({ imageBase64, mimeType, model }) =>
+  imageRequestBody({ model, imageBase64, mimeType, ...LABEL_QUESTION });
 
 /** A chat-completions reply → { json, model, usage }. Throws on a refusal or non-JSON. */
 export function parseImageReply(body, requestedModel = null) {
@@ -71,40 +65,34 @@ export function parseImageReply(body, requestedModel = null) {
   if (message?.refusal) throw new Error(`The model declined to read this image: ${message.refusal}`);
   let json;
   try {
-    json = JSON.parse(message?.content ?? "");
+    json = replyJson(message?.content);
   } catch {
     throw new Error("The model's reply was not JSON.");
   }
   return { json, model: body?.model || requestedModel, usage: body?.usage ?? null };
 }
 
-async function askAboutImage({ model: requested, system, prompt, imageBase64, mimeType, detail, schemaName, schema, timeoutMs }) {
-  const { key, model } = settings(requested);
+async function askAboutImage({ model: requested, timeoutMs, ...question }) {
+  const reader = readerFor(requested || process.env.KOI_LABEL_MODEL);
   const started = Date.now();
-  const res = await fetch(ENDPOINT, {
+  const res = await fetch(reader.endpoint, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    headers: { ...(reader.key ? { Authorization: `Bearer ${reader.key}` } : {}), "Content-Type": "application/json" },
     signal: AbortSignal.timeout(timeoutMs),
-    body: JSON.stringify(imageRequestBody({ model, system, prompt, imageBase64, mimeType, detail, schemaName, schema })),
+    body: JSON.stringify(chatBody(reader, question)),
   });
 
   if (!res.ok) {
     // The body names the problem (bad model id, quota, size); the key is never in it.
-    throw new Error(`OpenAI returned ${res.status}: ${(await res.text()).slice(0, 400)}`);
+    throw new Error(`${reader.provider} returned ${res.status} for ${reader.name}: ${(await res.text()).slice(0, 400)}`);
   }
 
-  const body = await res.json();
-  const message = body.choices?.[0]?.message;
-  if (message?.refusal) throw new Error(`The model declined to read this image: ${message.refusal}`);
-
-  let json;
-  try {
-    json = JSON.parse(message?.content ?? "");
-  } catch {
-    throw new Error("The model's reply was not JSON.");
-  }
-
-  return { json, model: body.model || model, usage: body.usage ?? null, latencyMs: Date.now() - started };
+  const reply = parseImageReply(await res.json(), reader.model);
+  // OpenAI's own dated id is kept as it always was. Anything else is recorded
+  // under the name it was asked by, so the consensus protocol can tell a hosted
+  // reader from the same weights on KOI's GPU.
+  const model = reader.provider === "openai" ? reply.model : reader.name;
+  return { ...reply, model, latencyMs: Date.now() - started };
 }
 
 /**
@@ -114,15 +102,7 @@ async function askAboutImage({ model: requested, system, prompt, imageBase64, mi
  * @returns {Promise<{ json: object, model: string, usage: object|null, latencyMs: number }>}
  */
 export function readLabel({ imageBase64, mimeType, model }) {
-  return askAboutImage({
-    model, imageBase64, mimeType,
-    system: LABEL_INSTRUCTIONS,
-    prompt: "Transcribe this label.",
-    detail: "high",
-    schemaName: "label_reading",
-    schema: LABEL_JSON_SCHEMA,
-    timeoutMs: TIMEOUT_MS,
-  });
+  return askAboutImage({ model, imageBase64, mimeType, ...LABEL_QUESTION, timeoutMs: TIMEOUT_MS });
 }
 
 const PANELS_SCHEMA = Object.freeze({
