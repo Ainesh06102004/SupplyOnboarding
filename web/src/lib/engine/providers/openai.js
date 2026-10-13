@@ -59,7 +59,12 @@ export function imageRequestBody({ model, ...question }) {
 export const labelRequestBody = ({ imageBase64, mimeType, model }) =>
   imageRequestBody({ model, imageBase64, mimeType, ...LABEL_QUESTION });
 
-/** A chat-completions reply → { json, model, usage }. Throws on a refusal or non-JSON. */
+/**
+ * A chat-completions reply → { json, model, usage, host }. Throws on a refusal
+ * or non-JSON. `host` is the company OpenRouter routed the call to (it serves
+ * the same weights at different precisions, and a 4-bit host can misread small
+ * print that an 8-bit one reads); null for everyone else.
+ */
 export function parseImageReply(body, requestedModel = null) {
   const message = body?.choices?.[0]?.message;
   if (message?.refusal) throw new Error(`The model declined to read this image: ${message.refusal}`);
@@ -69,7 +74,7 @@ export function parseImageReply(body, requestedModel = null) {
   } catch {
     throw new Error("The model's reply was not JSON.");
   }
-  return { json, model: body?.model || requestedModel, usage: body?.usage ?? null };
+  return { json, model: body?.model || requestedModel, usage: body?.usage ?? null, host: body?.provider ?? null };
 }
 
 async function askAboutImage({ model: requested, timeoutMs, ...question }) {
