@@ -12,16 +12,18 @@
 //
 // Talks only to /api/engine/review, which re-checks the reviewer role on every
 // call and records the signed-in reviewer against each decision.
+//
+// Shot as the StaffReview board (Oct 2026): KOI night, the queue on the left,
+// the photo and its checks beside the field groups, a forest publish card.
 // ============================================================================
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, X, Minus, ScanText, RefreshCw, Upload } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, X, Minus, ScanText, RefreshCw } from "lucide-react";
 import { ALLERGEN_FLAGS } from "@/lib/engine/checks";
 import { NUTRIENT_FIELDS } from "@/lib/engine/labelSchema";
 import { FOODS_AVOID } from "@/lib/recommendation/config";
-
-const FOREST = "#083D2D";
-const HEADING = { fontFamily: "var(--font-koi-heading)" };
+import { StaffHeader, StaffStage, StaffTitle } from "@/components/staff/StaffChrome";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 
 const FLAG_LABEL = Object.fromEntries(
   ALLERGEN_FLAGS.map((flag) => [flag, (FOODS_AVOID.find((a) => a.flag === flag) || {}).label || flag]),
@@ -33,12 +35,15 @@ const FIELD_LABEL = {
 };
 const GROUP_TITLE = { identity: "Is this the product?", ingredients: "Ingredient list", allergens: "Allergens", nutrition: "Nutrition table" };
 const STATUS_STYLE = {
-  pending: "bg-amber-50 text-amber-800 border-amber-200",
-  accepted: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  corrected: "bg-sky-50 text-sky-800 border-sky-200",
-  rejected: "bg-rose-50 text-rose-800 border-rose-200",
-  superseded: "bg-gray-100 text-gray-600 border-gray-200",
+  pending: { card: "border-koi-amber/40 bg-koi-amber/10", badge: "bg-koi-amber/25 text-koi-amber-bg" },
+  accepted: { card: "border-koi-bg/10 bg-white/5", badge: "bg-koi-lime/15 text-koi-lime" },
+  corrected: { card: "border-koi-bg/10 bg-white/5", badge: "bg-koi-mint/15 text-koi-mint" },
+  rejected: { card: "border-koi-red/40 bg-koi-red/10", badge: "bg-koi-red/25 text-koi-red-bg" },
+  superseded: { card: "border-koi-bg/10 bg-white/[0.03]", badge: "bg-koi-bg/10 text-koi-bg/60" },
 };
+
+const FIELD = "rounded-xl border border-koi-bg/20 bg-white/5 text-koi-bg outline-none placeholder:text-koi-bg/40 focus:border-koi-lime";
+const LABEL = "font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-koi-bg/55";
 
 /** A printed list split at top-level commas, keeping "(...)" with its parent. */
 const splitIngredients = (text) =>
@@ -59,12 +64,11 @@ async function api(method, body, query = "") {
 }
 
 function Actions({ onAccept, onCorrect, onReject, busy, canCorrect = true }) {
-  const base = "rounded-full px-3.5 py-1.5 text-[12.5px] font-bold transition-opacity disabled:opacity-40";
   return (
     <div className="mt-4 flex flex-wrap gap-2">
-      <button type="button" disabled={busy} onClick={onAccept} className={`${base} bg-[#083D2D] text-white`}>Accept as read</button>
-      {canCorrect && <button type="button" disabled={busy} onClick={onCorrect} className={`${base} border border-[#083D2D]/25 bg-white text-[#083D2D]`}>Save correction</button>}
-      <button type="button" disabled={busy} onClick={onReject} className={`${base} border border-rose-200 bg-white text-rose-700`}>Reject</button>
+      <button type="button" disabled={busy} onClick={onAccept} className="h-10 rounded-full bg-koi-lime px-4 text-[13px] font-bold text-koi-forest disabled:opacity-50">Accept as read</button>
+      {canCorrect && <button type="button" disabled={busy} onClick={onCorrect} className="h-10 rounded-full border border-koi-bg/20 px-4 text-[13px] font-semibold hover:bg-white/5 disabled:opacity-50">Save correction</button>}
+      <button type="button" disabled={busy} onClick={onReject} className="h-10 rounded-full px-4 text-[13px] font-semibold text-koi-red hover:bg-koi-red/20 disabled:opacity-50">Reject</button>
     </div>
   );
 }
@@ -99,42 +103,43 @@ function GroupCard({ item, busy, onDecide }) {
   };
 
   const id = (suffix) => `${item.id}-${suffix}`;
+  const tone = STATUS_STYLE[item.status] ?? STATUS_STYLE.pending;
 
   return (
-    <section className="rounded-2xl border border-[#083D2D]/10 bg-white p-5">
+    <article data-group className={`flex flex-col rounded-[20px] border p-4 md:p-5 ${tone.card}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-[16px] font-extrabold text-[#083D2D]" style={HEADING}>{GROUP_TITLE[item.field_group]}</h3>
-        <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${STATUS_STYLE[item.status]}`}>{item.status}</span>
+        <h3 className="m-0 text-[15px] font-bold">{GROUP_TITLE[item.field_group]}</h3>
+        <span className={`rounded-full px-2.5 py-0.5 font-koi-mono text-[10px] font-semibold uppercase tracking-[0.12em] ${tone.badge}`}>{item.status}</span>
       </div>
-      <p className="mt-1 text-[12.5px] text-[#101412]/60">{item.route_reason}</p>
+      <p className="m-0 mt-1 text-[12.5px] text-koi-bg/60">{item.route_reason}</p>
 
       {item.field_group === "identity" && (
-        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13.5px]">
+        <dl className="m-0 mt-3 grid grid-cols-[130px_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13px]">
           {[["Name on pack", initial.product_name], ["Brand", initial.brand], ["Net quantity", initial.net_quantity], ["Veg mark", initial.veg_mark], ["FSSAI licence", initial.fssai_licence]].map(([k, v]) => (
-            <React.Fragment key={k}><dt className="text-[#101412]/55">{k}</dt><dd className="font-semibold">{v ?? "—"}</dd></React.Fragment>
+            <React.Fragment key={k}><dt className="text-koi-bg/60">{k}</dt><dd className="m-0 font-semibold">{v ?? "—"}</dd></React.Fragment>
           ))}
         </dl>
       )}
 
       {item.field_group === "ingredients" && (
         <div className="mt-3">
-          <label htmlFor={id("text")} className="text-[12px] font-bold uppercase tracking-wide text-[#101412]/55">As printed</label>
+          <label htmlFor={id("text")} className={LABEL}>As printed</label>
           <textarea id={id("text")} value={text} onChange={(e) => setText(e.target.value)} rows={5}
-            className="mt-1 w-full rounded-xl border border-[#083D2D]/15 p-3 text-[13.5px] leading-relaxed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0C6B4C]" />
-          <p className="mt-1 text-[12px] text-[#101412]/55">{splitIngredients(text).length} ingredients, split at top-level commas.</p>
+            className={`mt-1 w-full p-3 text-[13.5px] leading-relaxed ${FIELD}`} />
+          <p className="m-0 mt-1 text-[12px] text-koi-bg/55">{splitIngredients(text).length} ingredients, split at top-level commas.</p>
         </div>
       )}
 
       {item.field_group === "allergens" && (
-        <div className="mt-3 space-y-3 text-[13.5px]">
-          <p><span className="text-[#101412]/55">Statement: </span>{item.proposed.statement || <em className="text-rose-700">none read</em>}</p>
-          {item.proposed.may_contain_statement && <p><span className="text-[#101412]/55">May contain: </span>{item.proposed.may_contain_statement}</p>}
+        <div className="mt-3 flex flex-col gap-3 text-[13.5px]">
+          <p className="m-0"><span className="text-koi-bg/60">Statement: </span>{item.proposed.statement || <em className="text-koi-ember">none read</em>}</p>
+          {item.proposed.may_contain_statement && <p className="m-0"><span className="text-koi-bg/60">May contain: </span>{item.proposed.may_contain_statement}</p>}
           {[["Contains", contains, setContains], ["May contain", mayContain, setMayContain]].map(([title, list, setList]) => (
-            <fieldset key={title}>
-              <legend className="text-[12px] font-bold uppercase tracking-wide text-[#101412]/55">{title}</legend>
+            <fieldset key={title} className="m-0 border-0 p-0">
+              <legend className={LABEL}>{title}</legend>
               <div className="mt-1.5 flex flex-wrap gap-2">
                 {ALLERGEN_FLAGS.map((flag) => (
-                  <label key={flag} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold ${list.includes(flag) ? "border-[#083D2D] bg-[#083D2D] text-white" : "border-[#083D2D]/20 bg-white text-[#083D2D]"}`}>
+                  <label key={flag} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] font-semibold transition-colors ${list.includes(flag) ? "border-koi-lime bg-koi-lime text-koi-forest" : "border-koi-bg/20 text-koi-bg/80 hover:border-koi-bg/40"}`}>
                     <input type="checkbox" className="sr-only" checked={list.includes(flag)} onChange={() => toggle(list, setList, flag)} />
                     {FLAG_LABEL[flag]}
                   </label>
@@ -142,28 +147,28 @@ function GroupCard({ item, busy, onDecide }) {
               </div>
             </fieldset>
           ))}
-          <p className="text-[12px] text-[#101412]/55">Proposed from the ingredient list: {item.proposed.from_text?.map((f) => FLAG_LABEL[f]).join(", ") || "none"}; from the statement: {item.proposed.from_statement?.map((f) => FLAG_LABEL[f]).join(", ") || "none"}.</p>
+          <p className="m-0 text-[12px] text-koi-bg/55">Proposed from the ingredient list: {item.proposed.from_text?.map((f) => FLAG_LABEL[f]).join(", ") || "none"}; from the statement: {item.proposed.from_statement?.map((f) => FLAG_LABEL[f]).join(", ") || "none"}.</p>
         </div>
       )}
 
       {item.field_group === "nutrition" && (
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="text-[12px] font-bold text-[#101412]/60" htmlFor={id("basis")}>Basis
+          <label className={LABEL} htmlFor={id("basis")}>Basis
             <select id={id("basis")} value={panel.measurement_basis} onChange={(e) => setPanel({ ...panel, measurement_basis: e.target.value })}
-              className="mt-1 block w-full rounded-lg border border-[#083D2D]/15 bg-white p-2 text-[13.5px] font-medium">
-              <option value="per_100g">per 100 g</option><option value="per_100ml">per 100 ml</option><option value="per_serving">per serving</option>
+              className={`mt-1 block h-10 w-full px-2 font-koi-sans text-[13.5px] font-medium normal-case tracking-normal ${FIELD}`}>
+              <option value="per_100g" className="text-koi-ink">per 100 g</option><option value="per_100ml" className="text-koi-ink">per 100 ml</option><option value="per_serving" className="text-koi-ink">per serving</option>
             </select>
           </label>
           {[["serving_size", "Serving size", "text"], ["servings_per_pack", "Servings per pack", "number"]].map(([key, label, type]) => (
-            <label key={key} className="text-[12px] font-bold text-[#101412]/60" htmlFor={id(key)}>{label}
+            <label key={key} className={LABEL} htmlFor={id(key)}>{label}
               <input id={id(key)} type={type} value={panel[key] ?? ""} onChange={(e) => setPanel({ ...panel, [key]: e.target.value })}
-                className="mt-1 block w-full rounded-lg border border-[#083D2D]/15 p-2 text-[13.5px] font-medium tabular-nums" />
+                className={`mt-1 block h-10 w-full px-2 font-koi-num text-[13.5px] font-medium normal-case tracking-normal ${FIELD}`} />
             </label>
           ))}
           {NUTRIENT_FIELDS.map((f) => (
-            <label key={f} className="text-[12px] font-bold text-[#101412]/60" htmlFor={id(f)}>{FIELD_LABEL[f]}
+            <label key={f} className={LABEL} htmlFor={id(f)}>{FIELD_LABEL[f]}
               <input id={id(f)} type="number" step="any" min="0" value={panel[f] ?? ""} onChange={(e) => setPanel({ ...panel, [f]: e.target.value })}
-                placeholder="not read" className="mt-1 block w-full rounded-lg border border-[#083D2D]/15 p-2 text-[13.5px] font-medium tabular-nums" />
+                placeholder="not read" className={`mt-1 block h-10 w-full px-2 font-koi-num text-[13.5px] font-medium normal-case tracking-normal ${FIELD}`} />
             </label>
           ))}
         </div>
@@ -176,7 +181,7 @@ function GroupCard({ item, busy, onDecide }) {
         onCorrect={() => onDecide(item, "correct", correction())}
         onReject={() => onDecide(item, "reject")}
       />
-    </section>
+    </article>
   );
 }
 
@@ -186,6 +191,7 @@ export default function ReviewConsole({ reviewerEmail }) {
   const [detail, setDetail] = useState(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
+  const detailRef = useRef(null);
 
   // Bumping a version re-runs its effect; state is only ever set from the
   // request's callback, never synchronously inside an effect.
@@ -209,6 +215,14 @@ export default function ReviewConsole({ reviewerEmail }) {
       .catch((e) => live && setNotice({ tone: "error", text: e.message }));
     return () => { live = false; };
   }, [skuId, detailVersion]);
+
+  // A newly picked reading slides in; a refresh of the same one does not.
+  const shownSku = detail?.output?.id ?? null;
+  useGSAP(() => {
+    if (!shownSku || !detailRef.current || prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    gsap.from(detailRef.current.querySelectorAll("[data-photo], [data-group], [data-publish]"), { autoAlpha: 0, y: 18, duration: 0.5, stagger: 0.06, ease: E.reveal, clearProps: "opacity,visibility,transform" });
+  }, { scope: detailRef, dependencies: [shownSku] });
 
   const run = async (fn, done) => {
     setBusy(true); setNotice(null);
@@ -242,129 +256,123 @@ export default function ReviewConsole({ reviewerEmail }) {
   );
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#16A06E]">KOI staff</p>
-          <h1 className="text-[28px] font-extrabold text-[#083D2D]" style={HEADING}>Label engine</h1>
-          <p className="mt-1 max-w-[62ch] text-[13px] text-[#101412]/60">
-            Labels publish on their own when two readings agree and the checks pass. Nothing here is required —
-            it lists what couldn&apos;t publish, and why, for anyone who wants to fix it.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-[12.5px] text-[#101412]/60">
-          <span>Signed in as {reviewerEmail}</span>
-          <button type="button" onClick={refresh} className="inline-flex items-center gap-1.5 rounded-full border border-[#083D2D]/20 bg-white px-3 py-1.5 font-bold text-[#083D2D]">
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Refresh
+    <StaffStage className="pb-10">
+      <StaffHeader who={reviewerEmail} />
+      <StaffTitle
+        title="Label engine"
+        aside={
+          <button type="button" onClick={refresh} className="flex h-10 items-center gap-2 rounded-full border border-koi-bg/20 px-4 text-[13px] font-semibold hover:bg-white/5">
+            <RefreshCw className="size-3.5" aria-hidden="true" /> Refresh
           </button>
-        </div>
-      </header>
+        }
+      >
+        Labels publish on their own when two readings agree and the checks pass. Nothing here is required —
+        it lists what couldn&apos;t publish, and why, for anyone who wants to fix it.
+      </StaffTitle>
 
       {notice && (
-        <p role="status" className={`mt-4 rounded-xl px-4 py-2.5 text-[13.5px] font-semibold ${notice.tone === "error" ? "bg-rose-50 text-rose-800" : "bg-emerald-50 text-emerald-800"}`}>{notice.text}</p>
+        <p role="status" className={`m-0 mx-5 mt-4 rounded-2xl px-4 py-3 text-sm font-semibold md:mx-8 ${notice.tone === "error" ? "bg-koi-red/20 text-koi-red-bg" : "bg-koi-lime text-koi-forest"}`}>{notice.text}</p>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="space-y-6">
-          <div>
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#101412]/55">Couldn&apos;t publish automatically ({queue.toReview.length})</h2>
-            <ul className="mt-2 space-y-2">
-              {queue.toReview.map((e) => (
-                <li key={e.skuId}>
-                  <button type="button" onClick={() => setSkuId(e.skuId)}
-                    className={`w-full rounded-xl border p-3 text-left ${skuId === e.skuId ? "border-[#083D2D] bg-white" : "border-transparent bg-white/70 hover:bg-white"}`}>
-                    <span className="block text-[14px] font-bold text-[#083D2D]">{e.product}</span>
-                    <span className="block text-[12px] text-[#101412]/55">{e.brand} · {e.groups.join(", ")}</span>
-                  </button>
-                </li>
-              ))}
-              {!queue.toReview.length && <li className="text-[13px] text-[#101412]/55">Everything read so far published.</li>}
-            </ul>
-          </div>
-          <div>
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#101412]/55">Photos not read yet ({queue.toRead.length})</h2>
-            <ul className="mt-2 space-y-2">
-              {queue.toRead.map((u) => (
-                <li key={u.uploadId} className="flex items-center justify-between gap-2 rounded-xl bg-white/70 p-3">
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13.5px] font-bold text-[#083D2D]">{u.product}</span>
-                    <span className="block text-[11.5px] text-[#101412]/55">{u.fileType.replace("_", " ")}</span>
-                  </span>
-                  <button type="button" disabled={busy} onClick={() => read(u)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#083D2D] px-3 py-1.5 text-[12px] font-bold text-white disabled:opacity-40">
-                    <ScanText className="h-3.5 w-3.5" aria-hidden="true" /> Read
-                  </button>
-                </li>
-              ))}
-              {!queue.toRead.length && <li className="text-[13px] text-[#101412]/55">Every uploaded label has been read.</li>}
-            </ul>
-          </div>
+      <div className="relative z-10 grid grid-cols-1 gap-5 px-5 py-6 md:px-8 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="flex flex-col gap-5">
+          <section data-section className="flex flex-col gap-2 rounded-[22px] bg-white/5 p-4">
+            <h2 className="m-0 text-[14px] font-bold">Couldn&apos;t publish automatically ({queue.toReview.length})</h2>
+            {queue.toReview.map((e) => {
+              const on = skuId === e.skuId;
+              return (
+                <button key={e.skuId} type="button" aria-pressed={on} onClick={() => setSkuId(e.skuId)}
+                  className={`flex flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-colors ${on ? "border-koi-lime bg-koi-lime/10" : "border-transparent bg-white/5 hover:bg-white/10"}`}>
+                  <span className="flex items-center gap-2 text-[14px] font-semibold">{on && <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-koi-ember" />}{e.product}</span>
+                  <span className="text-[12px] text-koi-bg/60">{e.brand} · {e.groups.join(", ")}</span>
+                </button>
+              );
+            })}
+            {!queue.toReview.length && <p className="m-0 text-[13px] text-koi-bg/60">Everything read so far published.</p>}
+          </section>
+          <section data-section className="flex flex-col gap-2 rounded-[22px] bg-white/5 p-4">
+            <h2 className="m-0 text-[14px] font-bold">Photos not read yet ({queue.toRead.length})</h2>
+            {queue.toRead.map((u) => (
+              <div key={u.uploadId} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-3 py-2.5">
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-[14px] font-semibold">{u.product}</span>
+                  <span className="text-[12px] text-koi-bg/60">{u.fileType.replace("_", " ")}</span>
+                </span>
+                {/* Reading calls a paid model (see lib/engine). */}
+                <button type="button" disabled={busy} onClick={() => read(u)}
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-koi-lime px-3 text-[12.5px] font-bold text-koi-forest disabled:opacity-50">
+                  <ScanText className="size-3.5" aria-hidden="true" /> Read
+                </button>
+              </div>
+            ))}
+            {!queue.toRead.length && <p className="m-0 text-[13px] text-koi-bg/60">Every uploaded label has been read.</p>}
+          </section>
         </aside>
 
-        <main>
+        <section ref={detailRef} aria-label="Reading" className="flex min-w-0 flex-col gap-4">
           {!detail ? (
-            <div className="grid min-h-[320px] place-items-center rounded-2xl border border-dashed border-[#083D2D]/20 p-8 text-center text-[14px] text-[#101412]/55">
-              <span><Upload className="mx-auto mb-2 h-6 w-6" aria-hidden="true" />Pick a reading on the left, or read a photo.</span>
+            <div data-section className="grid min-h-[420px] place-items-center rounded-[26px] border border-dashed border-koi-bg/15 p-8 text-center text-[15px] text-koi-bg/60">
+              Pick a reading on the left, or read a photo.
             </div>
           ) : (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-[22px] font-extrabold text-[#083D2D]" style={HEADING}>{detail.product} <span className="text-[14px] font-semibold text-[#101412]/50">{detail.brand}</span></h2>
-                <span className="text-[12.5px] text-[#101412]/55 tabular-nums">
+            <>
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="m-0 font-koi-display text-[30px] font-extrabold tracking-[-0.01em]">{detail.product} <span className="text-[18px] font-semibold text-koi-bg/60">{detail.brand}</span></h2>
+                <span className="font-koi-mono text-[11px] uppercase tracking-[0.12em] text-koi-bg/60">
                   Checks passed {Math.round(detail.output.confidence * 100)}% · {detail.output.model} · {detail.output.prompt_version}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,420px)_1fr]">
-                <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+                <div className="flex flex-col gap-4">
                   {detail.imageUrl && (
-                    <a href={detail.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-[#083D2D]/10 bg-white">
+                    <a data-photo href={detail.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-[20px] bg-koi-bg p-2">
                       {/* eslint-disable-next-line @next/next/no-img-element -- signed Storage URL, expires hourly */}
-                      <img src={detail.imageUrl} alt={`Label photo for ${detail.product}`} className="w-full" />
+                      <img src={detail.imageUrl} alt={`Label photo for ${detail.product}`} className="w-full rounded-[14px]" />
                     </a>
                   )}
-                  <ul className="space-y-1.5 rounded-2xl border border-[#083D2D]/10 bg-white p-4 text-[12.5px]">
+                  <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                     {checks.map((c) => (
-                      <li key={c.id} className="flex items-start gap-2">
-                        {c.ok === true ? <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" aria-label="passed" />
-                          : c.ok === false ? <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-700" aria-label="failed" />
-                          : <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#101412]/40" aria-label="could not run" />}
-                        <span>{c.detail}</span>
+                      <li key={c.id} className="flex items-start gap-2.5 text-[12.5px] leading-snug">
+                        {c.ok === true ? <span aria-label="passed" className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-koi-lime/20 text-koi-lime"><Check className="size-3" strokeWidth={3} /></span>
+                          : c.ok === false ? <span aria-label="failed" className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-koi-red/25 text-koi-red-bg"><X className="size-3" strokeWidth={3} /></span>
+                          : <span aria-label="could not run" className="mt-px grid size-5 shrink-0 place-items-center rounded-full bg-koi-bg/10 text-koi-bg/50"><Minus className="size-3" strokeWidth={3} /></span>}
+                        <span className="text-koi-bg/85">{c.detail}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-[#083D2D]/10 bg-white p-4 text-[13px]">
-                    <p><span className="font-bold text-[#083D2D]">Published automatically: </span>{detail.output.published?.join(", ") || "nothing"}</p>
+                <div className="flex min-w-0 flex-col gap-3">
+                  <div className="flex flex-col gap-1 rounded-[18px] bg-white/5 p-4 text-[13px]">
+                    <p className="m-0"><span className="text-koi-bg/60">Published automatically: </span>{detail.output.published?.join(", ") || "nothing"}</p>
                     {(detail.output.blocked || []).map((b) => (
-                      <p key={b.group} className="mt-1 text-rose-800"><span className="font-bold">{b.group}: </span>{b.reason}</p>
+                      <p key={b.group} className="m-0 text-koi-ember"><span className="font-semibold">{b.group}: </span>{b.reason}</p>
                     ))}
-                    {detail.output.second_model && <p className="mt-1 text-[12px] text-[#101412]/50">Second reading by {detail.output.second_model}.</p>}
+                    {detail.output.second_model && <p className="m-0 text-koi-bg/60">Second reading by {detail.output.second_model}.</p>}
                   </div>
                   {itemsInOrder.map((item) => (
                     <GroupCard key={`${item.id}-${item.status}`} item={item} busy={busy} onDecide={decideItem} />
                   ))}
 
-                  <div className="rounded-2xl bg-[#083D2D] p-5 text-white">
-                    <h3 className="text-[16px] font-extrabold" style={HEADING}>Publish to the storefront</h3>
+                  <div data-publish className="flex flex-col gap-3 rounded-[20px] bg-koi-forest p-5">
+                    <h3 className="m-0 font-koi-display text-[20px] font-extrabold">Publish to the storefront</h3>
                     {detail.blockers?.length ? (
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-white/80">{detail.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+                      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[13px] text-koi-bg/80">{detail.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
                     ) : (
-                      <p className="mt-2 text-[13px] text-white/80">Every group is decided.</p>
+                      <p className="m-0 text-[13px] text-koi-mint">Every group is decided.</p>
                     )}
                     <button type="button" disabled={busy} onClick={publishOutput}
-                      className="mt-4 rounded-full bg-[#DDF247] px-4 py-2 text-[13px] font-extrabold text-[#083D2D] disabled:opacity-40">
+                      className="h-12 self-start rounded-full bg-koi-lime px-6 text-sm font-bold text-koi-forest disabled:opacity-40">
                       Publish what is decided
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
-        </main>
+        </section>
       </div>
-    </div>
+    </StaffStage>
   );
 }
