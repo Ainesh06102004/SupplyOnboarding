@@ -17,7 +17,7 @@ import { useCartUi } from "@/store/cartUiStore";
 import { useAgent } from "./AgentProvider";
 import { TaskChecklist, ToolCard, AskCard, ApprovalCard, ResultCard } from "./cards";
 import { EmberSlot, useEmber } from "@/components/store/ember/Ember";
-import { KoiSubtitle } from "@/components/store/shell/KoiBar";
+import KoiBar, { KoiSubtitle } from "@/components/store/shell/KoiBar";
 import { useKoiVoice } from "@/store/koiVoiceStore";
 import "./agent.css";
 
@@ -95,8 +95,10 @@ export default function AgentDock() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [state?.entries?.length, state?.pending]);
 
-  // Checkout is the one page with nothing but the checkout on it.
-  if (!agent || pathname.startsWith("/store/checkout")) return null;
+  // Checkout is the one page with nothing but the checkout on it: no agent runs
+  // there, so the KOI bar's quiet strip (subtitle + the ember's home) stands in.
+  if (pathname.startsWith("/store/checkout")) return <KoiBar />;
+  if (!agent) return null;
 
   const submit = (e) => {
     e?.preventDefault?.();

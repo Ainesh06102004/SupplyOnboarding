@@ -28,6 +28,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import { useCartStore, selectLineCount } from "@/store/cartStore";
 import { useCartUi } from "@/store/cartUiStore";
 import { Wordmark, Icon } from "@/components/store/system/primitives";
+import CheckoutRail from "./CheckoutRail";
 
 const NAV = [
   { label: "Shop", href: "/store/shop", match: (p) => p === "/store/shop" || p.startsWith("/store/product") },
@@ -100,14 +101,11 @@ export default function StoreHeader({ pathname, mode }) {
       <header className="ks-header">
         <div className="ks-header-inner">
           <Wordmark />
-          <ol className="ks-progress" aria-label="Checkout progress">
-            <li data-state="done"><Icon.Check /> Cart</li>
-            <li className="ks-sep" aria-hidden="true">›</li>
-            <li aria-current="step"><span className="ks-num" style={{ color: "var(--koi-primary)", fontSize: 12 }}>2</span> Checkout</li>
-            <li className="ks-sep" aria-hidden="true">›</li>
-            <li>Hand-off to Swiggy</li>
-          </ol>
-          <Link href="/store/cart" className="ks-btn" data-variant="ghost" data-size="sm">← <span className="ks-hide-phone">Back to cart</span><span className="ks-show-phone">Cart</span></Link>
+          <div className="flex flex-1 justify-center"><CheckoutRail /></div>
+          <span className="hidden items-center gap-2 font-koi-mono text-[11px] font-medium uppercase tracking-[0.14em] text-koi-muted md:flex">
+            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+            KOI never takes payment
+          </span>
         </div>
       </header>
     );

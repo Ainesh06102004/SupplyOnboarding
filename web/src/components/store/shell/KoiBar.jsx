@@ -57,8 +57,24 @@ export default function KoiBar() {
   const ember = useEmber();
   const [text, setText] = useState("");
 
-  // Checkout is the one page with nothing but the checkout on it.
-  if (pathname.startsWith("/store/checkout")) return null;
+  // Checkout is the one page with nothing but the checkout on it: KOI still
+  // speaks (the subtitle) and its dot still has a home, but there is nothing to
+  // ask it here, and no agent runs mid-checkout.
+  if (pathname.startsWith("/store/checkout")) {
+    return (
+      <section
+        data-koi-bar
+        aria-label="KOI"
+        className="pointer-events-none sticky bottom-0 z-40 mt-auto flex flex-col items-center gap-2.5 bg-linear-to-t from-koi-bg from-60% to-koi-bg/0 px-4 pb-5 pt-8"
+      >
+        <KoiSubtitle />
+        <div className="flex h-11 items-center gap-2.5 rounded-full border border-koi-forest/15 bg-white/90 pl-4 pr-5 shadow-[0_24px_44px_-28px_rgba(15,61,46,.45)] backdrop-blur-xl">
+          <EmberSlot />
+          <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.14em] text-koi-muted">KOI is reading along · it never takes payment</span>
+        </div>
+      </section>
+    );
+  }
 
   const ask = (e) => {
     e.preventDefault();
