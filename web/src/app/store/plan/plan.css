@@ -9,12 +9,12 @@
 .koi-plan input, .koi-plan textarea, .koi-plan select { font-family: var(--koi-sans), "Plus Jakarta Sans", sans-serif; outline: none; }
 .koi-plan input:focus, .koi-plan textarea:focus { border-bottom-color: #2f8050 !important; }
 .koi-plan button { font-family: inherit; }
-.koi-plan h1, .koi-plan h2, .koi-plan h3 { font-family: var(--koi-sans), "Plus Jakarta Sans", sans-serif; }
+/* (The h1–h3 font rule is gone: chapter titles use the condensed display cut.) */
 
 /* Keyframes (koiUp, koiPop, koiStrike, koiDraw, koiFade, koiRingTo, koiPulse,
    koiSpin) moved to app/store/koi.css so every store page shares them. */
 
-.koi-page { max-width: 1080px; margin: 0 auto; padding: 36px 32px 96px; }
+.koi-page { max-width: 1440px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 52px) 96px; }
 .koi-members-row { display: flex; align-items: center; gap: 7px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
 .koi-hero { display: flex; gap: 40px; align-items: center; flex-wrap: wrap; margin-bottom: 32px; }
 .koi-goal-cards { flex: 2; min-width: 520px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
