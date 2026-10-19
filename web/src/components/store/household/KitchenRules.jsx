@@ -16,9 +16,9 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 
-const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6b6f63]";
-const HINT = "mt-1 text-[11.5px] text-[#6b6f63]";
-const CARD = "rounded-3xl bg-white/70 p-5 ring-1 ring-inset ring-[#083D2D]/8";
+const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-koi-muted";
+const HINT = "mt-1 text-[11.5px] text-koi-muted";
+const CARD = "rounded-3xl bg-white/70 p-5 ring-1 ring-inset ring-koi-forest/8";
 
 /**
  * What to protect first (00054, model.js PRIORITY), as answers rather than
@@ -89,7 +89,7 @@ function Choices({ name, options, value, onChange, busy }) {
         return (
           <button key={option.key} type="button" aria-pressed={on} disabled={busy} onClick={() => onChange(option.key)}
                   title={option.hint}
-                  className={`rounded-full border px-2.5 py-1 text-[11.5px] disabled:opacity-50 ${on ? "border-[#16A06E] bg-[#16A06E]/10 font-semibold text-[#1c1e17]" : "border-[#083D2D]/10 bg-white text-[#6b6f63]"}`}>
+                  className={`rounded-full border px-2.5 py-1 text-[11.5px] disabled:opacity-50 ${on ? "border-koi-green bg-koi-green/10 font-semibold text-koi-ink" : "border-koi-forest/10 bg-white text-koi-muted"}`}>
             {option.label}
           </button>
         );
@@ -125,10 +125,10 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy, kno
         <ul className="mt-1.5 flex flex-wrap gap-1.5">
           {words.map((word) => (
             <li key={word.key ?? word}>
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#083D2D]/10 bg-[#083D2D]/[0.04] py-1 pl-2.5 pr-1 text-[11.5px] text-[#1c1e17]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-koi-forest/10 bg-koi-forest/[0.04] py-1 pl-2.5 pr-1 text-[11.5px] text-koi-ink">
                 {word.label ?? word}
                 <button type="button" aria-label={`Remove ${word.label ?? word}`} disabled={busy}
-                        onClick={() => onRemove(word)} className="rounded-full p-0.5 text-[#6b6f63] hover:text-[#B4453C] disabled:opacity-50">
+                        onClick={() => onRemove(word)} className="rounded-full p-0.5 text-koi-muted hover:text-koi-red disabled:opacity-50">
                   <X className="h-3 w-3" />
                 </button>
               </span>
@@ -137,7 +137,7 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy, kno
         </ul>
       )}
       {unknown.length > 0 && (
-        <p className="mt-1 text-[11.5px] text-[#8A6D1F]">
+        <p className="mt-1 text-[11.5px] text-koi-amber-ink">
           KOI doesn&apos;t stock {unknown.map((w) => w.label ?? w).join(", ")} yet. Saved, and it applies the day the shop does.
         </p>
       )}
@@ -145,14 +145,14 @@ function Words({ id, label, hint, words, placeholder, onAdd, onRemove, busy, kno
         <input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={placeholder} maxLength={80}
                list={known ? `${id}-known` : undefined}
                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-               className="min-w-0 flex-1 rounded-xl border border-[#083D2D]/15 bg-white px-3 py-1.5 text-[12.5px]" />
+               className="min-w-0 flex-1 rounded-xl border border-koi-forest/15 bg-white px-3 py-1.5 text-[12.5px]" />
         {known && (
           <datalist id={`${id}-known`}>
             {known.map((brand) => <option key={brand} value={brand} />)}
           </datalist>
         )}
         <button type="button" onClick={add} disabled={busy || !typed.trim()}
-                className="inline-flex items-center gap-1 rounded-xl border border-[#083D2D]/15 px-2.5 py-1.5 text-[12px] font-semibold text-[#1c1e17] disabled:opacity-40">
+                className="inline-flex items-center gap-1 rounded-xl border border-koi-forest/15 px-2.5 py-1.5 text-[12px] font-semibold text-koi-ink disabled:opacity-40">
           <Plus className="h-3.5 w-3.5" /> Add
         </button>
       </div>
@@ -191,8 +191,8 @@ export default function KitchenRules({ household, pantry = [], brands = [], know
 
   return (
     <section className={CARD}>
-      <p className="text-[12px] font-semibold text-[#1c1e17]">Your kitchen</p>
-      <p className="mt-0.5 text-[11.5px] text-[#6b6f63]">
+      <p className="text-[12px] font-semibold text-koi-ink">Your kitchen</p>
+      <p className="mt-0.5 text-[11.5px] text-koi-muted">
         How you shop, rather than what anyone eats. Every plan from here on follows these; the plan on screen is left alone.
       </p>
 
@@ -256,10 +256,10 @@ export default function KitchenRules({ household, pantry = [], brands = [], know
 
       <div>
         <span className={LABEL}>Cold storage</span>
-        <label className="mt-1.5 flex items-center gap-2.5 text-[12.5px] text-[#1c1e17]">
+        <label className="mt-1.5 flex items-center gap-2.5 text-[12.5px] text-koi-ink">
           <input type="checkbox" checked={Boolean(household.shelf_stable_only)} disabled={busy}
                  onChange={(e) => save({ shelf_stable_only: e.target.checked })}
-                 className="h-3.5 w-3.5 accent-[#1f5c3a]" />
+                 className="h-3.5 w-3.5 accent-koi-forest" />
           Nothing that needs a fridge
         </label>
         <p className={HINT}>

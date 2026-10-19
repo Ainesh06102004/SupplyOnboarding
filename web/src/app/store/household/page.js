@@ -15,11 +15,14 @@
 // goal (the database refuses one).
 // ============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import KitchenRules from "@/components/store/household/KitchenRules";
 import PhraseLog from "@/components/store/household/PhraseLog";
-import { Plus, Loader2, Pencil, Trash2, Sparkles, UserRound } from "lucide-react";
+import { Plus, Loader2, Trash2, Sparkles, UserRound } from "lucide-react";
+import { initialsOf } from "@/components/store/system/tokens";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
+import { useKoiVoice } from "@/store/koiVoiceStore";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginUi } from "@/store/loginUiStore";
@@ -32,10 +35,9 @@ import {
   severitiesFor, defaultSeverityFor, fromGoalSetup, ACTIVITY_LEVELS, MEALS_FROM_HOME, APPETITES, SPICE_TOLERANCES, SEVERITIES,
 } from "@/lib/household/profile";
 
-const HEADING = { fontFamily: "var(--font-koi-heading)" };
-const INPUT = "mt-1 w-full rounded-xl border border-[#083D2D]/15 bg-white px-3 py-2 text-[13px]";
-const LABEL = "text-[12px] font-semibold text-[#1c1e17]";
-const HINT = "mt-1 block text-[11px] text-[#6b6f63]";
+const INPUT = "mt-1 h-11 w-full rounded-xl border border-koi-forest/15 bg-koi-paper px-3 text-[14px] outline-none focus:border-koi-forest focus:bg-white";
+const LABEL = "text-[13px] font-semibold text-koi-ink";
+const HINT = "mt-1 block text-[12px] text-koi-muted";
 const HARD_ALLERGENS = FOODS_AVOID.filter((a) => a.mode === "hard" && a.kind === "allergen");
 
 const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
@@ -74,7 +76,7 @@ function Choice({ options, value, onChange, name }) {
     <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label={name}>
       {options.map((o) => (
         <button key={o.key} type="button" role="radio" aria-checked={value === o.key} onClick={() => onChange(o.key)}
-                className={`rounded-full border px-2.5 py-1 text-[11.5px] ${value === o.key ? "border-[#1f5c3a] bg-[#1f5c3a] text-white" : "border-[#083D2D]/15 bg-white text-[#1c1e17]"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11.5px] ${value === o.key ? "border-koi-forest bg-koi-forest text-white" : "border-koi-forest/15 bg-white text-koi-ink"}`}>
           {o.label}
         </button>
       ))}
@@ -149,12 +151,12 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
   }
 
   return (
-    <div className="rounded-2xl border border-[#1f5c3a]/25 bg-white p-4 md:p-5">
-      <h2 className="text-[15px] font-bold text-[#1c1e17]" style={HEADING}>{form.memberId ? `Edit ${form.label || "this person"}` : "Add someone"}</h2>
+    <section data-editor className="rounded-[28px] border border-koi-forest/10 bg-white p-6 shadow-[0_30px_60px_-50px_rgba(8,61,45,.5)]">
+      <h2 className="m-0 font-koi-display text-[24px] font-extrabold text-koi-forest">{form.memberId ? `Edit ${form.label || "this person"}` : "Add someone"}</h2>
 
       {/* Who */}
       <fieldset className="mt-4">
-        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Personal details</legend>
+        <legend className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-green">Personal details</legend>
         <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
           <label className="block">
             <span className={LABEL}>What to call them</span>
@@ -210,25 +212,25 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
 
         {adult && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-2 text-[12.5px] text-[#1c1e17]">
+            <label className="inline-flex items-center gap-2 text-[12.5px] text-koi-ink">
               <input id="profile-is-me" type="checkbox" checked={form.is_account_holder} disabled={anotherHolder && !form.is_account_holder}
                      onChange={(e) => set({ is_account_holder: e.target.checked })} />
               This is me
             </label>
-            {anotherHolder && !form.is_account_holder && <span className="text-[11px] text-[#6b6f63]">Someone else in the household is already you.</span>}
+            {anotherHolder && !form.is_account_holder && <span className="text-[11px] text-koi-muted">Someone else in the household is already you.</span>}
             {form.is_account_holder && (
-              <button type="button" onClick={fillFromGoalSetup} className="inline-flex items-center gap-1.5 rounded-xl border border-[#083D2D]/15 px-2.5 py-1 text-[11.5px] font-semibold text-[#1c1e17]">
+              <button type="button" onClick={fillFromGoalSetup} className="inline-flex items-center gap-1.5 rounded-xl border border-koi-forest/15 px-2.5 py-1 text-[11.5px] font-semibold text-koi-ink">
                 <UserRound className="h-3.5 w-3.5" /> Fill from my goal setup
               </button>
             )}
-            {setupNote && <span className="text-[11px] text-[#6b6f63]">{setupNote}</span>}
+            {setupNote && <span className="text-[11px] text-koi-muted">{setupNote}</span>}
           </div>
         )}
       </fieldset>
 
       {/* Food rules */}
       <fieldset className="mt-5">
-        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Food rules</legend>
+        <legend className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-green">Food rules</legend>
         <label className="mt-2 block md:w-1/2">
           <span className={LABEL}>Diet</span>
           <select id="profile-diet" value={form.diet_type} onChange={(e) => set({ diet_type: e.target.value })} className={INPUT}>
@@ -243,7 +245,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             const on = form.avoids.some((x) => x.key === a.key);
             return (
               <button key={a.key} type="button" aria-pressed={on} onClick={() => toggleAvoid(a.key)}
-                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#1f5c3a] bg-[#1f5c3a] text-white" : "border-[#083D2D]/15 bg-white text-[#1c1e17]"}`}>
+                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-koi-forest bg-koi-forest text-white" : "border-koi-forest/15 bg-white text-koi-ink"}`}>
                 {a.emoji} {a.label}
               </button>
             );
@@ -255,12 +257,12 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
               const entry = FOODS_AVOID.find((x) => x.key === a.key);
               return (
                 <div key={a.key} className="flex flex-wrap items-center gap-2 text-[12px]">
-                  <span className="min-w-[8rem] font-semibold text-[#1c1e17]">{entry?.label ?? a.key}</span>
+                  <span className="min-w-[8rem] font-semibold text-koi-ink">{entry?.label ?? a.key}</span>
                   <Choice name={`How strictly: ${entry?.label ?? a.key}`} options={severitiesFor(a.key)} value={a.severity} onChange={(severity) => setSeverity(a.key, severity)} />
                 </div>
               );
             })}
-            <p className="text-[11px] text-[#6b6f63]">
+            <p className="text-[11px] text-koi-muted">
               {SEVERITIES.map((s) => `${s.label}: ${s.hint.toLowerCase()}`).join(" · ")}. Anything but a dislike is never given to them.
             </p>
           </div>
@@ -269,7 +271,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
 
       {/* Goal */}
       <fieldset className="mt-5">
-        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Goal</legend>
+        <legend className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-green">Goal</legend>
         {adult ? (
           <>
             <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -291,7 +293,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             </label>
           </>
         ) : (
-          <p className="mt-2 text-[12px] text-[#6b6f63]">
+          <p className="mt-2 text-[12px] text-koi-muted">
             Children and teenagers are planned for their age&apos;s needs (ICMR-NIN 2020). KOI sets no weight goal or diet
             pattern for anyone under 19, and keeps no weight or height for them.
           </p>
@@ -300,7 +302,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
 
       {/* Targets */}
       <fieldset className="mt-5">
-        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">Daily targets</legend>
+        <legend className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-green">Daily targets</legend>
         <div className="mt-2 grid grid-cols-2 gap-3 md:w-2/3">
           <label className="block">
             <span className={LABEL}>Energy a day</span>
@@ -312,12 +314,12 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
           </label>
         </div>
         <button type="button" onClick={suggest}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-[#1f5c3a] px-3 py-1.5 text-[12px] font-semibold text-[#1c1e17]">
+                className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-koi-forest px-3 py-1.5 text-[12px] font-semibold text-koi-ink">
           <Sparkles className="h-3.5 w-3.5" /> Suggest targets
         </button>
         {suggestion && (
-          <div className="mt-3 rounded-xl bg-[#083D2D]/[0.03] p-3 text-[12px] text-[#6b6f63]">
-            <p className="font-semibold text-[#1c1e17]">
+          <div className="mt-3 rounded-xl bg-koi-forest/[0.03] p-3 text-[12px] text-koi-muted">
+            <p className="font-semibold text-koi-ink">
               {suggestion.kcal.toLocaleString("en-IN")} kcal and {Math.round(suggestion.protein)} g protein a day
               {suggestion.carbsMax !== null ? `, at most ${suggestion.carbsMax} g carbohydrate` : ""}
             </p>
@@ -327,7 +329,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
             <p className="mt-1">A typical person&apos;s needs, not advice for this person. Change them if you know better.</p>
             <button type="button"
                     onClick={() => { set({ target_kcal: String(suggestion.kcal), target_protein_g: String(Math.round(suggestion.protein)), target_source: suggestion.source }); setSuggestion(null); }}
-                    className="mt-2 rounded-xl bg-[#1f5c3a] px-3 py-1.5 text-[12px] font-bold text-white">
+                    className="mt-2 rounded-xl bg-koi-forest px-3 py-1.5 text-[12px] font-bold text-white">
               Use these
             </button>
           </div>
@@ -341,14 +343,14 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
 
       {/* How they eat */}
       <fieldset className="mt-5">
-        <legend className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#16A06E]">How they eat</legend>
+        <legend className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-green">How they eat</legend>
         <p className={`${LABEL} mt-2`}>Meals from home</p>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {MEALS_FROM_HOME.map((meal) => {
             const on = form.meals_from_home.includes(meal.key);
             return (
               <button key={meal.key} type="button" aria-pressed={on} onClick={() => toggleMeal(meal.key)}
-                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-[#16A06E] bg-[#16A06E]/10 text-[#1c1e17]" : "border-[#083D2D]/10 bg-white text-[#6b6f63]"}`}>
+                      className={`rounded-full border px-2.5 py-1 text-[11.5px] ${on ? "border-koi-green bg-koi-green/10 text-koi-ink" : "border-koi-forest/10 bg-white text-koi-muted"}`}>
                 {meal.label}
               </button>
             );
@@ -370,22 +372,24 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
       </fieldset>
 
       {problems.length > 0 && (
-        <ul className="mt-4 space-y-0.5 text-[11.5px] text-[#6b6f63]">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
+        <ul className="mt-4 space-y-0.5 text-[11.5px] text-koi-muted">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
       )}
-      {error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{error}</p>}
+      {error && <p className="mt-3 text-[12.5px] text-koi-red">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" onClick={save} disabled={saving || problems.length > 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#1f5c3a] px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40">
+                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-koi-forest px-5 text-[14px] font-bold text-koi-lime disabled:opacity-40">
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {saving ? "Saving…" : "Save profile"}
         </button>
-        <button type="button" onClick={onCancel} className="text-[12.5px] font-semibold text-[#6b6f63] hover:text-[#1c1e17]">Cancel</button>
+        <button type="button" onClick={onCancel} className="text-[12.5px] font-semibold text-koi-muted hover:text-koi-ink">Cancel</button>
       </div>
-    </div>
+    </section>
   );
 }
 
 export default function HouseholdPage() {
+  const root = useRef(null);
+  const say = useKoiVoice((v) => v.say);
   const [state, setState] = useState({ loading: true });
   const [editing, setEditing] = useState(null);
   const [keepOutBusy, setKeepOutBusy] = useState(false);
@@ -410,6 +414,19 @@ export default function HouseholdPage() {
   }, [show, authUid]);
 
   const members = useMemo(() => (state.members ?? []).map(profileFromRow), [state.members]);
+
+  // The cards deal in once the household is read; KOI says what this page is.
+  const signedIn = Boolean(!state.loading && state.user);
+  useGSAP(() => {
+    if (!signedIn) return;
+    say("Everyone you shop for. Plans read this and never change it.");
+    if (prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    const q = (sel) => root.current?.querySelectorAll(sel) ?? [];
+    gsap.from(q("[data-line]"), { yPercent: 115, duration: 1, ease: E.reveal });
+    gsap.from(q("[data-rise]"), { autoAlpha: 0, y: 14, duration: 0.7, stagger: 0.08, ease: E.reveal, delay: 0.1 });
+    gsap.from(q("[data-person]"), { autoAlpha: 0, y: 30, rotation: (i) => (i % 2 ? 1.2 : -1.2), duration: 0.85, stagger: 0.07, ease: E.dolly, delay: 0.25, clearProps: "opacity,visibility,transform" });
+  }, { scope: root, dependencies: [signedIn] });
   // The brands on the shelf, so a brand rule can be typed with the shop's own
   // spelling rather than guessed at.
   const [brands, setBrands] = useState([]);
@@ -509,131 +526,136 @@ export default function HouseholdPage() {
     else await reload();
   }
 
-  if (state.loading) return <main className="mx-auto max-w-3xl px-5 py-16 text-[#6b6f63]"><Loader2 className="inline h-4 w-4 animate-spin" /> Loading…</main>;
+  if (state.loading) return <main role="status" className="mx-auto flex w-full max-w-[1440px] items-center gap-2.5 px-[clamp(16px,4vw,52px)] py-16 font-koi-sans text-sm text-koi-muted"><Loader2 className="size-4 animate-spin" /> Loading…</main>;
   if (!state.user) {
     return (
-      <main className="mx-auto max-w-3xl px-5 py-16">
-        <h1 className="text-2xl font-bold text-[#1c1e17]" style={HEADING}>Your household</h1>
-        <p className="mt-2 text-[13px] text-[#6b6f63]">Sign in to keep a profile for everyone you shop for. Only you can read it.</p>
-        <button type="button" onClick={() => openLogin()} className="ks-btn mt-5" data-variant="primary">Sign in with phone</button>
+      <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-[clamp(16px,4vw,52px)] py-16 font-koi-sans text-koi-ink">
+        <h1 className="koi-condensed m-0 font-koi-display text-[clamp(44px,5.2vw,78px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">Your household</h1>
+        <p className="m-0 max-w-[620px] text-base text-koi-ink2">Sign in to keep a profile for everyone you shop for. Only you can read it.</p>
+        <button type="button" onClick={() => openLogin()} className="h-14 w-fit rounded-2xl bg-koi-forest px-7 text-[15px] font-bold text-koi-lime">Sign in with phone</button>
       </main>
     );
   }
 
   const holder = members.find((m) => m.is_account_holder);
+  const editingNew = Boolean(editing && !editing.memberId);
 
   return (
-    <main className="ks-page-pad mx-auto max-w-6xl px-5 py-10">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-        <div>
-          <h1 className="text-[26px] font-bold leading-none tracking-tight text-[#1c1e17]" style={HEADING}>Your household</h1>
-          <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[#6b6f63]">
-            Everyone you shop for, and how you shop. Plans read this and never change it. Only you can see it.
-          </p>
-        </div>
-        <p className="text-[11.5px]">
-          <Link href="/store/plan" className="font-semibold text-[#16A06E] hover:underline">Plan</Link>
-          <span className="text-[#6b6f63]"> · </span>
-          <Link href="/store/profile/data" className="font-semibold text-[#16A06E] hover:underline">What KOI keeps</Link>
-        </p>
-      </header>
-      {state.error && <p className="mt-3 text-[12.5px] text-[#B4453C]">{state.error}</p>}
-
-      <div className="mt-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,21rem)]">
-      <div className="min-w-0">
-      <section className="space-y-2.5">
-        {members.map((m) => (editing?.memberId === m.memberId ? (
-          <MemberEditor key={m.memberId} initial={editing} householdId={householdId} ensureHousehold={ensureHousehold} userId={state.user.id}
-                        anotherHolder={Boolean(holder && holder.memberId !== m.memberId)} onCancel={() => setEditing(null)} onSaved={reload} />
-        ) : (
-          <div key={m.memberId} className="rounded-2xl bg-white/70 p-4 ring-1 ring-inset ring-[#083D2D]/8">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[14px] font-bold text-[#1c1e17]">
-                  {m.label}{m.relation ? <span className="font-normal text-[#6b6f63]"> · {m.relation}</span> : null}
-                  {m.is_account_holder && <span className="ml-2 rounded-full bg-[#16A06E]/10 px-2 py-0.5 text-[10.5px] font-semibold text-[#16A06E]">You</span>}
-                </p>
-                <p className="mt-0.5 text-[12px] text-[#6b6f63]">{profileSummary(m)}</p>
-                {m.avoids.length > 0 && (
-                  <p className="mt-0.5 text-[12px] text-[#6b6f63]">
-                    {m.avoids.map((a) => `${FOODS_AVOID.find((x) => x.key === a.key)?.label ?? a.key} (${SEVERITIES.find((s) => s.key === a.severity)?.label.toLowerCase() ?? a.severity})`).join(", ")}
-                  </p>
-                )}
-                <p className="mt-1 text-[11px] text-[#6b6f63]">
-                  {(state.versions[m.memberId] ?? []).length > 1
-                    ? `Saved ${(state.versions[m.memberId] ?? []).length} times, last on ${when(state.versions[m.memberId][0].changed_at)}`
-                    : `Saved on ${when(state.versions[m.memberId]?.[0]?.changed_at)}`}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setEditing(m)} className="inline-flex items-center gap-1 rounded-xl border border-[#083D2D]/15 px-2.5 py-1 text-[12px] font-semibold text-[#1c1e17]">
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </button>
-                {removing === m.memberId ? (
-                  <span className="flex items-center gap-2 text-[12px]">
-                    <button type="button" onClick={() => remove(m.memberId)} className="font-semibold text-[#B4453C]">Remove {m.label}</button>
-                    <button type="button" onClick={() => setRemoving(null)} className="text-[#6b6f63]">Keep</button>
-                  </span>
-                ) : (
-                  <button type="button" onClick={() => setRemoving(m.memberId)} className="text-[#6b6f63] hover:text-[#1c1e17]" aria-label={`Remove ${m.label}`}>
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
+    <main ref={root} className="ks-page-pad mx-auto flex w-full max-w-[1440px] flex-col bg-koi-bg px-[clamp(16px,4vw,52px)] pt-8 font-koi-sans text-koi-ink">
+      <section className="flex flex-wrap items-end justify-between gap-x-10 gap-y-3">
+        <div className="flex flex-col gap-2.5">
+          <div data-rise className="flex items-center gap-3">
+            <span className="font-koi-mono text-xs font-semibold text-koi-primary">(10)</span>
+            <span className="font-koi-mono text-xs font-medium uppercase tracking-[0.22em] text-koi-muted">Household</span>
           </div>
-        )))}
-
-        {editing && !editing.memberId ? (
-          <MemberEditor initial={editing} householdId={householdId} ensureHousehold={ensureHousehold} userId={state.user.id}
-                        anotherHolder={Boolean(holder)} onCancel={() => setEditing(null)} onSaved={reload} />
-        ) : (
-          <button type="button" onClick={() => setEditing({ ...blankProfile(), label: members.length ? "" : "Me", is_account_holder: !members.length })}
-                  className="inline-flex w-fit items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-semibold text-[#1c1e17] ring-1 ring-inset ring-[#083D2D]/15 hover:bg-white/60">
-            <Plus className="h-4 w-4" /> Add someone
-          </button>
-        )}
+          <h1 className="koi-condensed m-0 font-koi-display text-[clamp(44px,5.2vw,78px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">
+            <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">Your household</span></span>
+          </h1>
+          <p data-rise className="m-0 max-w-[620px] text-base leading-relaxed text-koi-ink2">Everyone you shop for, and how you shop. Plans read this and never change it. Only you can see it.</p>
+        </div>
+        <div data-rise className="flex flex-wrap gap-2">
+          <Link href="/store/plan" className="flex h-11 items-center gap-2 rounded-full bg-koi-forest px-5 text-sm font-bold text-koi-lime no-underline">Plan <span aria-hidden="true">→</span></Link>
+          <Link href="/store/profile/data" className="flex h-11 items-center rounded-full border border-koi-forest/15 px-4 text-sm font-semibold text-koi-forest no-underline transition-colors hover:bg-white">What KOI keeps</Link>
+        </div>
       </section>
+      {state.error && <p className="m-0 mt-3 text-[13px] text-koi-red">{state.error}</p>}
 
-      {householdId && (
-        <div className="mt-6">
-          <PhraseLog on={state.household?.log_failed_phrases} busy={keepOutBusy}
-                     misses={[...(state.household?.followup_miss ?? [])].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))}
-                     onToggle={togglePhraseLog} onForget={forgetPhrases} />
-        </div>
-      )}
-
-      {householdId && (
-        <div className="mt-6">
-          <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} knownProcessing={knownProcessing} busy={keepOutBusy}
-                        onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
-        </div>
-      )}
-      </div>
-
-      <div className="min-w-0 space-y-6 lg:sticky lg:top-6">
-      {refusedAllergens.length > 0 && (
-        <section className="rounded-3xl bg-[#B4453C]/[0.04] p-5 ring-1 ring-inset ring-[#B4453C]/15">
-          <p className="text-[12px] font-semibold text-[#1c1e17]">Keep out of the house</p>
-          <p className="mt-0.5 text-[11.5px] text-[#6b6f63]">
-            Normally a product one person can&apos;t eat is still bought for the others. For a serious allergy, switch it on
-            and nothing containing it is bought for anyone.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {refusedAllergens.map(({ entry, who }) => {
-              const on = keepOut.includes(entry.key);
+      <div className="grid grid-cols-1 items-start gap-6 pb-10 pt-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <section aria-label="Everyone in your household" className="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3">
+            {members.map((m, i) => {
+              const on = editing?.memberId === m.memberId;
+              const saves = state.versions[m.memberId] ?? [];
               return (
-                <button key={entry.key} type="button" aria-pressed={on} disabled={keepOutBusy} onClick={() => toggleKeepOut(entry.key)}
-                        className={`rounded-full border px-2.5 py-1 text-[11.5px] disabled:opacity-50 ${on ? "border-[#B4453C] bg-[#B4453C] text-white" : "border-[#083D2D]/15 bg-white text-[#1c1e17]"}`}>
-                  {entry.emoji} {entry.label} <span className={on ? "text-white/80" : "text-[#6b6f63]"}>({who.join(", ")})</span>{on ? " · kept out" : ""}
-                </button>
+                <div key={m.memberId} data-person className={`relative flex min-h-[148px] flex-col justify-between gap-3 rounded-[24px] border p-4 transition-colors ${on ? "border-koi-forest bg-koi-forest text-koi-bg" : "border-koi-forest/10 bg-white text-koi-ink hover:border-koi-forest/30"}`}>
+                  <button type="button" onClick={() => setEditing(on ? null : m)} aria-pressed={on} aria-label={`Edit ${m.label}`} className="absolute inset-0 rounded-[24px]" />
+                  <span className="pointer-events-none flex items-center gap-3">
+                    <span aria-hidden="true" className={`grid size-11 shrink-0 place-items-center rounded-full font-koi-num text-[13px] font-bold ${on ? "bg-koi-lime text-koi-forest" : "bg-koi-tint text-koi-forest"}`}>{initialsOf(m.label || `P${i + 1}`)}</span>
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <span className="text-[17px] font-bold leading-tight">{m.label}</span>
+                      {m.relation && <span className="text-[13px] opacity-70">{m.relation}</span>}
+                      {m.is_account_holder && <span className="rounded-full bg-koi-lime px-1.5 py-px font-koi-mono text-[9.5px] font-bold uppercase tracking-[0.08em] text-koi-forest">You</span>}
+                    </span>
+                  </span>
+                  <span className="pointer-events-none text-[13px] leading-snug opacity-90">{profileSummary(m)}</span>
+                  {m.avoids.length > 0 && (
+                    <span className={`pointer-events-none text-[12.5px] font-semibold leading-snug ${on ? "text-koi-lime" : "text-koi-warm-ink"}`}>
+                      {m.avoids.map((a) => `${FOODS_AVOID.find((x) => x.key === a.key)?.label ?? a.key} (${SEVERITIES.find((s) => s.key === a.severity)?.label.toLowerCase() ?? a.severity})`).join(", ")}
+                    </span>
+                  )}
+                  <span className="relative flex items-center justify-between gap-2">
+                    <span className="pointer-events-none font-koi-mono text-[10px] uppercase tracking-[0.1em] opacity-60">
+                      {saves.length > 1 ? `Saved ${saves.length} times · ${when(saves[0].changed_at)}` : `Saved ${when(saves[0]?.changed_at)}`}
+                    </span>
+                    {removing === m.memberId ? (
+                      <span className="flex items-center gap-2 text-[12px]">
+                        <button type="button" onClick={() => remove(m.memberId)} className="font-semibold text-koi-red">Remove {m.label}</button>
+                        <button type="button" onClick={() => setRemoving(null)} className="opacity-70">Keep</button>
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setRemoving(m.memberId)} className="grid size-8 place-items-center rounded-full opacity-60 hover:opacity-100" aria-label={`Remove ${m.label}`}>
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
+                  </span>
+                </div>
               );
             })}
-          </div>
-        </section>
-      )}
+            <button data-person type="button" onClick={() => setEditing({ ...blankProfile(), label: members.length ? "" : "Me", is_account_holder: !members.length })}
+                    className={`flex min-h-[148px] flex-col items-center justify-center gap-2 rounded-[24px] border-2 border-dashed p-4 text-sm font-semibold text-koi-forest transition-colors hover:bg-white ${editingNew ? "border-koi-forest bg-white" : "border-koi-forest/25"}`}>
+              <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-koi-tint"><Plus className="size-4" /></span>
+              Add someone
+            </button>
+          </section>
 
-      </div>
+          {editing && (
+            <MemberEditor key={editing.memberId ?? "new"} initial={editing} householdId={householdId} ensureHousehold={ensureHousehold} userId={state.user.id}
+                          anotherHolder={Boolean(holder && holder.memberId !== editing.memberId)} onCancel={() => setEditing(null)} onSaved={reload} />
+          )}
+
+          {householdId && (
+            <PhraseLog on={state.household?.log_failed_phrases} busy={keepOutBusy}
+                       misses={[...(state.household?.followup_miss ?? [])].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))}
+                       onToggle={togglePhraseLog} onForget={forgetPhrases} />
+          )}
+
+          {householdId && (
+            <KitchenRules household={state.household} pantry={state.household?.household_pantry ?? []} brands={brands} knownProcessing={knownProcessing} busy={keepOutBusy}
+                          onSaveHousehold={saveKitchen} onAddPantry={addPantry} onRemovePantry={removePantry} />
+          )}
+        </div>
+
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[calc(var(--koi-header-h)+24px)]">
+          {refusedAllergens.length > 0 ? (
+            <section aria-label="Keep out of the house" className="flex flex-col gap-3 rounded-[24px] border border-koi-forest/10 bg-white p-5">
+              <span className="text-[17px] font-bold">Keep out of the house</span>
+              <p className="m-0 text-[13px] leading-normal text-koi-ink2">
+                Normally a product one person can’t eat is still bought for the others. For a serious allergy, switch it on
+                and nothing containing it is bought for anyone.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {refusedAllergens.map(({ entry, who }) => {
+                  const on = keepOut.includes(entry.key);
+                  return (
+                    <button key={entry.key} type="button" aria-pressed={on} disabled={keepOutBusy} onClick={() => toggleKeepOut(entry.key)}
+                            className={`rounded-full border px-3 py-1.5 text-[12.5px] font-semibold disabled:opacity-50 ${on ? "border-koi-red bg-koi-red text-white" : "border-koi-forest/15 bg-white text-koi-ink"}`}>
+                      {entry.emoji} {entry.label} <span className={on ? "text-white/80" : "text-koi-muted"}>({who.join(", ")})</span>{on ? " · kept out" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : (
+            <section className="flex flex-col gap-2 rounded-[24px] border border-koi-forest/10 bg-white p-5">
+              <span className="text-[17px] font-bold">Keep out of the house</span>
+              <p className="m-0 text-[13px] leading-normal text-koi-ink2">When someone here has a serious allergy, you can keep it out of every basket, not only theirs. Mark the allergy on their profile first.</p>
+            </section>
+          )}
+          <section className="flex flex-col gap-3 rounded-[24px] bg-koi-forest p-5 text-koi-bg">
+            <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-lime">Only you can see this</span>
+            <p className="m-0 text-[13.5px] leading-relaxed text-koi-bg/85">Labels, never names. No weight or height for anyone under 19. Plans read your household and never change it.</p>
+          </section>
+        </aside>
       </div>
     </main>
   );
