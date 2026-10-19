@@ -13,8 +13,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { alternativesFor, productsFor, SLOT_LABELS } from "@/lib/plan/schedule";
 import { peopleOf } from "@/lib/plan/planView";
 import { goalShortLabel } from "@/lib/plan/goalCards";
-import { C, font, cardStyle, initialsOf, inr } from "./tokens";
-import { MonoLabel } from "./bits";
+import { initialsOf, inr } from "./tokens";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useGlowing } from "@/components/agent/AgentProvider";
 
 const SWAPPABLE = { breakfast: ["breakfast"], lunch: ["lunch", "dinner"], dinner: ["lunch", "dinner"], snack: ["snack"], drinks: ["drinks"] };
@@ -22,12 +22,12 @@ const amount = (a) => (a && a.amount ? `${a.amount}${a.unit ? ` ${a.unit}` : ""}
 
 function Chip({ tone, children, title }) {
   const tones = {
-    goal: { color: C.blue, background: C.blueBg },
-    shared: { color: C.primary, background: C.tint },
-    cut: { color: C.redText, background: C.redBg },
-    warn: { color: C.warnText, background: C.warnBg },
+    goal: "bg-koi-lime-soft text-koi-forest",
+    shared: "bg-koi-tint text-koi-primary",
+    cut: "bg-koi-red-bg text-koi-red",
+    warn: "bg-koi-amber-bg text-koi-amber-ink",
   };
-  return <span title={title} style={{ font: font(600, 9), borderRadius: 5, padding: "2px 5px", ...tones[tone] }}>{children}</span>;
+  return <span title={title} className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tones[tone]}`}>{children}</span>;
 }
 
 export default function WeekGrid({ s }) {
@@ -40,6 +40,28 @@ export default function WeekGrid({ s }) {
   const busy = Boolean(s.run && !s.run.done);
   const me = s.active?.memberId ? String(s.active.memberId) : null;
   const names = useMemo(() => new Map(s.lines.map((l) => [String(l.skuId), l.name])), [s.lines]);
+
+  // The storyboard deals its panels in once; after that, a panel whose dishes
+  // changed (a swap, a pick, a re-plan) flashes lime so the eye finds it.
+  const boardRef = useRef(null);
+  const seen = useRef(null);
+  const dealt = useRef(false);
+  const sig = week ? Object.entries(week.cells).map(([k, c]) => `${k}=${c.shared ? c.shared.dishes.map((x) => x.key).join("+") : ""}`).join("|") : "";
+  useGSAP(() => {
+    const root = boardRef.current;
+    if (!root || !week) return;
+    const gsap = setupMotion();
+    const cells = [...root.querySelectorAll("[data-cell]")];
+    const now = new Map(cells.map((el) => [el.dataset.cell, el.dataset.dishes]));
+    if (!dealt.current) {
+      dealt.current = true;
+      if (!prefersReducedMotion()) gsap.from(cells, { autoAlpha: 0, y: 18, duration: 0.6, ease: E.reveal, stagger: { each: 0.018, from: "start" } });
+    } else if (seen.current && !prefersReducedMotion()) {
+      const changed = cells.filter((el) => seen.current.get(el.dataset.cell) !== el.dataset.dishes);
+      if (changed.length && changed.length < cells.length) gsap.fromTo(changed, { backgroundColor: "#f4fbd0" }, { backgroundColor: "", duration: 1.4, ease: "power2.out", clearProps: "backgroundColor" });
+    }
+    seen.current = now;
+  }, { scope: boardRef, dependencies: [sig] });
 
   // Touch: HTML5 drag and drop never fires on a phone. A long press picks a
   // dish up, a move carries it, lifting drops it; a quick swipe still scrolls
@@ -104,69 +126,62 @@ export default function WeekGrid({ s }) {
   }, [menu]);
 
   if (!week) return null;
-  const cols = `96px repeat(${week.days.length}, minmax(120px, 1fr))`;
-  const minWidth = 96 + week.days.length * 127;
+  const cols = `92px repeat(${week.days.length}, minmax(124px, 1fr))`;
+  const minWidth = 92 + week.days.length * 134;
   const openCell = menu ? week.cells[menu.key] : null;
   const alternatives = openCell ? alternativesFor(openCell, s.eating) : [];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const range = `${week.days[0].dayOfMonth} ${MONTHS[week.days[0].month]} – ${week.days.at(-1).dayOfMonth} ${MONTHS[week.days.at(-1).month]}`;
+  const SLOT_LETTER = { breakfast: "B", lunch: "L", dinner: "D", snack: "S", drinks: "R" };
 
   return (
-    <div style={{ ...cardStyle, marginBottom: 18, opacity: busy ? 0.72 : 1, transition: "opacity .2s" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ font: font(700, 17) }}>This week</span>
-          <span style={{ font: font(500, 12), color: C.faint }}>{range}</span>
+    <section data-card ref={boardRef} aria-label="This week, as a storyboard" className={`mb-5 rounded-[28px] border border-koi-forest/10 bg-white p-6 ${busy ? "opacity-70" : ""}`}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <span className="font-koi-display text-[22px] font-extrabold text-koi-forest">This week</span>
+          <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.14em] text-koi-muted">{range}</span>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-2">
           {Object.keys(s.picks).length > 0 && (
-            <button type="button" onClick={s.clearPicks} style={{ display: "flex", alignItems: "center", gap: 6, background: C.surface2, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 12px", font: font(600, 12), color: C.ink2, cursor: "pointer" }}>Undo my swaps</button>
+            <button type="button" onClick={s.clearPicks} className="h-10 rounded-full border border-koi-forest/15 bg-white px-4 text-[13px] font-semibold text-koi-ink2">Undo my swaps</button>
           )}
-          <button type="button" disabled={busy || !s.picked.length} onClick={() => s.makePlan().catch((e) => s.setError(e?.message))} style={{ display: "flex", alignItems: "center", gap: 6, background: C.surface2, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "8px 12px", font: font(600, 12), color: C.ink2, cursor: busy ? "wait" : "pointer" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v16M4 12h16" stroke={C.ink2} strokeWidth="2" strokeLinecap="round" /></svg>
-            Re-plan week
-          </button>
-          <button type="button" disabled={busy} onClick={() => s.command("cheaper")} style={{ display: "flex", alignItems: "center", gap: 6, background: C.tint2, border: `1px solid ${C.tintBorder}`, borderRadius: 10, padding: "8px 12px", font: font(600, 12), color: C.primary, cursor: busy ? "wait" : "pointer" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Make it cheaper
-          </button>
+          <button type="button" disabled={busy || !s.picked.length} onClick={() => s.makePlan().catch((e) => s.setError(e?.message))} className="h-10 rounded-full border border-koi-forest/15 bg-white px-4 text-[13px] font-semibold text-koi-ink2 disabled:opacity-60">Re-plan week</button>
+          <button type="button" disabled={busy} onClick={() => s.command("cheaper")} className="h-10 rounded-full bg-koi-tint px-4 text-[13px] font-semibold text-koi-primary disabled:opacity-60">Make it cheaper</button>
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14, padding: "10px 14px", background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 12, flexWrap: "wrap" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.tint, border: "1px solid #b6d9c3" }} /><span style={{ font: font(500, 11), color: C.ink2 }}>Base dish <span style={{ color: C.faint }}>— same for everyone, cooked once</span></span></span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.blueBg, border: `1px solid ${C.blueBorder}` }} /><span style={{ font: font(500, 11), color: C.ink2 }}>{s.active?.label === "Me" ? "Your" : `${s.active?.label ?? "Their"}'s`} addition <span style={{ color: C.faint }}>— on that plate only</span></span></span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.redBg, border: "1px solid #e8bfb8" }} /><span style={{ font: font(500, 11), color: C.ink2 }}>Left out for them</span></span>
+      <div className="mb-3.5 flex flex-wrap items-center gap-4 rounded-xl bg-koi-paper px-3.5 py-2.5 text-[11px] font-medium text-koi-ink2">
+        <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-tint ring-1 ring-koi-tint-border" />Base dish <span className="text-koi-muted">— same for everyone, cooked once</span></span>
+        <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-lime-soft ring-1 ring-koi-lime" />{s.active?.label === "Me" ? "Your" : `${s.active?.label ?? "Their"}'s`} addition <span className="text-koi-muted">— on that plate only</span></span>
+        <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-red-bg ring-1 ring-koi-red/20" />Left out for them</span>
       </div>
 
       {s.menuNeeds.stocked.some((n) => n.anchor) && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10, padding: "12px 14px", background: C.warmBg, border: "1px solid #f0d2bf", borderRadius: 12, flexWrap: "wrap" }}>
-          <span style={{ font: font(500, 13), color: C.ink }}>
-            Your menu needs <strong>{s.menuNeeds.stocked.filter((n) => n.anchor).map((n) => n.ingredient.toLowerCase()).join(", ")}</strong> — KOI stocks it, and this plan didn&apos;t buy it.
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-koi-warm-border bg-koi-warm-bg px-4 py-3">
+          <span className="text-[13px] font-medium">
+            Your menu needs <strong>{s.menuNeeds.stocked.filter((n) => n.anchor).map((n) => n.ingredient.toLowerCase()).join(", ")}</strong> — KOI stocks it, and this plan didn’t buy it.
           </span>
-          <button type="button" disabled={busy} onClick={() => s.buyForMenu(s.menuNeeds.stocked.filter((n) => n.anchor)).catch((e) => s.setError(e?.message))} style={{ cursor: busy ? "wait" : "pointer", background: C.primary, color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", font: font(600, 12) }}>
-            Add it to the plan
-          </button>
+          <button type="button" disabled={busy} onClick={() => s.buyForMenu(s.menuNeeds.stocked.filter((n) => n.anchor)).catch((e) => s.setError(e?.message))} className="h-10 rounded-full bg-koi-forest px-4 text-[13px] font-bold text-koi-lime disabled:opacity-60">Add it to the plan</button>
         </div>
       )}
       {s.menuNeeds.notStocked.some((n) => n.anchor) && (
-        <div style={{ marginBottom: 14, padding: "10px 14px", background: C.note, borderRadius: 12, font: font(500, 12), color: C.ink2 }}>
-          Your menu needs <strong>{s.menuNeeds.notStocked.filter((n) => n.anchor).map((n) => n.ingredient.toLowerCase()).join(", ")}</strong>, which KOI doesn&apos;t stock yet — buy it where you shop for fresh things, or swap the dish.
+        <div className="mb-3.5 rounded-2xl bg-koi-amber-bg px-4 py-2.5 text-xs font-medium text-koi-ink2">
+          Your menu needs <strong>{s.menuNeeds.notStocked.filter((n) => n.anchor).map((n) => n.ingredient.toLowerCase()).join(", ")}</strong>, which KOI doesn’t stock yet — buy it where you shop for fresh things, or swap the dish.
         </div>
       )}
 
       <div className="koi-plan-grid-wrap" ref={gridRef}>
-        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 7, minWidth, marginBottom: 7 }}>
+        <div className="mb-2.5 grid gap-2.5" style={{ gridTemplateColumns: cols, minWidth }}>
           <div />
           {week.days.map((d) => (
-            <div key={d.index} style={{ textAlign: "center", padding: "6px 0", borderRadius: 8, font: font(600, 12), background: d.today ? C.primary : "transparent", color: d.today ? "#fff" : C.ink2 }}>
-              {d.label} <span style={{ font: font(500, 11, "mono"), opacity: 0.75 }}>{d.dayOfMonth}</span>
+            <div key={d.index} data-day className={`rounded-lg px-1 py-1.5 font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] ${d.today ? "bg-koi-forest text-koi-lime" : "text-koi-ink2"}`}>
+              {d.label} <span className="opacity-75">{d.dayOfMonth}</span>
             </div>
           ))}
         </div>
         {week.slots.map((slot) => (
-          <div key={slot} style={{ display: "grid", gridTemplateColumns: cols, gap: 7, minWidth, marginBottom: 7, alignItems: "stretch" }}>
-            <div style={{ display: "flex", alignItems: "center", font: font(600, 12), color: C.ink2 }}>{SLOT_LABELS[slot]}</div>
+          <div key={slot} className="mb-2.5 grid items-stretch gap-2.5" style={{ gridTemplateColumns: cols, minWidth }}>
+            <div className="flex items-center font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-ink2">{SLOT_LABELS[slot]}</div>
             {week.days.map((d) => {
               const key = `${d.index}:${slot}`;
               const cell = week.cells[key];
@@ -176,13 +191,17 @@ export default function WeekGrid({ s }) {
               const adds = me ? (week.additions[me] ?? []).filter((a) => a.slot === slot) : [];
               const others = Object.entries(cell.own).filter(([id]) => id !== me);
               const dropOk = drag && drag !== key && SWAPPABLE[week.cells[drag]?.slot]?.includes(slot);
+              const open = menu?.key === key;
               return (
                 <div
                   key={key}
                   data-cell={key}
-                  className={glowing("cell", key) ? "koi-glow" : undefined}
+                  data-dishes={cell.shared ? cell.shared.dishes.map((x) => x.key).join("+") : ""}
+                  className={`relative flex min-h-[90px] flex-col gap-1.5 rounded-2xl border px-3 pb-[11px] pt-3 transition-[translate,box-shadow] duration-300 ${cell.shared ? "cursor-pointer hover:-translate-y-1" : ""} ${over === key ? "border-koi-forest bg-koi-lime-soft ring-2 ring-koi-forest" : open ? "border-koi-green bg-white shadow-[0_14px_28px_-10px_rgba(0,0,0,.22)]" : d.today ? "border-koi-forest/20 bg-koi-paper" : "border-koi-forest/10 bg-white"} ${glowing("cell", key) ? "koi-glow" : ""}`}
                   role="button"
                   tabIndex={0}
+                  aria-haspopup={cell.shared ? "menu" : undefined}
+                  aria-expanded={cell.shared ? open : undefined}
                   draggable={Boolean(cell.shared)}
                   onDragStart={(e) => { setDrag(key); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", key); }}
                   onDragOver={(e) => { if (dropOk) { e.preventDefault(); setOver(key); } }}
@@ -192,27 +211,21 @@ export default function WeekGrid({ s }) {
                   onClick={(e) => {
                     if (!cell.shared) return;
                     const r = e.currentTarget.getBoundingClientRect();
-                    setMenu((m) => (m?.key === key ? null : { key, x: Math.min(r.left, window.innerWidth - 200), y: r.bottom + 4 }));
+                    setMenu((m) => (m?.key === key ? null : { key, x: Math.min(r.left, window.innerWidth - 220), y: r.bottom + 4 }));
                   }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && cell.shared) { const r = e.currentTarget.getBoundingClientRect(); setMenu({ key, x: Math.min(r.left, window.innerWidth - 200), y: r.bottom + 4 }); } }}
-                  style={{
-                    position: "relative", cursor: cell.shared ? "pointer" : "default", borderRadius: 11, padding: 8, minHeight: 64,
-                    background: over === key ? C.mintChip : d.today ? C.today : C.surface2,
-                    border: `1px solid ${menu?.key === key ? C.accent : C.line2}`,
-                    boxShadow: over === key ? `0 0 0 2px ${C.primary}` : menu?.key === key ? "0 14px 28px -10px rgba(0,0,0,.22)" : "none",
-                    transition: "box-shadow .1s, border-color .1s", display: "flex", flexDirection: "column", gap: 4,
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && cell.shared) { const r = e.currentTarget.getBoundingClientRect(); setMenu({ key, x: Math.min(r.left, window.innerWidth - 220), y: r.bottom + 4 }); } }}
                 >
-                  {cell.shared ? (
-                    <div style={{ font: font(600, 11, "sans", 1.3), color: C.ink }}>
-                      {cell.shared.dishes.map((x) => x.name).join(" + ")}
-                      {cell.shared.chosen && <span style={{ font: font(500, 9, "mono"), color: C.accent }}> · your pick</span>}
-                    </div>
-                  ) : (
-                    <div style={{ font: font(500, 11), color: C.fainter }}>—</div>
-                  )}
+                  <div className="flex items-start justify-between gap-1.5">
+                    {cell.shared ? (
+                      <span className="font-koi-display text-[14.5px] font-bold leading-tight text-koi-ink">{cell.shared.dishes.map((x) => x.name).join(" + ")}</span>
+                    ) : (
+                      <span className="text-[12px] text-koi-muted/70">—</span>
+                    )}
+                    <span className="shrink-0 font-koi-mono text-[9.5px] text-koi-muted">{String(d.index + 1).padStart(2, "0")}{SLOT_LETTER[slot] ?? ""}</span>
+                  </div>
+                  {cell.shared?.chosen && <span className="self-start rounded-md bg-koi-lime px-[7px] py-[3px] font-koi-mono text-[9.5px] font-bold tracking-[0.1em] text-koi-forest">YOUR PICK</span>}
                   {(mine || notMine || adds.length > 0 || notes?.leaveOut?.length > 0 || notes?.notVerifiedFor?.length > 0 || others.length > 0) && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                    <div className="flex flex-wrap gap-1">
                       {mine && <Chip tone="goal">{s.active.label}: {mine.dishes.map((x) => x.name).join(" + ")}</Chip>}
                       {/* "Not for Me" only beside a dish others have; an empty slot isn't about Me. */}
                       {notMine && cell.shared && <Chip tone="cut" title={notMine}>Not for {s.active.label}</Chip>}
@@ -230,9 +243,9 @@ export default function WeekGrid({ s }) {
       </div>
 
       {openCell && (
-        <div role="menu" style={{ position: "fixed", left: menu.x, top: menu.y, zIndex: 80, width: 196, background: "#fff", border: `1px solid ${C.line2}`, borderRadius: 12, boxShadow: "0 18px 34px -10px rgba(0,0,0,.28)", padding: 4, maxHeight: 320, overflowY: "auto" }}>
-          <MonoLabel style={{ padding: "6px 10px 2px" }}>Swap meal</MonoLabel>
-          {alternatives.length === 0 && <div style={{ padding: "7px 10px", font: font(500, 12), color: C.muted }}>Nothing else suits everyone here.</div>}
+        <div role="menu" className="fixed z-[80] max-h-80 w-[212px] overflow-y-auto rounded-2xl border border-koi-forest/10 bg-white p-1 font-koi-sans shadow-[0_18px_34px_-10px_rgba(0,0,0,.28)]" style={{ left: menu.x, top: menu.y }}>
+          <span className="block px-2.5 pb-0.5 pt-1.5 font-koi-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-koi-muted">Swap meal</span>
+          {alternatives.length === 0 && <div className="px-2.5 py-2 text-xs text-koi-muted">Nothing else suits everyone here.</div>}
           {alternatives.map((alt) => (
             <button
               key={alt.key}
@@ -245,34 +258,30 @@ export default function WeekGrid({ s }) {
                 s.pickDishes(openCell.key, dishes);
                 setMenu(null);
               }}
-              style={{ all: "unset", cursor: "pointer", display: "block", width: "100%", boxSizing: "border-box", padding: "7px 10px", font: font(500, 12), color: C.ink, borderRadius: 8 }}
+              className="block w-full rounded-lg px-2.5 py-2 text-left text-[12.5px] font-medium text-koi-ink hover:bg-koi-paper"
             >
-              {alt.name} <span style={{ font: font(500, 10, "mono"), color: C.faint }}>{alt.kind === "base" ? "base" : alt.kind === "main" ? "main" : ""}</span>
+              {alt.name} <span className="font-koi-mono text-[10px] text-koi-muted">{alt.kind === "base" ? "base" : alt.kind === "main" ? "main" : ""}</span>
               {(() => {
                 const missing = week.staplesMissing(alt.key);
                 if (!missing.length) return null;
                 const stocked = productsFor(missing, s.products).every((f) => f.product);
-                return (
-                  <span style={{ display: "block", font: font(500, 10), color: C.warm }}>
-                    needs {missing.map((m) => m.ingredient.toLowerCase()).join(", ")} — {stocked ? "KOI can add it" : "KOI doesn't stock it yet"}
-                  </span>
-                );
+                return <span className="block text-[10.5px] text-koi-warm">needs {missing.map((m) => m.ingredient.toLowerCase()).join(", ")} — {stocked ? "KOI can add it" : "KOI doesn't stock it yet"}</span>;
               })()}
             </button>
           ))}
           {s.picks[openCell.key] && (
-            <button type="button" onClick={() => { s.pickDishes(openCell.key, []); setMenu(null); }} style={{ all: "unset", cursor: "pointer", display: "block", padding: "7px 10px", font: font(600, 12), color: C.accent }}>Back to KOI&apos;s pick</button>
+            <button type="button" onClick={() => { s.pickDishes(openCell.key, []); setMenu(null); }} className="block w-full rounded-lg px-2.5 py-2 text-left text-[12.5px] font-semibold text-koi-green hover:bg-koi-paper">Back to KOI’s pick</button>
           )}
-          <button type="button" onClick={() => setMenu(null)} style={{ all: "unset", cursor: "pointer", display: "block", padding: "7px 10px", font: font(500, 11), color: C.muted }}>Close</button>
+          <button type="button" onClick={() => setMenu(null)} className="block w-full rounded-lg px-2.5 py-2 text-left text-[11.5px] text-koi-muted hover:bg-koi-paper">Close</button>
         </div>
       )}
 
-      <p style={{ font: font(400, 11), color: C.faint, margin: "10px 0 0" }}>
+      <p className="m-0 mt-2.5 text-[11.5px] text-koi-muted">
         Typical home recipes, cooked your way. What a dish contains is read from its usual ingredients — check your own recipe for allergens. Drag a meal onto another to swap them.
       </p>
 
       <TodayPlates s={s} names={names} />
-    </div>
+    </section>
   );
 }
 
@@ -281,8 +290,8 @@ function TodayPlates({ s, names }) {
   const week = s.week;
   const people = peopleOf(s.plan.report, s.plan.days).sort((a, b) => s.orderOf(a.id) - s.orderOf(b.id));
   return (
-    <div style={{ marginTop: 14, padding: "13px 14px", background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 14 }}>
-      <div style={{ font: font(600, 11, "mono"), letterSpacing: ".1em", textTransform: "uppercase", color: C.muted, marginBottom: 10 }}>Each person&apos;s plate · today</div>
+    <div className="mt-4 rounded-2xl bg-koi-paper p-4">
+      <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-muted">Each person’s plate · today</span>
       {people.map((p) => {
         const id = String(p.id);
         const profile = s.eating.find((x) => String(x.memberId) === id);
@@ -296,35 +305,35 @@ function TodayPlates({ s, names }) {
         }).filter(Boolean);
         const adds = week.additions[id] ?? [];
         return (
-          <div key={id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.divider}` }}>
-            <span style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", font: font(700, 10, "num"), color: "#fff", flex: "none", background: s.colourFor(id) }}>{initialsOf(p.label)}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ font: font(600, 12), color: C.ink }}>{p.label}</span>
-                <span style={{ font: font(500, 10, "mono"), color: C.muted }}>{profile ? goalShortLabel(profile) : ""}</span>
+          <div key={id} className="flex items-start gap-2.5 border-b border-koi-forest/10 py-2 last:border-b-0">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full font-koi-num text-[10px] font-bold text-white" style={{ background: s.colourFor(id) }}>{initialsOf(p.label)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold">{p.label}</span>
+                <span className="font-koi-mono text-[10px] text-koi-muted">{profile ? goalShortLabel(profile) : ""}</span>
               </div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 5 }}>
+              <div className="mt-1.5 flex flex-wrap gap-1">
                 {meals.map((m) => (
-                  <span key={m.slot} style={{ font: font(500, 10), background: "#fff", border: `1px solid ${C.line2}`, borderRadius: 6, padding: "3px 7px", color: C.ink }}>
-                    {m.text}{m.bits.length ? <span style={{ color: C.muted }}> · {m.bits.join(" · ")}</span> : null}
+                  <span key={m.slot} className="rounded-md border border-koi-forest/10 bg-white px-2 py-0.5 text-[10.5px]">
+                    {m.text}{m.bits.length ? <span className="text-koi-muted"> · {m.bits.join(" · ")}</span> : null}
                   </span>
                 ))}
                 {adds.map((a) => (
-                  <span key={a.skuId} style={{ font: font(600, 10), background: C.blueBg, borderRadius: 6, padding: "3px 7px", color: C.blue }}>+ {a.asDish ? `${a.asDish.name}: ` : ""}{a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}</span>
+                  <span key={a.skuId} className="rounded-md bg-koi-lime-soft px-2 py-0.5 text-[10.5px] font-semibold text-koi-forest">+ {a.asDish ? `${a.asDish.name}: ` : ""}{a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}</span>
                 ))}
-                <span style={{ font: font(600, 10), background: p.met ? C.tint : C.warnBg, borderRadius: 6, padding: "3px 7px", color: p.met ? C.primary : C.warnText }}>
+                <span className={`rounded-md px-2 py-0.5 text-[10.5px] font-semibold ${p.met ? "bg-koi-tint text-koi-primary" : "bg-koi-amber-bg text-koi-amber-ink"}`}>
                   {p.met ? "Every target met" : `Short ${p.short.map((x) => (x.nutrient === "kcal" ? `${x.perDay} kcal` : `${x.perDay} g ${x.nutrient}`)).join(", ")} a day`}
                 </span>
               </div>
             </div>
-            <div style={{ textAlign: "right", flex: "none" }}>
-              <div style={{ font: font(700, 13, "num"), color: C.ink }}>{p.perDay.kcal !== null ? inr(p.perDay.kcal) : "—"}</div>
-              <div style={{ font: font(500, 9, "mono"), color: C.muted }}>{p.target.kcal ? `kcal / ${inr(p.target.kcal)}` : "kcal a day"}</div>
+            <div className="shrink-0 text-right">
+              <div className="font-koi-num text-[13px] font-semibold">{p.perDay.kcal !== null ? inr(p.perDay.kcal) : "—"}</div>
+              <div className="font-koi-mono text-[9.5px] text-koi-muted">{p.target.kcal ? `kcal / ${inr(p.target.kcal)}` : "kcal a day"}</div>
             </div>
           </div>
         );
       })}
-      <p style={{ font: font(400, 10), color: C.faint, margin: "8px 0 0" }}>Amounts are each person&apos;s share of the basket from the plan, spread over the meals it&apos;s cooked in. Calories are the plan&apos;s daily average.</p>
+      <p className="m-0 mt-2 text-[10.5px] text-koi-muted">Amounts are each person’s share of the basket from the plan, spread over the meals it’s cooked in. Calories are the plan’s daily average.</p>
     </div>
   );
 }
