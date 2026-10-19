@@ -19,6 +19,7 @@ import { C, HEADING, BODY } from "@/components/store/landing/tokens";
 import { Reveal, Eyebrow, Marquee, ScoreRing, ArrowButton, Grain } from "@/components/store/landing/primitives";
 import { PRICE_OPTIONS, SCORE_OPTIONS, DIETARY_OPTIONS } from "./shopData";
 import ShopProductCard from "./ShopProductCard";
+import { setupMotion, prefersReducedMotion, useGSAP, Flip, E } from "@/lib/motion/koiMotion";
 import { GoalCard } from "./GoalSetup";
 
 const GOAL_ICONS = { Dumbbell, ShieldCheck, Sprout, Zap, Activity, Baby, Heart, Flame };
@@ -548,21 +549,57 @@ export function FilterDrawer({
 }
 
 // ── Main product grid ───────────────────────────────────────────────────────
-export function ProductGrid({ title, products, handlers, onClear, catalogueEmpty = false }) {
+// The camera on the shelf. The page captures a Flip state just before it
+// changes focus and hands it over once (takeFlip); after React commits, the
+// cards that stayed glide to their new places and the ones that arrived rise
+// in, then onSettled hands the first card to KOI so it can point. The first
+// fill gets the opening dolly.
+export function ProductGrid({ title, products, handlers, onClear, catalogueEmpty = false, whyOf, takeFlip, onSettled }) {
+  const ref = useRef(null);
+  const opened = useRef(false);
+
+  useGSAP(() => {
+    const gsap = setupMotion();
+    const root = ref.current;
+    if (!root) return;
+    const cards = root.querySelectorAll("[data-flip-id]");
+    const first = () => root.querySelector("[data-flip-id] [data-plate]");
+    const reduce = prefersReducedMotion();
+    if (!opened.current) {
+      if (!cards.length) return;
+      opened.current = true;
+      if (!reduce) gsap.from(cards, { autoAlpha: 0, y: 46, duration: 0.95, ease: E.dolly, stagger: { each: 0.05, from: "start" }, clearProps: "transform,opacity,visibility" });
+      return;
+    }
+    const state = takeFlip?.();
+    if (!state) return;
+    if (reduce) { onSettled?.(first()); return; }
+    Flip.from(state, {
+      targets: cards,
+      duration: 0.85,
+      ease: E.dolly,
+      stagger: 0.015,
+      onEnter: (els) => gsap.fromTo(els, { autoAlpha: 0, y: 30, scale: 0.96 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.7, ease: E.reveal, stagger: 0.04 }),
+      onComplete: () => onSettled?.(first()),
+    });
+    const whys = root.querySelectorAll("[data-why]");
+    if (whys.length) gsap.fromTo(whys, { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.06, ease: E.reveal, delay: 0.55, clearProps: "transform,opacity,visibility" });
+  }, { dependencies: [products], scope: ref });
+
   return (
-    <section className="relative" style={{ background: "var(--koi-bg)" }}>
-      <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
-        <div className="mb-6 flex items-end justify-between">
-          <h2 className="text-[#1c1e17]" style={{ font: "800 clamp(1.5rem, 2.6vw, 2rem)/1.1 var(--koi-sans-stack)", letterSpacing: "-.025em" }}>{title}</h2>
-          <span className="ks-mono"><span className="ks-num">{products.length}</span> products · MRP</span>
+    <section className="relative bg-koi-bg">
+      <div ref={ref} className="mx-auto max-w-[1440px] px-[clamp(16px,4vw,52px)] pb-14 pt-4">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <h2 className="m-0 text-[clamp(1.25rem,2.2vw,1.6rem)] font-extrabold tracking-[-0.025em] text-koi-ink">{title}</h2>
+          <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.14em] text-koi-muted"><span className="font-koi-num">{products.length}</span> products · MRP</span>
         </div>
 
         {products.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
-            {products.map((p, i) => (
-              <Reveal key={p.id} delay={Math.min(i, 8) * 40} y={24}>
-                <ShopProductCard product={p} className="h-full" {...handlers} />
-              </Reveal>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+            {products.map((p) => (
+              <article key={p.id} data-flip-id={p.id} className="min-w-0">
+                <ShopProductCard product={p} why={whyOf?.(p) ?? null} {...handlers} />
+              </article>
             ))}
           </div>
         ) : (

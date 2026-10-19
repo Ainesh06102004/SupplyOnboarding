@@ -65,6 +65,8 @@ export default function KoiBar() {
     const q = text.trim();
     if (!q) return;
     setText("");
+    // On the shelf, KOI pulls focus in place; anywhere else the ask goes to it.
+    if (pathname === "/store/shop") { window.dispatchEvent(new CustomEvent("koi:ask", { detail: q })); return; }
     ember.status("Reading");
     router.push(`/store/shop?q=${encodeURIComponent(q)}`);
   };

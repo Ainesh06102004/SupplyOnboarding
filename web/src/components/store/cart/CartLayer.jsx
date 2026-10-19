@@ -18,6 +18,7 @@ import { lineKey, packs } from "@/lib/cart/lines";
 import Sheet from "@/components/store/system/Sheet";
 import { Button, Money, MonoLabel, ProductThumb, Icon } from "@/components/store/system/primitives";
 import { useCartGroups, PlanGroup, OwnGroup, PlanChangedBanner, CartEmpty, CartLoading, SWIGGY_NOTE } from "./CartView";
+import { useEmber } from "@/components/store/ember/Ember";
 
 /**
  * Add packs of a product to the one cart and say so.
@@ -26,11 +27,16 @@ import { useCartGroups, PlanGroup, OwnGroup, PlanChangedBanner, CartEmpty, CartL
 export function useAddToCart() {
   const add = useCartStore((s) => s.add);
   const showAdded = useCartUi((s) => s.showAdded);
+  const ember = useEmber();
   return useCallback((product, n = 1) => {
     if (!product) return;
     add(product, n);
     showAdded(lineKey({ skuId: product.skuId, productId: product.id }));
-  }, [add, showAdded]);
+    // KOI carries it: the ember flies to whichever cart is on screen (the
+    // header's, or the phone tab bar's), ticks, and goes home.
+    const cart = [...document.querySelectorAll("[data-cart-target]")].find((el) => el.offsetParent !== null);
+    if (cart) ember.go(cart, { ax: 1, ay: 0, x: -6, y: 6 }, () => ember.done(() => setTimeout(() => ember.home(), 450)));
+  }, [add, showAdded, ember]);
 }
 
 /** The cart drawer: right on desktop, a bottom sheet on phones. */

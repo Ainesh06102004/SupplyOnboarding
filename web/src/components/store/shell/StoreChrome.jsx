@@ -32,8 +32,9 @@ import { CartSheet, AddedToast, UpdatedToast } from "@/components/store/cart/Car
  * @returns {"app"|"editorial-light"|"editorial-dark"|"focused"}
  */
 export function headerModeFor(pathname) {
+  // The shelf opens on paper now ("On the shelf"), not the old forest hero, so
+  // it wears the app header; editorial-dark stays for any dark-headed page.
   if (pathname === "/store") return "editorial-light";
-  if (pathname === "/store/shop") return "editorial-dark";
   if (pathname.startsWith("/store/checkout")) return "focused";
   return "app";
 }

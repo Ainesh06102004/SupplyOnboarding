@@ -34,14 +34,50 @@ import { useCatalogueSupply } from "@/lib/marketplace/useCatalogueSupply";
 import { attachSupply } from "@/lib/marketplace/browser";
 import { useGoalStore } from "@/store/goalStore";
 import {
-  ShopHero, FeaturedEditorial, Shelf, GoalRail, IngredientStrip,
+  FeaturedEditorial, Shelf, GoalRail, IngredientStrip,
   FilterBar, FilterDrawer, ProductGrid,
 } from "@/components/store/shop/ShopSections";
 import { KoiScoreModal, CompareModal, WhyKoiDrawer } from "@/components/store/shop/ProductOverlays";
+import ShelfHead from "@/components/store/shop/ShelfHead";
+import { nutrientValue } from "@/components/store/shop/ShopProductCard";
+import { useEmber } from "@/components/store/ember/Ember";
+import { useKoiVoice } from "@/store/koiVoiceStore";
+import { Flip } from "@/lib/motion/koiMotion";
+
+// The lenses: each is a sentence KOI reads with the intent engine, exactly as if
+// the shopper had typed it. Kept to the ones the engine understands.
+const LENSES = ["High Protein", "No Palm Oil", "Low Sugar", "Gut Health", "Kids Nutrition", "Post-Workout", "No Maida"];
+
+// KOI's lines on the shelf. House rule: no numbers in KOI's mouth.
+const LINES = {
+  open: "Ask for what you need, or pick a lens. I’ll pull focus.",
+  fit: "These fit what you asked. I’ve ringed where to start.",
+  fitUnverified: "These fit. A few labels don’t say enough for me to vouch for them, so I’ve marked those.",
+  none: "Nothing on the shelf fits that yet. Loosen one thing and I’ll look again.",
+};
 
 
 export default function ShopPage() {
   const router = useRouter();
+  const ember = useEmber();
+  const say = useKoiVoice((s) => s.say);
+
+  // The camera: a Flip state captured just before focus changes, played by the
+  // grid once React has committed the new shelf (ShopSections → ProductGrid).
+  const flipState = useRef(null);
+  const settleLine = useRef(null);
+  const capture = () => {
+    flipState.current = Flip.getState(document.querySelectorAll(".koi-shop [data-flip-id]"));
+  };
+  const takeFlip = () => {
+    const s = flipState.current;
+    flipState.current = null;
+    return s;
+  };
+  const timers = useRef([]);
+  const later = (fn, ms) => timers.current.push(setTimeout(fn, ms));
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const [activeLens, setActiveLens] = useState(null);
 
   // ── Data ──
   // Seed catalogue for an instant first paint (empty in production - see
@@ -230,7 +266,26 @@ export default function ShopPage() {
     setIsFilterOpen(false);
   };
 
+  // KOI pulls focus: it starts reading, the grid moves, then it points (onSettled).
+  const pullFocus = (reading = true) => {
+    capture();
+    ember.mark(null);
+    if (reading) ember.status("Reading labels");
+    settleLine.current = reading ? "focus" : "open";
+    // A focus change that left the shelf exactly as it was never reaches the
+    // grid; KOI still has to stop reading.
+    later(() => {
+      if (!settleLine.current) return;
+      settleLine.current = null;
+      flipState.current = null;
+      ember.status(null);
+      ember.home();
+    }, 1800);
+  };
+
   const clearEverything = () => {
+    pullFocus(false);
+    setActiveLens(null);
     setActiveCategory("All");
     setActiveGoal(null);
     setActiveBrand(null);
@@ -240,7 +295,7 @@ export default function ShopPage() {
   };
 
   const contextLabel = activeGoal || activeBrand || (searchQuery ? `“${searchQuery}”` : null);
-  const clearContext = () => { setActiveGoal(null); setActiveBrand(null); setSearchQuery(""); setIntent(null); };
+  const clearContext = () => { pullFocus(false); setActiveLens(null); setActiveGoal(null); setActiveBrand(null); setSearchQuery(""); setIntent(null); };
 
   const selectProduct = (p) => router.push(`/store/product/${p.id}`);
 
@@ -300,8 +355,10 @@ export default function ShopPage() {
     }
   };
 
-  const applyFromSearch = ({ query, goal, brand, intent: incoming }) => {
+  const applyFromSearch = ({ query, goal, brand, intent: incoming, lens = null }) => {
     let readBack = false;
+    pullFocus(true);
+    setActiveLens(lens);
     if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); setIntent(null); }
     else if (brand !== undefined) { setActiveBrand(brand); setActiveGoal(null); setSearchQuery(""); setIntent(null); }
     else if (incoming !== undefined || query !== undefined) {
@@ -333,6 +390,8 @@ export default function ShopPage() {
   }, [products.length]);
 
   const removeChip = (chip) => {
+    pullFocus(true);
+    setActiveLens(null);
     const next = removeFromIntent(intent, chip);
     setIntent(!isEmptyIntent(next) || next.unresolved.length ? next : null);
   };
@@ -356,6 +415,59 @@ export default function ShopPage() {
     return count ? CAUTIONS.unverifiedInResults(count, filteredProducts.length, allergens, diet) : null;
   }, [resolved, filteredProducts]);
 
+  // ── KOI on the shelf ──
+  const focused = Boolean(intent || activeGoal || activeBrand || searchQuery || activeCategory !== "All");
+  // The grid has moved: KOI says what it found and rings where to start.
+  const onSettled = (plate) => {
+    const mode = settleLine.current;
+    settleLine.current = null;
+    if (!mode) return;
+    if (mode === "open") { ember.status(null); ember.home(); say(LINES.open); return; }
+    // The grid calls the onSettled of the render that committed this shelf, so
+    // these are the figures it is showing.
+    const count = filteredProducts.length;
+    const unverified = Boolean(unverifiedNote);
+    if (!count) { ember.status(null); ember.home(); say(LINES.none); return; }
+    ember.status(count === 1 ? "1 match" : `${count} match`);
+    say(unverified ? LINES.fitUnverified : LINES.fit);
+    if (plate) later(() => ember.go(plate, ember.perch(plate, 8), () => ember.mark(plate, "ring", 8)), 650);
+  };
+
+  // KOI's opening line, and its dot let go of the shelf when the page leaves.
+  useEffect(() => {
+    say(LINES.open);
+    return () => ember.rest();
+  }, [say, ember]);
+
+  // The KOI bar on this page asks the shelf directly (KoiBar dispatches koi:ask).
+  const askRef = useRef(applyFromSearch);
+  useEffect(() => { askRef.current = applyFromSearch; });
+  useEffect(() => {
+    const onAsk = (e) => { const q = String(e.detail ?? "").trim(); if (q) askRef.current({ query: q.slice(0, 200) }); };
+    window.addEventListener("koi:ask", onAsk);
+    return () => window.removeEventListener("koi:ask", onAsk);
+  }, []);
+
+  // Why a card is in focus: a figure off its own label, for the limit the
+  // shopper asked about; or a warning when KOI could not check it. Never a claim
+  // the data does not hold.
+  const whyOf = (p) => {
+    if (!resolved.ids) return null;
+    if (resolved.unverified?.ids?.has(p.id)) {
+      const what = [...(resolved.unverified.allergens || []), resolved.unverified.diet].filter(Boolean)[0];
+      return { text: what ? `Not checked for ${String(what).toLowerCase()}` : "Not fully checked", tone: "warn" };
+    }
+    const v = intent?.view || {};
+    if (v.minProtein != null || v.proteinClaim) { const x = nutrientValue(p, "Protein"); return x ? { text: `${x} protein / 100 g`, tone: "ok" } : null; }
+    if (v.maxSugar != null || v.sugarClaim) { const x = nutrientValue(p, "Sugar"); return x ? { text: `${x} sugar / 100 g`, tone: "ok" } : null; }
+    return null;
+  };
+
+  const focusName = activeLens || activeGoal || activeBrand || (intentChips[0]?.label) || (searchQuery ? `“${searchQuery}”` : null) || (activeCategory !== "All" ? activeCategory : "Your ask");
+  const focusLabel = focused
+    ? `${focusName} · ${filteredProducts.length} of ${products.length} in focus`
+    : `Showing everything · ${products.length} products`;
+
   const cardHandlers = {
     onSelect: selectProduct,
     onOpenScore: setSelectedScoreProduct,
@@ -374,19 +486,33 @@ export default function ShopPage() {
   return (
     <div className="koi-shop relative w-full overflow-x-clip" style={{ background: "var(--koi-bg)" }}>
       <main>
-          <ShopHero
+          {/* On the shelf: the title, the lenses, and what KOI is showing. */}
+          <ShelfHead
+            lenses={LENSES}
+            activeLens={activeLens}
+            onLens={(l) => (l ? applyFromSearch({ query: l, lens: l }) : clearContext())}
             onOpenSearch={() => setSearchOpen(true)}
-            onSuggest={(text) => applyFromSearch({ query: text })}
+            focusLabel={focusLabel}
+            focused={focused}
+            onClear={clearEverything}
             stats={stats}
           />
 
-          {/* Start the journey: set a goal, KOI tunes to you, then keep scrolling */}
-          <GoalRail goals={goalsForSale} activeGoal={activeGoal} onPick={(g) => { setActiveGoal(g); if (g) scrollToGrid(); }} onOpenGoal={() => setGoalOpen(true)} />
+          {/* What KOI understood, as chips the shopper can take back off.
+              Renders nothing until someone actually searches. */}
+          <IntentChips
+            chips={intentChips}
+            onRemove={removeChip}
+            onClearAll={clearContext}
+            matchCount={resolved.ids ? filteredProducts.length : null}
+            relaxations={relaxations}
+            unverifiedNote={unverifiedNote}
+          />
 
           {/* Whether KOI can answer "can I get this" at all. Renders nothing
               when signed out or when no supply source is configured, so the
               honest default state of the shop is unchanged. */}
-          <div className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
+          <div className="mx-auto w-full max-w-[1440px] px-[clamp(16px,4vw,52px)]">
             <ConnectSwiggy next="/store/shop" compact onChange={() => setSupplyKey((k) => k + 1)} />
             {/* A provider declining the area is a real answer and worth saying.
                 Everything still renders — KOI screened these products either
@@ -398,6 +524,31 @@ export default function ShopPage() {
               </p>
             )}
           </div>
+
+          {/* Sticky filters + the shelf itself */}
+          <FilterBar
+            categories={categories}
+            activeCategory={activeCategory}
+            setActiveCategory={(c) => { pullFocus(false); setActiveCategory(c); }}
+            sorts={SORTS}
+            activeSort={activeSort}
+            setActiveSort={(s) => { capture(); setActiveSort(s); }}
+            onOpenFilter={() => setIsFilterOpen(true)}
+            activeFilterCount={activeFilterCount}
+            count={filteredProducts.length}
+            context={contextLabel}
+            onClearContext={clearContext}
+          />
+          <ProductGrid
+            title={gridTitle}
+            products={filteredProducts}
+            handlers={cardHandlers}
+            onClear={clearEverything}
+            catalogueEmpty={products.length === 0}
+            whyOf={whyOf}
+            takeFlip={takeFlip}
+            onSettled={onSettled}
+          />
 
           {/* KRE-personalised shelves (renders only when a goal profile exists) */}
           <PersonalShelves products={products} />
@@ -437,32 +588,8 @@ export default function ShopPage() {
             handlers={cardHandlers}
           />
 
-          {/* What KOI understood, as chips the shopper can take back off.
-              Renders nothing until someone actually searches. */}
-          <IntentChips
-            chips={intentChips}
-            onRemove={removeChip}
-            onClearAll={clearContext}
-            matchCount={resolved.ids ? filteredProducts.length : null}
-            relaxations={relaxations}
-            unverifiedNote={unverifiedNote}
-          />
-
-          {/* Sticky filters + full catalogue */}
-          <FilterBar
-            categories={categories}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            sorts={SORTS}
-            activeSort={activeSort}
-            setActiveSort={setActiveSort}
-            onOpenFilter={() => setIsFilterOpen(true)}
-            activeFilterCount={activeFilterCount}
-            count={filteredProducts.length}
-            context={contextLabel}
-            onClearContext={clearContext}
-          />
-          <ProductGrid title={gridTitle} products={filteredProducts} handlers={cardHandlers} onClear={clearEverything} catalogueEmpty={products.length === 0} />
+          {/* Set a goal, KOI tunes the shelves to you; or browse by intention. */}
+          <GoalRail goals={goalsForSale} activeGoal={activeGoal} onPick={(g) => { pullFocus(Boolean(g)); setActiveLens(null); setActiveGoal(g); if (g) scrollToGrid(); }} onOpenGoal={() => setGoalOpen(true)} />
       </main>
 
       {/* Universal command search */}

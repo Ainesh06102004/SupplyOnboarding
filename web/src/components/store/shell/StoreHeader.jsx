@@ -146,7 +146,7 @@ export default function StoreHeader({ pathname, mode }) {
               {location?.pincode && <span className="ks-num ks-hide-phone" style={{ fontWeight: 500, opacity: 0.7 }}>{location.pincode}</span>}
             </button>
             <AccountButton className="ks-hide-phone" />
-            <button type="button" className="ks-cart-btn ks-hide-phone" onClick={openSheet} aria-label={`Open cart, ${hydrated ? count : 0} products`}>
+            <button type="button" data-cart-target className="ks-cart-btn ks-hide-phone" onClick={openSheet} aria-label={`Open cart, ${hydrated ? count : 0} products`}>
               <Icon.Bag />
               Cart
               {hydrated && count > 0 && <span className="ks-count">{count}</span>}
