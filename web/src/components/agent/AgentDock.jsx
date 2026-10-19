@@ -16,6 +16,9 @@ import { usePathname } from "next/navigation";
 import { useCartUi } from "@/store/cartUiStore";
 import { useAgent } from "./AgentProvider";
 import { TaskChecklist, ToolCard, AskCard, ApprovalCard, ResultCard } from "./cards";
+import { EmberSlot, useEmber } from "@/components/store/ember/Ember";
+import { KoiSubtitle } from "@/components/store/shell/KoiBar";
+import { useKoiVoice } from "@/store/koiVoiceStore";
 import "./agent.css";
 
 const LoginSheet = dynamic(() => import("@/components/auth/LoginSheet"), { ssr: false });
@@ -73,6 +76,19 @@ export default function AgentDock() {
     return () => window.removeEventListener("keydown", onKey);
   }, [agent]);
 
+  // The dock is the KOI bar: KOI's latest line is the subtitle, and its dot (the
+  // ember) beats while KOI waits on the shopper and ticks when a run finishes.
+  const ember = useEmber();
+  const say = useKoiVoice((s) => s.say);
+  const lastSay = useMemo(() => [...(state?.entries ?? [])].reverse().find((e) => e.kind === "say")?.text ?? "", [state?.entries]);
+  useEffect(() => { if (lastSay) say(lastSay); }, [lastSay, say]);
+  useEffect(() => { ember.heartbeat(waiting); }, [waiting, ember]);
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (wasRunning.current && !running && !waiting) ember.done();
+    wasRunning.current = running;
+  }, [running, waiting, ember]);
+
   // Keep the newest line in view.
   useEffect(() => {
     const el = bodyRef.current;
@@ -95,9 +111,12 @@ export default function AgentDock() {
   return (
     <div className="koi-agent">
       {!state.open && (
+        <div className="ka-subtitle" data-compact={compact ? "true" : undefined}><KoiSubtitle /></div>
+      )}
+      {!state.open && (
         <form className="ka-dock ka-glass" data-state={dockState} data-compact={compact ? "true" : undefined} onSubmit={submit} role="search" aria-label="Ask KOI">
           <button type="button" className="ka-k" onClick={agent.open} aria-label="Ask KOI">K</button>
-          <span className="ka-dot" aria-hidden="true" />
+          <EmberSlot />
           {running || waiting ? (
             <button type="button" onClick={agent.open} style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", textAlign: "left", cursor: "pointer", padding: "10px 0" }} aria-label="Open KOI's conversation">
               <span className="ka-status" data-tone={waiting ? "warm" : undefined}>{waiting ? (state.pending?.kind === "approval" ? "KOI needs your OK" : "KOI needs you") : statusLine ?? "KOI is working"}</span>

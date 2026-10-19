@@ -80,6 +80,9 @@
 .ka-status[data-tone="warm"] { color: var(--ka-warm); }
 .ka-dot { width: 10px; height: 10px; border-radius: 999px; background: #e8743b; flex: none; }
 
+/* KOI's subtitle (cinematic storefront): its latest line, just above the dock. */
+.ka-subtitle { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--ka-dock-bottom) + 66px); width: min(780px, calc(100vw - 32px)); z-index: 70; pointer-events: none; display: flex; justify-content: center; }
+
 /* The expanded conversation: a right sheet on desktop, a bottom sheet on phones. */
 .ka-sheet {
   position: fixed;
@@ -166,6 +169,7 @@
   .ka-dock[data-compact="true"] > * { display: none !important; }
   .ka-dock[data-compact="true"] > .ka-k { display: inline-flex !important; width: 100%; height: 100%; align-items: center; justify-content: center; border: 0; background: transparent; cursor: pointer; font: 800 18px var(--font-koi-heading), var(--ka-sans); color: #0f3d2e; border-radius: 50%; }
   .ka-dock { min-height: 52px; }
+  .ka-subtitle[data-compact="true"] { display: none; }
   .ka-sheet { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 88vh; height: 88dvh; border-radius: 28px 28px 0 0; }
   .ka-sheet[data-peek="true"] { height: 42vh; height: 42dvh; }
   .ka-grip { display: block !important; }

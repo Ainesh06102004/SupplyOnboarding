@@ -2,6 +2,8 @@ import { Bricolage_Grotesque, Plus_Jakarta_Sans, Space_Grotesk, IBM_Plex_Mono } 
 import { AgentProvider } from "@/components/agent/AgentProvider";
 import AgentDock from "@/components/agent/AgentDock";
 import StoreChrome from "@/components/store/shell/StoreChrome";
+import KoiBar from "@/components/store/shell/KoiBar";
+import { EmberProvider } from "@/components/store/ember/Ember";
 import CartHydrator from "./CartHydrator";
 import GoalProfileSync from "./GoalProfileSync";
 import "./koi.css";
@@ -14,7 +16,8 @@ import "./koi.css";
 const koiSans = Plus_Jakarta_Sans({ variable: "--koi-sans", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 const koiNum = Space_Grotesk({ variable: "--koi-num", subsets: ["latin"], weight: ["500", "600", "700"] });
 const koiMono = IBM_Plex_Mono({ variable: "--koi-mono", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
-const bricolage = Bricolage_Grotesque({ variable: "--font-koi-heading", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
+// Variable, with its width and optical-size axes: the condensed display cut (koi-condensed) needs both.
+const bricolage = Bricolage_Grotesque({ variable: "--font-koi-heading", subsets: ["latin"], axes: ["opsz", "wdth"] });
 
 const AGENT_MODE = process.env.NEXT_PUBLIC_KOI_AGENT_MODE === "1";
 
@@ -32,18 +35,22 @@ export default function StoreLayout({ children }) {
     >
       <CartHydrator />
       <GoalProfileSync />
-      {AGENT_MODE ? (
-        <AgentProvider>
-          <StoreChrome />
-          {children}
-          <AgentDock />
-        </AgentProvider>
-      ) : (
-        <>
-          <StoreChrome />
-          {children}
-        </>
-      )}
+      {/* The ember (KOI's dot) lives over the whole store; the KOI bar is its home. */}
+      <EmberProvider>
+        {AGENT_MODE ? (
+          <AgentProvider>
+            <StoreChrome />
+            {children}
+            <AgentDock />
+          </AgentProvider>
+        ) : (
+          <>
+            <StoreChrome />
+            {children}
+            <KoiBar />
+          </>
+        )}
+      </EmberProvider>
     </div>
   );
 }

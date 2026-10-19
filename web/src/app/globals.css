@@ -107,3 +107,45 @@
     @apply font-display;
   }
 }
+
+/* ============================================================================
+   KOI cinematic storefront: the koi-* design tokens (canvas v4, Oct 2026)
+   bg-koi-forest, text-koi-lime, font-koi-display … mirror app/store/koi.css,
+   so Tailwind classes and the --koi-* variables never disagree. The ember's
+   orange (koi-ember) belongs to KOI alone: nothing else on a page wears it.
+   ============================================================================ */
+@theme {
+  --color-koi-bg: #f6f5f1;
+  --color-koi-paper: #fbfaf6;
+  --color-koi-ink: #1c1e17;
+  --color-koi-ink2: #3d4a43;
+  --color-koi-muted: #4a4d44;
+  --color-koi-forest: #083d2d;
+  --color-koi-night: #04140f;
+  --color-koi-primary: #1f5c3a;
+  --color-koi-green: #16a06e;
+  --color-koi-lime: #ddf247;
+  --color-koi-lime-soft: #f4fbd0;
+  --color-koi-mint: #9fe7c4;
+  --color-koi-tint: #e8f1ea;
+  --color-koi-tint-border: #cfe3d6;
+  --color-koi-ember: #e8743b;
+  --color-koi-warm: #c2683a;
+  --color-koi-warm-bg: #faece2;
+  --color-koi-warm-border: #f0d2bf;
+  --color-koi-warm-ink: #7a3d1c;
+  --color-koi-amber: #b07d2b;
+  --color-koi-amber-bg: #faf3e4;
+  --color-koi-amber-border: #ecd9b1;
+  --color-koi-amber-ink: #7a5413;
+  --color-koi-red: #b84535;
+  --color-koi-red-bg: #fdf0ee;
+  --color-koi-track: #ebe8df;
+  --font-koi-display: var(--font-koi-heading), "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  --font-koi-sans: var(--koi-sans), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-koi-num: var(--koi-num), "Space Grotesk", ui-sans-serif, sans-serif;
+  --font-koi-mono: var(--koi-mono), "IBM Plex Mono", ui-monospace, monospace;
+}
+@utility koi-condensed {
+  font-variation-settings: "wdth" 84, "opsz" 96;
+}
