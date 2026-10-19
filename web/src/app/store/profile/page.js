@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import {
-  User, Edit2, Target, Scale, CreditCard, ChevronRight, HelpCircle,
-  MessageSquare, AlertTriangle, LogOut,
-} from "lucide-react";
+// ============================================================================
+// /store/profile — You (cinematic storefront, Oct 2026)
+//
+// The canvas's bento: the active goal as the forest tile (what the goal store
+// holds — current, target, what's left, the daily targets; no percentage,
+// because a starting weight is not recorded), the four places that are the
+// shopper's, preferences, addresses, Swiggy and payment, notifications and
+// support. Every figure is the signed-in shopper's own; nothing is invented.
+// ============================================================================
+
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AddressManager from "@/components/store/AddressManager";
@@ -14,9 +20,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGoalStore, GOAL_DEFS } from "@/store/goalStore";
 import { profileService } from "@/lib/supabase/profileService";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
+import { useKoiVoice } from "@/store/koiVoiceStore";
+
+const tile = "rounded-[24px] border border-koi-forest/10 bg-white p-6";
+const NAV = [
+  { href: "/store/orders", label: "Orders", hint: "Baskets you sent" },
+  { href: "/store/plan", label: "Plan", hint: "This week" },
+  { href: "/store/household", label: "Household", hint: "Everyone you shop for" },
+  { href: "/store/profile/data", label: "What KOI keeps", hint: "See it, or delete it" },
+];
 
 export default function ProfilePage() {
   const router = useRouter();
+  const root = useRef(null);
+  const say = useKoiVoice((s) => s.say);
 
   const handleLogout = async () => {
     try {
@@ -50,9 +68,7 @@ export default function ProfilePage() {
 
   const displayName = account?.display_name || user?.displayName || null;
   const contact = account?.email || user?.email || account?.phone || user?.phone || null;
-  const memberSince = account?.created_at
-    ? new Date(account.created_at).getFullYear()
-    : null;
+  const memberSince = account?.created_at ? new Date(account.created_at).getFullYear() : null;
 
   const activeGoal = profile?.goal ? (GOAL_DEFS[profile.goal]?.label ?? profile.goal) : null;
   const currentWeight = profile?.weightNow ?? null;
@@ -61,270 +77,148 @@ export default function ProfilePage() {
   // which is not recorded — so the remaining delta is the honest number.
   const weightDelta =
     currentWeight !== null && goalWeight !== null
-      ? Math.abs(Number(goalWeight) - Number(currentWeight))
+      ? Math.round(Math.abs(Number(goalWeight) - Number(currentWeight)) * 10) / 10
       : null;
 
   const dietType = profile?.dietType || null;
   const avoided = profile?.foodsAvoid || [];
 
-  const [toggles, setToggles] = useState({
-    orderUpdates: true,
-    priceDrops: false,
-    newProducts: true
-  });
+  const [toggles, setToggles] = useState({ orderUpdates: true, priceDrops: false, newProducts: true });
 
+  useGSAP(() => {
+    say(activeGoal ? "Everything that’s yours, in one place. I’ll ask before I change any of it." : "Set a goal and every shelf re-ranks around it.");
+    if (prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    const q = (s) => root.current.querySelectorAll(s);
+    gsap.from(q("[data-line]"), { yPercent: 115, duration: 1, ease: E.reveal, delay: 0.05 });
+    gsap.from(q("[data-rise]"), { autoAlpha: 0, y: 14, duration: 0.7, stagger: 0.08, ease: E.reveal, delay: 0.1 });
+    gsap.from(q("[data-tile]"), { autoAlpha: 0, y: 30, scale: 0.98, duration: 0.85, stagger: 0.06, ease: E.dolly, delay: 0.2, clearProps: "opacity,visibility,transform" });
+  }, { scope: root });
 
   return (
-    <div>
-      <main className="ks-page ks-page-wide">
-        <h1 className="ks-h1" style={{ marginBottom: 20 }}>You</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-
-          {/* ── LEFT COLUMN ── */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Everything that is the shopper's, in one place. On a phone the
-                tab bar's "You" lands here, so Orders has to be reachable from it. */}
-            <nav aria-label="Your KOI" className="ks-card grid grid-cols-2 sm:grid-cols-4" style={{ overflow: "hidden" }}>
-              {[
-                { href: "/store/orders", label: "Orders", hint: "Baskets you sent" },
-                { href: "/store/plan", label: "Plan", hint: "This week" },
-                { href: "/store/household", label: "Household", hint: "Everyone you shop for" },
-                { href: "/store/profile/data", label: "What KOI keeps", hint: "See or delete it" },
-              ].map((l) => (
-                <Link key={l.href} href={l.href} className="flex flex-col gap-0.5 border-[rgba(20,22,15,.06)] p-4 transition-colors hover:bg-[#faf9f6] [&:not(:last-child)]:border-r">
-                  <span className="text-[14px] font-bold text-[#1c1e17]">{l.label} →</span>
-                  <span className="text-[12px] text-[#6b6f63]">{l.hint}</span>
-                </Link>
-              ))}
-            </nav>
-            
-            {/* 1. Profile Header */}
-            <section className="bg-white rounded-2xl border border-[#e7e5de] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)] flex items-center justify-between">
-               <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-[#f6f5f1] flex items-center justify-center border border-[#e7e5de] shrink-0">
-                     <User className="w-7 h-7 text-[#1c1e17]" />
-                  </div>
-                  <div>
-                     <h2 className="text-[18px] md:text-xl font-bold text-[#1c1e17]">
-                        {displayName || "Your account"}
-                     </h2>
-                     {contact && <p className="text-[13px] font-medium text-[#6b6f63] mt-0.5">{contact}</p>}
-                     {memberSince && (
-                       <p className="text-[11px] font-bold text-[#2f8050] uppercase tracking-wider mt-1.5 bg-[#f6f5f1] inline-block px-2 py-0.5 rounded">
-                          KOI Member since {memberSince}
-                       </p>
-                     )}
-                  </div>
-               </div>
-               <button className="w-10 h-10 rounded-xl bg-[#f6f5f1] hover:bg-[#e7e5de] flex items-center justify-center transition-colors shrink-0 border border-[#e7e5de]">
-                  <Edit2 className="w-4 h-4 text-[#1c1e17]" />
-               </button>
-            </section>
-
-            {/* 2. KOI Health Dashboard
-                Read-only. The goal wizard on the shop is the single editor for
-                this data - it collects the same fields, validates them against
-                the engine's catalogs and derives the macro targets. A second
-                editor here previously offered its OWN goal list ("Fat Loss /
-                Muscle Gain / Body Recomposition") that matched neither
-                GOAL_DEFS nor the database CHECK constraint. */}
-            <section className="bg-[#0f3d2e] text-white rounded-[22px] p-6 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none" />
-               <div className="flex items-center gap-2.5 mb-6 relative z-10">
-                  <Target className="w-5 h-5 text-[#9fe7c4]" />
-                  <h3 className="text-[18px] font-bold text-white tracking-wide">KOI Health Dashboard</h3>
-               </div>
-
-               {activeGoal ? (
-                 <div className="flex items-center justify-between relative z-10 bg-white/10 rounded-xl p-4 border border-white/5">
-                    <div className="space-y-4">
-                       <div>
-                          <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Active Goal</span>
-                          <span className="text-[16px] font-bold text-[#9fe7c4]">{activeGoal}</span>
-                       </div>
-                       {(currentWeight !== null || goalWeight !== null) && (
-                         <div className="flex gap-6">
-                            {currentWeight !== null && (
-                              <div>
-                                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Current</span>
-                                 <span className="text-[16px] font-bold text-white">{currentWeight} kg</span>
-                              </div>
-                            )}
-                            {goalWeight !== null && (
-                              <div>
-                                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Target</span>
-                                 <span className="text-[16px] font-bold text-white">{goalWeight} kg</span>
-                              </div>
-                            )}
-                         </div>
-                       )}
-                       {profile?.targets?.kcal && (
-                         <div className="flex gap-6">
-                            <div>
-                               <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Daily target</span>
-                               <span className="text-[16px] font-bold text-white">{profile.targets.kcal} kcal</span>
-                            </div>
-                            {profile.targets.protein ? (
-                              <div>
-                                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider block mb-1">Protein</span>
-                                 <span className="text-[16px] font-bold text-white">{profile.targets.protein} g</span>
-                              </div>
-                            ) : null}
-                         </div>
-                       )}
-                    </div>
-
-                    {/* No percentage: progress toward a goal weight needs a
-                        starting weight, which is not recorded. The remaining
-                        delta is the number KOI can actually stand behind. */}
-                    {weightDelta !== null && weightDelta > 0 && (
-                      <div className="shrink-0 mr-2 text-right">
-                         <span className="text-[28px] font-bold text-[#9fe7c4] leading-none">{weightDelta}</span>
-                         <span className="block text-[10px] font-bold text-white/60 uppercase tracking-wider mt-1">kg to go</span>
-                      </div>
-                    )}
-                 </div>
-               ) : (
-                 <div className="relative z-10 bg-white/10 rounded-xl p-5 border border-white/5">
-                    <p className="text-[14px] text-white/80 leading-relaxed">
-                       You haven&apos;t set a goal yet. Tell KOI what you&apos;re optimising for and every shelf re-ranks around it.
-                    </p>
-                    <button
-                      onClick={() => router.push("/store/shop")}
-                      className="mt-4 px-4 py-2.5 rounded-full bg-[#9fe7c4] text-[#1c1e17] text-[13px] font-bold transition-transform hover:-translate-y-0.5"
-                    >
-                       Set your goal
-                    </button>
-                 </div>
-               )}
-            </section>
-
-            {/* 3. Goals & Preferences - a summary of what the wizard captured */}
-            {profile && (
-              <section className="bg-white rounded-2xl border border-[#e7e5de] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)] space-y-6">
-                 <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-[15px] font-bold text-[#1c1e17] flex items-center gap-2">
-                       <Scale className="w-4 h-4 text-[#2f8050]" /> Your preferences
-                    </h3>
-                    <button
-                      onClick={() => router.push("/store/shop")}
-                      className="text-[12px] font-bold text-[#2f8050] hover:text-[#1c1e17] transition-colors shrink-0"
-                    >
-                       Edit
-                    </button>
-                 </div>
-
-                 {dietType && (
-                   <div>
-                      <span className="text-[11px] font-bold text-[#6b6f63] uppercase tracking-wider block mb-2">Diet</span>
-                      <span className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[#9fe7c4] text-[#1c1e17] inline-block">
-                         {DIET_TYPES.find((d) => d.key === dietType)?.label || dietType}
-                      </span>
-                   </div>
-                 )}
-
-                 {avoided.length > 0 && (
-                   <div>
-                      <span className="text-[11px] font-bold text-[#6b6f63] uppercase tracking-wider block mb-2">Avoiding</span>
-                      <div className="flex flex-wrap gap-2">
-                         {avoided.map((key) => (
-                           <span key={key} className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[#f6f5f1] text-[#6b6f63] border border-[#e7e5de]">
-                              {FOODS_AVOID.find((a) => a.key === key)?.label || key}
-                           </span>
-                         ))}
-                      </div>
-                   </div>
-                 )}
-              </section>
-            )}
+    <main ref={root} className="ks-page-pad mx-auto flex w-full max-w-[1440px] flex-col bg-koi-bg px-[clamp(16px,4vw,52px)] pt-8 font-koi-sans text-koi-ink">
+      <section className="flex flex-wrap items-end justify-between gap-x-10 gap-y-3">
+        <div className="flex flex-col gap-2.5">
+          <div data-rise className="flex items-center gap-3">
+            <span className="font-koi-mono text-xs font-semibold text-koi-primary">(08)</span>
+            <span className="font-koi-mono text-xs font-medium uppercase tracking-[0.22em] text-koi-muted">Your account{memberSince ? ` · since ${memberSince}` : ""}</span>
           </div>
-
-          {/* ── RIGHT COLUMN ── */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* 4. Addresses */}
-            <section className="bg-white rounded-2xl border border-[#e7e5de] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)]">
-               <AddressManager />
-            </section>
-
-            {/* 5. Connected accounts — the Swiggy link that makes availability
-                 answerable and the hand-off possible at all. */}
-            <ConnectSwiggy next="/store/profile" />
-
-            {/* 6. Payment. This card used to list "•••• 4242 / Expires 12/28"
-                and "anshuman@upi" for every visitor — invented payment methods
-                for a store that takes no payment. KOI hands the basket to
-                Swiggy; the shopper pays there. */}
-            <section className="bg-white rounded-2xl border border-[#e7e5de] p-5 md:p-6">
-               <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#f6f5f1] border border-[#e7e5de] flex items-center justify-center shrink-0">
-                     <CreditCard className="w-4 h-4 text-[#6b6f63]" />
-                  </div>
-                  <div>
-                     <h3 className="text-[16px] font-bold text-[#1c1e17]">Payment</h3>
-                     <p className="text-[13px] text-[#6b6f63] leading-relaxed mt-0.5">You pay on Swiggy at hand-off. KOI never stores a card or UPI ID.</p>
-                  </div>
-               </div>
-            </section>
-
-            {/* 6. Settings */}
-            <section className="bg-white rounded-2xl border border-[#e7e5de] p-5 md:p-6 shadow-[0_2px_10px_rgba(14,64,50,0.02)]">
-               <h3 className="text-[16px] font-bold text-[#1c1e17] mb-4">Notifications</h3>
-               <div className="space-y-4">
-                  {[
-                    { key: "orderUpdates", label: "Order Updates", desc: "Delivery status and tracking" },
-                    { key: "priceDrops", label: "Price Drops", desc: "Alerts for saved products" },
-                    { key: "newProducts", label: "New KOI Products", desc: "Products passing KOI standards" }
-                  ].map(toggle => (
-                    <div key={toggle.key} className="flex items-center justify-between">
-                       <div>
-                          <p className="text-[13px] font-bold text-[#1c1e17]">{toggle.label}</p>
-                          <p className="text-[11px] text-[#6b6f63] font-medium">{toggle.desc}</p>
-                       </div>
-                       <button 
-                         onClick={() => setToggles(p => ({ ...p, [toggle.key]: !p[toggle.key] }))}
-                         className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-1 ${toggles[toggle.key] ? "bg-[#9fe7c4]" : "bg-[#e7e5de]"}`}
-                       >
-                          <span className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${toggles[toggle.key] ? "translate-x-5" : "translate-x-0"}`} />
-                       </button>
-                    </div>
-                  ))}
-               </div>
-            </section>
-
-            {/* 7. Support */}
-            <section className="bg-white rounded-2xl border border-[#e7e5de] shadow-[0_2px_10px_rgba(14,64,50,0.02)] overflow-hidden">
-               <div className="p-5 md:p-6 border-b border-[#e7e5de]">
-                  <h3 className="text-[16px] font-bold text-[#1c1e17] mb-3">Support</h3>
-                  <div className="space-y-1">
-                     <button className="w-full flex items-center justify-between py-2 text-[#6b6f63] hover:text-[#1c1e17] group transition-colors">
-                        <div className="flex items-center gap-3"><HelpCircle className="w-4 h-4 group-hover:text-[#2f8050]" /><span className="text-[14px] font-medium">Help Center & FAQs</span></div>
-                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                     </button>
-                     <button className="w-full flex items-center justify-between py-2 text-[#6b6f63] hover:text-[#1c1e17] group transition-colors">
-                        <div className="flex items-center gap-3"><MessageSquare className="w-4 h-4 group-hover:text-[#2f8050]" /><span className="text-[14px] font-medium">Contact Support</span></div>
-                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                     </button>
-                     <button className="w-full flex items-center justify-between py-2 text-[#6b6f63] hover:text-[#1c1e17] group transition-colors">
-                        <div className="flex items-center gap-3"><AlertTriangle className="w-4 h-4 group-hover:text-[#b84535]" /><span className="text-[14px] font-medium">Report an Issue</span></div>
-                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                     </button>
-                  </div>
-               </div>
-               <div className="p-2 bg-[#f6f5f1]/30">
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full py-3 flex items-center justify-center gap-2 text-[#b84535] hover:bg-[#b84535]/10 rounded-xl transition-colors font-bold text-[13px]"
-                  >
-                     <LogOut className="w-4 h-4" /> Log Out
-                  </button>
-               </div>
-            </section>
-
-          </div>
+          <h1 className="koi-condensed m-0 font-koi-display text-[clamp(44px,5.2vw,78px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">
+            <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">{displayName || "You"}</span></span>
+          </h1>
         </div>
-      </main>
+        <div data-rise className="flex flex-wrap items-center gap-2">
+          {contact && <span className="flex h-11 items-center gap-2 rounded-full border border-koi-forest/15 bg-white px-4 font-koi-mono text-xs text-koi-ink2"><span aria-hidden="true" className="size-2 rounded-full bg-koi-green" />Signed in · {contact}</span>}
+          <button type="button" onClick={handleLogout} className="h-11 rounded-full px-4 text-sm font-semibold text-koi-ink2 transition-colors hover:bg-white">Log out</button>
+        </div>
+      </section>
 
-    </div>
+      <div className="grid grid-cols-1 gap-4 pb-10 pt-7 lg:grid-cols-12">
+        {/* The active goal. Read-only: the goal wizard on the shop is the
+            single editor for it (one goal list, the engine's own). */}
+        <article data-tile aria-label="Active goal" className="relative overflow-hidden rounded-[28px] bg-koi-forest p-7 text-koi-bg lg:col-span-7 lg:row-span-2">
+          {activeGoal ? (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.18em] text-koi-lime">Active goal</span>
+                <span className="koi-condensed font-koi-display text-[40px] font-extrabold leading-none">{activeGoal}</span>
+              </div>
+              {(currentWeight !== null || goalWeight !== null) && (
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-bg/10 p-4"><span className="font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-bg/70">Current</span><span className="font-koi-num text-[28px] font-semibold leading-none">{currentWeight ?? "—"}<span className="ml-1 text-sm font-medium">kg</span></span></div>
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-bg/10 p-4"><span className="font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-bg/70">Target</span><span className="font-koi-num text-[28px] font-semibold leading-none">{goalWeight ?? "—"}<span className="ml-1 text-sm font-medium">kg</span></span></div>
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-lime p-4 text-koi-forest"><span className="font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-forest/80">To go</span><span className="font-koi-num text-[28px] font-semibold leading-none">{weightDelta ?? "—"}<span className="ml-1 text-sm font-medium">kg</span></span></div>
+                </div>
+              )}
+              <p className="m-0 mt-6 text-[14px] leading-relaxed text-koi-bg/75">Your weigh-ins, and how they sit against the plan’s arithmetic, live in Track. KOI only ever suggests a change there.</p>
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-koi-bg/15 pt-5">
+                <span className="text-sm text-koi-bg/80">
+                  {profile?.targets?.kcal ? <>Plans to <strong className="font-koi-num text-koi-bg">{profile.targets.kcal} kcal</strong>{profile.targets.protein ? <> and <strong className="font-koi-num text-koi-bg">{profile.targets.protein} g protein</strong></> : null} a day</> : "No daily targets set yet"}
+                </span>
+                <div className="flex gap-2">
+                  <Link href="/store/plan?step=track" className="flex h-11 items-center rounded-full bg-koi-lime px-4 text-sm font-bold text-koi-forest no-underline">Open Track</Link>
+                  <Link href="/store/shop#goals" className="flex h-11 items-center rounded-full border border-koi-bg/30 px-4 text-sm font-semibold text-koi-bg no-underline transition-colors hover:bg-koi-bg/10">Edit goal</Link>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.18em] text-koi-lime">Active goal</span>
+              <span className="koi-condensed font-koi-display text-[40px] font-extrabold leading-none">Not set yet</span>
+              <p className="m-0 max-w-[460px] text-[15px] leading-relaxed text-koi-bg/80">Tell KOI what you’re optimising for and every shelf re-ranks around it.</p>
+              <Link href="/store/shop#goals" className="flex h-12 w-fit items-center rounded-full bg-koi-lime px-5 text-sm font-bold text-koi-forest no-underline">Set your goal</Link>
+            </div>
+          )}
+        </article>
+
+        {/* Everything that is the shopper's. On a phone the tab bar's "You"
+            lands here, so Orders has to be reachable from it. */}
+        <nav data-tile aria-label="Your KOI" className="grid grid-cols-2 gap-3 lg:col-span-5">
+          {NAV.map((l) => (
+            <Link key={l.href} href={l.href} className="group flex flex-col justify-between gap-6 rounded-[24px] border border-koi-forest/10 bg-white p-5 no-underline transition-transform hover:-translate-y-1">
+              <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-muted">{l.hint}</span>
+              <span className="flex items-center justify-between text-lg font-bold text-koi-forest">{l.label}<span aria-hidden="true">→</span></span>
+            </Link>
+          ))}
+        </nav>
+
+        <article data-tile aria-label="Your preferences" className={`${tile} flex flex-col gap-4 lg:col-span-5`}>
+          <div className="flex items-center justify-between"><span className="text-lg font-bold">Your preferences</span><Link href="/store/household" className="text-sm font-semibold text-koi-primary hover:underline">Edit</Link></div>
+          {dietType || avoided.length ? (
+            <dl className="m-0 grid grid-cols-[100px_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+              {dietType && <><dt className="font-koi-mono text-[11px] uppercase tracking-[0.14em] text-koi-muted">Diet</dt><dd className="m-0 font-semibold">{DIET_TYPES.find((d) => d.key === dietType)?.label || dietType}</dd></>}
+              {avoided.length > 0 && (
+                <>
+                  <dt className="font-koi-mono text-[11px] uppercase tracking-[0.14em] text-koi-muted">Avoiding</dt>
+                  <dd className="m-0 flex flex-wrap gap-1.5">{avoided.map((key) => <span key={key} className="rounded-full bg-koi-warm-bg px-2.5 py-0.5 text-xs font-semibold text-koi-warm-ink">{FOODS_AVOID.find((a) => a.key === key)?.label || key}</span>)}</dd>
+                </>
+              )}
+            </dl>
+          ) : (
+            <p className="m-0 text-sm text-koi-ink2">No diet or avoids saved yet. Household settings is where they live.</p>
+          )}
+        </article>
+
+        <article data-tile aria-label="Delivery addresses" className={`${tile} lg:col-span-6`}>
+          <AddressManager />
+        </article>
+
+        <article data-tile aria-label="Swiggy and payment" className={`${tile} flex flex-col gap-4 lg:col-span-6`}>
+          {/* The Swiggy link that makes availability answerable and the hand-off possible at all. */}
+          <ConnectSwiggy next="/store/profile" />
+          {/* This card used to list "•••• 4242 / Expires 12/28" and
+              "anshuman@upi" for every visitor — invented payment methods for a
+              store that takes no payment. */}
+          <div className="flex items-start gap-3 rounded-2xl bg-koi-paper p-4">
+            <svg className="mt-0.5 size-5 shrink-0 text-koi-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+            <span className="flex flex-col gap-0.5"><span className="text-sm font-bold">Payment</span><span className="text-sm leading-normal text-koi-ink2">You pay on Swiggy at hand-off. KOI never stores a card or UPI ID.</span></span>
+          </div>
+        </article>
+
+        <article data-tile aria-label="Notifications" className={`${tile} flex flex-col gap-2 lg:col-span-6`}>
+          <span className="mb-2 text-lg font-bold">Notifications</span>
+          {[
+            { key: "orderUpdates", label: "Order updates", desc: "When a basket is handed to Swiggy" },
+            { key: "priceDrops", label: "Price drops", desc: "Alerts for saved products" },
+            { key: "newProducts", label: "New KOI products", desc: "Products passing KOI’s standards" },
+          ].map((t) => (
+            <div key={t.key} className="flex items-center justify-between gap-4 border-b border-koi-forest/10 py-3 last:border-b-0">
+              <span className="flex flex-col"><span className="text-sm font-bold">{t.label}</span><span className="text-[13px] text-koi-ink2">{t.desc}</span></span>
+              <button type="button" role="switch" aria-checked={toggles[t.key]} aria-label={t.label} onClick={() => setToggles((p) => ({ ...p, [t.key]: !p[t.key] }))} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${toggles[t.key] ? "bg-koi-forest" : "bg-koi-track"}`}>
+                <span className={`absolute left-1 top-1 size-5 rounded-full bg-white shadow-[0_2px_6px_rgba(4,20,15,.3)] transition-transform ${toggles[t.key] ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
+          ))}
+        </article>
+
+        <article data-tile aria-label="Support" className={`${tile} flex flex-col gap-1 lg:col-span-6`}>
+          <span className="mb-2 text-lg font-bold">Support</span>
+          {["Help Center & FAQs", "Contact Support", "Report an Issue"].map((l) => (
+            <button key={l} type="button" className="flex h-12 items-center justify-between rounded-xl px-2 text-left text-sm font-semibold hover:bg-koi-paper">{l} <span aria-hidden="true" className="text-koi-muted">›</span></button>
+          ))}
+          <button type="button" onClick={handleLogout} className="mt-2 flex h-12 items-center justify-center rounded-xl text-sm font-bold text-koi-red transition-colors hover:bg-koi-red-bg">Log out</button>
+        </article>
+      </div>
+    </main>
   );
 }
