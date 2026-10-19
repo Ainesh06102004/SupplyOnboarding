@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { Upload, X, FileText, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import { useProductCreationStore } from '@/store/productCreationStore'
 
-const EvidenceCard = ({ title, badge, badgeStyle = 'bg-gray-100 text-gray-600', impactLabel, description, children }) => (
-  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+const EvidenceCard = ({ title, badge, badgeStyle = 'bg-koi-track/60 text-koi-ink2', impactLabel, description, children }) => (
+  <div className="bg-white border border-koi-forest/10 rounded-2xl p-6 shadow-sm">
     <div className="flex justify-between items-start mb-2">
-      <h4 className="font-bold text-gray-900 font-koi-display">{title}</h4>
+      <h4 className="font-bold text-koi-ink font-koi-display">{title}</h4>
       {badge && (
         <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded ${badgeStyle}`}>
           {badge}
@@ -14,12 +15,12 @@ const EvidenceCard = ({ title, badge, badgeStyle = 'bg-gray-100 text-gray-600', 
       )}
     </div>
     {impactLabel && (
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md mb-3 border border-blue-100">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-koi-tint text-koi-primary text-xs font-semibold rounded-md mb-3 border border-koi-tint-border">
         <ShieldCheck className="w-3.5 h-3.5" />
         {impactLabel}
       </div>
     )}
-    <p className="text-sm text-gray-500 mb-6">{description}</p>
+    <p className="text-sm text-koi-muted mb-6">{description}</p>
     {children}
   </div>
 )
@@ -29,11 +30,11 @@ const MultiDropzone = ({ type, accept, acceptText, compliance, handleMultipleFil
 
   return (
     <div>
-      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-all">
+      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-koi-forest/20 bg-koi-paper hover:bg-koi-track/60 rounded-xl cursor-pointer transition-all">
         <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
-          <Upload className="w-8 h-8 mb-2 text-gray-400" />
-          <p className="text-sm text-gray-600 font-medium">Click or drag to upload multiple</p>
-          <p className="text-xs text-gray-400 mt-1">{acceptText}</p>
+          <Upload className="w-8 h-8 mb-2 text-koi-muted" />
+          <p className="text-sm text-koi-ink2 font-medium">Click or drag to upload multiple</p>
+          <p className="text-xs text-koi-muted mt-1">{acceptText}</p>
         </div>
         <input 
           type="file" 
@@ -47,14 +48,14 @@ const MultiDropzone = ({ type, accept, acceptText, compliance, handleMultipleFil
       {files.length > 0 && (
         <div className="mt-4 space-y-2">
           {files.map((file, idx) => (
-            <div key={idx} className="flex justify-between items-center bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg text-sm">
-              <div className="flex items-center gap-2 truncate text-gray-700">
-                <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div key={idx} className="flex justify-between items-center bg-koi-paper border border-koi-forest/10 px-3 py-2 rounded-lg text-sm">
+              <div className="flex items-center gap-2 truncate text-koi-ink2">
+                <FileText className="w-4 h-4 text-koi-muted flex-shrink-0" />
                 <span className="truncate max-w-[200px]">{file.name}</span>
               </div>
               <button 
                 onClick={() => removeMultipleFile(type, idx)}
-                className="p-1 text-gray-400 hover:text-red-500 rounded ml-2"
+                className="p-1 text-koi-muted hover:text-koi-red rounded ml-2"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -68,7 +69,7 @@ const MultiDropzone = ({ type, accept, acceptText, compliance, handleMultipleFil
 
 export default function Step4Compliance() {
   const { compliance, updateCompliance, setCurrentStep } = useProductCreationStore()
-  const [loading, setLoading] = useState(false)
+  const [loading] = useState(false)
 
   const handleMultipleFiles = (type, newFiles) => {
     if (!newFiles || newFiles.length === 0) return
@@ -93,34 +94,25 @@ export default function Step4Compliance() {
       if (!confirmContinue) return
     }
 
-    setLoading(true)
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800))
-      setCurrentStep(5)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch (err) {
-      console.error(err)
-      alert('Failed to save compliance evidence. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    // Evidence files live in this wizard's store only — nothing uploads them
+    // yet — so there is no save to wait for (this used to fake an 800 ms one).
+    setCurrentStep(5)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleSaveDraft = async () => {
-    setLoading(true)
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800))
-      alert('Draft saved successfully!')
-    } finally {
-      setLoading(false)
-    }
+  // This used to wait 800 ms and announce "Draft saved successfully!" while
+  // saving nothing. Say what is true instead.
+  const handleSaveDraft = () => {
+    toast('Your evidence is kept while this page is open', {
+      description: 'Certificate uploads are not connected to KOI yet — keep your files to hand.',
+    })
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8">
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Compliance & Evidence</h3>
-        <p className="text-gray-500">Provide supporting evidence for product claims and certifications.</p>
+        <h3 className="mb-1 font-koi-display text-[26px] font-extrabold tracking-[-0.01em] text-koi-forest">Compliance & Evidence</h3>
+        <p className="text-koi-muted">Provide supporting evidence for product claims and certifications.</p>
       </div>
 
       <div className="bg-koi-forest/5 border border-koi-forest/20 rounded-xl p-5 flex gap-4 items-start">
@@ -148,7 +140,7 @@ export default function Step4Compliance() {
         <EvidenceCard 
           title="Lab Reports" 
           badge="Recommended" 
-          badgeStyle="bg-amber-100 text-amber-700"
+          badgeStyle="bg-koi-amber-bg text-koi-amber-ink"
           impactLabel="High Trust Impact"
           description="Upload lab-tested reports supporting nutritional or safety claims."
         >
@@ -158,7 +150,7 @@ export default function Step4Compliance() {
         <EvidenceCard 
           title="Clinical Trials & Studies" 
           badge="High Impact"
-          badgeStyle="bg-green-100 text-green-700"
+          badgeStyle="bg-koi-tint text-koi-primary"
           impactLabel="Highest Trust Impact"
           description="Independent studies validating your product's effectiveness."
         >
@@ -174,17 +166,17 @@ export default function Step4Compliance() {
         <textarea 
           value={compliance.evidenceNotes || ''}
           onChange={(e) => updateCompliance({ evidenceNotes: e.target.value })}
-          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all min-h-[180px] text-sm"
+          className="w-full px-4 py-3 bg-koi-paper border border-koi-forest/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all min-h-[180px] text-sm"
           placeholder={"Example:\n• Protein content validated by NABL lab report dated Jan 2026\n• Contains clinically studied probiotic strain\n• No added refined sugar"}
         />
       </EvidenceCard>
 
-      <div className="flex justify-between items-center pt-6 border-t border-gray-100">
+      <div className="flex justify-between items-center pt-6 border-t border-koi-forest/10">
         <Button 
           variant="ghost" 
           onClick={() => setCurrentStep(3)}
           disabled={loading}
-          className="text-gray-500 hover:text-gray-900"
+          className="text-koi-muted hover:text-koi-ink"
         >
           Back
         </Button>
@@ -193,14 +185,14 @@ export default function Step4Compliance() {
             variant="outline" 
             onClick={handleSaveDraft}
             disabled={loading}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50 h-12 px-6 rounded-xl font-semibold hidden sm:flex"
+            className="border-koi-forest/20 text-koi-ink2 hover:bg-koi-paper h-12 px-6 rounded-xl font-semibold hidden sm:flex"
           >
             Save Draft
           </Button>
           <Button 
             onClick={handleContinue} 
             disabled={loading}
-            className="bg-koi-forest hover:bg-koi-night text-white h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
+            className="bg-koi-forest hover:bg-koi-night text-koi-lime h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
           >
             {loading ? (
               <div className="flex items-center gap-2">

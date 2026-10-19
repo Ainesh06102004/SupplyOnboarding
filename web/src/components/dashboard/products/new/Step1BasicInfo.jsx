@@ -85,16 +85,16 @@ export default function Step1BasicInfo() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8">
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Basic Information</h3>
-        <p className="text-gray-500">Tell us about the core details of your product.</p>
+        <h3 className="mb-1 font-koi-display text-[26px] font-extrabold tracking-[-0.01em] text-koi-forest">Basic Information</h3>
+        <p className="text-koi-muted">Tell us about the core details of your product.</p>
       </div>
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700">Product Name *</label>
+            <label className="text-sm font-semibold text-koi-ink2">Product Name *</label>
             <input 
               type="text" 
               value={basicInfo.name || ''}
@@ -102,21 +102,21 @@ export default function Step1BasicInfo() {
                 updateBasicInfo({ name: e.target.value })
                 if (errors.name) setErrors(prev => ({ ...prev, name: null }))
               }}
-              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+              className={`w-full px-4 py-3 bg-koi-paper border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.name ? 'border-koi-red/40 bg-koi-red-bg' : 'border-koi-forest/10'}`}
               placeholder="e.g. KOI Premium Protein"
             />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-koi-red text-xs mt-1">{errors.name}</p>}
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700">Category *</label>
+            <label className="text-sm font-semibold text-koi-ink2">Category *</label>
             <select 
               value={basicInfo.category || ''}
               onChange={(e) => {
                 updateBasicInfo({ category: e.target.value })
                 if (errors.category) setErrors(prev => ({ ...prev, category: null }))
               }}
-              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+              className={`w-full px-4 py-3 bg-koi-paper border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.category ? 'border-koi-red/40 bg-koi-red-bg' : 'border-koi-forest/10'}`}
             >
               <option value="">Select a category</option>
               <option value="protein_powder">Protein Powder</option>
@@ -125,12 +125,12 @@ export default function Step1BasicInfo() {
               <option value="beverage">Beverage</option>
               <option value="other">Other</option>
             </select>
-            {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
+            {errors.category && <p className="text-koi-red text-xs mt-1">{errors.category}</p>}
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700">Short Description *</label>
+          <label className="text-sm font-semibold text-koi-ink2">Short Description *</label>
           <input 
             type="text" 
             value={basicInfo.shortDescription || ''}
@@ -138,27 +138,27 @@ export default function Step1BasicInfo() {
               updateBasicInfo({ shortDescription: e.target.value })
               if (errors.shortDescription) setErrors(prev => ({ ...prev, shortDescription: null }))
             }}
-            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.shortDescription ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+            className={`w-full px-4 py-3 bg-koi-paper border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.shortDescription ? 'border-koi-red/40 bg-koi-red-bg' : 'border-koi-forest/10'}`}
             placeholder="A quick, 1-sentence tagline for this product."
             maxLength={150}
           />
-          {errors.shortDescription && <p className="text-red-500 text-xs mt-1">{errors.shortDescription}</p>}
+          {errors.shortDescription && <p className="text-koi-red text-xs mt-1">{errors.shortDescription}</p>}
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700">Detailed Description</label>
+          <label className="text-sm font-semibold text-koi-ink2">Detailed Description</label>
           <textarea 
             value={basicInfo.longDescription || ''}
             onChange={(e) => updateBasicInfo({ longDescription: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all min-h-[120px]"
+            className="w-full px-4 py-3 bg-koi-paper border border-koi-forest/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all min-h-[120px]"
             placeholder="Explain the benefits, usage instructions, and core value proposition..."
           />
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-gray-100">
+        <div className="space-y-4 pt-4 border-t border-koi-forest/10">
           <div>
-            <label className="text-sm font-semibold text-gray-700 block mb-1">Product Claims</label>
-            <p className="text-sm text-gray-500 mb-4">Select or add claims. These will be verified against your labels.</p>
+            <label className="text-sm font-semibold text-koi-ink2 block mb-1">Product Claims</label>
+            <p className="text-sm text-koi-muted mb-4">Select or add claims. These will be verified against your labels.</p>
           </div>
           
           <div className="flex flex-wrap gap-2 mb-4">
@@ -172,7 +172,7 @@ export default function Step1BasicInfo() {
                   className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
                     isSelected 
                       ? 'bg-koi-forest text-white border-koi-forest shadow-md' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-koi-forest/30 hover:bg-gray-50'
+                      : 'bg-white text-koi-ink2 border-koi-forest/10 hover:border-koi-forest/30 hover:bg-koi-paper'
                   }`}
                 >
                   {claim}
@@ -198,20 +198,20 @@ export default function Step1BasicInfo() {
               value={customClaim}
               onChange={(e) => setCustomClaim(e.target.value)}
               placeholder="Add custom claim..."
-              className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest text-sm"
+              className="flex-1 px-4 py-2 bg-koi-paper border border-koi-forest/10 rounded-full focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest text-sm"
             />
-            <Button type="submit" disabled={!customClaim.trim()} className="rounded-full bg-gray-900 hover:bg-gray-800 px-4">
+            <Button type="submit" disabled={!customClaim.trim()} className="rounded-full bg-koi-night hover:bg-koi-night px-4">
               <Plus className="w-4 h-4 mr-1" /> Add
             </Button>
           </form>
         </div>
       </div>
 
-      <div className="flex justify-end pt-6 border-t border-gray-100">
+      <div className="flex justify-end pt-6 border-t border-koi-forest/10">
         <Button 
           onClick={handleNextClick} 
           disabled={loading}
-          className="bg-koi-forest hover:bg-koi-night text-white h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
+          className="bg-koi-forest hover:bg-koi-night text-koi-lime h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
         >
           {loading ? (
             <div className="flex items-center gap-2">

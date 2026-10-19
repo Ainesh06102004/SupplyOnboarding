@@ -29,25 +29,25 @@ const VAULT_DATA = [
     id: 'fssai',
     title: 'FSSAI License',
     icon: ShieldCheck,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    color: 'text-koi-primary',
+    bgColor: 'bg-koi-tint',
     meta: 'License: 10023011000567',
     submeta: 'Expires: Dec 2026',
     status: 'Valid',
-    statusColor: 'bg-white text-green-700 border-green-200',
-    statusIcon: <CheckCircle2 className="w-3 h-3 text-green-500 mr-1.5" />
+    statusColor: 'bg-white text-koi-primary border-koi-tint-border',
+    statusIcon: <CheckCircle2 className="w-3 h-3 text-koi-green mr-1.5" />
   },
   {
     id: 'certs',
     title: 'Certifications',
     icon: Award,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-100',
+    color: 'text-koi-amber',
+    bgColor: 'bg-koi-amber-bg',
     meta: '4 Uploaded',
     submeta: 'Partial Coverage',
     status: 'Action Needed',
-    statusColor: 'bg-white text-amber-700 border-amber-200',
-    statusIcon: <AlertTriangle className="w-3 h-3 text-amber-500 mr-1.5" />
+    statusColor: 'bg-white text-koi-amber-ink border-koi-amber-border',
+    statusIcon: <AlertTriangle className="w-3 h-3 text-koi-amber mr-1.5" />
   },
   {
     id: 'labs',
@@ -58,8 +58,8 @@ const VAULT_DATA = [
     meta: '12 Uploaded',
     submeta: '18/24 Products Covered',
     status: 'Good',
-    statusColor: 'bg-white text-green-700 border-green-200',
-    statusIcon: <CheckCircle2 className="w-3 h-3 text-green-500 mr-1.5" />
+    statusColor: 'bg-white text-koi-primary border-koi-tint-border',
+    statusIcon: <CheckCircle2 className="w-3 h-3 text-koi-green mr-1.5" />
   },
   {
     id: 'evidence',
@@ -70,8 +70,8 @@ const VAULT_DATA = [
     meta: '3 Uploaded',
     submeta: 'For 5 claims',
     status: 'Valid',
-    statusColor: 'bg-white text-green-700 border-green-200',
-    statusIcon: <CheckCircle2 className="w-3 h-3 text-green-500 mr-1.5" />
+    statusColor: 'bg-white text-koi-primary border-koi-tint-border',
+    statusIcon: <CheckCircle2 className="w-3 h-3 text-koi-green mr-1.5" />
   }
 ]
 
@@ -89,9 +89,9 @@ const MISSING_COVERAGE = [
 ]
 
 const TIMELINE = [
-  { id: 1, date: 'Jun 21', action: 'FSSAI renewed', icon: ShieldCheck, color: 'text-blue-500' },
+  { id: 1, date: 'Jun 21', action: 'FSSAI renewed', icon: ShieldCheck, color: 'text-koi-primary' },
   { id: 2, date: 'Jun 18', action: 'Lab report uploaded', icon: Microscope, color: 'text-koi-forest' },
-  { id: 3, date: 'Jun 15', action: 'Organic certification approved', icon: Award, color: 'text-green-500' }
+  { id: 3, date: 'Jun 15', action: 'Organic certification approved', icon: Award, color: 'text-koi-green' }
 ]
 
 export default function CompliancePage() {
@@ -123,14 +123,14 @@ export default function CompliancePage() {
       </div>
 
       {/* SECTION 1 - COMPLIANCE SCORE HERO */}
-      <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+      <div className="bg-white rounded-3xl border border-koi-forest/10 shadow-sm p-8">
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-10 items-center">
           
           {/* Circular Gauge */}
           <div className="flex flex-col items-center justify-center">
             <div className="relative w-40 h-40">
               <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
+                <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-koi-track" />
                 <circle 
                   cx="50" cy="50" r={radius} 
                   stroke="currentColor" 
@@ -143,8 +143,8 @@ export default function CompliancePage() {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-koi-display font-bold text-gray-900 leading-none">{COMPLIANCE_SCORE}</span>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Score</span>
+                <span className="text-4xl font-koi-display font-bold text-koi-ink leading-none">{COMPLIANCE_SCORE}</span>
+                <span className="text-xs font-semibold text-koi-muted uppercase tracking-widest mt-1">Score</span>
               </div>
             </div>
           </div>
@@ -152,29 +152,29 @@ export default function CompliancePage() {
           {/* Breakdown & Interpretation */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-6 h-6 text-green-500" />
-              <h3 className="text-2xl font-bold text-gray-900 font-koi-display">Good compliance standing</h3>
+              <ShieldCheck className="w-6 h-6 text-koi-green" />
+              <h3 className="text-2xl font-bold text-koi-ink font-koi-display">Good compliance standing</h3>
             </div>
-            <p className="text-gray-500 mb-8">
+            <p className="text-koi-muted mb-8">
               Your overall catalog health is strong. However, <strong>2 documents need renewal</strong> to maintain your premium trust score on the marketplace.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">FSSAI Status</div>
-                <div className="text-xl font-bold text-gray-900">{BREAKDOWN.fssai}<span className="text-sm text-gray-400 font-normal">/100</span></div>
+              <div className="bg-koi-paper rounded-xl p-4 border border-koi-forest/10">
+                <div className="text-xs font-bold text-koi-muted uppercase tracking-wider mb-1">FSSAI Status</div>
+                <div className="text-xl font-bold text-koi-ink">{BREAKDOWN.fssai}<span className="text-sm text-koi-muted font-normal">/100</span></div>
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Certifications</div>
-                <div className="text-xl font-bold text-gray-900">{BREAKDOWN.certifications}<span className="text-sm text-gray-400 font-normal">/100</span></div>
+              <div className="bg-koi-paper rounded-xl p-4 border border-koi-forest/10">
+                <div className="text-xs font-bold text-koi-muted uppercase tracking-wider mb-1">Certifications</div>
+                <div className="text-xl font-bold text-koi-ink">{BREAKDOWN.certifications}<span className="text-sm text-koi-muted font-normal">/100</span></div>
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Claims Evidence</div>
-                <div className="text-xl font-bold text-gray-900">{BREAKDOWN.claims}<span className="text-sm text-gray-400 font-normal">/100</span></div>
+              <div className="bg-koi-paper rounded-xl p-4 border border-koi-forest/10">
+                <div className="text-xs font-bold text-koi-muted uppercase tracking-wider mb-1">Claims Evidence</div>
+                <div className="text-xl font-bold text-koi-ink">{BREAKDOWN.claims}<span className="text-sm text-koi-muted font-normal">/100</span></div>
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Lab Coverage</div>
-                <div className="text-xl font-bold text-gray-900">{BREAKDOWN.labs}<span className="text-sm text-gray-400 font-normal">/100</span></div>
+              <div className="bg-koi-paper rounded-xl p-4 border border-koi-forest/10">
+                <div className="text-xs font-bold text-koi-muted uppercase tracking-wider mb-1">Lab Coverage</div>
+                <div className="text-xl font-bold text-koi-ink">{BREAKDOWN.labs}<span className="text-sm text-koi-muted font-normal">/100</span></div>
               </div>
             </div>
           </div>
@@ -184,12 +184,12 @@ export default function CompliancePage() {
 
       {/* SECTION 2 - DOCUMENT VAULT */}
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4 font-koi-display">Document Vault</h3>
+        <h3 className="text-xl font-bold text-koi-ink mb-4 font-koi-display">Document Vault</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {VAULT_DATA.map((card) => {
             const Icon = card.icon
             return (
-              <div key={card.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col h-full">
+              <div key={card.id} className="bg-white border border-koi-forest/10 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col h-full">
                 <div className="flex justify-between items-start mb-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.bgColor} ${card.color}`}>
                     <Icon className="w-6 h-6" />
@@ -199,11 +199,11 @@ export default function CompliancePage() {
                     {card.status}
                   </div>
                 </div>
-                <h4 className="font-bold text-gray-900 mb-1 font-koi-display">{card.title}</h4>
-                <p className="text-sm font-medium text-gray-600 mb-1">{card.meta}</p>
-                <p className="text-xs text-gray-400 mb-6 flex-1">{card.submeta}</p>
+                <h4 className="font-bold text-koi-ink mb-1 font-koi-display">{card.title}</h4>
+                <p className="text-sm font-medium text-koi-ink2 mb-1">{card.meta}</p>
+                <p className="text-xs text-koi-muted mb-6 flex-1">{card.submeta}</p>
                 <div className="flex gap-2 mt-auto">
-                  <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-gray-600 border-gray-200 hover:bg-gray-50">
+                  <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-koi-ink2 border-koi-forest/10 hover:bg-koi-paper">
                     View
                   </Button>
                   <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-koi-forest border-koi-forest/20 hover:bg-koi-forest/5">
@@ -220,29 +220,29 @@ export default function CompliancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* SECTION 4 - MISSING COVERAGE (Spans 2 columns) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-            <Info className="w-5 h-5 text-gray-400" />
-            <h3 className="font-bold text-gray-900 font-koi-display">Missing Coverage</h3>
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-koi-forest/10 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-koi-forest/10 flex items-center gap-2 bg-koi-paper/50">
+            <Info className="w-5 h-5 text-koi-muted" />
+            <h3 className="font-bold text-koi-ink font-koi-display">Missing Coverage</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-white border-b border-gray-100 text-xs uppercase font-bold text-gray-400">
+              <thead className="bg-white border-b border-koi-forest/10 text-xs uppercase font-bold text-koi-muted">
                 <tr>
                   <th className="px-5 py-4">Product</th>
                   <th className="px-5 py-4">Missing Requirement</th>
                   <th className="px-5 py-4">Impact</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-koi-forest/10">
                 {MISSING_COVERAGE.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-4 font-medium text-gray-900">{row.product}</td>
-                    <td className="px-5 py-4 text-gray-600">{row.requirement}</td>
+                  <tr key={row.id} className="hover:bg-koi-paper/50 transition-colors">
+                    <td className="px-5 py-4 font-medium text-koi-ink">{row.product}</td>
+                    <td className="px-5 py-4 text-koi-ink2">{row.requirement}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-[10px] font-bold uppercase border px-2 py-0.5 rounded tracking-wider bg-white ${
-                          row.impact === 'High' ? 'text-gray-900 border-red-200' : 'text-gray-900 border-amber-200'
+                          row.impact === 'High' ? 'text-koi-ink border-koi-red/20' : 'text-koi-ink border-koi-amber-border'
                         }`}>
                           {row.impact} Impact
                         </span>
@@ -259,9 +259,9 @@ export default function CompliancePage() {
         <div className="space-y-6 flex flex-col">
           
           {/* SECTION 3 - EXPIRY ALERTS */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 font-koi-display">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
+          <div className="bg-white rounded-2xl border border-koi-forest/10 shadow-sm p-5">
+            <h3 className="font-bold text-koi-ink mb-4 flex items-center gap-2 font-koi-display">
+              <AlertTriangle className="w-5 h-5 text-koi-amber" />
               Expiry Alerts
             </h3>
             <div className="space-y-0">
@@ -272,29 +272,29 @@ export default function CompliancePage() {
 
                 if (alert.severity === 'red') {
                   borderClass = 'border-l-red-500'
-                  iconColor = 'text-red-500'
+                  iconColor = 'text-koi-red'
                 } else if (alert.severity === 'amber') {
                   borderClass = 'border-l-amber-500'
-                  iconColor = 'text-amber-500'
+                  iconColor = 'text-koi-amber'
                 } else if (alert.severity === 'blue') {
                   borderClass = 'border-l-blue-500'
-                  iconColor = 'text-blue-500'
+                  iconColor = 'text-koi-primary'
                 }
 
                 return (
                   <div 
                     key={alert.id}
-                    className={`group px-5 py-4 border-l-2 border-y border-r border-y-gray-100 border-r-gray-100 bg-white flex items-center justify-between transition-all duration-200 hover:bg-gray-50 cursor-pointer ${idx === 0 ? 'rounded-t-xl' : ''} ${idx === ALERTS.length - 1 ? 'rounded-b-xl' : ''} ${idx !== 0 ? '-mt-px' : ''} ${borderClass}`}
+                    className={`group px-5 py-4 border-l-2 border-y border-r border-y-gray-100 border-r-gray-100 bg-white flex items-center justify-between transition-all duration-200 hover:bg-koi-paper cursor-pointer ${idx === 0 ? 'rounded-t-xl' : ''} ${idx === ALERTS.length - 1 ? 'rounded-b-xl' : ''} ${idx !== 0 ? '-mt-px' : ''} ${borderClass}`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center bg-white shadow-sm shrink-0 ${iconColor}`}>
+                      <div className={`w-8 h-8 rounded-full border border-koi-forest/10 flex items-center justify-center bg-white shadow-sm shrink-0 ${iconColor}`}>
                         <AlertIcon className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="text-[14px] font-semibold text-gray-900 mb-0.5 font-koi-display">
+                        <h4 className="text-[14px] font-semibold text-koi-ink mb-0.5 font-koi-display">
                           {alert.title}
                         </h4>
-                        <p className="text-[13px] text-gray-500">
+                        <p className="text-[13px] text-koi-muted">
                           {alert.subtitle}
                         </p>
                       </div>
@@ -306,8 +306,8 @@ export default function CompliancePage() {
           </div>
 
           {/* SECTION 5 - TIMELINE */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex-1">
-            <h3 className="font-bold text-gray-900 mb-5 flex items-center gap-2 font-koi-display">
+          <div className="bg-white rounded-2xl border border-koi-forest/10 shadow-sm p-5 flex-1">
+            <h3 className="font-bold text-koi-ink mb-5 flex items-center gap-2 font-koi-display">
               <Clock className="w-5 h-5 text-koi-forest" />
               Compliance Activity
             </h3>
@@ -317,13 +317,13 @@ export default function CompliancePage() {
                 const Icon = item.icon
                 return (
                   <div key={item.id} className="relative flex items-center justify-between">
-                    <div className="absolute -left-[27px] w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center z-10 shadow-sm">
+                    <div className="absolute -left-[27px] w-6 h-6 bg-white border border-koi-forest/10 rounded-full flex items-center justify-center z-10 shadow-sm">
                       <Icon className={`w-3.5 h-3.5 ${item.color}`} />
                     </div>
                     <div className="flex flex-col ml-2">
-                      <span className="text-sm font-medium text-gray-900">{item.action}</span>
+                      <span className="text-sm font-medium text-koi-ink">{item.action}</span>
                     </div>
-                    <span className="text-xs font-mono text-gray-400">{item.date}</span>
+                    <span className="text-xs font-mono text-koi-muted">{item.date}</span>
                   </div>
                 )
               })}

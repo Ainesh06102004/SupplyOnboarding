@@ -1,13 +1,22 @@
 "use client"
 
+// Brand portal — add a product (BrandAddProduct board). The numbered stepper
+// fills in forest as you go (done steps are buttons back), each step sits in
+// one white panel, and step 5 is the real Step5AIReview: it marks the product
+// as waiting for KOI's label read and submits it — no instant verdict, because
+// a person checks every label first. The URL <-> store step sync is unchanged.
+
 import React, { useEffect, Suspense, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check } from 'lucide-react'
 import Step1BasicInfo from '@/components/dashboard/products/new/Step1BasicInfo'
 import Step2SkuSetup from '@/components/dashboard/products/new/Step2SkuSetup'
 import Step3LabelUpload from '@/components/dashboard/products/new/Step3LabelUpload'
 import Step4Compliance from '@/components/dashboard/products/new/Step4Compliance'
+import Step5AIReview from '@/components/dashboard/products/new/Step5AIReview'
 import { useProductCreationStore } from '@/store/productCreationStore'
+import { setupMotion, prefersReducedMotion, useGSAP, E } from '@/lib/motion/koiMotion'
 
 const STEPS = [
   { id: 1, title: 'Basic Info' },
@@ -23,8 +32,9 @@ function AddProductWizard() {
   const searchParams = useSearchParams()
   const urlStep = parseInt(searchParams.get('step')) || 1
   const isMounted = useRef(false)
+  const root = useRef(null)
 
-  const { currentStep, setCurrentStep, resetStore } = useProductCreationStore()
+  const { currentStep, setCurrentStep, resetStore, productId } = useProductCreationStore()
 
   // Sync URL -> Store (Browser back/forward or direct link)
   // Only trigger when the URL changes
@@ -54,62 +64,86 @@ function AddProductWizard() {
     return () => resetStore()
   }, [resetStore])
 
+  useGSAP(() => {
+    if (prefersReducedMotion()) return
+    const gsap = setupMotion()
+    const q = (s) => root.current.querySelectorAll(s)
+    gsap.from(q('[data-line]'), { yPercent: 115, duration: 1, ease: E.reveal })
+    gsap.from(q('[data-rise]'), { autoAlpha: 0, y: 12, duration: 0.6, delay: 0.1, ease: E.reveal, clearProps: 'opacity,visibility,transform' })
+  }, { scope: root })
+
+  // The fill follows the step; the panel's contents slide in on each change.
+  useGSAP(() => {
+    const gsap = setupMotion()
+    const q = (s) => root.current.querySelectorAll(s)
+    const reduced = prefersReducedMotion()
+    gsap.to(q('[data-stepfill]'), { scaleX: (currentStep - 1) / (STEPS.length - 1), duration: reduced ? 0 : 0.8, ease: E.dolly })
+    if (!reduced) gsap.from(q('[data-panel] > *'), { autoAlpha: 0, y: 18, duration: 0.55, ease: E.reveal, clearProps: 'opacity,visibility,transform' })
+  }, { scope: root, dependencies: [currentStep] })
+
   return (
-    <div className="max-w-5xl mx-auto pb-24">
-      {/* Header & Stepper */}
-      <div className="mb-8">
-        <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-6 font-koi-display">
-          Add New Product
-        </h2>
-        
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar">
-          {STEPS.map((step, idx) => {
-            const isActive = step.id === currentStep
-            const isCompleted = step.id < currentStep
+    <div ref={root} className="mx-auto flex max-w-5xl flex-col gap-6 pb-24">
+      <section className="flex flex-col gap-2">
+        <span data-rise className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-muted"><Link href="/dashboard/products" className="text-koi-muted no-underline hover:text-koi-forest">Products</Link> / New</span>
+        <h1 className="koi-condensed m-0 font-koi-display text-[clamp(40px,4vw,60px)] font-extrabold leading-none tracking-[-0.03em] text-koi-forest">
+          <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">Add New Product</span></span>
+        </h1>
+      </section>
 
-            return (
-              <React.Fragment key={step.id}>
-                <div className={`flex items-center justify-center h-8 px-4 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
-                  isActive ? 'bg-koi-forest text-white shadow-md' :
-                  isCompleted ? 'bg-koi-forest/10 text-koi-forest' :
-                  'bg-gray-100 text-gray-400'
-                }`}>
-                  {isCompleted && <Check className="w-4 h-4 mr-1.5" />}
-                  {step.title}
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                )}
-              </React.Fragment>
-            )
-          })}
+      <nav aria-label="Steps" className="relative overflow-x-auto">
+        <div className="relative min-w-[460px]">
+          <span aria-hidden="true" className="absolute left-[10%] right-[10%] top-[21px] h-[2px] bg-koi-forest/15" />
+          <span data-stepfill aria-hidden="true" className="absolute left-[10%] top-[21px] h-[2px] w-[80%] origin-left scale-x-0 bg-koi-forest" />
+          <ol className="relative m-0 grid list-none grid-cols-5 p-0">
+            {STEPS.map((step) => {
+              const isActive = step.id === currentStep
+              const isCompleted = step.id < currentStep
+              const ring = isActive
+                ? 'border-koi-forest bg-koi-forest text-koi-lime'
+                : isCompleted
+                  ? 'border-koi-forest bg-white text-koi-forest'
+                  : 'border-koi-forest/20 bg-white text-koi-muted'
+              return (
+                <li key={step.id} className="flex justify-center">
+                  <button
+                    type="button"
+                    disabled={!isCompleted}
+                    onClick={() => setCurrentStep(step.id)}
+                    aria-current={isActive ? 'step' : undefined}
+                    className="flex flex-col items-center gap-2 disabled:cursor-default"
+                  >
+                    <span className={`grid size-11 place-items-center rounded-full border-2 font-koi-num text-[15px] font-bold transition-colors ${ring}`}>
+                      {isCompleted ? <Check className="size-4" strokeWidth={3} /> : step.id}
+                    </span>
+                    <span className={`text-[13px] font-bold ${isActive ? 'text-koi-forest' : isCompleted ? 'text-koi-ink' : 'text-koi-muted'}`}>{step.title}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
         </div>
-      </div>
+      </nav>
 
-      {/* Step Content Shell */}
-      <div className="bg-white rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-koi-track p-6 md:p-10">
+      <section data-panel className="flex flex-col gap-5 rounded-[28px] border border-koi-forest/10 bg-white p-5 md:p-8">
         {currentStep === 1 && <Step1BasicInfo />}
         {currentStep === 2 && <Step2SkuSetup />}
         {currentStep === 3 && <Step3LabelUpload />}
         {currentStep === 4 && <Step4Compliance />}
-        
         {currentStep === 5 && (
-          <div className="py-20 text-center">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Step 5: AI Review & Submit</h3>
-            <p className="text-gray-500 mb-6">This step will be implemented in the next sprint.</p>
-            <div className="inline-block px-4 py-2 bg-green-50 text-green-700 rounded-lg font-medium border border-green-200">
-              Compliance Evidence saved successfully!
-            </div>
-          </div>
+          <Step5AIReview
+            productId={productId}
+            onBack={() => setCurrentStep(3)}
+            onComplete={() => router.push('/dashboard/verification')}
+          />
         )}
-      </div>
+      </section>
     </div>
   )
 }
 
 export default function AddProductPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center text-gray-500">Loading wizard...</div>}>
+    <Suspense fallback={<div role="status" className="p-10 text-center text-koi-muted">Loading wizard…</div>}>
       <AddProductWizard />
     </Suspense>
   )
