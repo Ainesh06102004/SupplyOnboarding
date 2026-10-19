@@ -31,8 +31,7 @@ import PantryStep from "@/components/store/plan/design/PantryStep";
 import ShopStep from "@/components/store/plan/design/ShopStep";
 import TrackStep from "@/components/store/plan/design/TrackStep";
 import { Toast } from "@/components/store/plan/design/bits";
-import { C, font } from "@/components/store/plan/design/tokens";
-import { Button, MonoLabel } from "@/components/store/system/primitives";
+import Link from "next/link";
 import { useAgent, useAgentBridge } from "@/components/agent/AgentProvider";
 import { useCartUi } from "@/store/cartUiStore";
 import { peopleOf } from "@/lib/plan/planView";
@@ -47,8 +46,8 @@ export default function PlanPage() {
 
 function Loading() {
   return (
-    <div className="koi-page" style={{ font: font(500, 14), color: C.muted }}>
-      <span aria-hidden="true" style={{ display: "inline-block", width: 12, height: 12, marginRight: 8, border: `2px solid ${C.track}`, borderTopColor: C.accent, borderRadius: "50%", animation: "koiSpin .8s linear infinite", verticalAlign: "-2px" }} />
+    <div role="status" className="koi-page flex items-center gap-2.5 font-koi-sans text-sm font-medium text-koi-muted">
+      <span aria-hidden="true" className="size-3 animate-spin rounded-full border-2 border-koi-track border-t-koi-green" />
       Loading your household…
     </div>
   );
@@ -57,16 +56,16 @@ function Loading() {
 function SignedOut() {
   const openLogin = useLoginUi((st) => st.openLogin);
   return (
-    <main className="koi-page" style={{ maxWidth: 720 }}>
-      <section className="ks-card" style={{ padding: 28, display: "flex", flexDirection: "column", gap: 12, animation: "koiUp .4s ease" }}>
-        <MonoLabel tone="green">Plan</MonoLabel>
-        <h1 style={{ margin: 0, font: font(800, 30, "sans", 1.15), letterSpacing: "-.025em" }}>A week of groceries, planned around everyone at home</h1>
-        <p style={{ margin: 0, font: font(400, 15, "sans", 1.55), color: C.ink2, maxWidth: 560 }}>
+    <main className="koi-page font-koi-sans text-koi-ink">
+      <section className="flex max-w-[860px] flex-col gap-4">
+        <span className="font-koi-mono text-xs font-medium uppercase tracking-[0.18em] text-koi-muted">Plan</span>
+        <h1 className="koi-condensed m-0 font-koi-display text-[clamp(44px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">A week of groceries, planned around everyone at home</h1>
+        <p className="m-0 max-w-[600px] text-[17px] leading-relaxed text-koi-ink2">
           Sign in with your phone to save your household. Its people and their targets are yours alone — nobody else can read them. Your cart already works signed out.
         </p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-          <Button onClick={() => openLogin()}>Sign in with phone</Button>
-          <Button href="/store/shop" variant="secondary">Browse the shop</Button>
+        <div className="mt-2 flex flex-wrap gap-3">
+          <button type="button" onClick={() => openLogin()} className="flex h-14 items-center rounded-2xl bg-koi-forest px-7 text-[15px] font-bold text-koi-lime">Sign in with phone</button>
+          <Link href="/store/shop" className="flex h-14 items-center rounded-2xl border border-koi-forest/20 bg-white px-6 text-[15px] font-semibold text-koi-forest no-underline">Browse the shop</Link>
         </div>
       </section>
     </main>
@@ -135,9 +134,9 @@ function Plan() {
       />
       <main className="koi-page">
         {s.error && (
-          <div role="alert" style={{ marginBottom: 16, background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.redText, borderRadius: 12, padding: "10px 14px", font: font(600, 13), display: "flex", justifyContent: "space-between", gap: 10 }}>
+          <div role="alert" className="mb-4 flex justify-between gap-2.5 rounded-2xl border border-koi-red/20 bg-koi-red-bg px-4 py-2.5 font-koi-sans text-[13px] font-semibold text-koi-red">
             <span>{s.error}</span>
-            <button type="button" onClick={() => s.setError(null)} aria-label="Dismiss" style={{ cursor: "pointer", background: "none", border: "none", color: C.redText, font: font(700, 14) }}>×</button>
+            <button type="button" onClick={() => s.setError(null)} aria-label="Dismiss" className="text-sm font-bold">×</button>
           </div>
         )}
         {step === "define" && <DefineStep s={s} onNext={next} onPlan={() => go("plan")} />}
