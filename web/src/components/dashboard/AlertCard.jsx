@@ -1,62 +1,34 @@
 import React from 'react'
-import { AlertCircle, Clock, Info, ChevronRight, ShieldAlert, FlaskConical, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function AlertCard({ alerts }) {
+// "Action Required" from the BrandDashboard board: each alert a tinted row
+// with a status dot by severity. `sample` marks mock-backed alerts.
+const SEVERITY = {
+  red: { row: 'border-koi-red/20 bg-koi-red-bg', dot: 'bg-koi-red' },
+  amber: { row: 'border-koi-amber-border bg-koi-amber-bg', dot: 'bg-koi-amber' },
+  blue: { row: 'border-koi-tint-border bg-koi-tint', dot: 'bg-koi-green' },
+}
+
+export default function AlertCard({ alerts, sample = false }) {
   return (
-    <div className="bg-white rounded-2xl border border-koi-track p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] h-full">
-      <h2 className="text-xl font-koi-display font-bold text-koi-ink mb-5 font-koi-display">
-        Action Required
-      </h2>
-      <div className="flex flex-col">
-        {alerts.map((alert, idx) => {
-          let borderClass = ''
-          let iconColor = ''
-          let Icon = Info
-
-          if (alert.severity === 'red') {
-            borderClass = 'border-l-red-500'
-            iconColor = 'text-red-500'
-            Icon = ShieldAlert
-          } else if (alert.severity === 'amber') {
-            borderClass = 'border-l-amber-500'
-            iconColor = 'text-amber-500'
-            Icon = FlaskConical
-          } else if (alert.severity === 'blue') {
-            borderClass = 'border-l-blue-500'
-            iconColor = 'text-blue-500'
-            Icon = FileText
-          }
-
-          return (
-            <div 
-              key={alert.id}
-              className={cn(
-                "group px-5 py-4 border-l-2 border-y border-r border-y-gray-100 border-r-gray-100 bg-white flex items-center justify-between transition-all duration-200 hover:bg-gray-50 cursor-pointer first:rounded-t-xl last:rounded-b-xl",
-                idx !== 0 && "-mt-px",
-                borderClass
-              )}
-            >
-              <div className="flex items-start gap-4">
-                <div className={cn("w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center bg-white shadow-sm shrink-0", iconColor)}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-semibold text-gray-900 mb-0.5 font-koi-display">
-                    {alert.title}
-                  </h4>
-                  {alert.subtitle && (
-                    <p className="text-[13px] text-gray-500">
-                      {alert.subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
-            </div>
-          )
-        })}
-      </div>
-    </div>
+    <section data-card aria-label="Action Required" className="flex h-full flex-col gap-3 rounded-[26px] border border-koi-forest/10 bg-white p-6">
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="text-lg font-bold">Action Required</span>
+        {sample && <span className="font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-muted">Sample</span>}
+      </span>
+      {alerts.length === 0 && <p className="m-0 rounded-2xl bg-koi-paper px-4 py-3 text-[13.5px] text-koi-ink2">Nothing needs you right now.</p>}
+      {alerts.map((alert) => {
+        const s = SEVERITY[alert.severity] ?? SEVERITY.blue
+        return (
+          <article key={alert.id} className={cn('flex items-start gap-3 rounded-2xl border p-4', s.row)}>
+            <span aria-hidden="true" className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', s.dot)} />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-[14.5px] font-bold">{alert.title}</span>
+              {alert.subtitle && <span className="text-[13px] leading-snug text-koi-ink2">{alert.subtitle}</span>}
+            </span>
+          </article>
+        )
+      })}
+    </section>
   )
 }

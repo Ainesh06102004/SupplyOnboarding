@@ -1,74 +1,54 @@
 "use client"
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-export default function RecentProductsTable({ products }) {
-  const router = useRouter()
+// "Recent Products" from the BrandDashboard board: a quiet table with mono
+// headers, status pills in the store's tones, scores in Space Grotesk.
+export const STATUS_PILL = {
+  Approved: 'border-koi-tint-border bg-koi-tint text-koi-primary',
+  Live: 'border-koi-tint-border bg-koi-tint text-koi-primary',
+  'AI Review': 'border-koi-amber-border bg-koi-amber-bg text-koi-amber-ink',
+  'Under Review': 'border-koi-amber-border bg-koi-amber-bg text-koi-amber-ink',
+  'Action Needed': 'border-koi-red/20 bg-koi-red-bg text-koi-red',
+}
 
+export default function RecentProductsTable({ products, sample = false }) {
   return (
-    <div className="bg-white rounded-2xl border border-koi-track shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden h-full flex flex-col">
-      <div className="flex items-center justify-between p-6 border-b border-koi-track">
-        <h2 className="text-xl font-koi-display font-bold text-koi-ink font-koi-display">
-          Recent Products
-        </h2>
-        <button 
-          onClick={() => router.push('/dashboard/products')}
-          className="text-[14px] font-medium text-koi-forest hover:text-koi-night flex items-center gap-1 transition-colors"
-        >
-          View All <ArrowRight className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[500px]">
+    <section data-card aria-label="Recent Products" className="flex h-full flex-col rounded-[26px] border border-koi-forest/10 bg-white p-6">
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="text-lg font-bold">Recent Products</span>
+        <span className="flex items-baseline gap-3">
+          {sample && <span className="font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-muted">Sample</span>}
+          <Link href="/dashboard/products" className="text-[13px] font-semibold text-koi-primary no-underline hover:underline">View All</Link>
+        </span>
+      </span>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[460px] border-collapse text-left text-[14px]">
           <thead>
-            <tr className="border-b border-koi-track bg-koi-bg/50">
-              <th className="px-6 py-3 text-[13px] font-semibold text-koi-muted uppercase tracking-wider">Product</th>
-              <th className="px-6 py-3 text-[13px] font-semibold text-koi-muted uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-[13px] font-semibold text-koi-muted uppercase tracking-wider">Trust Score</th>
-              <th className="px-6 py-3 text-[13px] font-semibold text-koi-muted uppercase tracking-wider text-right">Updated</th>
+            <tr className="border-b border-koi-forest/10 font-koi-mono text-[10.5px] uppercase tracking-[0.12em] text-koi-muted">
+              <th scope="col" className="py-2.5 font-medium">Product</th>
+              <th scope="col" className="py-2.5 font-medium">Status</th>
+              <th scope="col" className="py-2.5 text-right font-medium">Trust Score</th>
+              <th scope="col" className="py-2.5 text-right font-medium">Updated</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-koi-track">
-            {products.map((product) => {
-              let badgeColor = 'bg-gray-100 text-gray-700'
-              if (product.status === 'Approved') badgeColor = 'bg-green-100 text-green-700'
-              if (product.status === 'AI Review') badgeColor = 'bg-amber-100 text-amber-700'
-              if (product.status === 'Action Needed') badgeColor = 'bg-red-100 text-red-700'
-
-              return (
-                <tr 
-                  key={product.id}
-                  onClick={() => router.push(`/dashboard/products/${product.id}`)}
-                  className="hover:bg-koi-bg/40 cursor-pointer transition-colors duration-200"
-                >
-                  <td className="px-6 py-4">
-                    <span className="font-semibold text-koi-ink text-[15px]">{product.name}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={cn("px-2.5 py-1 rounded-md text-[12px] font-bold tracking-wide uppercase", badgeColor)}>
-                      {product.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {product.trustScore ? (
-                      <span className="font-bold text-koi-forest">{product.trustScore}</span>
-                    ) : (
-                      <span className="text-koi-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-[14px] text-koi-muted">{product.updated}</span>
-                  </td>
-                </tr>
-              )
-            })}
+          <tbody>
+            {products.map((product) => (
+              <tr
+                key={product.id}
+                className="border-b border-koi-forest/10 last:border-b-0"
+              >
+                <td className="py-3 font-semibold">{product.name}</td>
+                <td className="py-3"><span className={cn('rounded-full border px-2.5 py-0.5 text-[12px] font-bold', STATUS_PILL[product.status] ?? 'border-koi-forest/15 bg-white text-koi-ink2')}>{product.status}</span></td>
+                <td className="py-3 text-right font-koi-num font-semibold">{product.trustScore ?? <span className="text-koi-muted">—</span>}</td>
+                <td className="py-3 text-right text-koi-muted">{product.updated}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   )
 }

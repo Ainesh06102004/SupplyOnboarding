@@ -1,38 +1,32 @@
-import React from 'react'
+"use client"
 
-export default function TrustMetricsCard({ metrics }) {
+// "Trust Metrics" from the BrandDashboard board: a forest card, lime bars that
+// fill once on arrival. `sample` marks mock-backed figures.
+
+import React, { useRef } from 'react'
+import { setupMotion, prefersReducedMotion, useGSAP, E } from '@/lib/motion/koiMotion'
+
+export default function TrustMetricsCard({ metrics, sample = false }) {
+  const root = useRef(null)
+  useGSAP(() => {
+    const gsap = setupMotion()
+    root.current.querySelectorAll('[data-metric]').forEach((bar, i) => {
+      gsap.to(bar, { width: `${bar.dataset.score}%`, duration: prefersReducedMotion() ? 0 : 1.1, delay: prefersReducedMotion() ? 0 : 0.1 * i, ease: E.dolly })
+    })
+  }, { scope: root, dependencies: [metrics] })
+
   return (
-    <div className="bg-white rounded-2xl border border-koi-track p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] h-full">
-      <h2 className="text-xl font-koi-display font-bold text-koi-ink mb-6 font-koi-display">
-        Trust Metrics
-      </h2>
-      <div className="space-y-5">
-        {metrics.map((metric, idx) => {
-          let colorClass = 'bg-koi-forest'
-          if (metric.score >= 90) colorClass = 'bg-green-500'
-          else if (metric.score < 80) colorClass = 'bg-red-500'
-          else if (metric.score < 90 && metric.score >= 80) colorClass = 'bg-green-400'
-
-          return (
-            <div key={idx} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[14px] font-semibold text-koi-ink">
-                  {metric.label}
-                </span>
-                <span className="text-[14px] font-bold text-koi-muted">
-                  {metric.score}%
-                </span>
-              </div>
-              <div className="h-2 w-full bg-koi-track/50 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${colorClass} rounded-full transition-all duration-1000 ease-out`}
-                  style={{ width: `${metric.score}%` }}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
+    <section ref={root} data-card aria-label="Trust Metrics" className="flex h-full flex-col gap-4 rounded-[26px] bg-koi-forest p-6 text-koi-bg">
+      <span className="text-lg font-bold">Trust Metrics</span>
+      {metrics.map((m) => (
+        <div key={m.label} className="flex flex-col gap-1.5">
+          <span className="flex justify-between text-[13.5px]"><span>{m.label}</span><span className="font-koi-num font-semibold">{m.score}%</span></span>
+          <span className="h-[7px] overflow-hidden rounded-full bg-koi-bg/15">
+            <span data-metric data-score={m.score} className={`block h-full w-0 rounded-full ${m.score < 80 ? 'bg-koi-ember' : 'bg-koi-lime'}`} />
+          </span>
+        </div>
+      ))}
+      {sample && <span className="mt-auto font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-bg/50">Sample figures</span>}
+    </section>
   )
 }

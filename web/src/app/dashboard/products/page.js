@@ -1,13 +1,16 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+// Brand portal — products (BrandProducts board). Real data from getProducts /
+// getProductStats; search is debounced to the server, chips and sort are local.
+
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Package, CheckCircle, Clock, FileEdit } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
+import PageTitle from '@/components/dashboard/PageTitle'
 import { getProducts, getProductStats } from '@/lib/dashboard/products'
 import ProductsTable from '@/components/dashboard/products/ProductsTable'
-import ProductsToolbar from '@/components/dashboard/products/ProductsToolbar'
+import { setupMotion, prefersReducedMotion, useGSAP, E } from '@/lib/motion/koiMotion'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([])
@@ -19,6 +22,7 @@ export default function ProductsPage() {
   })
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const root = useRef(null)
 
   useEffect(() => {
     async function loadData() {
@@ -36,73 +40,40 @@ export default function ProductsPage() {
         setLoading(false)
       }
     }
-    
+
     // Simple debounce for search
     const timer = setTimeout(() => {
       loadData()
     }, 300)
-    
+
     return () => clearTimeout(timer)
   }, [searchQuery])
 
+  useGSAP(() => {
+    if (prefersReducedMotion()) return
+    const gsap = setupMotion()
+    const q = (s) => root.current.querySelectorAll(s)
+    gsap.from(q('[data-kpi]'), { autoAlpha: 0, y: 24, duration: 0.7, stagger: 0.07, delay: 0.15, ease: E.reveal, clearProps: 'opacity,visibility,transform' })
+    gsap.from(q('[data-card]'), { autoAlpha: 0, y: 34, duration: 0.85, delay: 0.35, ease: E.dolly, clearProps: 'opacity,visibility,transform' })
+  }, { scope: root })
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      
-      {/* SECTION 1 - HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-2 font-koi-display">
-            Products
-          </h2>
-          <p className="text-[16px] text-koi-muted">
-            Manage your catalog, SKUs, and track screening statuses.
-          </p>
-        </div>
+    <div ref={root} className="flex flex-col gap-6">
+      <PageTitle
+        title="Products"
+        sub="Manage your catalog, SKUs, and track screening statuses."
+        action={<Link href="/dashboard/products/new" className="flex h-12 items-center gap-2 rounded-2xl bg-koi-forest px-5 text-sm font-bold text-koi-lime no-underline"><Plus className="size-5" />Add Product</Link>}
+      />
 
-        <Link href="/dashboard/products/new" passHref>
-          <Button 
-            className="bg-koi-forest hover:bg-koi-night text-white h-12 px-6 rounded-xl shadow-[0_4px_14px_rgba(79,56,99,0.3)] hover:shadow-[0_6px_20px_rgba(79,56,99,0.4)] transition-all duration-300 gap-2 font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            Add Product
-          </Button>
-        </Link>
-      </div>
+      <section aria-label="Catalogue numbers" className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatsCard value={stats.totalProducts} label="Total Products" styleType="neutral" />
+        <StatsCard value={stats.liveProducts} label="Live Products" styleType="success" />
+        {/* getProductStats counts drafts with the pending_* states, so this is "not live yet", not just "in review". */}
+        <StatsCard value={stats.underReview} label="Not live yet" styleType="warning" />
+        <StatsCard value={stats.riskAlerts} label="Risk Alerts" styleType={stats.riskAlerts > 0 ? 'danger' : 'neutral'} />
+      </section>
 
-      {/* SECTION 2 - KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard 
-          icon={Package} 
-          value={stats.totalProducts} 
-          label="Total Products" 
-          styleType="neutral" 
-        />
-        <StatsCard 
-          icon={CheckCircle} 
-          value={stats.liveProducts} 
-          label="Live Products" 
-          styleType="success" 
-        />
-        <StatsCard 
-          icon={Clock} 
-          value={stats.underReview} 
-          label="Under Review" 
-          styleType="warning" 
-        />
-        <StatsCard 
-          icon={FileEdit} 
-          value={stats.riskAlerts} 
-          label="Risk Alerts" 
-          styleType="special" 
-        />
-      </div>
-
-      {/* SECTION 3 - TOOLBAR */}
-      <ProductsToolbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-
-      {/* SECTION 4 - PRODUCTS TABLE */}
-      <ProductsTable loading={loading} products={products} />
-
+      <ProductsTable loading={loading} products={products} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
     </div>
   )
 }

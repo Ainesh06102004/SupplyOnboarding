@@ -1,47 +1,44 @@
-import React from 'react'
-import { cn } from '@/lib/utils'
+"use client"
 
-export default function StatsCard({ 
-  icon: Icon, 
-  value, 
-  label, 
-  styleType = 'neutral',
-  className
-}) {
-  let bgClass = 'bg-white'
-  let iconBgClass = 'bg-black/5 text-koi-muted'
-  let valueColor = 'text-koi-ink'
-  
-  if (styleType === 'success') {
-    iconBgClass = 'bg-green-50 text-green-700'
-  } else if (styleType === 'warning') {
-    iconBgClass = 'bg-amber-50 text-amber-700'
-  } else if (styleType === 'special') {
-    iconBgClass = 'bg-koi-forest/10 text-koi-forest'
-  } else if (styleType === 'danger') {
-    iconBgClass = 'bg-red-50 text-red-700'
-  }
+// A KPI tile from the BrandDashboard board: a mono label, a big Space Grotesk
+// figure that counts up once, and a tone — white, tint (good), amber (waiting),
+// forest (the headline), red (risk). `sample` marks mock-backed figures.
+
+import React, { useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { setupMotion, prefersReducedMotion, useGSAP } from '@/lib/motion/koiMotion'
+
+const TONE = {
+  neutral: { card: 'border border-koi-forest/10 bg-white', label: 'text-koi-muted', value: 'text-koi-ink', sub: 'text-koi-muted' },
+  success: { card: 'border border-koi-tint-border bg-koi-tint', label: 'text-koi-primary', value: 'text-koi-forest', sub: 'text-koi-primary/70' },
+  warning: { card: 'border border-koi-amber-border bg-koi-amber-bg', label: 'text-koi-amber-ink', value: 'text-koi-amber-ink', sub: 'text-koi-amber-ink/70' },
+  special: { card: 'bg-koi-forest text-koi-bg', label: 'text-koi-lime', value: 'text-koi-bg', sub: 'text-koi-bg/60' },
+  danger: { card: 'border border-koi-red/20 bg-koi-red-bg', label: 'text-koi-red', value: 'text-koi-red', sub: 'text-koi-red/70' },
+}
+
+export default function StatsCard({ icon: Icon, value, label, styleType = 'neutral', suffix, sample = false, className }) {
+  const t = TONE[styleType] ?? TONE.neutral
+  const num = useRef(null)
+  const numeric = typeof value === 'number' && Number.isFinite(value)
+
+  useGSAP(() => {
+    if (!numeric || !num.current || prefersReducedMotion()) return
+    const gsap = setupMotion()
+    const o = { v: 0 }
+    gsap.to(o, { v: value, duration: 1.1, ease: 'power3.out', onUpdate: () => { if (num.current) num.current.textContent = String(Math.round(o.v)) } })
+  }, { dependencies: [value] })
 
   return (
-    <div className={cn(
-      "rounded-2xl border border-koi-track p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 transition-all duration-200",
-      bgClass,
-      className
-    )}>
-      <div className="flex items-start justify-between mb-4">
-        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", iconBgClass)}>
-          <Icon className="w-5 h-5" />
-        </div>
-        {/* Optional top-right element can go here */}
-      </div>
-      <div>
-        <h3 className={cn("text-3xl font-bold tracking-tight mb-1", valueColor)} style={{ fontFamily: "var(--font-koi-heading)" }}>
-          {value}
-        </h3>
-        <p className="text-koi-muted text-[15px] font-medium">
-          {label}
-        </p>
-      </div>
-    </div>
+    <article data-kpi className={cn('flex flex-col gap-3 rounded-[24px] p-5', t.card, className)}>
+      <span className="flex items-center justify-between gap-2">
+        <span className={cn('font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em]', t.label)}>{label}</span>
+        {Icon && <Icon aria-hidden="true" className={cn('size-4 shrink-0', t.label)} />}
+      </span>
+      <span className={cn('font-koi-num text-[44px] font-semibold leading-none', t.value)}>
+        <span ref={num}>{value ?? '—'}</span>
+        {suffix && <span className={cn('ml-1 text-lg font-medium', t.sub)}>{suffix}</span>}
+      </span>
+      {sample && <span className={cn('font-koi-mono text-[9.5px] uppercase tracking-[0.14em]', t.sub)}>Sample figure</span>}
+    </article>
   )
 }

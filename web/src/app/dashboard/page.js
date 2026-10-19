@@ -1,26 +1,33 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { Plus, Package, CheckCircle, Clock3, ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+// Brand portal overview (BrandDashboard board). Total Products is real (from
+// getProductStats); every other figure still comes from mockDashboardData, so
+// those cards say "Sample" until they are wired to the review tables.
+
+import React, { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import StatsCard from '@/components/dashboard/StatsCard'
 import AlertCard from '@/components/dashboard/AlertCard'
 import VerificationPipeline from '@/components/dashboard/VerificationPipeline'
 import RecentProductsTable from '@/components/dashboard/RecentProductsTable'
 import TrustMetricsCard from '@/components/dashboard/TrustMetricsCard'
+import PageTitle from '@/components/dashboard/PageTitle'
 import { getProductStats } from '@/lib/dashboard/products'
+import { setupMotion, prefersReducedMotion, useGSAP, E } from '@/lib/motion/koiMotion'
 
 // Mock Data
-import { 
-  DASHBOARD_STATS, 
-  DASHBOARD_ALERTS, 
-  VERIFICATION_PIPELINE, 
-  RECENT_PRODUCTS, 
-  TRUST_METRICS 
+import {
+  DASHBOARD_STATS,
+  DASHBOARD_ALERTS,
+  VERIFICATION_PIPELINE,
+  RECENT_PRODUCTS,
+  TRUST_METRICS
 } from '@/lib/mockDashboardData'
 
 export default function DashboardOverviewPage() {
   const [realStats, setRealStats] = useState({ totalProducts: DASHBOARD_STATS.totalProducts })
+  const root = useRef(null)
 
   useEffect(() => {
     async function fetchStats() {
@@ -34,76 +41,39 @@ export default function DashboardOverviewPage() {
     fetchStats()
   }, [])
 
+  useGSAP(() => {
+    if (prefersReducedMotion()) return
+    const gsap = setupMotion()
+    const q = (s) => root.current.querySelectorAll(s)
+    gsap.from(q('[data-kpi]'), { autoAlpha: 0, y: 24, duration: 0.7, stagger: 0.07, delay: 0.15, ease: E.reveal, clearProps: 'opacity,visibility,transform' })
+    gsap.from(q('[data-card]'), { autoAlpha: 0, y: 34, duration: 0.85, stagger: 0.08, delay: 0.35, ease: E.dolly, clearProps: 'opacity,visibility,transform' })
+  }, { scope: root })
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      
-      {/* SECTION 1 - HERO HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-2 font-koi-display">
-            Welcome back, Brand 👋
-          </h2>
-          <p className="text-[16px] text-koi-muted mb-4">
-            Here’s your KOI brand health overview.
-          </p>
-          <div className="inline-flex items-center gap-1.5 bg-green-100/50 text-green-700 px-3 py-1.5 rounded-full text-sm font-semibold border border-green-200">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            Verified Brand
-          </div>
-        </div>
+    <div ref={root} className="flex flex-col gap-6">
+      <PageTitle
+        title="Welcome back"
+        sub="Here’s your KOI brand health overview."
+        badge={<span className="flex items-center gap-2 rounded-full bg-koi-tint px-3 py-1 text-[12.5px] font-bold text-koi-primary"><span aria-hidden="true" className="size-2 rounded-full bg-koi-green" />Verified Brand</span>}
+        action={<Link href="/dashboard/products/new" className="flex h-12 items-center gap-2 rounded-2xl bg-koi-forest px-5 text-sm font-bold text-koi-lime no-underline"><Plus className="size-5" />Add Product</Link>}
+      />
 
-        <Button 
-          className="bg-koi-forest hover:bg-koi-night text-white h-12 px-6 rounded-xl shadow-[0_4px_14px_rgba(79,56,99,0.3)] hover:shadow-[0_6px_20px_rgba(79,56,99,0.4)] transition-all duration-300 gap-2 font-semibold"
-        >
-          <Plus className="w-5 h-5" />
-          Add Product
-        </Button>
+      <section aria-label="Key numbers" className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatsCard value={realStats.totalProducts} label="Total Products" styleType="neutral" />
+        <StatsCard value={DASHBOARD_STATS.approved} label="Approved" styleType="success" sample />
+        <StatsCard value={DASHBOARD_STATS.pendingReview} label="Pending Review" styleType="warning" sample />
+        <StatsCard value={DASHBOARD_STATS.trustScore} suffix="/ 100" label="Trust Score" styleType="special" sample />
+      </section>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <AlertCard alerts={DASHBOARD_ALERTS} sample />
+        <VerificationPipeline pipeline={VERIFICATION_PIPELINE} sample />
       </div>
 
-      {/* SECTION 2 - KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard 
-          icon={Package} 
-          value={realStats.totalProducts} 
-          label="Total Products" 
-          styleType="neutral" 
-        />
-        <StatsCard 
-          icon={CheckCircle} 
-          value={DASHBOARD_STATS.approved} 
-          label="Approved" 
-          styleType="success" 
-        />
-        <StatsCard 
-          icon={Clock3} 
-          value={DASHBOARD_STATS.pendingReview} 
-          label="Pending Review" 
-          styleType="warning" 
-        />
-        <StatsCard 
-          icon={ShieldCheck} 
-          value={`${DASHBOARD_STATS.trustScore} / 100`} 
-          label="Trust Score" 
-          styleType="special" 
-        />
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <RecentProductsTable products={RECENT_PRODUCTS} sample />
+        <TrustMetricsCard metrics={TRUST_METRICS} sample />
       </div>
-
-      {/* SECTION 3 - TWO COLUMN GRID (Alerts & Pipeline) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AlertCard alerts={DASHBOARD_ALERTS} />
-        <VerificationPipeline pipeline={VERIFICATION_PIPELINE} />
-      </div>
-
-      {/* SECTION 4 - TWO COLUMN GRID (Recent Products & Trust Metrics) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-        <div className="overflow-hidden">
-          <RecentProductsTable products={RECENT_PRODUCTS} />
-        </div>
-        <div className="overflow-hidden">
-          <TrustMetricsCard metrics={TRUST_METRICS} />
-        </div>
-      </div>
-
     </div>
   )
 }
