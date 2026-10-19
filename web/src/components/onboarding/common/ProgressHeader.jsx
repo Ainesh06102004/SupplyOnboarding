@@ -34,7 +34,7 @@ export default function ProgressHeader({
       </div>
 
       {/* Title */}
-      <h1 className="text-xl md:text-[26px] font-bold text-koi-forest tracking-tight leading-tight" style={{ fontFamily: "var(--font-koi-heading)" }}>
+      <h1 className="text-xl md:text-[26px] font-bold text-koi-forest tracking-tight leading-tight font-koi-display">
         {title}
       </h1>
       {subtitle && (

@@ -11,7 +11,7 @@ export default function RecentProductsTable({ products }) {
   return (
     <div className="bg-white rounded-2xl border border-koi-track shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden h-full flex flex-col">
       <div className="flex items-center justify-between p-6 border-b border-koi-track">
-        <h2 className="text-xl font-display font-bold text-koi-ink" style={{ fontFamily: "var(--font-koi-heading)" }}>
+        <h2 className="text-xl font-koi-display font-bold text-koi-ink font-koi-display">
           Recent Products
         </h2>
         <button 

@@ -151,10 +151,10 @@ export default function MultiSelectChipInput({
     <div className="w-full" ref={containerRef}>
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-foreground mb-1.5">
+        <label className="block text-sm font-medium text-koi-ink mb-1.5">
           {label}
           {maxSelections < Infinity && (
-            <span className="text-muted font-normal ml-1.5">
+            <span className="text-koi-muted font-normal ml-1.5">
               ({selected.length}/{maxSelections})
             </span>
           )}
@@ -173,10 +173,10 @@ export default function MultiSelectChipInput({
           }
         }}
         className={cn(
-          'relative flex flex-wrap items-center gap-2 rounded-xl border bg-card px-3 min-h-[48px] cursor-text transition-all duration-200',
+          'relative flex flex-wrap items-center gap-2 rounded-xl border bg-white px-3 min-h-[48px] cursor-text transition-all duration-200',
           isOpen
-            ? 'border-primary ring-2 ring-primary/15 shadow-sm'
-            : 'border-koi-track hover:border-primary/40',
+            ? 'border-koi-primary ring-2 ring-koi-primary/15 shadow-sm'
+            : 'border-koi-track hover:border-koi-primary/40',
           atLimit && 'opacity-70 cursor-default',
         )}
       >
@@ -188,7 +188,7 @@ export default function MultiSelectChipInput({
         {/* Search input */}
         {!atLimit && (
           <div className="flex items-center gap-1.5 flex-1 min-w-[120px] py-2">
-            <Search className="w-3.5 h-3.5 text-muted shrink-0" />
+            <Search className="w-3.5 h-3.5 text-koi-muted shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -212,7 +212,7 @@ export default function MultiSelectChipInput({
         {/* Chevron */}
         <ChevronDown
           className={cn(
-            'w-4 h-4 text-muted shrink-0 transition-transform duration-200',
+            'w-4 h-4 text-koi-muted shrink-0 transition-transform duration-200',
             isOpen && 'rotate-180',
           )}
         />
@@ -224,11 +224,10 @@ export default function MultiSelectChipInput({
           <ul
             ref={listRef}
             role="listbox"
-            className="absolute mt-2 w-full max-h-[220px] overflow-y-auto rounded-xl border border-koi-track bg-card py-1.5"
-            style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }}
+            className="absolute mt-2 w-full max-h-[220px] overflow-y-auto rounded-xl border border-koi-track bg-white py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
           >
             {filteredOptions.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-muted text-center">
+              <li className="px-4 py-3 text-sm text-koi-muted text-center">
                 {query ? 'No matching options' : 'All options selected'}
               </li>
             ) : (
@@ -242,8 +241,8 @@ export default function MultiSelectChipInput({
                   className={cn(
                     'px-4 py-2.5 text-sm cursor-pointer transition-colors duration-150',
                     idx === highlightIdx
-                      ? 'bg-primary/8 text-primary font-medium'
-                      : 'text-foreground hover:bg-primary/5',
+                      ? 'bg-koi-primary/8 text-koi-primary font-medium'
+                      : 'text-koi-ink hover:bg-koi-primary/5',
                   )}
                 >
                   {opt.label}
@@ -262,7 +261,7 @@ export default function MultiSelectChipInput({
  * ──────────────────────────────────────────────── */
 function Chip({ label, onRemove }) {
   return (
-    <span className="inline-flex items-center gap-1.5 h-9 bg-primary text-white text-sm font-medium pl-3.5 pr-2.5 rounded-full whitespace-nowrap select-none shadow-sm">
+    <span className="inline-flex items-center gap-1.5 h-9 bg-koi-primary text-white text-sm font-medium pl-3.5 pr-2.5 rounded-full whitespace-nowrap select-none shadow-sm">
       {label}
       <button
         type="button"

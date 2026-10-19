@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { useDropzone } from 'react-dropzone'
 
 const INPUT_CLASS =
-  'h-12 rounded-xl border-koi-track bg-koi-paper px-4 text-sm placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'h-12 rounded-xl border-koi-forest/15 bg-koi-paper px-4 text-sm placeholder:text-koi-muted hover:border-koi-forest/30 focus:border-koi-forest focus:bg-white focus-visible:ring-4 focus-visible:ring-koi-lime/30 transition-colors'
 
 /**
  * SkuEntryCard
@@ -33,7 +33,7 @@ export default function SkuEntryCard({
   const skuNum = index + 1
 
   return (
-    <div className="border border-koi-track rounded-xl overflow-hidden bg-card transition-all">
+    <div className="border border-koi-track rounded-xl overflow-hidden bg-white transition-all">
       {/* Collapse header */}
       <button
         type="button"
@@ -41,16 +41,16 @@ export default function SkuEntryCard({
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-koi-paper transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+          <span className="w-7 h-7 rounded-lg bg-koi-primary/10 text-koi-primary text-xs font-bold flex items-center justify-center">
             {skuNum}
           </span>
-          <span className="text-sm font-semibold text-foreground">
+          <span className="text-sm font-semibold text-koi-ink">
             {data.productName?.trim() || `Product ${skuNum}`}
           </span>
         </div>
         <ChevronDown
           className={cn(
-            'w-4 h-4 text-muted transition-transform duration-200',
+            'w-4 h-4 text-koi-muted transition-transform duration-200',
             isOpen && 'rotate-180',
           )}
         />
@@ -61,8 +61,8 @@ export default function SkuEntryCard({
         <div className="px-5 pb-5 pt-1 space-y-5 border-t border-koi-track">
           {/* Product Name */}
           <div>
-            <label className="block text-[13px] font-semibold text-foreground mb-1.5 tracking-tight">
-              Product Name <span className="text-danger">*</span>
+            <label className="block text-[13px] font-semibold text-koi-ink mb-1.5 tracking-tight">
+              Product Name <span className="text-koi-red">*</span>
             </label>
             <Input
               placeholder="e.g. Crunchy Protein Bar - Dark Cocoa"
@@ -130,8 +130,8 @@ function LabelUploadField({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-[13px] font-semibold text-foreground tracking-tight">
-          {label} {required && <span className="text-danger">*</span>}
+        <label className="text-[13px] font-semibold text-koi-ink tracking-tight">
+          {label} {required && <span className="text-koi-red">*</span>}
         </label>
 
         {/* Tab toggle */}
@@ -142,8 +142,8 @@ function LabelUploadField({
             className={cn(
               'flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-md transition-all',
               mode === 'upload'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted hover:text-foreground',
+                ? 'bg-white text-koi-ink shadow-sm'
+                : 'text-koi-muted hover:text-koi-ink',
             )}
           >
             <Upload className="w-3 h-3" />
@@ -155,8 +155,8 @@ function LabelUploadField({
             className={cn(
               'flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-md transition-all',
               mode === 'link'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted hover:text-foreground',
+                ? 'bg-white text-koi-ink shadow-sm'
+                : 'text-koi-muted hover:text-koi-ink',
             )}
           >
             <Link2 className="w-3 h-3" />
@@ -169,15 +169,15 @@ function LabelUploadField({
         fileValue ? (
           <div className="flex items-center justify-between bg-koi-paper border border-koi-track rounded-xl px-4 py-2.5">
             <div className="flex items-center gap-2.5">
-              <File className="w-4 h-4 text-primary" />
-              <span className="text-sm text-foreground truncate max-w-[200px]">
+              <File className="w-4 h-4 text-koi-primary" />
+              <span className="text-sm text-koi-ink truncate max-w-[200px]">
                 {fileValue.name}
               </span>
             </div>
             <button
               type="button"
               onClick={() => onFileChange(null)}
-              className="p-1 rounded-md hover:bg-background text-muted hover:text-foreground transition-colors"
+              className="p-1 rounded-md hover:bg-background text-koi-muted hover:text-koi-ink transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -185,12 +185,12 @@ function LabelUploadField({
         ) : (
           <div
             {...getRootProps()}
-            className="flex items-center justify-center h-[52px] rounded-xl border border-dashed border-koi-track bg-koi-paper cursor-pointer hover:border-primary/40 transition-colors"
+            className="flex items-center justify-center h-[52px] rounded-xl border border-dashed border-koi-forest/15 bg-koi-paper cursor-pointer hover:border-koi-primary/40 transition-colors"
           >
             <input {...getInputProps()} />
-            <span className="text-xs text-muted">
+            <span className="text-xs text-koi-muted">
               Drop file or{' '}
-              <span className="text-primary font-medium">browse</span>
+              <span className="text-koi-primary font-medium">browse</span>
             </span>
           </div>
         )
@@ -211,8 +211,8 @@ function LabelUploadField({
 /* ── InlineError ────────────────────────── */
 function InlineError({ message }) {
   return (
-    <p className="text-xs text-danger mt-1.5 flex items-center gap-1">
-      <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+    <p className="text-xs text-koi-red mt-1.5 flex items-center gap-1">
+      <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
       {message}
     </p>
   )

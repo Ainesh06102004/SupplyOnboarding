@@ -87,7 +87,7 @@ export default function Step1BasicInfo() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>Basic Information</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Basic Information</h3>
         <p className="text-gray-500">Tell us about the core details of your product.</p>
       </div>
 

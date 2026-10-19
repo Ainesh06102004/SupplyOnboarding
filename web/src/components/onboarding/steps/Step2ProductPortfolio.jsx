@@ -216,8 +216,8 @@ export default function Step2ProductPortfolio() {
             description={`The \u201cwhy this one?\u201d moment a shopper experiences \u2014 be specific about what makes your products nutritionally better.`}
           >
             <div id="field-healthDifferentiation">
-              <label className="block text-[13px] font-semibold text-foreground mb-1.5 tracking-tight">
-                What makes your products a healthier choice? <span className="text-danger">*</span>
+              <label className="block text-[13px] font-semibold text-koi-ink mb-1.5 tracking-tight">
+                What makes your products a healthier choice? <span className="text-koi-red">*</span>
               </label>
               <Textarea
                 placeholder="Our products contain 24g protein per serving, zero refined sugar, and clinically studied probiotics..."
@@ -226,7 +226,7 @@ export default function Step2ProductPortfolio() {
                   const v = e.target.value
                   if (v.length <= MAX_CHARS) setField('healthDifferentiation', v)
                 }}
-                className="min-h-[150px] rounded-xl border-koi-track bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                className="min-h-[150px] rounded-xl border-koi-forest/15 bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-koi-muted hover:border-koi-forest/30 focus:border-koi-forest focus:bg-white focus-visible:ring-4 focus-visible:ring-koi-lime/30 transition-colors"
               />
               <div className="flex items-center justify-between mt-1.5">
                 {errors.healthDifferentiation ? (
@@ -236,7 +236,7 @@ export default function Step2ProductPortfolio() {
                 )}
                 <span className={cn(
                   'text-xs tabular-nums',
-                  charCount > MAX_CHARS * 0.9 ? 'text-warning' : 'text-muted',
+                  charCount > MAX_CHARS * 0.9 ? 'text-koi-amber' : 'text-koi-muted',
                 )}>
                   {charCount}/{MAX_CHARS}
                 </span>
@@ -259,8 +259,8 @@ export default function Step2ProductPortfolio() {
 /* ── InlineError (internal) ────────────── */
 function InlineError({ message }) {
   return (
-    <p className="text-xs text-danger mt-1.5 flex items-center gap-1">
-      <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+    <p className="text-xs text-koi-red mt-1.5 flex items-center gap-1">
+      <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
       {message}
     </p>
   )

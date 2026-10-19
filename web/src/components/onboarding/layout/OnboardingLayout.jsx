@@ -1,178 +1,156 @@
 "use client";
 
 // ============================================================================
-// KOI ONBOARDING — Premium split layout
-// A confident, editorial frame for the brand application. Left: a sticky,
-// dark editorial panel with a vertical progress timeline + reassurance. Right:
-// the current step's form. Presentation only — steps keep all their own logic.
+// KOI ONBOARDING — the brand application frame (cinematic storefront, Oct 2026)
+//
+// The BrandSetup / BrandPortfolio / BrandCompliance boards: a forest rail with
+// the wordmark, the condensed promise, the numbered timeline and what happens
+// next; on the right a thin topbar — the step, its progress line and KOI's save
+// pill (the ember dot says whether the draft is saved) — then the step's title
+// in the display cut and its form. Presentation only: steps keep their logic.
 // ============================================================================
 
-import React from "react";
-import { motion } from "framer-motion";
-import {
-  Building2, Package, ShieldCheck, FileText, Check, Clock, Cpu, UserCheck,
-  Loader2, CheckCircle2,
-} from "lucide-react";
-
-const C = {
-  forest: "#0E4032",
-  deep: "#0A2E24",
-  bg: "#F2F6EC",
-  panelRight: "#F7FAF2",
-  border: "#E2E8D8",
-  muted: "#5A6B5A",
-  lime: "#C8F23E",
-};
+import { useRef } from "react";
+import Link from "next/link";
+import { Check } from "lucide-react";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
+import { useOnboardingStore } from "@/store/onboardingStore";
 
 const NODES = [
-  { n: 1, label: "Company details", hint: "Brand & business", icon: Building2 },
-  { n: 2, label: "Product portfolio", hint: "Your range", icon: Package },
-  { n: 3, label: "Compliance", hint: "Certifications", icon: ShieldCheck },
-  { n: 4, label: "Review & submit", hint: "Final check", icon: FileText },
+  { n: 1, label: "Company details", hint: "Brand & business", href: "/onboarding/step-1" },
+  { n: 2, label: "Product portfolio", hint: "Your range", href: "/onboarding/step-2" },
+  { n: 3, label: "Compliance", hint: "Certifications", href: "/onboarding/step-3" },
+  { n: 4, label: "Review & submit", hint: "Final check" },
 ];
 
-const WHAT_NEXT = [
-  { icon: Cpu, text: "AI verification of your brand & product claims" },
-  { icon: UserCheck, text: "Expert review by the KOI health team" },
-];
+const WHAT_NEXT = ["AI verification of your brand & product claims", "Expert review by the KOI health team"];
 
-function SaveIndicator({ status }) {
-  if (status === "saving") return <span className="flex items-center gap-1.5 text-[12px] font-semibold text-koi-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</span>;
-  if (status === "saved") return <span className="flex items-center gap-1.5 text-[12px] font-semibold text-koi-green"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</span>;
-  if (status === "error") return <span className="text-[12px] font-semibold text-koi-red">Save failed</span>;
-  return null;
+const SAVE = {
+  saving: { label: "Saving…", dot: "bg-koi-amber animate-pulse" },
+  saved: { label: "Draft saved", dot: "bg-koi-green" },
+  error: { label: "Save failed — try again", dot: "bg-koi-red" },
+  idle: { label: "Not saved yet · Save Draft below", dot: "bg-koi-ember" },
+};
+
+// The pill reports the real draft: a row exists only once Save Draft (or the
+// submit) has written one, so it reads the store, not the step's prop — which
+// only ever adds an error.
+function SavePill({ status }) {
+  const isSaving = useOnboardingStore((s) => s.isSaving);
+  const draftId = useOnboardingStore((s) => s.draftId);
+  const key = status === "error" ? "error" : isSaving ? "saving" : draftId ? "saved" : "idle";
+  const s = SAVE[key];
+  return (
+    <span role="status" className="flex h-10 items-center gap-2.5 rounded-full border border-koi-forest/10 bg-white px-4 text-[13px] font-semibold text-koi-forest">
+      <span aria-hidden="true" className={`size-[10px] shrink-0 rounded-full ${s.dot}`} />
+      <span>{s.label}</span>
+    </span>
+  );
 }
 
-function Timeline({ step }) {
+function Rail({ step }) {
   return (
-    <ol className="relative space-y-1">
-      {NODES.map((node, i) => {
-        const Icon = node.icon;
-        const done = step > node.n;
-        const active = step === node.n;
-        return (
-          <motion.li
-            key={node.n}
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.08 * i }}
-            className="flex gap-4"
-          >
-            <div className="flex flex-col items-center">
-              <span
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full transition-all duration-300"
-                style={{
-                  background: done ? C.lime : active ? "rgba(200,242,62,0.14)" : "rgba(255,255,255,0.06)",
-                  border: active ? `1.5px solid ${C.lime}` : "1.5px solid transparent",
-                }}
-              >
-                {done ? <Check className="h-4 w-4" style={{ color: C.forest }} strokeWidth={3} /> : <Icon className="h-4 w-4" style={{ color: active ? C.lime : "rgba(255,255,255,0.45)" }} strokeWidth={2} />}
+    <aside data-rail aria-label="Onboarding" className="relative z-20 hidden w-[380px] shrink-0 flex-col gap-8 overflow-hidden bg-koi-forest px-9 py-9 text-koi-bg lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
+      <Link href="/onboarding" className="flex items-center gap-3 no-underline">
+        <span className="flex items-end gap-[3px] text-koi-bg"><span className="font-koi-display text-[26px] font-extrabold leading-none tracking-[-0.02em]">KOI</span><span aria-hidden="true" className="mb-[3px] size-[7px] rounded-full bg-koi-ember" /></span>
+        <span className="rounded-full border border-koi-bg/25 px-2.5 py-1 font-koi-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-koi-bg/80">For Brands</span>
+      </Link>
+      <div className="flex flex-col gap-2">
+        <span className="koi-condensed font-koi-display text-[44px] font-extrabold leading-[0.95] tracking-[-0.03em]">Become a<br /><span className="text-koi-lime">verified brand.</span></span>
+        <span className="text-[13px] text-koi-bg/65">Around 10–15 minutes · save a draft any time</span>
+      </div>
+      <ol className="m-0 flex list-none flex-col p-0">
+        {NODES.map((node, i) => {
+          const done = step > node.n;
+          const active = step === node.n;
+          const dot = done
+            ? "bg-koi-lime text-koi-forest"
+            : active
+              ? "bg-koi-bg text-koi-forest ring-4 ring-koi-lime/30"
+              : "border border-koi-bg/25 text-koi-bg/60";
+          const text = (
+            <span className="flex flex-col">
+              <span className={`text-[14px] font-bold ${done || active ? "text-koi-bg" : "text-koi-bg/60"}`}>{node.label}</span>
+              <span className={`text-[12.5px] ${active ? "text-koi-lime" : "text-koi-bg/55"}`}>{active ? "In progress" : done ? "Done" : node.hint}</span>
+            </span>
+          );
+          return (
+            <li key={node.n} data-rail-step className="flex gap-4">
+              <span className="flex flex-col items-center">
+                <span className={`grid size-9 shrink-0 place-items-center rounded-full font-koi-num text-sm font-bold ${dot}`}>
+                  {done ? <Check className="size-4" strokeWidth={3} /> : node.n}
+                </span>
+                {i < NODES.length - 1 && <span aria-hidden="true" className={`my-1 min-h-[26px] w-px flex-1 ${done ? "bg-koi-lime/60" : "bg-koi-bg/15"}`} />}
               </span>
-              {i < NODES.length - 1 && (
-                <span className="my-1 w-px flex-1 min-h-[26px]" style={{ background: done ? C.lime : "rgba(255,255,255,0.12)" }} />
+              {/* Only steps already reached are links — the form validates on Continue. */}
+              {node.href && done ? (
+                <Link href={node.href} className="pb-5 no-underline transition-opacity hover:opacity-80">{text}</Link>
+              ) : (
+                <span aria-current={active ? "step" : undefined} className="pb-5">{text}</span>
               )}
-            </div>
-            <div className="pb-4">
-              <div className="text-[14px] font-bold" style={{ color: done || active ? "#fff" : "rgba(255,255,255,0.5)", fontFamily: "var(--font-koi-heading)" }}>
-                {node.label}
-              </div>
-              <div className="mt-0.5 text-[12px]" style={{ color: active ? "rgba(200,242,62,0.9)" : "rgba(255,255,255,0.4)" }}>
-                {active ? "In progress" : node.hint}
-              </div>
-            </div>
-          </motion.li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="flex flex-col gap-3 rounded-2xl bg-koi-bg/5 p-4">
+        <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-koi-mint">What happens next</span>
+        {WHAT_NEXT.map((t) => (
+          <span key={t} className="flex items-start gap-2.5 text-[13px] text-koi-bg/80"><span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-koi-lime" />{t}</span>
+        ))}
+      </div>
+      <p className="m-0 mt-auto font-koi-display text-[22px] font-bold italic leading-snug text-koi-bg/85">“We curate for trust, not volume.”</p>
+    </aside>
   );
 }
 
 /**
  * @param {number} step  1-based current step (drives the timeline)
  * @param {string} title / subtitle  header copy for the right column
- * @param {string} saveStatus  idle | saving | saved | error
+ * @param {string} saveStatus  "error" shows a failed save; the rest comes from the store
  * @param {ReactNode} children  the step's <main> + <StepActionBar>
  */
 export default function OnboardingLayout({ step = 1, title, subtitle, saveStatus = "idle", children }) {
+  const root = useRef(null);
   const pct = Math.round((step / NODES.length) * 100);
 
+  useGSAP(() => {
+    if (prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    const q = (s) => root.current.querySelectorAll(s);
+    gsap.from(q("[data-rail-step]"), { autoAlpha: 0, x: -14, duration: 0.6, stagger: 0.07, ease: E.reveal, clearProps: "opacity,visibility,transform" });
+  }, { scope: root });
+
+  // The title and progress move with every step.
+  useGSAP(() => {
+    const gsap = setupMotion();
+    const q = (s) => root.current.querySelectorAll(s);
+    gsap.to(q("[data-progress]"), { width: `${pct}%`, duration: prefersReducedMotion() ? 0 : 0.9, ease: E.dolly });
+    if (prefersReducedMotion()) return;
+    gsap.from(q("[data-line]"), { yPercent: 115, duration: 0.95, ease: E.reveal });
+    gsap.from(q("[data-rise]"), { autoAlpha: 0, y: 12, duration: 0.6, delay: 0.15, ease: E.reveal, clearProps: "opacity,visibility,transform" });
+  }, { scope: root, dependencies: [title, pct] });
+
   return (
-    <div className="min-h-screen lg:flex" style={{ background: C.bg, fontFamily: "var(--font-koi-body), sans-serif", color: C.forest }}>
-      {/* ── Left editorial panel ── */}
-      <aside className="relative hidden overflow-hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-[38%] lg:flex-col lg:justify-between lg:p-11 xl:p-14" style={{ background: C.forest }}>
-        <div className="pointer-events-none absolute inset-0 opacity-[0.10]" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "34px 34px" }} />
-        <div className="pointer-events-none absolute -right-20 top-1/3 h-72 w-72 rounded-full" style={{ background: "#16A06E", opacity: 0.3, filter: "blur(90px)" }} />
+    <div ref={root} className="min-h-screen bg-koi-bg font-koi-sans text-koi-ink antialiased lg:flex">
+      <Rail step={step} />
 
-        {/* top */}
-        <div className="relative">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl text-[15px] font-extrabold text-koi-forest" style={{ background: C.lime, fontFamily: "var(--font-koi-heading)" }}>K</span>
-            <span className="text-[19px] font-bold text-white" style={{ fontFamily: "var(--font-koi-heading)" }}>KOI</span>
-            <span className="ml-1 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">For Brands</span>
-          </div>
-          <h2 className="mt-9 text-[30px] font-bold leading-[1.05] tracking-tight text-white xl:text-[34px]" style={{ fontFamily: "var(--font-koi-heading)" }}>
-            Become a<br />verified brand.
-          </h2>
-        </div>
+      <div className="relative flex min-h-screen min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-koi-forest/5 bg-koi-bg/85 px-5 py-3 backdrop-blur-md md:px-10 lg:static lg:border-0 lg:bg-transparent lg:pt-7 lg:backdrop-blur-none">
+          <Link href="/onboarding" className="flex items-end gap-[3px] text-koi-forest no-underline lg:hidden"><span className="font-koi-display text-[22px] font-extrabold leading-none tracking-[-0.02em]">KOI</span><span aria-hidden="true" className="mb-[3px] size-[6px] rounded-full bg-koi-ember" /></Link>
+          <span className="font-koi-mono text-xs font-semibold uppercase tracking-[0.18em] text-koi-muted">Step {step} of {NODES.length}</span>
+          <span className="hidden h-1.5 w-40 overflow-hidden rounded-full bg-koi-track sm:block"><span data-progress className="block h-full w-0 rounded-full bg-koi-green" /></span>
+          <span className="ml-auto"><SavePill status={saveStatus} /></span>
+        </header>
 
-        {/* timeline */}
-        <div className="relative my-8">
-          <Timeline step={step} />
-        </div>
-
-        {/* bottom reassurance */}
-        <div className="relative space-y-5">
-          <div className="flex items-center gap-2.5 text-[13px] font-semibold text-white/70">
-            <Clock className="h-4 w-4" style={{ color: C.lime }} /> Around 10–15 minutes · saved as you go
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4">
-            <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">What happens next</div>
-            <ul className="space-y-2.5">
-              {WHAT_NEXT.map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-start gap-2.5 text-[12.5px] font-medium leading-snug text-white/70">
-                  <Icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.lime }} /> {text}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="text-[11px] font-medium italic text-white/35">“We curate for trust, not volume.”</p>
-        </div>
-      </aside>
-
-      {/* ── Right form column ── */}
-      <div className="flex min-h-screen flex-1 flex-col" style={{ background: C.panelRight }}>
-        {/* mobile progress bar */}
-        <div className="sticky top-0 z-20 border-b border-koi-track bg-white/85 px-5 py-3 backdrop-blur-md lg:hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-koi-muted">Step {step} of {NODES.length}</span>
-            <SaveIndicator status={saveStatus} />
-          </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-koi-track">
-            <div className="h-full rounded-full bg-koi-forest transition-all duration-500" style={{ width: `${pct}%` }} />
+        <div className="px-5 pb-2 pt-6 md:px-10">
+          <div className="mx-auto flex max-w-[1100px] flex-col gap-1.5">
+            <span className="hidden font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-green lg:block">{NODES[step - 1]?.label || "Application"}</span>
+            <h1 className="koi-condensed m-0 font-koi-display text-[clamp(40px,5vw,56px)] font-extrabold leading-none tracking-[-0.03em] text-koi-forest">
+              <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">{title}</span></span>
+            </h1>
+            {subtitle && <p data-rise className="m-0 max-w-xl text-base leading-relaxed text-koi-ink2">{subtitle}</p>}
           </div>
         </div>
-
-        {/* header */}
-        <motion.header
-          key={title}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="px-6 pb-2 pt-7 md:px-10 md:pt-10"
-        >
-          <div className="mx-auto flex max-w-[1100px] items-start justify-between gap-4">
-            <div>
-              <div className="mb-2 hidden text-[11px] font-bold uppercase tracking-[0.16em] text-koi-green lg:block">
-                Step {step} of {NODES.length} · {NODES[step - 1]?.label || "Application"}
-              </div>
-              <h1 className="text-[28px] font-bold leading-tight tracking-tight text-koi-forest md:text-[34px]" style={{ fontFamily: "var(--font-koi-heading)" }}>
-                {title}
-              </h1>
-              {subtitle && <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-koi-muted">{subtitle}</p>}
-            </div>
-            <div className="hidden shrink-0 pt-1 lg:block"><SaveIndicator status={saveStatus} /></div>
-          </div>
-        </motion.header>
 
         {children}
       </div>

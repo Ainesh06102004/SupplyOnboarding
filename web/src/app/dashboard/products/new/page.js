@@ -58,7 +58,7 @@ function AddProductWizard() {
     <div className="max-w-5xl mx-auto pb-24">
       {/* Header & Stepper */}
       <div className="mb-8">
-        <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-6" style={{ fontFamily: "var(--font-koi-heading)" }}>
+        <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-6 font-koi-display">
           Add New Product
         </h2>
         
@@ -95,7 +95,7 @@ function AddProductWizard() {
         
         {currentStep === 5 && (
           <div className="py-20 text-center">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>Step 5: AI Review & Submit</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Step 5: AI Review & Submit</h3>
             <p className="text-gray-500 mb-6">This step will be implemented in the next sprint.</p>
             <div className="inline-block px-4 py-2 bg-green-50 text-green-700 rounded-lg font-medium border border-green-200">
               Compliance Evidence saved successfully!

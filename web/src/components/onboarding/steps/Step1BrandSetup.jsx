@@ -18,10 +18,10 @@ import { validateStep1 } from '@/lib/validations/step1'
  *  Shared input class - premium KOI styling
  * ──────────────────────────────────────────────── */
 const INPUT_CLASS =
-  'h-12 rounded-xl border-koi-track bg-koi-paper px-4 text-sm placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'h-12 rounded-xl border-koi-forest/15 bg-koi-paper px-4 text-sm placeholder:text-koi-muted hover:border-koi-forest/30 focus:border-koi-forest focus:bg-white focus-visible:ring-4 focus-visible:ring-koi-lime/30 transition-colors'
 
 const TEXTAREA_CLASS =
-  'min-h-[140px] rounded-xl border-koi-track bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'min-h-[140px] rounded-xl border-koi-forest/15 bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-koi-muted hover:border-koi-forest/30 focus:border-koi-forest focus:bg-white focus-visible:ring-4 focus-visible:ring-koi-lime/30 transition-colors'
 
 /* ────────────────────────────────────────────────
  *  Initial form shape
@@ -296,9 +296,9 @@ export default function Step1BrandSetup() {
 function FieldWrapper({ id, label, required, error, children }) {
   return (
     <div>
-      <Label htmlFor={`field-${id}`} className="block text-[13px] font-semibold text-foreground mb-1.5 tracking-tight">
+      <Label htmlFor={`field-${id}`} className="block text-[13px] font-semibold text-koi-ink mb-1.5 tracking-tight">
         {label}
-        {required && <span className="text-danger ml-0.5">*</span>}
+        {required && <span className="text-koi-red ml-0.5">*</span>}
       </Label>
       {children}
       {error && <InlineError message={error} />}
@@ -311,8 +311,8 @@ function FieldWrapper({ id, label, required, error, children }) {
  * ──────────────────────────────────────────────── */
 function InlineError({ message }) {
   return (
-    <p className="text-xs text-danger mt-1.5 flex items-center gap-1">
-      <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+    <p className="text-xs text-koi-red mt-1.5 flex items-center gap-1">
+      <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
       {message}
     </p>
   )

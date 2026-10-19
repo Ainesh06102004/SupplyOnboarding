@@ -26,24 +26,24 @@ export default function VolumeSelector({ options = [], selected, onChange }) {
             className={cn(
               'relative flex flex-col items-center justify-center h-[80px] rounded-xl border-2 transition-all duration-200 cursor-pointer',
               isActive
-                ? 'border-primary bg-primary/5'
-                : 'border-koi-track bg-card hover:border-primary/30',
+                ? 'border-koi-primary bg-koi-primary/5'
+                : 'border-koi-track bg-white hover:border-koi-primary/30',
             )}
           >
             {isActive && (
-              <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+              <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-koi-primary flex items-center justify-center">
                 <Check className="w-3 h-3 text-white" />
               </div>
             )}
             <span
               className={cn(
                 'text-lg font-bold tracking-tight',
-                isActive ? 'text-primary' : 'text-foreground',
+                isActive ? 'text-koi-primary' : 'text-koi-ink',
               )}
             >
               {opt.label}
             </span>
-            <span className="text-[11px] text-muted mt-0.5 font-medium">
+            <span className="text-[11px] text-koi-muted mt-0.5 font-medium">
               {opt.subtitle}
             </span>
           </button>

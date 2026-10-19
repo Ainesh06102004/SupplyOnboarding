@@ -52,7 +52,7 @@ export default function Step5AIReview({ productId, onBack, onComplete }) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="border-b border-gray-100 pb-6">
         <div className="flex items-center gap-3 mb-2">
-          <h3 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>Your labels are with KOI</h3>
+          <h3 className="text-2xl font-bold text-gray-900 font-koi-display">Your labels are with KOI</h3>
           {queued && (
             <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
               <CheckCircle className="w-3 h-3" /> Queued for reading
@@ -66,7 +66,7 @@ export default function Step5AIReview({ productId, onBack, onComplete }) {
         {STEPS.map(({ icon: Icon, title, body }) => (
           <li key={title} className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
             <Icon className="w-5 h-5 text-koi-forest mb-3" />
-            <h4 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
+            <h4 className="font-semibold text-gray-900 mb-1 font-koi-display">{title}</h4>
             <p className="text-sm text-gray-600 leading-relaxed">{body}</p>
           </li>
         ))}

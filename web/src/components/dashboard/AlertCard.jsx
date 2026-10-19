@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 export default function AlertCard({ alerts }) {
   return (
     <div className="bg-white rounded-2xl border border-koi-track p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] h-full">
-      <h2 className="text-xl font-display font-bold text-koi-ink mb-5" style={{ fontFamily: "var(--font-koi-heading)" }}>
+      <h2 className="text-xl font-koi-display font-bold text-koi-ink mb-5 font-koi-display">
         Action Required
       </h2>
       <div className="flex flex-col">
@@ -42,7 +42,7 @@ export default function AlertCard({ alerts }) {
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-[14px] font-semibold text-gray-900 mb-0.5" style={{ fontFamily: "var(--font-koi-heading)" }}>
+                  <h4 className="text-[14px] font-semibold text-gray-900 mb-0.5 font-koi-display">
                     {alert.title}
                   </h4>
                   {alert.subtitle && (

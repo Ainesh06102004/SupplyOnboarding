@@ -62,24 +62,24 @@ export default function FileUploadDropzone({
     return (
       <div>
         {label && (
-          <label className="block text-sm font-semibold text-foreground mb-1.5 tracking-tight">
+          <label className="block text-sm font-semibold text-koi-ink mb-1.5 tracking-tight">
             {label}
           </label>
         )}
         <div className="flex items-center justify-between bg-koi-paper border border-koi-track rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-koi-primary/10 text-koi-primary flex items-center justify-center">
               <File className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground truncate max-w-[240px]">{file.name}</p>
-              <p className="text-xs text-muted">{formatSize(file.size)}</p>
+              <p className="text-sm font-medium text-koi-ink truncate max-w-[240px]">{file.name}</p>
+              <p className="text-xs text-koi-muted">{formatSize(file.size)}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onFileRemove}
-            className="p-1.5 rounded-lg hover:bg-background transition-colors text-muted hover:text-foreground"
+            className="p-1.5 rounded-lg hover:bg-background transition-colors text-koi-muted hover:text-koi-ink"
           >
             <X className="w-4 h-4" />
           </button>
@@ -92,7 +92,7 @@ export default function FileUploadDropzone({
   return (
     <div>
       {label && (
-        <label className="block text-sm font-semibold text-foreground mb-1.5 tracking-tight">
+        <label className="block text-sm font-semibold text-koi-ink mb-1.5 tracking-tight">
           {label}
         </label>
       )}
@@ -101,30 +101,30 @@ export default function FileUploadDropzone({
         className={cn(
           'relative flex flex-col items-center justify-center h-[140px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200',
           isDragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-koi-track bg-koi-paper hover:border-primary/40 hover:bg-koi-bg',
+            ? 'border-koi-primary bg-koi-primary/5'
+            : 'border-koi-track bg-koi-paper hover:border-koi-primary/40 hover:bg-koi-bg',
         )}
       >
         <input {...getInputProps()} />
         <div className="w-10 h-10 rounded-full bg-koi-track flex items-center justify-center mb-3">
-          <Upload className="w-5 h-5 text-muted" />
+          <Upload className="w-5 h-5 text-koi-muted" />
         </div>
-        <p className="text-sm text-foreground font-medium">
+        <p className="text-sm text-koi-ink font-medium">
           Drag & drop your file here
         </p>
-        <p className="text-xs text-muted mt-1">
+        <p className="text-xs text-koi-muted mt-1">
           or{' '}
-          <span className="text-primary font-medium underline underline-offset-2">
+          <span className="text-koi-primary font-medium underline underline-offset-2">
             browse files
           </span>
         </p>
       </div>
       {hint && !dragError && (
-        <p className="text-xs text-muted mt-2">{hint}</p>
+        <p className="text-xs text-koi-muted mt-2">{hint}</p>
       )}
       {dragError && (
-        <p className="text-xs text-danger mt-2 flex items-center gap-1">
-          <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+        <p className="text-xs text-koi-red mt-2 flex items-center gap-1">
+          <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
           {dragError}
         </p>
       )}

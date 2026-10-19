@@ -1,173 +1,101 @@
 "use client"
 
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils'
-import {
-  CheckCircle2, Cpu, UserCheck, Rocket, Clock, ArrowLeft, Mail, ShieldCheck, Check,
-} from 'lucide-react'
+// ============================================================================
+// KOI for brands — application received (cinematic storefront, Oct 2026)
+//
+// The BrandSubmitted board: one white sheet; the check draws itself, the title
+// rises in the display cut, and the four-stage timeline shows where the
+// application is — submitted, then KOI's AI read (the ember dot sits on it),
+// then a person's review, then approval. Home and support work as before.
+// ============================================================================
 
-const C = {
-  forest: '#0E4032',
-  bg: '#F2F6EC',
-  border: '#E2E8D8',
-  muted: '#5A6B5A',
-  lime: '#C8F23E',
-  emerald: '#16A06E',
-}
+import { useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { Check, UserCheck, Rocket, Clock, ArrowLeft } from 'lucide-react'
+import { useOnboardingStore } from '@/store/onboardingStore'
+import { setupMotion, prefersReducedMotion, useGSAP, E } from '@/lib/motion/koiMotion'
 
 const TIMELINE = [
-  { title: 'Submitted', status: 'completed', icon: CheckCircle2, text: 'Your onboarding details have been securely submitted.' },
-  { title: 'AI verification in progress', status: 'active', icon: Cpu, text: 'Our engine is reviewing your brand, certifications and product claims for completeness and compliance.' },
-  { title: 'Expert review', status: 'pending', icon: UserCheck, text: "KOI's health and compliance team assesses your submission for quality, trust and marketplace fit." },
-  { title: 'Approval & go live', status: 'pending', icon: Rocket, text: "If approved, we'll reach out with onboarding confirmation and dashboard access." },
+  { title: 'Submitted', state: 'done', text: 'Your onboarding details have been securely submitted.' },
+  { title: 'AI verification in progress', state: 'active', text: 'Our engine is reviewing your brand, certifications and product claims for completeness and compliance.' },
+  { title: 'Expert review', state: 'pending', icon: UserCheck, text: "KOI's health and compliance team assesses your submission for quality, trust and marketplace fit." },
+  { title: 'Approval & go live', state: 'pending', icon: Rocket, text: "If approved, we'll reach out with onboarding confirmation and dashboard access." },
 ]
-
-const CONFETTI = Array.from({ length: 16 }).map((_, i) => ({
-  id: i,
-  left: `${(i * 6.3 + 4) % 100}%`,
-  color: [C.lime, C.emerald, C.forest, '#F36A1D'][i % 4],
-  delay: (i % 8) * 0.12,
-  size: 6 + (i % 3) * 3,
-}))
-
-function Confetti() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-40 overflow-hidden">
-      {CONFETTI.map((p) => (
-        <motion.span
-          key={p.id}
-          initial={{ y: -30, opacity: 0, rotate: 0 }}
-          animate={{ y: 180, opacity: [0, 1, 1, 0], rotate: 220 }}
-          transition={{ duration: 2.1, delay: 0.2 + p.delay, ease: 'easeIn' }}
-          className="absolute rounded-[2px]"
-          style={{ left: p.left, width: p.size, height: p.size, background: p.color }}
-        />
-      ))}
-    </div>
-  )
-}
 
 export default function SubmissionSuccess() {
   const router = useRouter()
+  const brandName = useOnboardingStore((s) => s.brandData?.brandName?.trim())
+  const root = useRef(null)
+
+  useGSAP(() => {
+    if (prefersReducedMotion()) return
+    const gsap = setupMotion()
+    const q = (s) => root.current.querySelectorAll(s)
+    const tl = gsap.timeline({ defaults: { ease: E.reveal } })
+    tl.from(q('[data-card]'), { autoAlpha: 0, y: 50, duration: 1, ease: E.dolly, clearProps: 'opacity,visibility,transform' }, 0)
+    tl.from(q('[data-ring]'), { drawSVG: '0%', duration: 0.9 }, 0.35)
+    tl.from(q('[data-tick]'), { drawSVG: '0%', duration: 0.45 }, 1.05)
+    tl.from(q('[data-line]'), { yPercent: 115, duration: 1 }, 0.5)
+    tl.from(q('[data-rise]'), { autoAlpha: 0, y: 14, duration: 0.6, stagger: 0.08, clearProps: 'opacity,visibility,transform' }, 0.7)
+    tl.from(q('[data-step]'), { autoAlpha: 0, x: -14, duration: 0.55, stagger: 0.1, clearProps: 'opacity,visibility,transform' }, 0.9)
+    tl.fromTo(q('[data-mslot]'), { scale: 0 }, { scale: 1, duration: 0.5, ease: 'back.out(2.4)' }, 1.4)
+    tl.to(q('[data-mslot]'), { scale: 1.35, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut' })
+  }, { scope: root })
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12" style={{ background: C.bg, fontFamily: 'var(--font-koi-body), sans-serif' }}>
-      {/* ambient */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #0E4032 1px, transparent 0)', backgroundSize: '34px 34px' }} />
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full" style={{ background: C.emerald, opacity: 0.12, filter: 'blur(120px)' }} />
+    <main ref={root} className="relative flex min-h-screen flex-col items-center overflow-hidden bg-koi-bg px-4 py-10 font-koi-sans text-koi-ink antialiased">
+      <header className="flex w-full max-w-[1100px] items-center justify-between gap-3">
+        <span className="flex items-center gap-3">
+          <span className="flex items-end gap-[3px] text-koi-forest"><span className="font-koi-display text-[26px] font-extrabold leading-none tracking-[-0.02em]">KOI</span><span aria-hidden="true" className="mb-[3px] size-[7px] rounded-full bg-koi-ember" /></span>
+          <span className="rounded-full border border-koi-forest/20 px-2.5 py-1 font-koi-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-koi-forest">For Brands</span>
+        </span>
+        {brandName && <span className="truncate rounded-full border border-koi-forest/20 px-2.5 py-1 font-koi-mono text-[10px] font-medium uppercase tracking-[0.14em] text-koi-muted">{brandName}</span>}
+      </header>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-koi-track bg-white px-7 py-11 md:px-12"
-        style={{ boxShadow: '0 30px 80px rgba(14,64,50,0.12)' }}
-      >
-        <Confetti />
+      <section data-card className="relative mt-8 flex w-full max-w-[720px] flex-col items-center rounded-[34px] border border-koi-forest/10 bg-white px-6 pb-10 pt-12 shadow-[0_50px_100px_-60px_rgba(8,61,45,.45)] md:px-14">
+        <svg aria-hidden="true" viewBox="0 0 88 88" className="size-[88px] text-koi-green">
+          <circle cx="44" cy="44" r="40" className="fill-koi-tint" />
+          <circle data-ring cx="44" cy="44" r="40" fill="none" stroke="currentColor" strokeWidth="3" />
+          <path data-tick d="M28 45.5 39.5 57 61 33" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span data-rise className="mt-6 flex items-center gap-1.5 rounded-full bg-koi-tint px-3 py-1 font-koi-mono text-[11px] font-bold uppercase tracking-[0.12em] text-koi-primary">Submitted</span>
+        <h1 className="koi-condensed m-0 mt-3 text-center font-koi-display text-[clamp(48px,6vw,76px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">
+          <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">Application received</span></span>
+        </h1>
+        <p data-rise className="m-0 mt-3 max-w-[460px] text-center text-[15px] leading-relaxed text-koi-ink2">Building healthier choices for India starts with brands like yours.</p>
 
-        {/* header */}
-        <div className="relative mb-10 flex flex-col items-center text-center">
-          <motion.div
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.15, type: 'spring', stiffness: 180, damping: 14 }}
-            className="mb-5 grid h-20 w-20 place-items-center rounded-full"
-            style={{ background: C.forest }}
-          >
-            <Check className="h-9 w-9" style={{ color: C.lime }} strokeWidth={3} />
-          </motion.div>
-          <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-koi-tint px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-koi-primary">
-            <ShieldCheck className="h-3.5 w-3.5" /> Application received
-          </span>
-          <h1 className="text-[26px] font-bold leading-tight tracking-tight text-koi-forest md:text-[32px]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
-            You&apos;re in the queue.
-          </h1>
-          <p className="mt-2.5 max-w-md text-[15px] leading-relaxed text-koi-muted">
-            Thank you for applying to KOI. Here&apos;s exactly what happens from here.
-          </p>
+        <ol className="m-0 mt-9 flex w-full list-none flex-col rounded-[24px] border border-koi-forest/10 bg-koi-paper px-6 py-7">
+          {TIMELINE.map((t, i) => {
+            const Icon = t.icon
+            const last = i === TIMELINE.length - 1
+            return (
+              <li key={t.title} data-step aria-current={t.state === 'active' ? 'step' : undefined} className="flex gap-4">
+                <span className="flex flex-col items-center">
+                  {t.state === 'done' && <span className="grid size-9 shrink-0 place-items-center rounded-full bg-koi-green text-white"><Check className="size-4" strokeWidth={3} /></span>}
+                  {t.state === 'active' && <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-koi-forest bg-white"><span data-mslot aria-hidden="true" className="size-[10px] rounded-full bg-koi-ember" /></span>}
+                  {t.state === 'pending' && <span className="grid size-9 shrink-0 place-items-center rounded-full border-2 border-koi-forest/20 bg-white text-koi-muted"><Icon className="size-4" /></span>}
+                  {!last && <span aria-hidden="true" className={`my-1.5 min-h-[30px] w-0.5 flex-1 ${t.state === 'done' ? 'bg-koi-green' : 'bg-koi-forest/15'}`} />}
+                </span>
+                <span className={`flex flex-col ${last ? '' : 'pb-5'}`}>
+                  <span className={`text-[15px] font-bold ${t.state === 'active' ? 'text-koi-forest' : t.state === 'pending' ? 'text-koi-ink2' : ''}`}>{t.title}</span>
+                  <span className={`mt-1 text-[13px] leading-relaxed ${t.state === 'pending' ? 'text-koi-muted' : 'text-koi-ink2'}`}>{t.text}</span>
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+
+        <div data-rise className="mt-5 flex w-full flex-wrap items-center gap-4 rounded-[20px] bg-koi-forest p-5 text-koi-bg">
+          <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-xl bg-koi-lime text-koi-forest"><Clock className="size-5" /></span>
+          <span className="flex flex-col"><span className="text-[12px] font-medium text-koi-bg/60">Expected review time</span><span className="font-koi-num text-[20px] font-bold tracking-tight">24–72 hours</span></span>
+          <span className="ml-auto max-w-[200px] text-right text-[11.5px] leading-snug text-koi-bg/50">Varies with documentation completeness.</span>
         </div>
 
-        {/* timeline */}
-        <div className="rounded-[22px] border border-koi-track bg-koi-bg px-6 py-7 md:px-8">
-          {TIMELINE.map((item, idx) => (
-            <TimelineItem key={item.title} {...item} index={idx} isLast={idx === TIMELINE.length - 1} />
-          ))}
+        <div data-rise className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" onClick={() => router.push('/')} className="flex h-12 items-center gap-2 rounded-full border border-koi-forest/15 px-6 text-sm font-semibold text-koi-forest transition-colors hover:bg-koi-paper"><ArrowLeft className="size-4" /> Back to home</button>
+          <a href="mailto:support@koi.health" className="flex h-12 items-center rounded-full bg-koi-forest px-6 text-sm font-bold text-koi-lime no-underline">Contact support</a>
         </div>
-
-        {/* ETA */}
-        <div className="mt-5 flex items-center gap-4 rounded-[18px] p-5" style={{ background: C.forest }}>
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: 'rgba(200,242,62,0.15)' }}>
-            <Clock className="h-5 w-5" style={{ color: C.lime }} strokeWidth={2} />
-          </div>
-          <div>
-            <p className="text-[12px] font-medium text-white/60">Expected review time</p>
-            <p className="text-[20px] font-bold tracking-tight text-white" style={{ fontFamily: 'var(--font-koi-heading)' }}>24–72 hours</p>
-          </div>
-          <p className="ml-auto hidden max-w-[180px] text-right text-[11px] leading-snug text-white/45 sm:block">
-            Varies with documentation completeness.
-          </p>
-        </div>
-
-        {/* closing */}
-        <div className="mt-9 text-center">
-          <h2 className="text-[18px] font-bold leading-snug tracking-tight text-koi-forest md:text-[20px]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
-            Building healthier choices for India<br className="hidden sm:block" /> starts with brands like yours.
-          </h2>
-        </div>
-
-        {/* CTAs */}
-        <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <button
-            onClick={() => router.push('/')}
-            className="group inline-flex h-12 items-center gap-2 rounded-full px-7 text-[15px] font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(14,64,50,0.25)]"
-            style={{ background: C.forest }}
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            Back to home
-          </button>
-          <button
-            onClick={() => window.open('mailto:support@koi.health', '_blank')}
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-koi-track px-6 text-[14px] font-semibold text-koi-muted transition-colors hover:bg-koi-tint hover:text-koi-forest"
-          >
-            <Mail className="h-4 w-4" />
-            Contact support
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
-function TimelineItem({ title, status, icon: Icon, text, index, isLast }) {
-  const isCompleted = status === 'completed'
-  const isActive = status === 'active'
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay: 0.3 + index * 0.12 }}
-      className="flex gap-4"
-    >
-      <div className="flex flex-col items-center">
-        <div
-          className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full transition-all', isActive && 'animate-pulse')}
-          style={{
-            background: isCompleted ? C.emerald : isActive ? 'rgba(200,242,62,0.18)' : '#E2E8D8',
-            border: isActive ? `1.5px solid ${C.lime}` : '1.5px solid transparent',
-          }}
-        >
-          <Icon className="h-4 w-4" strokeWidth={2} style={{ color: isCompleted ? '#fff' : isActive ? '#0C6B4C' : C.muted }} />
-        </div>
-        {!isLast && <div className="my-1.5 w-0.5 flex-1 min-h-[30px]" style={{ background: isCompleted ? 'rgba(22,160,110,0.35)' : '#E2E8D8' }} />}
-      </div>
-      <div className={cn('pb-6', isLast && 'pb-0')}>
-        <h3 className="text-[15px] font-bold tracking-tight" style={{ color: isCompleted ? C.emerald : isActive ? '#0C6B4C' : C.muted, fontFamily: 'var(--font-koi-heading)' }}>
-          {title}
-        </h3>
-        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-koi-muted">{text}</p>
-      </div>
-    </motion.div>
+      </section>
+    </main>
   )
 }

@@ -21,7 +21,7 @@ const CLAIMS_WARN_THRESHOLD = 400
 const CLAIMS_DANGER_THRESHOLD = 480
 
 const TEXTAREA_CLASS =
-  'min-h-[180px] rounded-xl border-koi-track bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'min-h-[180px] rounded-xl border-koi-forest/15 bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-koi-muted hover:border-koi-forest/30 focus:border-koi-forest focus:bg-white focus-visible:ring-4 focus-visible:ring-koi-lime/30 transition-colors'
 
 const INITIAL_FORM = {
   fssaiFile: null,
@@ -107,10 +107,10 @@ export default function Step3Compliance() {
   const charCount = (form.claimsSummary || '').length
   const counterColor =
     charCount > CLAIMS_DANGER_THRESHOLD
-      ? 'text-danger'
+      ? 'text-koi-red'
       : charCount > CLAIMS_WARN_THRESHOLD
-        ? 'text-warning'
-        : 'text-muted'
+        ? 'text-koi-amber'
+        : 'text-koi-muted'
 
   /* ── Render ───────────────────────────── */
   return (
@@ -193,7 +193,7 @@ export default function Step3Compliance() {
 
           {/* ─── Submit error ────────────────── */}
           {submitError && (
-            <div className="bg-danger/10 border border-danger/30 rounded-xl px-5 py-3 text-sm text-danger">
+            <div className="bg-koi-red/10 border border-koi-red/30 rounded-xl px-5 py-3 text-sm text-koi-red">
               {submitError}
             </div>
           )}
@@ -219,18 +219,17 @@ export default function Step3Compliance() {
 function ClaimsSummarySection({ value, charCount, maxChars, counterColor, error, onChange }) {
   return (
     <section
-      className="bg-card border border-koi-track px-7 pt-6 pb-7 md:px-8 md:pt-7 md:pb-8 rounded-[20px]"
-      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
+      className="rounded-[26px] border border-koi-forest/10 bg-white p-6 md:p-7"
     >
       <div className="flex items-start gap-3.5 mb-5">
-        <div className="w-10 h-10 rounded-xl bg-primary/8 text-primary flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-koi-primary/8 text-koi-primary flex items-center justify-center shrink-0">
           <ShieldCheck className="w-[18px] h-[18px]" strokeWidth={2} />
         </div>
         <div className="pt-0.5">
-          <h2 className="text-[17px] font-display font-bold text-foreground tracking-tight leading-tight">
+          <h2 className="text-[17px] font-koi-display font-bold text-koi-ink tracking-tight leading-tight">
             Claims Summary
           </h2>
-          <p className="text-[13px] text-muted mt-0.5 leading-relaxed">
+          <p className="text-[13px] text-koi-muted mt-0.5 leading-relaxed">
             Briefly summarize the primary health claims made by your products.
           </p>
         </div>
@@ -245,8 +244,8 @@ function ClaimsSummarySection({ value, charCount, maxChars, counterColor, error,
         />
         <div className="flex items-center justify-between mt-1.5">
           {error ? (
-            <p className="text-xs text-danger flex items-center gap-1">
-              <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+            <p className="text-xs text-koi-red flex items-center gap-1">
+              <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
               {error}
             </p>
           ) : (

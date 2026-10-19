@@ -40,7 +40,7 @@ export default function DashboardOverviewPage() {
       {/* SECTION 1 - HERO HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+          <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-2 font-koi-display">
             Welcome back, Brand 👋
           </h2>
           <p className="text-[16px] text-koi-muted mb-4">

@@ -1,14 +1,14 @@
 "use client"
 
 import React from 'react'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight, Save } from 'lucide-react'
+import { ArrowRight, Save } from 'lucide-react'
 
 /**
  * StepActionBar
  *
- * Sticky bottom bar with Back, Save Draft, Continue.
- * Premium docked footer with blur + shadow.
+ * The boards' action strip: a white pill docked at the bottom of the form
+ * column — a line on what comes next, then Back, Save Draft and Continue
+ * (forest with a lime label). Same props and handlers as before.
  */
 export default function StepActionBar({
   onBack,
@@ -18,55 +18,45 @@ export default function StepActionBar({
   isLastStep = false,
   submitLabel = 'Submit',
   isSaving = false,
+  hint,
 }) {
+  const line = hint ?? (isLastStep ? 'Next: KOI’s review begins — AI first, then a person.' : 'Save a draft any time and pick up where you left off.')
   return (
-    <div
-      className="sticky bottom-0 z-30 w-full bg-white/80 backdrop-blur-md border-t border-koi-track"
-      style={{ boxShadow: '0 -4px 20px rgba(14,64,50,0.04)' }}
-    >
-      <div className="max-w-[1100px] mx-auto flex items-center justify-between px-6 md:px-10 py-4">
-        {/* Left: Back */}
-        <div>
+    <div className="sticky bottom-0 z-30 w-full px-4 pb-4 pt-2 md:px-8">
+      <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-3 rounded-[22px] border border-koi-forest/10 bg-white/95 p-3 shadow-[0_20px_50px_-30px_rgba(8,61,45,.45)] backdrop-blur-md md:pl-5">
+        <span className="hidden text-[13px] text-koi-muted md:block">{line}</span>
+        <span className="flex w-full items-center justify-end gap-2 md:w-auto">
           {!isFirstStep && (
-            <Button
+            <button
               type="button"
-              variant="ghost"
               onClick={onBack}
               disabled={isSaving}
-              className="text-koi-muted hover:text-koi-forest gap-2"
+              className="mr-auto flex h-12 items-center rounded-2xl border border-koi-forest/15 px-5 text-sm font-semibold text-koi-forest transition-colors hover:bg-koi-paper disabled:opacity-50 md:mr-0"
             >
-              <ArrowLeft className="w-4 h-4" />
               Back
-            </Button>
+            </button>
           )}
-        </div>
-
-        {/* Right: Save Draft + Continue */}
-        <div className="flex items-center gap-3">
           {onSaveDraft && (
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={onSaveDraft}
               disabled={isSaving}
-              className="border-koi-track text-koi-forest hover:bg-koi-tint gap-2"
+              className="flex h-12 items-center gap-2 rounded-2xl border border-koi-forest/15 px-4 text-sm font-semibold text-koi-forest transition-colors hover:bg-koi-tint disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
+              <Save className="size-4" />
               <span className="hidden sm:inline">Save Draft</span>
-            </Button>
+            </button>
           )}
-
-          <Button
+          <button
             type="button"
             onClick={onContinue}
             disabled={isSaving}
-            className="text-white gap-2 px-6 h-11 font-semibold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
-            style={{ background: "#0E4032", fontFamily: "var(--font-koi-body)" }}
+            className="flex h-12 items-center gap-2 rounded-2xl bg-koi-forest px-6 text-sm font-bold text-koi-lime transition-opacity disabled:opacity-50"
           >
             {isLastStep ? submitLabel : 'Continue'}
-            {!isLastStep && <ArrowRight className="w-4 h-4" />}
-          </Button>
-        </div>
+            <ArrowRight className="size-4" />
+          </button>
+        </span>
       </div>
     </div>
   )

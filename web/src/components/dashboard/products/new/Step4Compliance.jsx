@@ -6,7 +6,7 @@ import { useProductCreationStore } from '@/store/productCreationStore'
 const EvidenceCard = ({ title, badge, badgeStyle = 'bg-gray-100 text-gray-600', impactLabel, description, children }) => (
   <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
     <div className="flex justify-between items-start mb-2">
-      <h4 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
+      <h4 className="font-bold text-gray-900 font-koi-display">{title}</h4>
       {badge && (
         <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded ${badgeStyle}`}>
           {badge}
@@ -119,7 +119,7 @@ export default function Step4Compliance() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>Compliance & Evidence</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Compliance & Evidence</h3>
         <p className="text-gray-500">Provide supporting evidence for product claims and certifications.</p>
       </div>
 
@@ -128,7 +128,7 @@ export default function Step4Compliance() {
           <ShieldCheck className="w-5 h-5 text-koi-forest" />
         </div>
         <div>
-          <h5 className="font-bold text-koi-forest text-sm mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>Trust Signals Matter</h5>
+          <h5 className="font-bold text-koi-forest text-sm mb-1 font-koi-display">Trust Signals Matter</h5>
           <p className="text-sm text-koi-forest/80 leading-relaxed">
             Products with verified certifications and lab-backed claims receive higher trust scores and faster approvals.
           </p>

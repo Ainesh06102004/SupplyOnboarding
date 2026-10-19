@@ -36,7 +36,7 @@ export default function ProductsTable({ loading, products }) {
                     <div className="w-16 h-16 bg-koi-forest/10 rounded-full flex items-center justify-center mb-4">
                       <Package className="w-8 h-8 text-koi-forest" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>No products added yet</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 font-koi-display">No products added yet</h3>
                     <p className="text-gray-500 mb-6">Start by adding your first product to KOI.</p>
                     <Link href="/dashboard/products/new" passHref>
                       <Button className="bg-koi-forest hover:bg-koi-night text-white rounded-xl gap-2 shadow-md">

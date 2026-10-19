@@ -112,22 +112,21 @@ export default function DocumentUploadCard({
 
   return (
     <section
-      className="bg-card border border-koi-track rounded-[20px] overflow-hidden"
-      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
+      className="overflow-hidden rounded-[26px] border border-koi-forest/10 bg-white"
     >
       {/* Header */}
       <div className="px-7 pt-6 pb-0 md:px-8 md:pt-7">
         <div className="flex items-start justify-between gap-3 mb-1">
           <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-primary/8 text-primary flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-koi-primary/8 text-koi-primary flex items-center justify-center shrink-0">
               <FileText className="w-[18px] h-[18px]" strokeWidth={2} />
             </div>
             <div className="pt-0.5">
-              <h2 className="text-[17px] font-display font-bold text-foreground tracking-tight leading-tight">
+              <h2 className="text-[17px] font-koi-display font-bold text-koi-ink tracking-tight leading-tight">
                 {title}
               </h2>
               {description && (
-                <p className="text-[13px] text-muted mt-0.5 leading-relaxed">
+                <p className="text-[13px] text-koi-muted mt-0.5 leading-relaxed">
                   {description}
                 </p>
               )}
@@ -178,34 +177,34 @@ export default function DocumentUploadCard({
                 className={cn(
                   'relative flex flex-col items-center justify-center h-[140px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200',
                   isDragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-koi-track bg-koi-paper hover:border-primary/40 hover:bg-koi-bg',
+                    ? 'border-koi-primary bg-koi-primary/5'
+                    : 'border-koi-track bg-koi-paper hover:border-koi-primary/40 hover:bg-koi-bg',
                 )}
               >
                 <input {...getInputProps()} />
                 <div className="w-10 h-10 rounded-full bg-koi-track flex items-center justify-center mb-3">
-                  <Upload className="w-5 h-5 text-muted" />
+                  <Upload className="w-5 h-5 text-koi-muted" />
                 </div>
-                <p className="text-sm text-foreground font-medium">
+                <p className="text-sm text-koi-ink font-medium">
                   Drag & drop your file{allowMultiple ? 's' : ''} here
                 </p>
-                <p className="text-xs text-muted mt-1">
+                <p className="text-xs text-koi-muted mt-1">
                   or{' '}
-                  <span className="text-primary font-medium underline underline-offset-2">
+                  <span className="text-koi-primary font-medium underline underline-offset-2">
                     browse files
                   </span>
                 </p>
               </div>
             )}
 
-            <p className="text-xs text-muted mt-2">
+            <p className="text-xs text-koi-muted mt-2">
               Supported: {formatLabel} · Max {maxSizeMB}MB
               {allowMultiple ? ' each' : ''}
             </p>
 
             {dragError && (
-              <p className="text-xs text-danger mt-1.5 flex items-center gap-1">
-                <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+              <p className="text-xs text-koi-red mt-1.5 flex items-center gap-1">
+                <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
                 {dragError}
               </p>
             )}
@@ -221,12 +220,12 @@ export default function DocumentUploadCard({
                   placeholder="https://pubmed.ncbi.nlm.nih.gov/..."
                   value={link}
                   onChange={(e) => updateLink(idx, e.target.value)}
-                  className="h-11 rounded-xl border-koi-track bg-koi-paper px-4 text-sm placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                  className="h-11 rounded-xl border-koi-forest/15 bg-koi-paper px-4 text-sm placeholder:text-koi-muted hover:border-koi-forest/30 focus:border-koi-forest focus:bg-white focus-visible:ring-4 focus-visible:ring-koi-lime/30 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => removeLink(idx)}
-                  className="p-2 rounded-lg hover:bg-background transition-colors text-muted hover:text-foreground shrink-0"
+                  className="p-2 rounded-lg hover:bg-background transition-colors text-koi-muted hover:text-koi-ink shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -236,7 +235,7 @@ export default function DocumentUploadCard({
             <button
               type="button"
               onClick={addLink}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-koi-primary hover:text-koi-primary/80 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add link
@@ -246,8 +245,8 @@ export default function DocumentUploadCard({
 
         {/* Error */}
         {error && (
-          <p className="text-xs text-danger mt-2 flex items-center gap-1">
-            <span className="inline-block w-1 h-1 rounded-full bg-danger" />
+          <p className="text-xs text-koi-red mt-2 flex items-center gap-1">
+            <span className="inline-block w-1 h-1 rounded-full bg-koi-red" />
             {error}
           </p>
         )}
@@ -266,8 +265,8 @@ function RequiredBadge({ required }) {
       className={cn(
         'text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full shrink-0 mt-1',
         required
-          ? 'bg-danger/10 text-danger'
-          : 'bg-koi-track text-muted',
+          ? 'bg-koi-red/10 text-koi-red'
+          : 'bg-koi-track text-koi-muted',
       )}
     >
       {required ? 'Required' : 'Optional'}
@@ -283,8 +282,8 @@ function TabButton({ active, onClick, icon: Icon, label }) {
       className={cn(
         'inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold rounded-md transition-all duration-200',
         active
-          ? 'bg-card text-foreground shadow-sm'
-          : 'text-muted hover:text-foreground',
+          ? 'bg-white text-koi-ink shadow-sm'
+          : 'text-koi-muted hover:text-koi-ink',
       )}
     >
       <Icon className="w-3.5 h-3.5" />
@@ -297,16 +296,16 @@ function FileRow({ file, onRemove }) {
   return (
     <div className="flex items-center justify-between bg-koi-paper border border-koi-track rounded-xl px-4 py-3 group">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-koi-primary/10 text-koi-primary flex items-center justify-center shrink-0">
           <File className="w-4 h-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground truncate max-w-[260px]">
+          <p className="text-sm font-medium text-koi-ink truncate max-w-[260px]">
             {file.name}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-xs text-muted">{formatSize(file.size)}</p>
-            <span className="flex items-center gap-1 text-xs text-success">
+            <p className="text-xs text-koi-muted">{formatSize(file.size)}</p>
+            <span className="flex items-center gap-1 text-xs text-koi-green">
               <CheckCircle2 className="w-3 h-3" />
               Uploaded
             </span>
@@ -316,7 +315,7 @@ function FileRow({ file, onRemove }) {
       <button
         type="button"
         onClick={onRemove}
-        className="p-1.5 rounded-lg hover:bg-background transition-colors text-muted hover:text-foreground opacity-0 group-hover:opacity-100"
+        className="p-1.5 rounded-lg hover:bg-background transition-colors text-koi-muted hover:text-koi-ink opacity-0 group-hover:opacity-100"
       >
         <X className="w-4 h-4" />
       </button>

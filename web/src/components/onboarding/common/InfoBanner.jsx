@@ -30,7 +30,7 @@ export default function InfoBanner({ title, description, icon: Icon, className }
       )}
       <div className="min-w-0">
         {title && (
-          <h3 className="text-[15px] font-bold text-koi-forest tracking-tight leading-snug" style={{ fontFamily: "var(--font-koi-heading)" }}>
+          <h3 className="text-[15px] font-bold text-koi-forest tracking-tight leading-snug font-koi-display">
             {title}
           </h3>
         )}

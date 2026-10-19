@@ -6,7 +6,7 @@ import { useProductCreationStore } from '@/store/productCreationStore'
 const UploadCard = ({ title, badge, badgeColor = 'bg-gray-100 text-gray-600', description, children, error }) => (
   <div className={`bg-white border ${error ? 'border-red-300' : 'border-gray-200'} rounded-2xl p-6 shadow-sm`}>
     <div className="flex justify-between items-start mb-2">
-      <h4 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
+      <h4 className="font-bold text-gray-900 font-koi-display">{title}</h4>
       <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded ${badgeColor}`}>
         {badge}
       </span>
@@ -152,7 +152,7 @@ export default function Step3LabelUpload() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>Product Assets</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2 font-koi-display">Product Assets</h3>
         <p className="text-gray-500">Upload packaging and label files for AI extraction.</p>
       </div>
 
@@ -161,7 +161,7 @@ export default function Step3LabelUpload() {
           <Sparkles className="w-5 h-5 text-koi-forest" />
         </div>
         <div>
-          <h5 className="font-bold text-koi-forest text-sm mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>AI-assisted extraction enabled</h5>
+          <h5 className="font-bold text-koi-forest text-sm mb-1 font-koi-display">AI-assisted extraction enabled</h5>
           <p className="text-sm text-koi-forest/80 leading-relaxed">
             KOI AI will analyze uploaded assets to extract nutrition facts, ingredients, claims, and certification badges.
           </p>

@@ -107,7 +107,7 @@ export default function CompliancePage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+          <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-2 font-koi-display">
             Compliance
           </h2>
           <p className="text-[16px] text-koi-muted">
@@ -143,7 +143,7 @@ export default function CompliancePage() {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-display font-bold text-gray-900 leading-none">{COMPLIANCE_SCORE}</span>
+                <span className="text-4xl font-koi-display font-bold text-gray-900 leading-none">{COMPLIANCE_SCORE}</span>
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest mt-1">Score</span>
               </div>
             </div>
@@ -153,7 +153,7 @@ export default function CompliancePage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <ShieldCheck className="w-6 h-6 text-green-500" />
-              <h3 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>Good compliance standing</h3>
+              <h3 className="text-2xl font-bold text-gray-900 font-koi-display">Good compliance standing</h3>
             </div>
             <p className="text-gray-500 mb-8">
               Your overall catalog health is strong. However, <strong>2 documents need renewal</strong> to maintain your premium trust score on the marketplace.
@@ -184,7 +184,7 @@ export default function CompliancePage() {
 
       {/* SECTION 2 - DOCUMENT VAULT */}
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "var(--font-koi-heading)" }}>Document Vault</h3>
+        <h3 className="text-xl font-bold text-gray-900 mb-4 font-koi-display">Document Vault</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {VAULT_DATA.map((card) => {
             const Icon = card.icon
@@ -199,7 +199,7 @@ export default function CompliancePage() {
                     {card.status}
                   </div>
                 </div>
-                <h4 className="font-bold text-gray-900 mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>{card.title}</h4>
+                <h4 className="font-bold text-gray-900 mb-1 font-koi-display">{card.title}</h4>
                 <p className="text-sm font-medium text-gray-600 mb-1">{card.meta}</p>
                 <p className="text-xs text-gray-400 mb-6 flex-1">{card.submeta}</p>
                 <div className="flex gap-2 mt-auto">
@@ -223,7 +223,7 @@ export default function CompliancePage() {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
             <Info className="w-5 h-5 text-gray-400" />
-            <h3 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>Missing Coverage</h3>
+            <h3 className="font-bold text-gray-900 font-koi-display">Missing Coverage</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -260,7 +260,7 @@ export default function CompliancePage() {
           
           {/* SECTION 3 - EXPIRY ALERTS */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 font-koi-display">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
               Expiry Alerts
             </h3>
@@ -291,7 +291,7 @@ export default function CompliancePage() {
                         <AlertIcon className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="text-[14px] font-semibold text-gray-900 mb-0.5" style={{ fontFamily: "var(--font-koi-heading)" }}>
+                        <h4 className="text-[14px] font-semibold text-gray-900 mb-0.5 font-koi-display">
                           {alert.title}
                         </h4>
                         <p className="text-[13px] text-gray-500">
@@ -307,7 +307,7 @@ export default function CompliancePage() {
 
           {/* SECTION 5 - TIMELINE */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex-1">
-            <h3 className="font-bold text-gray-900 mb-5 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+            <h3 className="font-bold text-gray-900 mb-5 flex items-center gap-2 font-koi-display">
               <Clock className="w-5 h-5 text-koi-forest" />
               Compliance Activity
             </h3>

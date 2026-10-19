@@ -91,7 +91,7 @@ export default function VerificationPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+          <h2 className="text-[32px] md:text-[36px] font-koi-display font-bold text-koi-ink tracking-tight leading-none mb-2 font-koi-display">
             Verification
           </h2>
           <p className="text-[16px] text-koi-muted">
@@ -117,7 +117,7 @@ export default function VerificationPage() {
 
       {/* SECTION 2 - KANBAN PIPELINE */}
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "var(--font-koi-heading)" }}>Verification Pipeline</h3>
+        <h3 className="text-xl font-bold text-gray-900 mb-4 font-koi-display">Verification Pipeline</h3>
         <div className="flex overflow-x-auto gap-6 pb-4 hide-scrollbar snap-x">
           
           {/* COLUMN 1: DRAFT */}
@@ -128,7 +128,7 @@ export default function VerificationPage() {
             <div className="flex-1 bg-gray-50/50 border border-gray-200/60 rounded-2xl p-3 space-y-3 min-h-[400px]">
               {KANBAN_PIPELINE.drafts.map(item => (
                 <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                  <h4 className="font-bold text-gray-800 text-sm mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>{item.name}</h4>
+                  <h4 className="font-bold text-gray-800 text-sm mb-1 font-koi-display">{item.name}</h4>
                   <p className="text-xs text-gray-400 mb-4">Updated {item.updated}</p>
                   <Button variant="outline" className="w-full text-xs h-8 border-gray-300 text-gray-600 rounded-lg">
                     <Play className="w-3 h-3 mr-1.5" /> Resume
@@ -146,7 +146,7 @@ export default function VerificationPage() {
             <div className="flex-1 bg-blue-50/30 border border-blue-100 rounded-2xl p-3 space-y-3 min-h-[400px]">
               {KANBAN_PIPELINE.submitted.map(item => (
                 <div key={item.id} className="bg-white border border-blue-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                  <h4 className="font-bold text-gray-800 text-sm mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>{item.name}</h4>
+                  <h4 className="font-bold text-gray-800 text-sm mb-1 font-koi-display">{item.name}</h4>
                   <p className="text-xs text-gray-400">Queued • {item.date}</p>
                 </div>
               ))}
@@ -162,7 +162,7 @@ export default function VerificationPage() {
               {KANBAN_PIPELINE.aiReview.map(item => (
                 <div key={item.id} className="bg-white border border-koi-forest/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                   <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-bold text-gray-800 text-sm" style={{ fontFamily: "var(--font-koi-heading)" }}>{item.name}</h4>
+                    <h4 className="font-bold text-gray-800 text-sm font-koi-display">{item.name}</h4>
                     <span className="text-xs font-bold text-koi-forest">{item.progress}%</span>
                   </div>
                   {/* Progress Bar */}
@@ -198,7 +198,7 @@ export default function VerificationPage() {
                     <AlertTriangle className="w-3 h-3 text-red-500 mr-1.5" />
                     {item.badge}
                   </div>
-                  <h4 className="font-bold text-gray-800 text-sm mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>{item.name}</h4>
+                  <h4 className="font-bold text-gray-800 text-sm mb-2 font-koi-display">{item.name}</h4>
                   <div className="flex items-center gap-1.5 text-xs text-amber-700 font-medium mb-4 bg-amber-50 px-2 py-1 rounded-md w-fit">
                     <Flag className="w-3.5 h-3.5" />
                     {item.flags} Flags
@@ -221,7 +221,7 @@ export default function VerificationPage() {
             <div className="flex-1 bg-green-50/30 border border-green-100 rounded-2xl p-3 space-y-3 min-h-[400px]">
               {KANBAN_PIPELINE.finalDecision.map(item => (
                 <div key={item.id} className={`bg-white border rounded-xl p-4 shadow-sm ${item.status === 'approved' ? 'border-green-200' : 'border-red-200'}`}>
-                  <h4 className="font-bold text-gray-800 text-sm mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>{item.name}</h4>
+                  <h4 className="font-bold text-gray-800 text-sm mb-2 font-koi-display">{item.name}</h4>
                   {item.status === 'approved' ? (
                     <div className="inline-flex items-center bg-white text-gray-900 border border-green-200 px-2.5 py-1 rounded-md text-xs font-semibold">
                       <CheckCircle className="w-3.5 h-3.5 text-green-500 mr-1.5" /> Approved
@@ -248,7 +248,7 @@ export default function VerificationPage() {
         {/* SECTION 3 - DETAILED TABLE (Spans 2 columns) */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h3 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>All Submissions</h3>
+            <h3 className="font-bold text-gray-900 font-koi-display">All Submissions</h3>
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input type="text" placeholder="Search..." className="pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest" />
@@ -308,7 +308,7 @@ export default function VerificationPage() {
           
           {/* Card 1: Risk Alerts */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2 font-koi-display">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
               Risk Alerts
             </h4>
@@ -321,7 +321,7 @@ export default function VerificationPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-bold uppercase text-gray-900 border border-red-200 px-2 py-0.5 rounded tracking-wider bg-white">High Impact</span>
                   </div>
-                  <h5 className="text-sm font-semibold text-gray-900 mb-0.5" style={{ fontFamily: "var(--font-koi-heading)" }}>Claim Unsupported</h5>
+                  <h5 className="text-sm font-semibold text-gray-900 mb-0.5 font-koi-display">Claim Unsupported</h5>
                   <p className="text-[13px] text-gray-500">Mass Gainer Pro: &quot;Zero Sugar&quot; contradicts parsed ingredients.</p>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export default function VerificationPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-bold uppercase text-gray-900 border border-amber-200 px-2 py-0.5 rounded tracking-wider bg-white">Medium Impact</span>
                   </div>
-                  <h5 className="text-sm font-semibold text-gray-900 mb-0.5" style={{ fontFamily: "var(--font-koi-heading)" }}>Missing Lab Report</h5>
+                  <h5 className="text-sm font-semibold text-gray-900 mb-0.5 font-koi-display">Missing Lab Report</h5>
                   <p className="text-[13px] text-gray-500">Sleep Gummies: Melatonin levels require 3rd party lab evidence.</p>
                 </div>
               </div>
@@ -343,7 +343,7 @@ export default function VerificationPage() {
 
           {/* Card 2: Reviewer Notes */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2 font-koi-display">
               <FileText className="w-4 h-4 text-blue-500" />
               Reviewer Notes
             </h4>
@@ -355,7 +355,7 @@ export default function VerificationPage() {
 
           {/* Card 3: Activity Feed */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2 font-koi-display">
               <Activity className="w-4 h-4 text-green-500" />
               Activity Feed
             </h4>
