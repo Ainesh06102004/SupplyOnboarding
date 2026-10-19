@@ -6,76 +6,128 @@
 // of either. Its "probability of success" is not shown: nobody can know it.
 // What is shown is goals.js's cited maintenance and targets, and the energy-
 // balance arithmetic of lib/plan/projection.js, with its assumption beside it.
+//
+// Cinematic storefront (Oct 2026): the About card, the forest Baseline with
+// the lime target, and the journey drawn as one line (GSAP). Changing the
+// target weight or the figures sends KOI to the targets to say they moved.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AGE_BANDS } from "@/lib/planner/brief";
 import { goalsAllowed } from "@/lib/planner/goals";
 import { cardFor } from "@/lib/plan/goalCards";
 import { dailyFigures, projection } from "@/lib/plan/projection";
 import { ACTIVITY_PILLS, DIET_PILLS, SEX_PILLS, RESTRICTION_CHIPS, chipOn, toggleChip, cyclePill, avoidLabel } from "@/lib/plan/restrictions";
 import { peopleOf } from "@/lib/plan/planView";
-import { C, font, cardStyle, tileStyle, inr } from "./tokens";
+import { inr } from "./tokens";
 import { StepHead, Footer, Chip, RemovableChip, Ring } from "./bits";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
+import { useEmber } from "@/components/store/ember/Ember";
+import { useKoiVoice } from "@/store/koiVoiceStore";
 
-const inputStyle = (w) => ({ width: w, textAlign: "right", border: `1px solid ${C.inputBorder}`, borderRadius: 7, background: C.surface2, font: font(600, 14), color: C.ink, padding: "4px 6px" });
-const pill = { cursor: "pointer", font: font(600, 13), color: C.primary, background: C.tint2, padding: "5px 11px", borderRadius: 999, border: "none" };
-const rowStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 };
-const labelStyle = { font: font(500, 13), color: C.ink2 };
+const LINES = {
+  open: "This is where you stand. Change the target and I’ll redo the arithmetic.",
+  child: "Their week is planned to what their age needs. I don’t chart a child’s weight.",
+  redone: "Redone. The targets follow the new numbers.",
+};
 
-function NumberRow({ label, hint, value, unit, width = 60, onChange, min, max }) {
+const field = "h-9 rounded-lg border border-koi-forest/15 bg-koi-paper px-2 font-koi-num text-[15px] font-semibold text-koi-ink outline-none focus:border-koi-forest focus:bg-white";
+const cycle = "h-9 max-w-[220px] truncate rounded-full border border-koi-forest/15 bg-koi-paper px-3 text-[13px] font-semibold text-koi-forest hover:border-koi-forest/40";
+
+function Row({ label, hint, children, last = false }) {
   return (
-    <div style={rowStyle}>
-      <span style={labelStyle}>{label} {hint && <span style={{ color: C.fainter, fontSize: 11 }}>{hint}</span>}</span>
-      <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-        <input type="number" inputMode="decimal" min={min} max={max} value={value ?? ""} onChange={(e) => onChange(e.target.value)} aria-label={label} style={inputStyle(width)} />
-        <span style={{ font: font(500, 13), color: C.muted }}>{unit}</span>
-      </span>
+    <div className={`flex items-center justify-between gap-3 py-3 ${last ? "" : "border-b border-koi-forest/10"}`}>
+      <dt className="text-sm text-koi-ink2">{label} {hint && <span className="text-[11px] text-koi-muted">{hint}</span>}</dt>
+      <dd className="m-0 flex items-baseline gap-1.5">{children}</dd>
     </div>
   );
 }
 
-/** The design's journey chart, drawn from projection() points. */
+function NumberRow({ label, hint, value, unit, width = "w-16", onChange, min, max }) {
+  return (
+    <Row label={label} hint={hint}>
+      <input type="number" inputMode="decimal" min={min} max={max} value={value ?? ""} onChange={(e) => onChange(e.target.value)} aria-label={label} className={`${field} ${width} text-right`} />
+      <span className="text-[12px] text-koi-muted">{unit}</span>
+    </Row>
+  );
+}
+
+/** The journey, drawn from projection() points: one line, a lime dot at the end. */
 function Journey({ p }) {
+  const ref = useRef(null);
   const kgs = p.points.map((pt) => pt.kg);
   const top = Math.ceil(Math.max(...kgs) + 1);
   const bottom = Math.floor(Math.min(...kgs) - 1);
-  const xs = [60, 150, 240, 330, 420, 510, 588];
-  const y = (kg) => 32 + ((top - kg) / Math.max(1, top - bottom)) * 102;
-  const points = p.points.map((pt, i) => `${xs[i]},${y(pt.kg).toFixed(1)}`).join(" ");
+  const n = p.points.length;
+  const x = (i) => 60 + (i * 540) / Math.max(1, n - 1);
+  const y = (kg) => 30 + ((top - kg) / Math.max(1, top - bottom)) * 120;
+  const d = p.points.map((pt, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(pt.kg).toFixed(1)}`).join(" ");
+  useGSAP(() => {
+    if (prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    gsap.fromTo(ref.current.querySelector("[data-journey-line]"), { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 1.3, ease: E.dolly, delay: 0.2 });
+    gsap.from(ref.current.querySelectorAll("[data-journey-dot]"), { scale: 0, transformOrigin: "50% 50%", duration: 0.4, stagger: 0.12, ease: "back.out(3)", delay: 0.4 });
+  }, { scope: ref, dependencies: [d] });
   return (
-    <>
-      <svg width="100%" height="190" viewBox="0 0 620 190" preserveAspectRatio="none" role="img" aria-label="Weight at this plan's energy balance">
-        <line x1="34" y1="20" x2="34" y2="150" stroke={C.track} />
-        <line x1="34" y1="150" x2="600" y2="150" stroke={C.track} />
-        <text x="6" y="34" fontFamily="IBM Plex Mono" fontSize="10" fill={C.fainter}>{top}</text>
-        <text x="6" y="150" fontFamily="IBM Plex Mono" fontSize="10" fill={C.fainter}>{bottom}</text>
-        <polyline key={points} points={points} fill="none" stroke={C.accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" pathLength="1" strokeDasharray="1" style={{ animation: "koiDraw 1.3s ease .2s both" }} />
-        <g fill={C.accent}>{p.points.map((pt, i) => <circle key={i} cx={xs[i]} cy={y(pt.kg)} r="3.5" />)}</g>
-        <g fontFamily="Space Grotesk" fontSize="10" fontWeight="600" fill={C.icon}>
-          {p.points.map((pt, i) => <text key={i} x={xs[i] - 20} y={y(pt.kg) - 9}>{pt.kg}</text>)}
-        </g>
-      </svg>
-      <div style={{ display: "flex", justifyContent: "space-between", font: font(500, 9, "mono"), color: C.fainter, padding: "0 6px 0 34px" }}>
-        {p.points.map((pt, i) => <span key={i}>WK{pt.week}</span>)}
-      </div>
-    </>
+    <svg ref={ref} viewBox="0 0 640 200" className="h-[200px] w-full overflow-visible" role="img" aria-label={`Weight at this plan's energy balance, from ${kgs[0]} to ${kgs[kgs.length - 1]} kg`}>
+      <line x1="40" y1="20" x2="40" y2="160" stroke="#ebe8df" />
+      <line x1="40" y1="160" x2="620" y2="160" stroke="#ebe8df" />
+      <text x="4" y="34" fontFamily="IBM Plex Mono" fontSize="11" fill="#4a4d44">{top}</text>
+      <text x="4" y="160" fontFamily="IBM Plex Mono" fontSize="11" fill="#4a4d44">{bottom}</text>
+      <path data-journey-line d={d} fill="none" stroke="#1f5c3a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {p.points.map((pt, i) => (
+        <circle key={i} data-journey-dot cx={x(i)} cy={y(pt.kg)} r={i === n - 1 ? 6 : 4.5} fill={i === n - 1 ? "#ddf247" : "#1f5c3a"} stroke={i === n - 1 ? "#1f5c3a" : "none"} strokeWidth="3" />
+      ))}
+      <g fontFamily="Space Grotesk" fontSize="11" fontWeight="600" fill="#3d4a43" textAnchor="middle">
+        {p.points.map((pt, i) => <text key={i} x={x(i)} y={y(pt.kg) - 12}>{pt.kg}</text>)}
+        {p.points.map((pt, i) => <text key={`w${i}`} x={x(i)} y="186" fill="#4a4d44" fontFamily="IBM Plex Mono" fontSize="10">WK{pt.week}</text>)}
+      </g>
+    </svg>
   );
 }
 
 export default function YouStep({ s, onBack, onNext }) {
+  const root = useRef(null);
+  const ember = useEmber();
+  const say = useKoiVoice((v) => v.say);
   const person = s.active;
   const [avoidWords, setAvoidWords] = useState("");
+  const adult = person ? goalsAllowed(person.age_band) : false;
+  const figures = person ? dailyFigures(person) : null;
+
+  // The opening, then KOI's line.
+  useGSAP(() => {
+    if (!person) return;
+    const gsap = setupMotion();
+    const qa = (sel) => root.current.querySelectorAll(sel);
+    if (!prefersReducedMotion()) gsap.from(qa("[data-card]"), { autoAlpha: 0, y: 34, duration: 0.9, stagger: 0.09, ease: E.dolly, delay: 0.15 });
+    say(adult ? LINES.open : LINES.child);
+  }, { scope: root, dependencies: [person ? s.keyOf(person) : null] });
+
+  // The figures moved: KOI points at the targets (after the shopper stops typing).
+  const who = person ? s.keyOf(person) : "";
+  const sig = figures ? `${who}|${figures.kcal}|${figures.protein}` : "";
+  const last = useRef(sig);
+  useEffect(() => {
+    if (!sig || last.current === sig) return undefined;
+    // Someone else was picked: their figures are new to the page, not changed.
+    if (last.current.split("|")[0] !== who) { last.current = sig; return undefined; }
+    const t = setTimeout(() => {
+      last.current = sig;
+      const el = root.current?.querySelector("[data-targets]");
+      if (!el) return;
+      say(LINES.redone);
+      ember.go(el, ember.perch(el, 6), () => { ember.mark(el, "ring", 6); setTimeout(() => { ember.mark(null); ember.home(); }, 1800); });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [sig, who, ember, say]);
+
+  useEffect(() => () => ember.rest(), [ember]);
+
   if (!person) {
-    return (
-      <div>
-        <StepHead title="Your baseline & the promise" sub="Add someone to the household to start — type a name in “Add member…” above." />
-      </div>
-    );
+    return <StepHead eyebrow="Plan · step 2 of 6" title="Your baseline & the promise" sub="Add someone to the household to start — type a name in “Add member…” above." />;
   }
   const key = s.keyOf(person);
   const edit = (patch) => s.editProfile(key, patch);
-  const adult = goalsAllowed(person.age_band);
-  const figures = dailyFigures(person);
   const journey = projection(person);
   const goal = cardFor(person).card;
   const saving = s.saveState[key];
@@ -84,6 +136,7 @@ export default function YouStep({ s, onBack, onNext }) {
   const diet = cyclePill(DIET_PILLS, person.diet_type || "vegetarian");
   const sex = cyclePill(SEX_PILLS, person.sex || "unspecified");
   const avoids = (person.avoids ?? []).filter((a) => !RESTRICTION_CHIPS.some((c) => c.avoids?.some((x) => x.key === a.key)));
+  const whose = person.label === "Me" ? "Your" : `${person.label}'s`;
 
   const setBand = (band) => edit(goalsAllowed(band)
     ? { age_band: band }
@@ -95,189 +148,199 @@ export default function YouStep({ s, onBack, onNext }) {
   };
 
   return (
-    <div>
-      <StepHead title="Your baseline & the promise" sub={`Where ${person.label} stands today — and what the plan's numbers work out to.`} />
-      <div className="koi-you-layout">
-        <div className="koi-you-sidebar" style={{ ...cardStyle, animation: "koiUp .5s ease both" }}>
-          <div style={{ ...rowStyle, marginBottom: 16 }}>
-            <span style={{ font: font(700, 16) }}>About {person.label === "Me" ? "You" : person.label}</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 5, font: font(600, 11), color: saving?.state === "error" ? C.red : C.accent }}>
+    <div ref={root} className="font-koi-sans text-koi-ink">
+      <StepHead eyebrow="Plan · step 2 of 6" title="Your baseline & the promise" sub={`Where ${person.label === "Me" ? "you stand" : `${person.label} stands`} today — and what the plan's numbers work out to.`} />
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+        {/* About */}
+        <article data-card aria-label={`About ${person.label}`} className="flex flex-col self-start rounded-[28px] border border-koi-forest/10 bg-white p-6">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-muted">About {person.label === "Me" ? "you" : person.label}</span>
+            <span className={`font-koi-mono text-[11px] font-semibold ${saving?.state === "error" ? "text-koi-red" : saving?.state === "incomplete" ? "text-koi-warm" : "text-koi-green"}`}>
               {saving?.state === "saving" ? "saving…" : saving?.state === "saved" ? "saved ✓" : saving?.state === "error" ? "not saved" : saving?.state === "incomplete" ? "needs details" : "tap to edit"}
             </span>
           </div>
-          {saving?.state === "error" && <p style={{ font: font(500, 11), color: C.red, margin: "-8px 0 10px" }}>{saving.message}</p>}
-          {saving?.state === "incomplete" && <p style={{ font: font(500, 11), color: C.warm, margin: "-8px 0 10px" }}>{saving.problems.join(" ")}</p>}
+          {saving?.state === "error" && <p className="m-0 mt-2 text-[12px] text-koi-red">{saving.message}</p>}
+          {saving?.state === "incomplete" && <p className="m-0 mt-2 text-[12px] text-koi-warm">{saving.problems.join(" ")}</p>}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-            <div style={rowStyle}>
-              <span style={labelStyle}>Name</span>
-              <input value={person.label} onChange={(e) => edit({ label: e.target.value.slice(0, 40) })} aria-label="Name" style={{ ...inputStyle(130), textAlign: "left" }} />
-            </div>
-            <div style={rowStyle}>
-              <span style={labelStyle}>Age group</span>
-              <select value={person.age_band} onChange={(e) => setBand(e.target.value)} aria-label="Age group" style={{ ...inputStyle(150), textAlign: "left" }}>
+          <dl className="m-0 mt-2 flex flex-col">
+            <Row label="Name">
+              <input value={person.label} onChange={(e) => edit({ label: e.target.value.slice(0, 40) })} aria-label="Name" className={`${field} w-36 font-koi-sans text-sm font-bold`} />
+            </Row>
+            <Row label="Age group">
+              <select value={person.age_band} onChange={(e) => setBand(e.target.value)} aria-label="Age group" className={`${field} w-44 font-koi-sans text-sm font-semibold`}>
                 {AGE_BANDS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
               </select>
-            </div>
+            </Row>
             {adult && (
               <>
-                <NumberRow label="Age" hint={person.age_band === "senior_60_plus" ? "60–120" : "19–59"} value={person.age_years} unit="yrs" width={52} onChange={(v) => edit({ age_years: v })} min={19} max={120} />
+                <NumberRow label="Age" hint={person.age_band === "senior_60_plus" ? "60–120" : "19–59"} value={person.age_years} unit="yrs" width="w-14" onChange={(v) => edit({ age_years: v })} min={19} max={120} />
                 <NumberRow label="Height" hint="100–250" value={person.height_cm} unit="cm" onChange={(v) => edit({ height_cm: v })} min={100} max={250} />
                 <NumberRow label="Weight" hint="25–300" value={person.weight_kg} unit="kg" onChange={(v) => edit({ weight_kg: v })} min={25} max={300} />
-                <div style={rowStyle}>
-                  <span style={labelStyle}>Target weight</span>
-                  <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-                    <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                      <input type="number" inputMode="decimal" min={25} max={300} value={person.target_weight_kg ?? ""} onChange={(e) => edit({ target_weight_kg: e.target.value })} aria-label="Target weight" style={inputStyle(60)} />
-                      <span style={{ font: font(500, 13), color: C.muted }}>kg</span>
+                <div className="flex items-start justify-between gap-3 border-b border-koi-forest/10 py-3">
+                  <dt className="pt-2 text-sm text-koi-ink2"><label htmlFor="target-weight">Target weight</label></dt>
+                  <dd className="m-0 flex flex-col items-end gap-1">
+                    <span className="flex items-baseline gap-1.5">
+                      <input id="target-weight" type="number" inputMode="decimal" min={25} max={300} value={person.target_weight_kg ?? ""} onChange={(e) => edit({ target_weight_kg: e.target.value })} className={`${field} w-16 text-right`} />
+                      <span className="text-[12px] text-koi-muted">kg</span>
                     </span>
-                    {journey && <span style={{ font: font(400, 11), color: C.accent }}>{journey.kgPerWeek !== 0 ? `about ${Math.abs(journey.kgPerWeek)} kg/wk at this target` : "your target is maintenance"}</span>}
-                  </span>
+                    {journey && <span className="text-[11.5px] font-medium text-koi-green">{journey.kgPerWeek !== 0 ? `about ${Math.abs(journey.kgPerWeek)} kg/wk at this target` : "your target is maintenance"}</span>}
+                  </dd>
                 </div>
-                <div style={rowStyle}>
-                  <span style={labelStyle}>Sex <span style={{ color: C.fainter, fontSize: 11 }}>for the maintenance formula</span></span>
-                  <button type="button" onClick={() => edit({ sex: sex.next })} style={pill}>{sex.label} ⇅</button>
-                </div>
+                <Row label="Sex" hint="for the maintenance formula">
+                  <button type="button" onClick={() => edit({ sex: sex.next })} className={cycle}>{sex.label} ⇅</button>
+                </Row>
               </>
             )}
-            <div style={rowStyle}>
-              <span style={labelStyle}>Activity</span>
-              <button type="button" onClick={() => edit({ activity_level: activity.next })} style={pill}>{activity.label} ⇅</button>
-            </div>
-            <div style={rowStyle}>
-              <span style={labelStyle}>Diet</span>
-              <button type="button" onClick={() => edit({ diet_type: diet.next })} style={pill}>{diet.label} ⇅</button>
-            </div>
+            <Row label="Activity">
+              <button type="button" onClick={() => edit({ activity_level: activity.next })} className={cycle}>{activity.label} ⇅</button>
+            </Row>
+            <Row label="Diet" last>
+              <button type="button" onClick={() => edit({ diet_type: diet.next })} className={cycle}>{diet.label} ⇅</button>
+            </Row>
+          </dl>
 
-            <div style={{ paddingTop: 11, borderTop: `1px solid ${C.divider}` }}>
-              <div style={{ ...labelStyle, marginBottom: 9 }}>Dietary restrictions</div>
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-                {RESTRICTION_CHIPS.map((chip) => (
-                  <Chip key={chip.key} on={chipOn(chip, person)} onClick={() => edit(toggleChip(chip, person))}>{chip.label}</Chip>
-                ))}
-              </div>
-              <div style={{ font: font(400, 11), color: C.faint, marginTop: 8 }}>KOI keeps these out of the plan and your cart, and says “not verified” wherever a label doesn&apos;t let it check.</div>
+          <div className="mt-2 border-t border-koi-forest/10 pt-4">
+            <span className="text-sm font-bold">Dietary restrictions</span>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {RESTRICTION_CHIPS.map((chip) => (
+                <Chip key={chip.key} on={chipOn(chip, person)} onClick={() => edit(toggleChip(chip, person))}>{chip.label}</Chip>
+              ))}
             </div>
+            <p className="m-0 mt-2 text-[12.5px] leading-normal text-koi-muted">KOI keeps these out of the plan and your cart, and says “not verified” wherever a label doesn’t let it check.</p>
+          </div>
 
-            <div style={{ paddingTop: 11, borderTop: `1px solid ${C.divider}` }}>
-              <div style={{ ...labelStyle, marginBottom: 9 }}>Ingredients to avoid</div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 9 }}>
-                <input
-                  value={avoidWords}
-                  onChange={(e) => setAvoidWords(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") addAvoid(); }}
-                  placeholder="e.g. peanuts, soya, coffee…"
-                  aria-label="Ingredients to avoid"
-                  maxLength={120}
-                  style={{ flex: 1, minWidth: 0, border: "none", borderBottom: `1px solid ${C.inputBorder}`, background: "transparent", font: font(500, 13), color: C.ink, padding: "4px 0" }}
-                />
-                <button type="button" onClick={addAvoid} style={{ cursor: "pointer", font: font(600, 12), color: C.primary, background: C.tint2, padding: "5px 10px", borderRadius: 8, border: "none" }}>Remove</button>
+          <div className="mt-4 border-t border-koi-forest/10 pt-4">
+            <span className="text-sm font-bold">Ingredients to avoid</span>
+            <form onSubmit={(e) => { e.preventDefault(); addAvoid(); }} className="mt-2 flex gap-2">
+              <input
+                value={avoidWords}
+                onChange={(e) => setAvoidWords(e.target.value)}
+                placeholder="e.g. peanuts, soya, coffee…"
+                aria-label="Ingredients to avoid"
+                maxLength={120}
+                className="h-10 min-w-0 flex-1 rounded-xl border border-koi-forest/15 bg-koi-paper px-3 text-sm font-medium outline-none focus:border-koi-forest focus:bg-white"
+              />
+              <button type="submit" className="h-10 rounded-xl bg-koi-forest px-3.5 text-[13px] font-bold text-koi-lime">Keep out</button>
+            </form>
+            {avoids.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {avoids.map((a) => <RemovableChip key={a.key} tone="red" label={avoidLabel(a.key)} onRemove={() => s.removeAvoid(a.key, key)} />)}
               </div>
-              {avoids.length > 0 && (
-                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-                  {avoids.map((a) => <RemovableChip key={a.key} tone="red" size={12} label={avoidLabel(a.key)} onRemove={() => s.removeAvoid(a.key, key)} />)}
-                </div>
-              )}
-              <div style={{ font: font(400, 11), color: C.faint, marginTop: 7 }}>
-                Type an ingredient and press Enter — KOI keeps it out of {person.label}&apos;s share of the week. An allergy kept out of the house is set in household settings.
-              </div>
-            </div>
+            )}
+            <p className="m-0 mt-2 text-[12px] leading-normal text-koi-muted">Type an ingredient and press Enter — KOI keeps it out of {person.label}’s share of the week. An allergy kept out of the house is set in household settings.</p>
           </div>
 
           {adult && goal && (
-            <div style={{ marginTop: 16, background: C.panel, borderRadius: 14, padding: 15 }}>
-              <div style={{ font: font(500, 11, "mono"), color: C.muted, letterSpacing: ".06em", textTransform: "uppercase" }}>Goal · tap step 1 to change</div>
-              <div style={{ font: font(700, 19, "num"), color: C.primary, marginTop: 4 }}>{goal.title}</div>
-              {person.weight_kg && <div style={{ font: font(500, 12), color: C.ink2 }}>{person.weight_kg} kg{person.target_weight_kg ? ` → ${person.target_weight_kg} kg target` : ""}</div>}
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-koi-paper p-4">
+              <span className="flex flex-col">
+                <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-muted">Goal · step 1 to change</span>
+                <span className="text-[15px] font-bold text-koi-forest">{goal.title}</span>
+                {person.weight_kg && <span className="text-[12px] text-koi-ink2">{person.weight_kg} kg{person.target_weight_kg ? ` → ${person.target_weight_kg} kg target` : ""}</span>}
+              </span>
+              <button type="button" onClick={onBack} className="text-[13px] font-semibold text-koi-primary hover:underline">Change</button>
             </div>
           )}
-        </div>
+        </article>
 
-        <div className="koi-you-main" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={cardStyle}>
-            <div style={{ font: font(700, 16), marginBottom: 16 }}>{person.label === "Me" ? "Your" : `${person.label}'s`} Baseline</div>
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* Baseline */}
+          <article data-card aria-label={`${whose} baseline`} className="flex flex-col gap-4 rounded-[28px] bg-koi-forest p-6 text-koi-bg">
+            <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-lime">{whose} baseline</span>
             {figures ? (
               <>
-                <div className="koi-three">
-                  <div style={tileStyle}>
-                    <div style={{ font: font(500, 11, "mono"), color: C.muted }}>Maintenance</div>
-                    <div style={{ font: font(700, 24, "num"), marginTop: 4 }}>{figures.maintenance ? inr(figures.maintenance) : "—"}</div>
-                    <div style={{ font: font(500, 11), color: C.muted }}>kcal/day · {figures.maintenanceSource === "mifflin_st_jeor" ? "Mifflin–St Jeor" : "ICMR-NIN 2020"}</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-bg/10 p-4">
+                    <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-bg/70">Maintenance</span>
+                    <span className="font-koi-num text-[34px] font-semibold leading-none">{figures.maintenance ? inr(figures.maintenance) : "—"}</span>
+                    <span className="text-[12px] text-koi-bg/70">kcal/day · {figures.maintenanceSource === "mifflin_st_jeor" ? "Mifflin–St Jeor" : "ICMR-NIN 2020"}</span>
                   </div>
-                  <div style={tileStyle}>
-                    <div style={{ font: font(500, 11, "mono"), color: C.muted }}>{journey ? "At this target" : "Goal"}</div>
-                    <div style={{ font: font(700, 24, "num"), marginTop: 4 }}>{journey ? `${journey.kgPerWeek > 0 ? "−" : journey.kgPerWeek < 0 ? "+" : ""}${Math.abs(journey.kgPerWeek)}` : (adult ? goal?.title?.split(" ")[0] ?? "—" : "Child")}<span style={{ fontSize: 14, color: C.muted }}>{journey ? " kg" : ""}</span></div>
-                    <div style={{ font: font(500, 11), color: C.muted }}>{journey ? "a week, by the arithmetic" : adult ? "add age, height, weight" : "planned to their age"}</div>
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-bg/10 p-4">
+                    <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-bg/70">{journey ? "At this target" : "Goal"}</span>
+                    <span className="font-koi-num text-[34px] font-semibold leading-none">
+                      {journey ? `${journey.kgPerWeek > 0 ? "−" : journey.kgPerWeek < 0 ? "+" : ""}${Math.abs(journey.kgPerWeek)}` : (adult ? goal?.title?.split(" ")[0] ?? "—" : "Child")}
+                      {journey && <span className="ml-1 text-base font-medium">kg</span>}
+                    </span>
+                    <span className="text-[12px] text-koi-bg/70">{journey ? "a week, by the arithmetic" : adult ? "add age, height, weight" : "planned to their age"}</span>
                   </div>
-                  <div style={tileStyle}>
-                    <div style={{ font: font(500, 11, "mono"), color: C.muted }}>Latest plan</div>
-                    <div style={{ font: font(700, 24, "num"), marginTop: 4 }}>{planned?.coverage?.protein ?? "—"}<span style={{ fontSize: 14, color: C.muted }}>{planned?.coverage?.protein !== null && planned?.coverage?.protein !== undefined ? "%" : ""}</span></div>
-                    <div style={{ font: font(500, 11), color: C.muted }}>{planned ? "of the protein target" : "no plan yet"}</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-                  <div style={{ flex: 1, minWidth: 200, background: C.primary, borderRadius: 14, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                    <div>
-                      <div style={{ font: font(500, 11, "mono"), color: "rgba(255,255,255,.6)" }}>TARGET CALORIES</div>
-                      <div style={{ font: font(700, 22, "num"), color: "#fff", marginTop: 3 }}>{inr(figures.kcal)} <span style={{ fontSize: 12, color: "rgba(255,255,255,.65)" }}>kcal/day</span></div>
-                    </div>
-                    {figures.gap !== null && adult && figures.gap !== 0 && (
-                      <span style={{ font: font(600, 12), color: C.mint }}>{figures.gap > 0 ? `Deficit ${inr(figures.gap)}` : `Surplus ${inr(-figures.gap)}`}</span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 200, background: C.tint2, borderRadius: 14, padding: "14px 16px" }}>
-                    <div style={{ font: font(500, 11, "mono"), color: C.muted }}>TARGET PROTEIN</div>
-                    <div style={{ font: font(700, 22, "num"), color: C.primary, marginTop: 3 }}>{inr(figures.protein)} <span style={{ fontSize: 12, color: C.muted }}>g/day</span></div>
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-bg/10 p-4">
+                    <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-bg/70">Latest plan</span>
+                    <span className="font-koi-num text-[34px] font-semibold leading-none">{planned?.coverage?.protein ?? "—"}{planned?.coverage?.protein !== null && planned?.coverage?.protein !== undefined && <span className="ml-0.5 text-base font-medium">%</span>}</span>
+                    <span className="text-[12px] text-koi-bg/70">{planned ? "of the protein target" : "no plan yet"}</span>
                   </div>
                 </div>
-                <p style={{ font: font(400, 11, "sans", 1.5), color: C.muted, margin: "10px 0 0" }}>
-                  {figures.kcalStated || figures.proteinStated
-                    ? <>Targets you set yourself. <button type="button" onClick={() => s.resetToSuggestion(key)} style={{ cursor: "pointer", background: "none", border: "none", padding: 0, font: font(600, 11), color: C.accent }}>Use KOI&apos;s suggestion</button></>
-                    : figures.suggested?.basis?.join(" ")}
-                </p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div data-targets className="flex flex-col gap-1 rounded-2xl bg-koi-lime p-4 text-koi-forest">
+                    <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-koi-forest/75">Target calories</span>
+                    <span className="flex flex-wrap items-baseline gap-2">
+                      <span className="font-koi-num text-[38px] font-semibold leading-none">{inr(figures.kcal)}</span>
+                      <span className="text-sm font-medium">kcal/day</span>
+                      {figures.gap !== null && adult && figures.gap !== 0 && (
+                        <span className="ml-auto rounded-full bg-koi-forest px-2.5 py-1 font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-koi-lime">{figures.gap > 0 ? `Deficit ${inr(figures.gap)}` : `Surplus ${inr(-figures.gap)}`}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-2xl bg-koi-bg/10 p-4">
+                    <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-bg/70">Target protein</span>
+                    <span className="flex items-baseline gap-2"><span className="font-koi-num text-[38px] font-semibold leading-none">{inr(figures.protein)}</span><span className="text-sm font-medium text-koi-bg/75">g/day</span></span>
+                  </div>
+                </div>
+                {figures.kcalStated || figures.proteinStated ? (
+                  <p className="m-0 flex flex-wrap items-center gap-2 text-[13px] text-koi-bg/80">
+                    Targets you set yourself.
+                    <button type="button" onClick={() => s.resetToSuggestion(key)} className="h-9 rounded-full bg-koi-bg/10 px-3.5 text-[13px] font-semibold text-koi-lime transition-colors hover:bg-koi-bg/20">Use KOI’s suggestion</button>
+                  </p>
+                ) : figures.suggested?.basis?.length ? (
+                  <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                    {figures.suggested.basis.map((b) => <li key={b} className="flex gap-2 text-[13px] leading-snug text-koi-bg/80"><span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-full bg-koi-lime" />{b}</li>)}
+                  </ul>
+                ) : null}
               </>
             ) : (
-              <p style={{ font: font(400, 13), color: C.muted, margin: 0 }}>Choose an age group to see the daily figures KOI plans to.</p>
+              <p className="m-0 text-sm text-koi-bg/80">Choose an age group to see the daily figures KOI plans to.</p>
             )}
-          </div>
+          </article>
 
-          <div style={cardStyle}>
-            <div style={{ font: font(700, 16), marginBottom: 6 }}>{person.label === "Me" ? "Your" : `${person.label}'s`} Journey Preview</div>
+          {/* Journey */}
+          <article data-card aria-label={`${whose} journey preview`} className="flex flex-col gap-3 rounded-[28px] border border-koi-forest/10 bg-white p-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-muted">{whose} journey preview</span>
+              {journey && <span className="font-koi-mono text-[11px] text-koi-muted">Weight (kg)</span>}
+            </div>
             {journey ? (
               <>
-                <div style={{ font: font(500, 11, "mono"), color: C.muted, marginBottom: 6 }}>Weight (kg)</div>
                 <Journey p={journey} />
-                <div style={{ display: "flex", gap: 18, marginTop: 12, paddingTop: 14, borderTop: `1px solid ${C.divider}`, flexWrap: "wrap" }}>
-                  <div style={{ flex: 1, minWidth: 220, background: C.tint2, borderRadius: 14, padding: 14 }}>
-                    <div style={{ font: font(500, 12), color: C.ink2 }}>{journey.weeks !== null ? "At this rate, you'd reach" : "At this rate"}</div>
-                    <div style={{ font: font(700, 20, "num"), color: C.primary, marginTop: 2 }}>
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-koi-forest/10 pt-4">
+                  <div className="flex max-w-[560px] flex-col gap-1">
+                    <span className="text-[13px] text-koi-muted">{journey.weeks !== null ? "At this rate, you’d reach" : "At this rate"}</span>
+                    <span className="font-koi-display text-[26px] font-extrabold leading-tight tracking-[-0.01em] text-koi-forest">
                       {journey.weeks !== null
                         ? `${journey.goalWeight} kg by ${new Date(journey.reachDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
                         : journey.note ?? (journey.direction === "hold" ? "weight holds steady" : `about ${Math.abs(journey.kgPerWeek)} kg a week`)}
-                    </div>
-                    <div style={{ font: font(400, 12), color: C.muted, marginTop: 3 }}>{journey.assumption}</div>
+                    </span>
+                    <span className="text-[12.5px] leading-normal text-koi-muted">{journey.assumption}</span>
                   </div>
                   {planned?.coverage?.kcal !== null && planned?.coverage?.kcal !== undefined && (
-                    <div style={{ width: 188, background: C.surface2, border: "1px solid rgba(20,22,15,.05)", borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 14 }}>
+                    <div className="flex items-center gap-3.5 rounded-2xl bg-koi-paper p-3.5">
                       <Ring percent={planned.coverage.kcal} />
                       <div>
-                        <div style={{ font: font(500, 11), color: C.muted }}>Latest plan<br />meets calories</div>
-                        <div style={{ font: font(700, 22, "num"), marginTop: 2 }}>{planned.coverage.kcal}%</div>
+                        <div className="text-[12px] text-koi-muted">Latest plan<br />meets calories</div>
+                        <div className="font-koi-num text-[22px] font-semibold">{planned.coverage.kcal}%</div>
                       </div>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <p style={{ font: font(400, 13, "sans", 1.55), color: C.muted, margin: 0 }}>
+              <p className="m-0 text-sm leading-relaxed text-koi-muted">
                 {adult
-                  ? "Add age, height and weight above, and a target weight, to see what this target works out to — as arithmetic, never a promise."
+                  ? "Add age, height and weight, and a target weight, to see what this target works out to — as arithmetic, never a promise."
                   : "KOI doesn't chart a child's weight. Their week is planned to ICMR-NIN's needs for their age."}
               </p>
             )}
-          </div>
+          </article>
         </div>
-      </div>
+      </section>
       <Footer onBack={onBack} next={{ label: "Customize my plan", onClick: onNext }} />
     </div>
   );
