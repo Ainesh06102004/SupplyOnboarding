@@ -36,6 +36,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { X, ShieldCheck, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import GoogleIcon from "@/components/auth/GoogleIcon";
@@ -90,6 +91,7 @@ export default function LoginSheet({
   // The number the code was actually sent to, kept separately from the input so
   // the OTP step reads back what was sent rather than whatever is in the box.
   const [sentTo, setSentTo] = useState(null);
+  const [otpFocused, setOtpFocused] = useState(false);
 
   useEffect(() => {
     if (cooldown <= 0) return undefined;
@@ -113,6 +115,22 @@ export default function LoginSheet({
     };
   }, [open]);
 
+  // The sheet arrives like a card dealt onto the table: the room dims, the
+  // sheet rises (a bottom sheet on phones), and each step slides in.
+  const layerRef = useRef(null);
+  useGSAP(() => {
+    const layer = layerRef.current;
+    if (!open || !layer || prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    gsap.from(layer.querySelector("[data-backdrop]"), { autoAlpha: 0, duration: 0.3, ease: "power1.out" });
+    gsap.from(layer.querySelector("[data-sheet]"), { y: 48, autoAlpha: 0, scale: 0.97, duration: 0.55, ease: E.reveal });
+  }, { dependencies: [open] });
+  useGSAP(() => {
+    const el = layerRef.current?.querySelector("[data-step]");
+    if (!open || !el || prefersReducedMotion()) return;
+    setupMotion().from(el, { x: step === "OTP" ? 24 : -24, autoAlpha: 0, duration: 0.4, ease: E.reveal });
+  }, { dependencies: [open, step] });
+
   if (!open || typeof document === "undefined") return null;
 
   /**
@@ -128,6 +146,7 @@ export default function LoginSheet({
     setLoading(false);
     setCooldown(0);
     setSentTo(null);
+    setOtpFocused(false);
   };
 
   const dismiss = () => {
@@ -220,10 +239,12 @@ export default function LoginSheet({
       : required
         ? "Sign in to continue"
         : "Sign in to KOI";
+  const otpCells = Array.from({ length: 6 }, (_, i) => ({ d: code[i] ?? "", caret: otpFocused && i === Math.min(code.length, 5) && code.length < 6 }));
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-[rgba(15,30,22,.42)] backdrop-blur-sm transition-opacity"
+      ref={layerRef}
+      className="fixed inset-0 z-[100] flex items-end justify-center p-0 font-koi-sans text-koi-ink md:items-center md:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="koi-login-title"
@@ -233,173 +254,130 @@ export default function LoginSheet({
           dismiss();
         }
       }}
-      onClick={(e) => {
-        // A tap on the dimmed backdrop is a dismiss, except mid-checkout, where
-        // the explicit close button stays the only way out.
-        if (e.target === e.currentTarget && !required && !loading) dismiss();
-      }}
     >
-      <div ref={panelRef} className="bg-white w-full md:w-[440px] rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-200" style={{ fontFamily: "var(--koi-sans), 'Plus Jakarta Sans', system-ui, sans-serif" }}>
-
-        <div className="flex items-center justify-between p-5 border-b border-[#e7e5de]">
+      {/* A tap on the dimmed backdrop is a dismiss, except mid-checkout, where
+          the explicit close button stays the only way out. */}
+      <div data-backdrop aria-hidden="true" onClick={() => { if (!required && !loading) dismiss(); }} className="absolute inset-0 bg-koi-night/45 backdrop-blur-[3px]" />
+      <div ref={panelRef} data-sheet className="relative flex max-h-[92vh] w-full flex-col overflow-y-auto rounded-t-[32px] bg-koi-bg p-7 shadow-[0_50px_120px_-40px_rgba(4,20,15,.75)] md:max-w-[460px] md:rounded-[32px]">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             {step === "OTP" && (
               <button
-                onClick={() => {
-                  setStep("PHONE");
-                  setCode("");
-                }}
+                type="button"
+                onClick={() => { setStep("PHONE"); setCode(""); }}
                 aria-label="Change number"
-                className="w-8 h-8 rounded-full bg-[#f6f5f1] flex items-center justify-center hover:bg-[#e7e5de] transition-colors"
+                className="-ml-2 grid size-11 place-items-center rounded-full text-koi-forest transition-colors hover:bg-white"
               >
-                <ArrowLeft className="w-4 h-4 text-[#1c1e17]" />
+                <ArrowLeft className="size-5" />
               </button>
             )}
-            <h2
-              id="koi-login-title"
-              className="text-lg font-bold text-[#1c1e17]"
-             
-            >
-              {title}
+            <h2 id="koi-login-title" className="koi-condensed m-0 font-koi-display text-[36px] font-extrabold leading-none tracking-[-0.02em] text-koi-forest">
+              {title}<span aria-hidden="true" className="ml-[3px] inline-block size-[9px] rounded-full bg-koi-ember" />
             </h2>
           </div>
-          <button
-            onClick={dismiss}
-            aria-label="Close"
-            className="w-8 h-8 rounded-full bg-[#f6f5f1] flex items-center justify-center hover:bg-[#e7e5de] transition-colors"
-          >
-            <X className="w-4 h-4 text-[#1c1e17]" />
+          <button type="button" onClick={dismiss} aria-label="Close" className="-mr-2 -mt-1 grid size-11 shrink-0 place-items-center rounded-full text-koi-ink2 transition-colors hover:bg-white">
+            <X className="size-5" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5">
-
+        <div data-step className="flex flex-col">
           {step === "PHONE" && (
             <>
-              <p className="text-[14px] text-[#6b6f63] leading-relaxed font-medium">
+              <p className="m-0 mt-3 text-[15px] leading-relaxed text-koi-ink2">
                 {required
                   ? "Checkout, orders and your saved details need an account. Your cart is waiting for you — nothing is lost."
                   : "Sign in to save addresses, keep your diet profile, and see past orders."}
               </p>
 
-              <form onSubmit={handleSend} className="space-y-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="koi-phone"
-                    className="text-sm font-semibold text-[#1c1e17]"
-                  >
-                    Mobile number
-                  </label>
-                  <div className="flex bg-[#f6f5f1] border border-[#e7e5de] rounded-xl overflow-hidden focus-within:border-[#1f5c3a]/40 focus-within:bg-white transition-colors">
-                    <div className="px-4 py-3 border-r border-[#e7e5de] text-[#6b6f63] font-bold text-[15px] flex items-center bg-[#EDF2E6]">
-                      +91
-                    </div>
-                    <input
-                      id="koi-phone"
-                      type="tel"
-                      inputMode="numeric"
-                      autoComplete="tel-national"
-                      maxLength={10}
-                      placeholder="Enter 10-digit number"
-                      value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                      }
-                      className="flex-1 bg-transparent px-4 py-3 text-[15px] font-bold text-[#1c1e17] focus:outline-none placeholder:font-normal placeholder:text-[#6b6f63]/60"
-                    />
-                  </div>
+              <form onSubmit={handleSend} className="mt-6 flex flex-col gap-3">
+                <label htmlFor="koi-phone" className="text-sm font-bold">Mobile number</label>
+                <div className={`flex h-16 items-center gap-3 rounded-2xl border-2 bg-white px-4 transition-colors ${phone.length ? "border-koi-forest" : "border-koi-forest/15 focus-within:border-koi-forest"}`}>
+                  <span className="font-koi-num text-[20px] font-semibold text-koi-muted">+91</span>
+                  <span aria-hidden="true" className="h-7 w-px bg-koi-forest/15" />
+                  <input
+                    id="koi-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={10}
+                    placeholder="Enter 10-digit number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent font-koi-num text-[22px] font-semibold tracking-[0.06em] text-koi-ink outline-none placeholder:font-koi-sans placeholder:text-base placeholder:font-medium placeholder:tracking-normal placeholder:text-koi-muted"
+                  />
+                  <span aria-hidden="true" className="font-koi-mono text-[11px] text-koi-muted">{phone.length}/10</span>
                 </div>
-
                 <button
                   type="submit"
                   disabled={loading || !isValidMobile(phone)}
-                  className="w-full flex items-center justify-center gap-2 bg-[#1f5c3a] text-white h-12 rounded-xl font-bold hover:bg-[#155A47] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-koi-forest text-base font-bold text-koi-lime transition-colors disabled:cursor-not-allowed disabled:bg-koi-track disabled:text-koi-muted"
                 >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? "Sending code..." : "Send code"}
+                  {loading && <Loader2 className="size-4 animate-spin" />}
+                  {loading ? "Sending code…" : "Send code"}
                 </button>
               </form>
 
               {GOOGLE_ENABLED && (
                 <>
-                  <div className="flex items-center gap-3">
-                    <span className="h-px flex-1 bg-[#e7e5de]" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#6b6f63]/70">
-                      or
-                    </span>
-                    <span className="h-px flex-1 bg-[#e7e5de]" />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleGoogle}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 border border-[#e7e5de] bg-white text-[#1c1e17] h-12 rounded-xl font-bold hover:bg-[#EDF2E6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                  <div className="my-5 flex items-center gap-3"><span className="h-px flex-1 bg-koi-forest/10" /><span className="font-koi-mono text-[11px] uppercase tracking-[0.16em] text-koi-muted">or</span><span className="h-px flex-1 bg-koi-forest/10" /></div>
+                  <button type="button" onClick={handleGoogle} disabled={loading} className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-koi-forest/15 bg-white text-[15px] font-semibold text-koi-ink transition-colors hover:border-koi-forest/40 disabled:opacity-50">
                     <GoogleIcon />
                     Continue with Google
                   </button>
                 </>
               )}
 
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-[#EDF2E6] border border-[#e7e5de]">
-                <ShieldCheck className="w-5 h-5 text-[#2f8050] shrink-0" />
-                <p className="text-[12px] text-[#6b6f63] leading-relaxed font-medium">
-                  We&apos;ll text you a one-time code. By continuing you agree to
-                  our Terms of Service and Privacy Policy.
-                </p>
-              </div>
+              <p className="m-0 mt-5 flex items-start gap-2.5 text-[12.5px] leading-normal text-koi-muted">
+                <ShieldCheck className="mt-px size-4 shrink-0 text-koi-primary" />
+                We’ll text you a one-time code. By continuing you agree to our Terms of Service and Privacy Policy.
+              </p>
             </>
           )}
 
           {step === "OTP" && (
             <>
-              <p className="text-[14px] text-[#6b6f63] leading-relaxed font-medium">
-                We sent a 6-digit code to{" "}
-                <span className="font-bold text-[#1c1e17]">
-                  {formatForDisplay(sentTo)}
-                </span>
-                .
+              <p className="m-0 mt-3 text-[15px] leading-relaxed text-koi-ink2">
+                We sent a 6-digit code to <span className="font-koi-num font-semibold text-koi-ink">{formatForDisplay(sentTo)}</span>.
               </p>
-
-              <form onSubmit={handleVerify} className="space-y-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="koi-otp"
-                    className="text-sm font-semibold text-[#1c1e17]"
-                  >
-                    Verification code
-                  </label>
+              <form onSubmit={handleVerify} className="mt-6 flex flex-col gap-3">
+                <label htmlFor="koi-otp" className="text-sm font-bold">Verification code</label>
+                {/* Six cells to read, one real input underneath (opacity 0) so
+                    paste and the phone's one-time-code autofill both work. */}
+                <div className="relative">
+                  <div aria-hidden="true" className="grid grid-cols-6 gap-2">
+                    {otpCells.map((c, i) => (
+                      <span key={i} className={`grid h-16 place-items-center rounded-2xl border-2 bg-white font-koi-num text-[26px] font-semibold transition-colors ${c.d ? "border-koi-forest" : c.caret ? "border-koi-forest/60" : "border-koi-forest/15"}`}>
+                        {c.d}{c.caret && <span className="h-7 w-[2px] animate-pulse rounded-full bg-koi-forest" />}
+                      </span>
+                    ))}
+                  </div>
                   <input
                     id="koi-otp"
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     maxLength={6}
-                    placeholder="000000"
                     value={code}
-                    onChange={(e) =>
-                      setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    className="w-full bg-[#f6f5f1] border border-[#e7e5de] rounded-xl px-4 py-3 text-[22px] font-bold text-[#1c1e17] tracking-[0.5em] text-center focus:outline-none focus:border-[#1f5c3a]/40 focus:bg-white transition-colors placeholder:text-[#6b6f63]/30 placeholder:tracking-[0.5em]"
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onFocus={() => setOtpFocused(true)}
+                    onBlur={() => setOtpFocused(false)}
+                    className="absolute inset-0 h-full w-full cursor-text opacity-0"
                   />
                 </div>
-
                 <button
                   type="submit"
                   disabled={loading || code.length !== 6}
-                  className="w-full flex items-center justify-center gap-2 bg-[#1f5c3a] text-white h-12 rounded-xl font-bold hover:bg-[#155A47] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-koi-forest text-base font-bold text-koi-lime transition-colors disabled:cursor-not-allowed disabled:bg-koi-track disabled:text-koi-muted"
                 >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? "Verifying..." : "Verify and continue"}
+                  {loading && <Loader2 className="size-4 animate-spin" />}
+                  {loading ? "Verifying…" : "Verify and continue"}
                 </button>
               </form>
-
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={cooldown > 0 || loading}
-                className="w-full text-[13px] font-bold text-[#1c1e17] h-10 rounded-xl hover:bg-[#f6f5f1] transition-colors disabled:text-[#6b6f63]/60 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                className="mt-2 h-11 w-full rounded-xl font-koi-num text-sm font-semibold text-koi-primary transition-colors hover:bg-white disabled:cursor-not-allowed disabled:text-koi-muted disabled:hover:bg-transparent"
               >
                 {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
               </button>
@@ -410,13 +388,9 @@ export default function LoginSheet({
               there dismissing returns them to a page they cannot use — the
               close button in the header is still there for a genuine escape. */}
           {!required && (
-            <button
-              type="button"
-              onClick={dismiss}
-              className="w-full flex items-center justify-center gap-2 text-[#6b6f63] h-11 rounded-xl font-bold text-[14px] hover:text-[#1c1e17] hover:bg-[#f6f5f1] transition-colors"
-            >
+            <button type="button" onClick={dismiss} className="mt-4 flex h-11 items-center justify-center gap-2 self-center rounded-full px-4 text-sm font-semibold text-koi-ink2 transition-colors hover:bg-white hover:text-koi-forest">
               Continue browsing as guest
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="size-4" />
             </button>
           )}
         </div>
