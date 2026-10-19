@@ -23,7 +23,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import { useProductSupply } from "@/lib/marketplace/useProductSupply";
 import SupplyPanel from "@/components/store/product/SupplyPanel";
 import { C, HEADING } from "@/components/store/landing/tokens";
-import ProductHero from "@/components/store/product/ProductHero";
+import CloseUp from "@/components/store/product/CloseUp";
 import TrustBadge from "@/components/store/product/TrustBadge";
 import { StickyBuyBar } from "@/components/store/product/BuyPanel";
 import {
@@ -119,7 +119,8 @@ export default function ProductDetailPage({ params }) {
   return (
     <div className="koi-product ks-page-pad relative w-full overflow-x-clip pb-16" style={{ background: "var(--koi-bg)" }}>
       <main>
-        <ProductHero product={vm} />
+        {/* The close-up: the pack, the label read, the score and the purchase. */}
+        <CloseUp product={{ ...vm, availability: supply.availability, deliveryEta: supply.deliveryEta }} />
         <div ref={sentinel} aria-hidden="true" className="h-0" />
 
         {/* Availability sits directly under the hero, above every editorial

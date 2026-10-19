@@ -246,6 +246,9 @@ export function buildProductVM(p, all = [], profile = null) {
     ingredientsEvidence,
     ingredientTimeline: [],
     nutrition: { ...panel, calories: kcal, carbs, fat, declaredServing: p.servingSize || null },
+    // The declared figures per 100, for the close-up's "label, read" and its
+    // facts row; `high` is the claim rules' own verdicts (lib/nutrition/claims).
+    facts: { unit: per100.unit || null, kcal, protein, carbs, sugar, fat, fibre, high },
     comparison,
     personas: { for: personasFor, goodToKnow },
     usage: [],
