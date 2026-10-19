@@ -98,15 +98,15 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false, o
 
   if (status.connected) {
     return (
-      <div className={`rounded-xl border border-[#e7e5de] bg-white ${compact ? "p-3.5" : "p-5"}`}>
+      <div className={`rounded-xl border border-koi-forest/10 bg-white ${compact ? "p-3.5" : "p-5"}`}>
         <div className="flex items-start gap-3">
           <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.forest }} strokeWidth={3} />
           <div className="min-w-0 flex-1">
-            <h3 className="text-[13.5px] font-bold text-[#1c1e17]" style={HEADING}>
+            <h3 className="text-[13.5px] font-bold text-koi-ink" style={HEADING}>
               Swiggy connected
             </h3>
             {status.hasAddress ? (
-              <p className="mt-0.5 text-[12px] leading-relaxed text-[#6b6f63]" style={BODY}>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-koi-muted" style={BODY}>
                 KOI can check what&apos;s in stock near you and hand your basket over when you&apos;re ready.
               </p>
             ) : (
@@ -118,7 +118,7 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false, o
             <button
               onClick={disconnect}
               disabled={busy}
-              className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#6b6f63] underline underline-offset-2 hover:text-[#1c1e17] disabled:opacity-50"
+              className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-koi-muted underline underline-offset-2 hover:text-koi-ink disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2Off className="h-3 w-3" />}
               Disconnect
@@ -130,14 +130,14 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false, o
   }
 
   return (
-    <div className={`rounded-xl border border-[#e7e5de] bg-white ${compact ? "p-3.5" : "p-5"}`}>
+    <div className={`rounded-xl border border-koi-forest/10 bg-white ${compact ? "p-3.5" : "p-5"}`}>
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.orange }} />
         <div className="min-w-0 flex-1">
-          <h3 className="text-[13.5px] font-bold text-[#1c1e17]" style={HEADING}>
+          <h3 className="text-[13.5px] font-bold text-koi-ink" style={HEADING}>
             Connect Swiggy to see what&apos;s in stock
           </h3>
-          <p className="mt-0.5 text-[12px] leading-relaxed text-[#6b6f63]" style={BODY}>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-koi-muted" style={BODY}>
             Until you do, KOI can show you what it has screened but not whether it can be delivered
             to you right now. Connecting lets us check stock and prices at your address, and put a
             basket into your Swiggy cart when you ask. You still confirm and pay on Swiggy.
@@ -146,17 +146,17 @@ export default function ConnectSwiggy({ next = "/store/shop", compact = false, o
             <button
               onClick={connectMock}
               disabled={busy}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#1f5c3a] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#1f5c3a]/90 disabled:opacity-50"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-koi-forest px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-koi-forest/90 disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5 text-[#9fe7c4]" />}
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5 text-koi-mint" />}
               Connect mock provider
             </button>
           ) : (
             <a
               href={href}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#1f5c3a] px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#1f5c3a]/90"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-koi-forest px-4 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-koi-forest/90"
             >
-              <Link2 className="h-3.5 w-3.5 text-[#9fe7c4]" />
+              <Link2 className="h-3.5 w-3.5 text-koi-mint" />
               Connect Swiggy
             </a>
           )}

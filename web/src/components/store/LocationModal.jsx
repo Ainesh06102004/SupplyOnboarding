@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPin, Navigation, Search, X, AlertCircle } from "lucide-react";
 import { locationService } from "@/lib/locationService";
+import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 
 /**
  * LocationModal
@@ -154,34 +155,47 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
     onOpenChange(false);
   };
 
+  // The room dims and the sheet rises (a bottom sheet on phones).
+  const layerRef = useRef(null);
+  useGSAP(() => {
+    const layer = layerRef.current;
+    if (!open || !layer || prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    gsap.from(layer.querySelector("[data-backdrop]"), { autoAlpha: 0, duration: 0.3, ease: "power1.out" });
+    gsap.from(layer.querySelector("[data-sheet]"), { y: 48, autoAlpha: 0, scale: 0.97, duration: 0.55, ease: E.reveal });
+  }, { dependencies: [open] });
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-[500px] max-h-[90vh] overflow-y-auto bg-white border border-[#e7e5de] shadow-2xl rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div ref={layerRef} role="dialog" aria-modal="true" aria-label={view === "select" ? (mode === "store" ? "Select your location" : "Find your address") : "Address details"} className="fixed inset-0 z-50 flex items-end justify-center p-0 font-koi-sans text-koi-ink md:items-center md:p-4">
+      <div data-backdrop aria-hidden="true" onClick={() => onOpenChange(false)} className="absolute inset-0 bg-koi-night/45 backdrop-blur-[3px]" />
+      <div data-sheet className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[32px] bg-koi-bg shadow-[0_50px_120px_-40px_rgba(4,20,15,.75)] md:max-w-[520px] md:rounded-[32px]">
         <button
+          type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 p-1.5 text-[#6b6f63] hover:bg-[#e7e5de] rounded-full transition-colors z-10"
+          aria-label="Close"
+          className="absolute right-4 top-4 z-10 grid size-11 place-items-center rounded-full text-koi-ink2 transition-colors hover:bg-white"
         >
           <X className="w-5 h-5" />
         </button>
 
         {view === "select" ? (
           <div className="flex flex-col">
-            <div className="p-6 pb-4 bg-[#f6f5f1] border-b border-[#e7e5de]">
-              <h2 className="text-xl font-bold text-[#1c1e17] mb-1">
+            <div className="px-7 pb-2 pt-7">
+              <h2 className="koi-condensed m-0 mb-2 pr-10 font-koi-display text-[34px] font-extrabold leading-none tracking-[-0.02em] text-koi-forest">
                 {mode === "store" ? "Select your location" : "Find your address"}
               </h2>
-              <p className="text-[#6b6f63] text-sm">
+              <p className="text-koi-muted text-sm">
                 {mode === "store" 
                   ? "To see accurate availability and delivery times" 
                   : "We'll use this to prefill your delivery details"}
               </p>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="space-y-4 px-7 pb-7 pt-4">
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-[#b84535]/10 text-[#b84535] rounded-xl text-sm font-medium">
+                <div className="flex items-center gap-2 p-3 bg-koi-red/10 text-koi-red rounded-xl text-sm font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   {error}
                 </div>
@@ -190,43 +204,43 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
               <button
                 onClick={handleDetectLocation}
                 disabled={isDetecting}
-                className="w-full flex items-center justify-between p-4 bg-white border border-[#e7e5de] rounded-xl text-[#1c1e17] hover:bg-[#EDF2E6] hover:border-[#1f5c3a]/30 transition-all shadow-sm disabled:opacity-50"
+                className="flex w-full items-center justify-between rounded-2xl bg-koi-forest p-4 text-koi-bg transition-transform hover:-translate-y-0.5 disabled:opacity-60"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1f5c3a]/10 flex items-center justify-center">
-                    <Navigation className={`w-4 h-4 text-[#1c1e17] ${isDetecting ? 'animate-pulse' : ''}`} />
+                  <div className="grid size-10 place-items-center rounded-full bg-koi-lime text-koi-forest">
+                    <Navigation className={`size-4 ${isDetecting ? 'animate-pulse' : ''}`} />
                   </div>
                   <div className="text-left">
                     <span className="block font-bold text-sm">
                       {isDetecting ? "Detecting..." : "Use current location"}
                     </span>
-                    <span className="block text-xs text-[#6b6f63]">Enable GPS for precise delivery</span>
+                    <span className="block text-xs text-koi-bg/70">Enable GPS for precise delivery</span>
                   </div>
                 </div>
               </button>
 
               <div className="relative flex items-center gap-4 py-2">
-                <div className="flex-1 h-px bg-[#e7e5de]"></div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#6b6f63]">Or</span>
-                <div className="flex-1 h-px bg-[#e7e5de]"></div>
+                <div className="flex-1 h-px bg-koi-forest/10"></div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-koi-muted">Or</span>
+                <div className="flex-1 h-px bg-koi-forest/10"></div>
               </div>
 
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6b6f63]" />
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-koi-muted" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   placeholder="Search by area, locality, or pincode"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-[#e7e5de] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1f5c3a]/20 focus:border-[#1f5c3a]/40 placeholder:text-[#6b6f63]/60 shadow-sm"
+                  className="h-14 w-full rounded-2xl border-2 border-koi-forest/15 bg-white pl-10 pr-4 text-[15px] font-medium outline-none placeholder:text-koi-muted focus:border-koi-forest"
                 />
               </div>
 
               {(searchQuery.trim().length >= 3 || isSearching) && (
-                <div className="max-h-[250px] overflow-y-auto rounded-xl border border-[#e7e5de] bg-white divide-y divide-[#e7e5de] shadow-inner">
+                <div className="max-h-[250px] overflow-y-auto rounded-xl border border-koi-forest/10 bg-white divide-y divide-koi-forest/10 shadow-inner">
                   {isSearching ? (
-                    <div className="px-4 py-6 text-center text-[#6b6f63] text-sm animate-pulse">
+                    <div className="px-4 py-6 text-center text-koi-muted text-sm animate-pulse">
                       Searching...
                     </div>
                   ) : searchResults.length > 0 ? (
@@ -234,19 +248,19 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
                       <button
                         key={i}
                         onClick={() => processSelectedLocation(c)}
-                        className="w-full text-left px-4 py-3 hover:bg-[#f6f5f1] flex items-start gap-3 transition-colors"
+                        className="w-full text-left px-4 py-3 hover:bg-koi-bg flex items-start gap-3 transition-colors"
                       >
-                        <MapPin className="w-4 h-4 text-[#6b6f63] mt-0.5 shrink-0" />
+                        <MapPin className="w-4 h-4 text-koi-muted mt-0.5 shrink-0" />
                         <div>
-                          <span className="block text-sm font-semibold text-[#1c1e17] line-clamp-1">{c.display_name}</span>
-                          <span className="block text-xs text-[#6b6f63]">
+                          <span className="block text-sm font-semibold text-koi-ink line-clamp-1">{c.display_name}</span>
+                          <span className="block text-xs text-koi-muted">
                             {c.city && `${c.city}, `}{c.state} {c.pincode}
                           </span>
                         </div>
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-6 text-center text-[#6b6f63] text-sm">
+                    <div className="px-4 py-6 text-center text-koi-muted text-sm">
                       No locations found matching &quot;{searchQuery}&quot;
                     </div>
                   )}
@@ -256,111 +270,111 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="p-6 pb-4 bg-[#f6f5f1] border-b border-[#e7e5de]">
-              <h2 className="text-xl font-bold text-[#1c1e17] mb-1">
+            <div className="px-7 pb-2 pt-7">
+              <h2 className="koi-condensed m-0 mb-2 pr-10 font-koi-display text-[34px] font-extrabold leading-none tracking-[-0.02em] text-koi-forest">
                 {formData.id ? "Edit Address" : "Complete Address"}
               </h2>
-              <p className="text-[#6b6f63] text-sm">
+              <p className="text-koi-muted text-sm">
                 Verify and add missing details
               </p>
             </div>
 
-            <div className="p-6">
+            <div className="px-7 pb-7 pt-4">
               <form onSubmit={handleSubmitDetails} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#1c1e17] uppercase tracking-wider">Full Name</label>
+                    <label className="text-xs font-bold text-koi-ink uppercase tracking-wider">Full Name</label>
                     <input
                       type="text"
                       name="full_name"
                       value={formData.full_name}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 py-2 bg-white border border-[#e7e5de] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1f5c3a]/20 focus:border-[#1f5c3a]/40"
+                      className="w-full px-3 py-2 bg-white border border-koi-forest/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest/40"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#1c1e17] uppercase tracking-wider">Phone</label>
+                    <label className="text-xs font-bold text-koi-ink uppercase tracking-wider">Phone</label>
                     <input
                       type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 py-2 bg-white border border-[#e7e5de] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1f5c3a]/20 focus:border-[#1f5c3a]/40"
+                      className="w-full px-3 py-2 bg-white border border-koi-forest/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest/40"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#1c1e17] uppercase tracking-wider">House / Flat No.</label>
+                    <label className="text-xs font-bold text-koi-ink uppercase tracking-wider">House / Flat No.</label>
                     <input
                       type="text"
                       name="house_number"
                       value={formData.house_number}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 py-2 bg-white border border-[#e7e5de] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1f5c3a]/20 focus:border-[#1f5c3a]/40"
+                      className="w-full px-3 py-2 bg-white border border-koi-forest/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest/40"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#1c1e17] uppercase tracking-wider">Landmark</label>
+                    <label className="text-xs font-bold text-koi-ink uppercase tracking-wider">Landmark</label>
                     <input
                       type="text"
                       name="landmark"
                       value={formData.landmark}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 bg-white border border-[#e7e5de] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1f5c3a]/20 focus:border-[#1f5c3a]/40 placeholder:text-[#6b6f63]/40"
+                      className="w-full px-3 py-2 bg-white border border-koi-forest/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest/40 placeholder:text-koi-muted/40"
                       placeholder="Optional"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#1c1e17] uppercase tracking-wider">Street / Area</label>
+                  <label className="text-xs font-bold text-koi-ink uppercase tracking-wider">Street / Area</label>
                   <input
                     type="text"
                     name="street"
                     value={formData.street}
                     onChange={handleChange}
                     required
-                    className="w-full px-3 py-2 bg-white border border-[#e7e5de] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1f5c3a]/20 focus:border-[#1f5c3a]/40"
+                    className="w-full px-3 py-2 bg-white border border-koi-forest/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest/40"
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 bg-[#f6f5f1] p-3 rounded-xl border border-[#e7e5de]">
+                <div className="grid grid-cols-3 gap-4 bg-koi-bg p-3 rounded-xl border border-koi-forest/10">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#6b6f63] uppercase tracking-wider">City</label>
+                    <label className="text-[10px] font-bold text-koi-muted uppercase tracking-wider">City</label>
                     <input
                       type="text"
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
                       required
-                      className="w-full bg-transparent text-sm font-semibold text-[#1c1e17] focus:outline-none"
+                      className="w-full bg-transparent text-sm font-semibold text-koi-ink focus:outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#6b6f63] uppercase tracking-wider">State</label>
+                    <label className="text-[10px] font-bold text-koi-muted uppercase tracking-wider">State</label>
                     <input
                       type="text"
                       name="state"
                       value={formData.state}
                       onChange={handleChange}
                       required
-                      className="w-full bg-transparent text-sm font-semibold text-[#1c1e17] focus:outline-none"
+                      className="w-full bg-transparent text-sm font-semibold text-koi-ink focus:outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#6b6f63] uppercase tracking-wider">Pincode</label>
+                    <label className="text-[10px] font-bold text-koi-muted uppercase tracking-wider">Pincode</label>
                     <input
                       type="text"
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleChange}
                       required
-                      className="w-full bg-transparent text-sm font-semibold text-[#1c1e17] focus:outline-none"
+                      className="w-full bg-transparent text-sm font-semibold text-koi-ink focus:outline-none"
                     />
                   </div>
                 </div>
@@ -371,7 +385,7 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
                       name="label"
                       value={formData.label}
                       onChange={handleChange}
-                      className="bg-[#f6f5f1] text-[#1c1e17] border border-[#e7e5de] rounded-lg px-2 py-1.5 text-xs font-bold uppercase cursor-pointer outline-none focus:ring-2 focus:ring-[#1f5c3a]/20"
+                      className="bg-koi-bg text-koi-ink border border-koi-forest/10 rounded-lg px-2 py-1.5 text-xs font-bold uppercase cursor-pointer outline-none focus:ring-2 focus:ring-koi-forest/20"
                     >
                       <option value="Home">Home</option>
                       <option value="Work">Work</option>
@@ -385,13 +399,13 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
                           name="is_default"
                           checked={formData.is_default}
                           onChange={handleChange}
-                          className="peer appearance-none w-4 h-4 border-2 border-[#e7e5de] rounded bg-white checked:bg-[#1f5c3a] checked:border-[#1f5c3a] cursor-pointer transition-colors"
+                          className="peer appearance-none w-4 h-4 border-2 border-koi-forest/10 rounded bg-white checked:bg-koi-forest checked:border-koi-forest cursor-pointer transition-colors"
                         />
                         <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="11.667 3.5 5.25 9.917 2.333 7"></polyline>
                         </svg>
                       </div>
-                      <span className="text-sm font-semibold text-[#6b6f63] group-hover:text-[#1c1e17] transition-colors">Set as default</span>
+                      <span className="text-sm font-semibold text-koi-muted group-hover:text-koi-ink transition-colors">Set as default</span>
                     </label>
                   </div>
                 </div>
@@ -401,14 +415,14 @@ export default function LocationModal({ mode = "store", open, onOpenChange, onCo
                     <button
                       type="button"
                       onClick={() => setView("select")}
-                      className="px-5 py-2.5 rounded-xl font-semibold text-[#6b6f63] hover:bg-[#f6f5f1] transition-colors"
+                      className="px-5 py-2.5 rounded-xl font-semibold text-koi-muted hover:bg-koi-bg transition-colors"
                     >
                       Back
                     </button>
                   )}
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#1f5c3a] hover:bg-[#1f5c3a]/90 text-white rounded-xl font-semibold shadow-[0_4px_14px_rgba(14,64,50,0.2)] transition-all hover:-translate-y-0.5"
+                    className="h-12 rounded-2xl bg-koi-forest px-6 font-bold text-koi-lime transition-transform hover:-translate-y-0.5"
                   >
                     {formData.id ? "Update Address" : "Save Address"}
                   </button>
