@@ -167,6 +167,59 @@ export class EmberEngine {
     });
   }
 
+  /** A short hop along a low arc, landing with a squash: the pen moving word to word. */
+  hop(el, off, dur = 0.16) {
+    const { g, n } = this;
+    if (!el) return;
+    this.anchor = el;
+    this.off = off || {};
+    const to = this.spot(el, this.off);
+    if (this.reduce || !this.visible) { this.at(el, this.off); return; }
+    const from = { x: g.getProperty(n.ember, "x"), y: g.getProperty(n.ember, "y") };
+    const lift = Math.min(from.y, to.y) - 16;
+    this.ctx.add(() => {
+      g.killTweensOf(n.ember, "x,y");
+      const st = { t: 0 };
+      g.timeline()
+        .to(st, {
+          t: 1, duration: dur, ease: "power2.inOut",
+          onUpdate: () => {
+            const t = st.t, u = 1 - t;
+            g.set(n.ember, { x: u * u * from.x + 2 * u * t * ((from.x + to.x) / 2) + t * t * to.x, y: u * u * from.y + 2 * u * t * lift + t * t * to.y });
+          },
+        })
+        .fromTo(n.body, { scaleX: 1.3, scaleY: 0.78 }, { scaleX: 1, scaleY: 1, duration: 0.24, ease: "back.out(3)" });
+    });
+  }
+
+  /** A straight glide along the thing it is reading (a strike being drawn). */
+  slide(el, off, dur = 0.25) {
+    const { g, n } = this;
+    if (!el) return;
+    this.anchor = el;
+    this.off = off || {};
+    const to = this.spot(el, this.off);
+    if (this.reduce || !this.visible) { this.at(el, this.off); return; }
+    this.ctx.add(() => g.to(n.ember, { x: to.x, y: to.y, duration: dur, ease: "power1.inOut" }));
+  }
+
+  /** Drops whatever it is doing and sits in its home slot at once (a skipped scene, a page leaving). */
+  rest() {
+    const { g, n } = this;
+    this.goTl?.kill();
+    this.goTl = null;
+    this.flying = false;
+    g.killTweensOf(n.ember, "x,y");
+    g.set(n.body, { scaleX: 1, scaleY: 1, scale: 1 });
+    this.trail = [];
+    this.trailDraw();
+    if (this.statusText) this.status(null);
+    this.heartbeat(false);
+    this.mark(null);
+    this.anchor = null;
+    if (this.homeEl?.isConnected) this.at(this.homeEl, this.homeOff);
+  }
+
   trailPush(p) {
     const now = performance.now();
     if (this.trail.length && now - this.trailAt < 12) this.trail[this.trail.length - 1] = { x: p.x, y: p.y };

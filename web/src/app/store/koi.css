@@ -154,6 +154,10 @@
   transition: background .25s ease, border-color .25s ease;
 }
 .ks-header[data-overlay="true"] { position: fixed; left: 0; right: 0; }
+/* The landing's titles hold the chrome back: TheRead tweens --koi-chrome on the
+   store root (never the header itself, which may still be hydrating). */
+.koi-store .ks-header, .koi-store [data-koi-bar] { opacity: var(--koi-chrome, 1); }
+.koi-store[data-titles="on"] .ks-header, .koi-store[data-titles="on"] [data-koi-bar] { pointer-events: none; }
 .ks-header[data-clear="true"] { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: transparent; }
 .ks-header-inner { max-width: 1400px; height: 100%; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; gap: 24px; }
 .ks-nav { display: flex; gap: 2px; }

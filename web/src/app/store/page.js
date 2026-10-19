@@ -8,7 +8,7 @@
 // ============================================================================
 
 import { useMemo } from "react";
-import HeroEditorial from "@/components/store/landing/HeroEditorial";
+import TheRead from "@/components/store/landing/TheRead";
 import { FeaturedCollection, BestRated } from "@/components/store/landing/ProductSections";
 import { getLandingFixtures } from "@/components/store/landing/tokens";
 import { useCatalogue } from "@/lib/data/useCatalogue";
@@ -23,19 +23,21 @@ export default function StoreHomePage() {
   // The sections used to reach into a module-scope fixture themselves, which is
   // how /store ended up publishing a KOI Score of 92 and "0 g sugar" for a
   // product KOI's own label reading scores 78 at 20.9 g added sugar.
-  const { products, status } = useCatalogue(getLandingFixtures);
+  const { products } = useCatalogue(getLandingFixtures);
 
-  const { catalogue, hero, editorial, rated } = useMemo(() => {
+  // The opening shot is KOI reading a label (TheRead); the first featured pick
+  // still leads nothing twice, so the editorial and rated rows stay as they were.
+  const { catalogue, editorial, rated } = useMemo(() => {
     const all = toLandingCatalogue(products);
     const h = pickFeatured(all);
     const e = pickFeatured(all, h?.id);
-    return { catalogue: all, hero: h, editorial: e, rated: pickBestRated(all, [h?.id, e?.id]) };
+    return { catalogue: all, editorial: e, rated: pickBestRated(all, [h?.id, e?.id]) };
   }, [products]);
 
   return (
     <div className="koi-landing relative w-full overflow-x-clip" style={{ background: "#F9F8F4" }}>
       <main>
-        <HeroEditorial product={hero} loading={status === "loading"} />
+        <TheRead />
         <FeaturedCollection product={editorial} />
         <WhyKoi />
         <BestRated products={rated} />

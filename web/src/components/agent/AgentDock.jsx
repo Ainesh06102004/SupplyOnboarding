@@ -109,7 +109,7 @@ export default function AgentDock() {
   const statusLine = state.statusLine;
 
   return (
-    <div className="koi-agent">
+    <div className="koi-agent" data-koi-bar>
       {!state.open && (
         <div className="ka-subtitle" data-compact={compact ? "true" : undefined}><KoiSubtitle /></div>
       )}

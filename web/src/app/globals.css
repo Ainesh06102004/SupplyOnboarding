@@ -141,6 +141,10 @@
   --color-koi-red: #b84535;
   --color-koi-red-bg: #fdf0ee;
   --color-koi-track: #ebe8df;
+}
+/* inline: next/font sets --koi-sans, --koi-mono … on .koi-store, not :root, so
+   the utilities must resolve these var()s on the element, not at :root. */
+@theme inline {
   --font-koi-display: var(--font-koi-heading), "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
   --font-koi-sans: var(--koi-sans), "Plus Jakarta Sans", system-ui, sans-serif;
   --font-koi-num: var(--koi-num), "Space Grotesk", ui-sans-serif, sans-serif;

@@ -42,7 +42,7 @@ export function KoiSubtitle({ tone = "light" }) {
     <p
       ref={ref}
       aria-live="polite"
-      className={`m-0 min-h-[27px] max-w-[780px] text-balance text-center text-[17px] font-medium leading-[1.45] md:text-[19px] ${tone === "dark" ? "text-koi-bg" : "text-koi-ink"}`}
+      className={`m-0 min-h-[27px] max-w-[780px] text-balance rounded-2xl px-4 py-1 text-center text-[16px] font-medium leading-[1.45] md:text-[19px] ${tone === "dark" ? "text-koi-bg" : "text-koi-ink"} ${line && tone !== "dark" ? "bg-koi-bg/80 backdrop-blur-md" : ""}`}
     >
       {line.split(" ").filter(Boolean).map((w, i) => (
         <span key={`${key}-${i}`} data-w className="mr-[0.28em] inline-block">{w}</span>
@@ -71,6 +71,7 @@ export default function KoiBar() {
 
   return (
     <section
+      data-koi-bar
       aria-label="Ask KOI"
       className="pointer-events-none sticky z-40 mt-auto flex flex-col items-center gap-2.5 bg-linear-to-t from-koi-bg from-60% to-koi-bg/0 px-4 pb-5 pt-8"
       style={{ bottom: "var(--koi-bottom-chrome)" }}

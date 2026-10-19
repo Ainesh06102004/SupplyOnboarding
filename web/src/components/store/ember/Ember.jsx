@@ -17,17 +17,33 @@ import { EmberEngine } from "./EmberEngine";
 
 const EmberContext = createContext(null);
 
-const METHODS = ["at", "go", "status", "mark", "heartbeat", "bump", "home", "letGo", "setHome", "clearHome", "ripple", "pin"];
+const METHODS = ["at", "go", "hop", "slide", "rest", "status", "mark", "heartbeat", "bump", "home", "letGo", "setHome", "clearHome", "ripple", "pin"];
 
 // The engine lives in a closure: created once per provider, attached by the
 // layer's effect, read only when a page calls a method (never during render).
 function createEmber() {
   let engine = null;
+  let waiting = [];
   const api = {};
   for (const m of METHODS) api[m] = (...args) => engine?.[m](...args);
   api.done = (after) => (engine ? engine.done(after) : after?.());
   api.perch = (el, pad) => (engine && el ? engine.perch(el, pad) : {});
-  return { api, attach: (e) => { engine = e; } };
+  api.reduced = () => Boolean(engine?.reduce);
+  // A page's effects run before the layer's (the layer renders after the page),
+  // so a page that drives the ember on mount waits here. Returns a cancel.
+  api.whenReady = (fn) => {
+    if (engine) { fn(); return () => {}; }
+    waiting.push(fn);
+    return () => { waiting = waiting.filter((f) => f !== fn); };
+  };
+  const attach = (e) => {
+    engine = e;
+    if (!e) return;
+    const run = waiting;
+    waiting = [];
+    run.forEach((fn) => fn());
+  };
+  return { api, attach };
 }
 
 export function EmberProvider({ children }) {
