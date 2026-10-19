@@ -102,7 +102,7 @@ export default function Step1BasicInfo() {
                 updateBasicInfo({ name: e.target.value })
                 if (errors.name) setErrors(prev => ({ ...prev, name: null }))
               }}
-              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032] transition-all ${errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
               placeholder="e.g. KOI Premium Protein"
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -116,7 +116,7 @@ export default function Step1BasicInfo() {
                 updateBasicInfo({ category: e.target.value })
                 if (errors.category) setErrors(prev => ({ ...prev, category: null }))
               }}
-              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032] transition-all ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
             >
               <option value="">Select a category</option>
               <option value="protein_powder">Protein Powder</option>
@@ -138,7 +138,7 @@ export default function Step1BasicInfo() {
               updateBasicInfo({ shortDescription: e.target.value })
               if (errors.shortDescription) setErrors(prev => ({ ...prev, shortDescription: null }))
             }}
-            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032] transition-all ${errors.shortDescription ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
+            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all ${errors.shortDescription ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
             placeholder="A quick, 1-sentence tagline for this product."
             maxLength={150}
           />
@@ -150,7 +150,7 @@ export default function Step1BasicInfo() {
           <textarea 
             value={basicInfo.longDescription || ''}
             onChange={(e) => updateBasicInfo({ longDescription: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032] transition-all min-h-[120px]"
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all min-h-[120px]"
             placeholder="Explain the benefits, usage instructions, and core value proposition..."
           />
         </div>
@@ -171,8 +171,8 @@ export default function Step1BasicInfo() {
                   onClick={() => handleClaimToggle(claim)}
                   className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
                     isSelected 
-                      ? 'bg-[#0E4032] text-white border-[#0E4032] shadow-md' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0E4032]/30 hover:bg-gray-50'
+                      ? 'bg-koi-forest text-white border-koi-forest shadow-md' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-koi-forest/30 hover:bg-gray-50'
                   }`}
                 >
                   {claim}
@@ -183,7 +183,7 @@ export default function Step1BasicInfo() {
 
           <div className="flex flex-wrap gap-2">
             {(basicInfo.claims || []).filter(c => !PREDEFINED_CLAIMS.includes(c)).map(claim => (
-              <div key={claim} className="px-4 py-2 bg-[#0E4032] text-white rounded-full text-sm font-medium flex items-center gap-2 shadow-md">
+              <div key={claim} className="px-4 py-2 bg-koi-forest text-white rounded-full text-sm font-medium flex items-center gap-2 shadow-md">
                 {claim}
                 <button onClick={() => handleRemoveClaim(claim)} className="hover:bg-white/20 rounded-full p-0.5">
                   <X className="w-3 h-3" />
@@ -198,7 +198,7 @@ export default function Step1BasicInfo() {
               value={customClaim}
               onChange={(e) => setCustomClaim(e.target.value)}
               placeholder="Add custom claim..."
-              className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032] text-sm"
+              className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest text-sm"
             />
             <Button type="submit" disabled={!customClaim.trim()} className="rounded-full bg-gray-900 hover:bg-gray-800 px-4">
               <Plus className="w-4 h-4 mr-1" /> Add
@@ -211,7 +211,7 @@ export default function Step1BasicInfo() {
         <Button 
           onClick={handleNextClick} 
           disabled={loading}
-          className="bg-[#0E4032] hover:bg-[#0a2e24] text-white h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
+          className="bg-koi-forest hover:bg-koi-night text-white h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
         >
           {loading ? (
             <div className="flex items-center gap-2">

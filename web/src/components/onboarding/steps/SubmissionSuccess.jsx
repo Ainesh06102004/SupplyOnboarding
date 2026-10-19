@@ -62,7 +62,7 @@ export default function SubmissionSuccess() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-[#E2E8D8] bg-white px-7 py-11 md:px-12"
+        className="relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-koi-track bg-white px-7 py-11 md:px-12"
         style={{ boxShadow: '0 30px 80px rgba(14,64,50,0.12)' }}
       >
         <Confetti />
@@ -78,19 +78,19 @@ export default function SubmissionSuccess() {
           >
             <Check className="h-9 w-9" style={{ color: C.lime }} strokeWidth={3} />
           </motion.div>
-          <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#EAF8F0] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#0C6B4C]">
+          <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-koi-tint px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-koi-primary">
             <ShieldCheck className="h-3.5 w-3.5" /> Application received
           </span>
-          <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#0E4032] md:text-[32px]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
+          <h1 className="text-[26px] font-bold leading-tight tracking-tight text-koi-forest md:text-[32px]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
             You&apos;re in the queue.
           </h1>
-          <p className="mt-2.5 max-w-md text-[15px] leading-relaxed text-[#5A6B5A]">
+          <p className="mt-2.5 max-w-md text-[15px] leading-relaxed text-koi-muted">
             Thank you for applying to KOI. Here&apos;s exactly what happens from here.
           </p>
         </div>
 
         {/* timeline */}
-        <div className="rounded-[22px] border border-[#E2E8D8] bg-[#F7FAF2] px-6 py-7 md:px-8">
+        <div className="rounded-[22px] border border-koi-track bg-koi-bg px-6 py-7 md:px-8">
           {TIMELINE.map((item, idx) => (
             <TimelineItem key={item.title} {...item} index={idx} isLast={idx === TIMELINE.length - 1} />
           ))}
@@ -112,7 +112,7 @@ export default function SubmissionSuccess() {
 
         {/* closing */}
         <div className="mt-9 text-center">
-          <h2 className="text-[18px] font-bold leading-snug tracking-tight text-[#0E4032] md:text-[20px]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
+          <h2 className="text-[18px] font-bold leading-snug tracking-tight text-koi-forest md:text-[20px]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
             Building healthier choices for India<br className="hidden sm:block" /> starts with brands like yours.
           </h2>
         </div>
@@ -129,7 +129,7 @@ export default function SubmissionSuccess() {
           </button>
           <button
             onClick={() => window.open('mailto:support@koi.health', '_blank')}
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-[#E2E8D8] px-6 text-[14px] font-semibold text-[#5A6B5A] transition-colors hover:bg-[#EDF2E6] hover:text-[#0E4032]"
+            className="inline-flex h-12 items-center gap-2 rounded-full border border-koi-track px-6 text-[14px] font-semibold text-koi-muted transition-colors hover:bg-koi-tint hover:text-koi-forest"
           >
             <Mail className="h-4 w-4" />
             Contact support
@@ -166,7 +166,7 @@ function TimelineItem({ title, status, icon: Icon, text, index, isLast }) {
         <h3 className="text-[15px] font-bold tracking-tight" style={{ color: isCompleted ? C.emerald : isActive ? '#0C6B4C' : C.muted, fontFamily: 'var(--font-koi-heading)' }}>
           {title}
         </h3>
-        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-[#5A6B5A]">{text}</p>
+        <p className="mt-1 max-w-lg text-[13px] leading-relaxed text-koi-muted">{text}</p>
       </div>
     </motion.div>
   )

@@ -112,7 +112,7 @@ export default function DocumentUploadCard({
 
   return (
     <section
-      className="bg-card border border-[#E5E7EB] rounded-[20px] overflow-hidden"
+      className="bg-card border border-koi-track rounded-[20px] overflow-hidden"
       style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
     >
       {/* Header */}
@@ -140,7 +140,7 @@ export default function DocumentUploadCard({
       {/* Tabs (only for file_or_link mode) */}
       {showTabs && (
         <div className="px-7 md:px-8 pt-4">
-          <div className="inline-flex rounded-lg bg-[#F0EBE2] p-1 gap-0.5">
+          <div className="inline-flex rounded-lg bg-koi-track p-1 gap-0.5">
             <TabButton
               active={activeTab === 'upload'}
               onClick={() => setActiveTab('upload')}
@@ -179,11 +179,11 @@ export default function DocumentUploadCard({
                   'relative flex flex-col items-center justify-center h-[140px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200',
                   isDragActive
                     ? 'border-primary bg-primary/5'
-                    : 'border-[#D9D2C8] bg-[#FDFCFA] hover:border-primary/40 hover:bg-[#F9F6F0]',
+                    : 'border-koi-track bg-koi-paper hover:border-primary/40 hover:bg-koi-bg',
                 )}
               >
                 <input {...getInputProps()} />
-                <div className="w-10 h-10 rounded-full bg-[#EDE8DF] flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-full bg-koi-track flex items-center justify-center mb-3">
                   <Upload className="w-5 h-5 text-muted" />
                 </div>
                 <p className="text-sm text-foreground font-medium">
@@ -221,7 +221,7 @@ export default function DocumentUploadCard({
                   placeholder="https://pubmed.ncbi.nlm.nih.gov/..."
                   value={link}
                   onChange={(e) => updateLink(idx, e.target.value)}
-                  className="h-11 rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 text-sm placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                  className="h-11 rounded-xl border-koi-track bg-koi-paper px-4 text-sm placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
                 />
                 <button
                   type="button"
@@ -267,7 +267,7 @@ function RequiredBadge({ required }) {
         'text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full shrink-0 mt-1',
         required
           ? 'bg-danger/10 text-danger'
-          : 'bg-[#EDE8DF] text-muted',
+          : 'bg-koi-track text-muted',
       )}
     >
       {required ? 'Required' : 'Optional'}
@@ -295,7 +295,7 @@ function TabButton({ active, onClick, icon: Icon, label }) {
 
 function FileRow({ file, onRemove }) {
   return (
-    <div className="flex items-center justify-between bg-[#FDFCFA] border border-[#E5E7EB] rounded-xl px-4 py-3 group">
+    <div className="flex items-center justify-between bg-koi-paper border border-koi-track rounded-xl px-4 py-3 group">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
           <File className="w-4 h-4" />

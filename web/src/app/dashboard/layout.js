@@ -1,30 +1,18 @@
 import DashboardShell from '@/components/dashboard/DashboardShell'
-import { Bricolage_Grotesque, Hanken_Grotesk } from "next/font/google";
 import AuthGuard from '@/components/auth/AuthGuard';
-
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-koi-heading",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const hanken = Hanken_Grotesk({
-  variable: "--font-koi-body",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
+import { koiFontVars } from '@/lib/fonts/koiFonts';
 
 export const metadata = {
   title: 'Dashboard | KOI Health',
   description: 'KOI Health-first Commerce Brand Dashboard',
 }
 
+// The brand portal in the store's language (cinematic storefront, Oct 2026):
+// the same typefaces and koi-* tokens, a night sidebar, and KOI's dot in the
+// topbar (components/dashboard/DashboardShell.jsx).
 export default function DashboardLayout({ children }) {
   return (
-    <div
-      className={`${bricolage.variable} ${hanken.variable} min-h-screen`}
-      style={{ fontFamily: "var(--font-koi-body), sans-serif", background: "#F2F6EC" }}
-    >
+    <div className={`${koiFontVars} min-h-screen bg-koi-bg font-koi-sans text-koi-ink antialiased`}>
       <AuthGuard>
         <DashboardShell>{children}</DashboardShell>
       </AuthGuard>

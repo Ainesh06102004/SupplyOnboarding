@@ -27,7 +27,7 @@ export default function VolumeSelector({ options = [], selected, onChange }) {
               'relative flex flex-col items-center justify-center h-[80px] rounded-xl border-2 transition-all duration-200 cursor-pointer',
               isActive
                 ? 'border-primary bg-primary/5'
-                : 'border-[#E5E7EB] bg-card hover:border-primary/30',
+                : 'border-koi-track bg-card hover:border-primary/30',
             )}
           >
             {isActive && (

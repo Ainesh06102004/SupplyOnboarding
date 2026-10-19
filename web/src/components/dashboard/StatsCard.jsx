@@ -9,22 +9,22 @@ export default function StatsCard({
   className
 }) {
   let bgClass = 'bg-white'
-  let iconBgClass = 'bg-black/5 text-[#6B7280]'
-  let valueColor = 'text-[#111827]'
+  let iconBgClass = 'bg-black/5 text-koi-muted'
+  let valueColor = 'text-koi-ink'
   
   if (styleType === 'success') {
     iconBgClass = 'bg-green-50 text-green-700'
   } else if (styleType === 'warning') {
     iconBgClass = 'bg-amber-50 text-amber-700'
   } else if (styleType === 'special') {
-    iconBgClass = 'bg-[#0E4032]/10 text-[#0E4032]'
+    iconBgClass = 'bg-koi-forest/10 text-koi-forest'
   } else if (styleType === 'danger') {
     iconBgClass = 'bg-red-50 text-red-700'
   }
 
   return (
     <div className={cn(
-      "rounded-2xl border border-[#E5E7EB] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 transition-all duration-200",
+      "rounded-2xl border border-koi-track p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:-translate-y-0.5 transition-all duration-200",
       bgClass,
       className
     )}>
@@ -38,7 +38,7 @@ export default function StatsCard({
         <h3 className={cn("text-3xl font-bold tracking-tight mb-1", valueColor)} style={{ fontFamily: "var(--font-koi-heading)" }}>
           {value}
         </h3>
-        <p className="text-[#6B7280] text-[15px] font-medium">
+        <p className="text-koi-muted text-[15px] font-medium">
           {label}
         </p>
       </div>

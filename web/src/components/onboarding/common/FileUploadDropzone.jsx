@@ -66,7 +66,7 @@ export default function FileUploadDropzone({
             {label}
           </label>
         )}
-        <div className="flex items-center justify-between bg-[#FDFCFA] border border-[#E5E7EB] rounded-xl px-4 py-3">
+        <div className="flex items-center justify-between bg-koi-paper border border-koi-track rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <File className="w-4 h-4" />
@@ -102,11 +102,11 @@ export default function FileUploadDropzone({
           'relative flex flex-col items-center justify-center h-[140px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200',
           isDragActive
             ? 'border-primary bg-primary/5'
-            : 'border-[#D9D2C8] bg-[#FDFCFA] hover:border-primary/40 hover:bg-[#F9F6F0]',
+            : 'border-koi-track bg-koi-paper hover:border-primary/40 hover:bg-koi-bg',
         )}
       >
         <input {...getInputProps()} />
-        <div className="w-10 h-10 rounded-full bg-[#EDE8DF] flex items-center justify-center mb-3">
+        <div className="w-10 h-10 rounded-full bg-koi-track flex items-center justify-center mb-3">
           <Upload className="w-5 h-5 text-muted" />
         </div>
         <p className="text-sm text-foreground font-medium">

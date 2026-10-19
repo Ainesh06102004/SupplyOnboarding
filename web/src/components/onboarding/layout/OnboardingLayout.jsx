@@ -37,9 +37,9 @@ const WHAT_NEXT = [
 ];
 
 function SaveIndicator({ status }) {
-  if (status === "saving") return <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5A6B5A]"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</span>;
-  if (status === "saved") return <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D7A5E]"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</span>;
-  if (status === "error") return <span className="text-[12px] font-semibold text-[#C94B40]">Save failed</span>;
+  if (status === "saving") return <span className="flex items-center gap-1.5 text-[12px] font-semibold text-koi-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</span>;
+  if (status === "saved") return <span className="flex items-center gap-1.5 text-[12px] font-semibold text-koi-green"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</span>;
+  if (status === "error") return <span className="text-[12px] font-semibold text-koi-red">Save failed</span>;
   return null;
 }
 
@@ -106,7 +106,7 @@ export default function OnboardingLayout({ step = 1, title, subtitle, saveStatus
         {/* top */}
         <div className="relative">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl text-[15px] font-extrabold text-[#0E4032]" style={{ background: C.lime, fontFamily: "var(--font-koi-heading)" }}>K</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl text-[15px] font-extrabold text-koi-forest" style={{ background: C.lime, fontFamily: "var(--font-koi-heading)" }}>K</span>
             <span className="text-[19px] font-bold text-white" style={{ fontFamily: "var(--font-koi-heading)" }}>KOI</span>
             <span className="ml-1 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">For Brands</span>
           </div>
@@ -142,13 +142,13 @@ export default function OnboardingLayout({ step = 1, title, subtitle, saveStatus
       {/* ── Right form column ── */}
       <div className="flex min-h-screen flex-1 flex-col" style={{ background: C.panelRight }}>
         {/* mobile progress bar */}
-        <div className="sticky top-0 z-20 border-b border-[#E2E8D8] bg-white/85 px-5 py-3 backdrop-blur-md lg:hidden">
+        <div className="sticky top-0 z-20 border-b border-koi-track bg-white/85 px-5 py-3 backdrop-blur-md lg:hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5A6B5A]">Step {step} of {NODES.length}</span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-koi-muted">Step {step} of {NODES.length}</span>
             <SaveIndicator status={saveStatus} />
           </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#E2E8D8]">
-            <div className="h-full rounded-full bg-[#0E4032] transition-all duration-500" style={{ width: `${pct}%` }} />
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-koi-track">
+            <div className="h-full rounded-full bg-koi-forest transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
         </div>
 
@@ -162,13 +162,13 @@ export default function OnboardingLayout({ step = 1, title, subtitle, saveStatus
         >
           <div className="mx-auto flex max-w-[1100px] items-start justify-between gap-4">
             <div>
-              <div className="mb-2 hidden text-[11px] font-bold uppercase tracking-[0.16em] text-[#16A06E] lg:block">
+              <div className="mb-2 hidden text-[11px] font-bold uppercase tracking-[0.16em] text-koi-green lg:block">
                 Step {step} of {NODES.length} · {NODES[step - 1]?.label || "Application"}
               </div>
-              <h1 className="text-[28px] font-bold leading-tight tracking-tight text-[#0E4032] md:text-[34px]" style={{ fontFamily: "var(--font-koi-heading)" }}>
+              <h1 className="text-[28px] font-bold leading-tight tracking-tight text-koi-forest md:text-[34px]" style={{ fontFamily: "var(--font-koi-heading)" }}>
                 {title}
               </h1>
-              {subtitle && <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[#5A6B5A]">{subtitle}</p>}
+              {subtitle && <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-koi-muted">{subtitle}</p>}
             </div>
             <div className="hidden shrink-0 pt-1 lg:block"><SaveIndicator status={saveStatus} /></div>
           </div>

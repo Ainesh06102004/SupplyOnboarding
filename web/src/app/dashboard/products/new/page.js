@@ -58,7 +58,7 @@ function AddProductWizard() {
     <div className="max-w-5xl mx-auto pb-24">
       {/* Header & Stepper */}
       <div className="mb-8">
-        <h2 className="text-[32px] md:text-[36px] font-display font-bold text-[#111827] tracking-tight leading-none mb-6" style={{ fontFamily: "var(--font-koi-heading)" }}>
+        <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-6" style={{ fontFamily: "var(--font-koi-heading)" }}>
           Add New Product
         </h2>
         
@@ -70,8 +70,8 @@ function AddProductWizard() {
             return (
               <React.Fragment key={step.id}>
                 <div className={`flex items-center justify-center h-8 px-4 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
-                  isActive ? 'bg-[#0E4032] text-white shadow-md' :
-                  isCompleted ? 'bg-[#0E4032]/10 text-[#0E4032]' :
+                  isActive ? 'bg-koi-forest text-white shadow-md' :
+                  isCompleted ? 'bg-koi-forest/10 text-koi-forest' :
                   'bg-gray-100 text-gray-400'
                 }`}>
                   {isCompleted && <Check className="w-4 h-4 mr-1.5" />}
@@ -87,7 +87,7 @@ function AddProductWizard() {
       </div>
 
       {/* Step Content Shell */}
-      <div className="bg-white rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-[#EAE7F0] p-6 md:p-10">
+      <div className="bg-white rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-koi-track p-6 md:p-10">
         {currentStep === 1 && <Step1BasicInfo />}
         {currentStep === 2 && <Step2SkuSetup />}
         {currentStep === 3 && <Step3LabelUpload />}

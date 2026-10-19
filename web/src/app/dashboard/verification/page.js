@@ -62,7 +62,7 @@ const getStatusBadge = (status) => {
   switch (status) {
     case 'Draft': return 'bg-white text-gray-700 border-gray-200'
     case 'Submitted': return 'bg-white text-blue-700 border-l-blue-500 border-y-gray-200 border-r-gray-200'
-    case 'AI Review': return 'bg-white text-[#0E4032] border-[#0E4032]/20'
+    case 'AI Review': return 'bg-white text-koi-forest border-koi-forest/20'
     case 'Human Review': return 'bg-white text-amber-700 border-amber-200'
     case 'Approved': return 'bg-white text-green-700 border-green-200'
     case 'Rejected': return 'bg-white text-red-700 border-red-200'
@@ -74,7 +74,7 @@ const StatusIcon = ({ status }) => {
   switch (status) {
     case 'Draft': return null
     case 'Submitted': return <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5"></div>
-    case 'AI Review': return <div className="w-1.5 h-1.5 rounded-full bg-[#0E4032] animate-pulse mr-1.5"></div>
+    case 'AI Review': return <div className="w-1.5 h-1.5 rounded-full bg-koi-forest animate-pulse mr-1.5"></div>
     case 'Human Review': return <AlertTriangle className="w-3 h-3 text-amber-500 mr-1.5" />
     case 'Approved': return <CheckCircle className="w-3 h-3 text-green-500 mr-1.5" />
     case 'Rejected': return <AlertTriangle className="w-3 h-3 text-red-500 mr-1.5" />
@@ -91,16 +91,16 @@ export default function VerificationPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-[#111827] tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
             Verification
           </h2>
-          <p className="text-[16px] text-[#6B7280]">
+          <p className="text-[16px] text-koi-muted">
             Track AI screening, human review, and approval status for product submissions.
           </p>
         </div>
         <Button 
           onClick={() => router.push('/dashboard/products/new')}
-          className="bg-[#0E4032] hover:bg-[#0a2e24] text-white h-12 px-6 rounded-xl shadow-[0_4px_14px_rgba(79,56,99,0.3)] hover:shadow-[0_6px_20px_rgba(79,56,99,0.4)] transition-all duration-300 gap-2 font-semibold"
+          className="bg-koi-forest hover:bg-koi-night text-white h-12 px-6 rounded-xl shadow-[0_4px_14px_rgba(79,56,99,0.3)] hover:shadow-[0_6px_20px_rgba(79,56,99,0.4)] transition-all duration-300 gap-2 font-semibold"
         >
           <Plus className="w-5 h-5" />
           Submit New Product
@@ -156,18 +156,18 @@ export default function VerificationPage() {
           {/* COLUMN 3: AI REVIEW */}
           <div className="w-[300px] flex-shrink-0 snap-start flex flex-col">
             <div className="flex items-center justify-between mb-3 px-1">
-              <span className="font-bold text-[#0E4032] uppercase tracking-wider text-xs">AI Review ({KANBAN_PIPELINE.aiReview.length})</span>
+              <span className="font-bold text-koi-forest uppercase tracking-wider text-xs">AI Review ({KANBAN_PIPELINE.aiReview.length})</span>
             </div>
-            <div className="flex-1 bg-[#0E4032]/5 border border-[#0E4032]/10 rounded-2xl p-3 space-y-3 min-h-[400px]">
+            <div className="flex-1 bg-koi-forest/5 border border-koi-forest/10 rounded-2xl p-3 space-y-3 min-h-[400px]">
               {KANBAN_PIPELINE.aiReview.map(item => (
-                <div key={item.id} className="bg-white border border-[#0E4032]/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                <div key={item.id} className="bg-white border border-koi-forest/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="font-bold text-gray-800 text-sm" style={{ fontFamily: "var(--font-koi-heading)" }}>{item.name}</h4>
-                    <span className="text-xs font-bold text-[#0E4032]">{item.progress}%</span>
+                    <span className="text-xs font-bold text-koi-forest">{item.progress}%</span>
                   </div>
                   {/* Progress Bar */}
                   <div className="h-1.5 w-full bg-gray-100 rounded-full mb-4 overflow-hidden">
-                    <div className="h-full bg-[#0E4032] rounded-full" style={{ width: `${item.progress}%` }}></div>
+                    <div className="h-full bg-koi-forest rounded-full" style={{ width: `${item.progress}%` }}></div>
                   </div>
                   <div className="space-y-2">
                     {item.tasks.map((task, i) => (
@@ -251,7 +251,7 @@ export default function VerificationPage() {
             <h3 className="font-bold text-gray-900" style={{ fontFamily: "var(--font-koi-heading)" }}>All Submissions</h3>
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input type="text" placeholder="Search..." className="pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032]" />
+              <input type="text" placeholder="Search..." className="pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest" />
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -294,7 +294,7 @@ export default function VerificationPage() {
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      <Button variant="ghost" className="h-8 px-3 text-[#0E4032] font-semibold text-xs hover:bg-[#0E4032]/10">View</Button>
+                      <Button variant="ghost" className="h-8 px-3 text-koi-forest font-semibold text-xs hover:bg-koi-forest/10">View</Button>
                     </td>
                   </tr>
                 ))}
@@ -362,7 +362,7 @@ export default function VerificationPage() {
             <div className="relative pl-4 space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
               
               <div className="relative flex items-center justify-between">
-                <div className="absolute -left-5 w-2.5 h-2.5 bg-[#0E4032] rounded-full ring-4 ring-white"></div>
+                <div className="absolute -left-5 w-2.5 h-2.5 bg-koi-forest rounded-full ring-4 ring-white"></div>
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold text-gray-900">OCR complete</span>
                   <span className="text-xs text-gray-500">Hydration Mix</span>

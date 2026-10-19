@@ -53,8 +53,8 @@ const VAULT_DATA = [
     id: 'labs',
     title: 'Lab Reports',
     icon: Microscope,
-    color: 'text-[#0E4032]',
-    bgColor: 'bg-[#0E4032]/10',
+    color: 'text-koi-forest',
+    bgColor: 'bg-koi-forest/10',
     meta: '12 Uploaded',
     submeta: '18/24 Products Covered',
     status: 'Good',
@@ -90,7 +90,7 @@ const MISSING_COVERAGE = [
 
 const TIMELINE = [
   { id: 1, date: 'Jun 21', action: 'FSSAI renewed', icon: ShieldCheck, color: 'text-blue-500' },
-  { id: 2, date: 'Jun 18', action: 'Lab report uploaded', icon: Microscope, color: 'text-[#0E4032]' },
+  { id: 2, date: 'Jun 18', action: 'Lab report uploaded', icon: Microscope, color: 'text-koi-forest' },
   { id: 3, date: 'Jun 15', action: 'Organic certification approved', icon: Award, color: 'text-green-500' }
 ]
 
@@ -107,15 +107,15 @@ export default function CompliancePage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-[#111827] tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
+          <h2 className="text-[32px] md:text-[36px] font-display font-bold text-koi-ink tracking-tight leading-none mb-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
             Compliance
           </h2>
-          <p className="text-[16px] text-[#6B7280]">
+          <p className="text-[16px] text-koi-muted">
             Monitor regulatory compliance, certifications, and document health across your catalog.
           </p>
         </div>
         <Button 
-          className="bg-[#0E4032] hover:bg-[#0a2e24] text-white h-12 px-6 rounded-xl shadow-[0_4px_14px_rgba(79,56,99,0.3)] hover:shadow-[0_6px_20px_rgba(79,56,99,0.4)] transition-all duration-300 gap-2 font-semibold"
+          className="bg-koi-forest hover:bg-koi-night text-white h-12 px-6 rounded-xl shadow-[0_4px_14px_rgba(79,56,99,0.3)] hover:shadow-[0_6px_20px_rgba(79,56,99,0.4)] transition-all duration-300 gap-2 font-semibold"
         >
           <Upload className="w-5 h-5" />
           Upload Document
@@ -138,7 +138,7 @@ export default function CompliancePage() {
                   fill="transparent" 
                   strokeDasharray={circumference} 
                   strokeDashoffset={strokeDashoffset} 
-                  className="text-[#0E4032] transition-all duration-1000 ease-out" 
+                  className="text-koi-forest transition-all duration-1000 ease-out" 
                   strokeLinecap="round" 
                 />
               </svg>
@@ -206,7 +206,7 @@ export default function CompliancePage() {
                   <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-gray-600 border-gray-200 hover:bg-gray-50">
                     View
                   </Button>
-                  <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-[#0E4032] border-[#0E4032]/20 hover:bg-[#0E4032]/5">
+                  <Button variant="outline" className="flex-1 h-9 text-xs font-semibold text-koi-forest border-koi-forest/20 hover:bg-koi-forest/5">
                     Replace
                   </Button>
                 </div>
@@ -308,7 +308,7 @@ export default function CompliancePage() {
           {/* SECTION 5 - TIMELINE */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex-1">
             <h3 className="font-bold text-gray-900 mb-5 flex items-center gap-2" style={{ fontFamily: "var(--font-koi-heading)" }}>
-              <Clock className="w-5 h-5 text-[#0E4032]" />
+              <Clock className="w-5 h-5 text-koi-forest" />
               Compliance Activity
             </h3>
             <div className="relative pl-4 space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">

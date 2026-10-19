@@ -65,7 +65,7 @@ export default function Step5AIReview({ productId, onBack, onComplete }) {
       <ol className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {STEPS.map(({ icon: Icon, title, body }) => (
           <li key={title} className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-            <Icon className="w-5 h-5 text-[#0E4032] mb-3" />
+            <Icon className="w-5 h-5 text-koi-forest mb-3" />
             <h4 className="font-semibold text-gray-900 mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>{title}</h4>
             <p className="text-sm text-gray-600 leading-relaxed">{body}</p>
           </li>
@@ -83,7 +83,7 @@ export default function Step5AIReview({ productId, onBack, onComplete }) {
             <FileEdit className="w-4 h-4 mr-2" />
             Replace labels
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !queued} className="flex-1 bg-[#0E4032] hover:bg-[#0a2e24] text-white rounded-xl h-12 font-semibold shadow-md">
+          <Button onClick={handleSubmit} disabled={submitting || !queued} className="flex-1 bg-koi-forest hover:bg-koi-night text-white rounded-xl h-12 font-semibold shadow-md">
             {submitting ? 'Submitting…' : (<><Send className="w-4 h-4 mr-2" />Submit for approval</>)}
           </Button>
         </div>

@@ -176,7 +176,7 @@ export default function MultiSelectChipInput({
           'relative flex flex-wrap items-center gap-2 rounded-xl border bg-card px-3 min-h-[48px] cursor-text transition-all duration-200',
           isOpen
             ? 'border-primary ring-2 ring-primary/15 shadow-sm'
-            : 'border-[#E5E7EB] hover:border-primary/40',
+            : 'border-koi-track hover:border-primary/40',
           atLimit && 'opacity-70 cursor-default',
         )}
       >
@@ -224,7 +224,7 @@ export default function MultiSelectChipInput({
           <ul
             ref={listRef}
             role="listbox"
-            className="absolute mt-2 w-full max-h-[220px] overflow-y-auto rounded-xl border border-[#E5E7EB] bg-card py-1.5"
+            className="absolute mt-2 w-full max-h-[220px] overflow-y-auto rounded-xl border border-koi-track bg-card py-1.5"
             style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }}
           >
             {filteredOptions.length === 0 ? (

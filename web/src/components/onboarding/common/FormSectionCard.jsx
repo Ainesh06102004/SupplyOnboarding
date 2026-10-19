@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 export default function FormSectionCard({ title, description, icon: Icon, className, children }) {
   return (
     <section
-      className={cn('relative rounded-[24px] border border-[#E2E8D8] bg-white p-6 md:p-8', className)}
+      className={cn('relative rounded-[24px] border border-koi-track bg-white p-6 md:p-8', className)}
       style={{ boxShadow: '0 12px 44px rgba(14,64,50,0.05)' }}
     >
       {(title || Icon) && (
@@ -26,11 +26,11 @@ export default function FormSectionCard({ title, description, icon: Icon, classN
             </div>
           )}
           <div className="pt-0.5">
-            <h2 className="text-[18px] font-bold tracking-tight text-[#0E4032]" style={{ fontFamily: 'var(--font-koi-heading)' }}>
+            <h2 className="text-[18px] font-bold tracking-tight text-koi-forest" style={{ fontFamily: 'var(--font-koi-heading)' }}>
               {title}
             </h2>
             {description && (
-              <p className="mt-1 text-[13.5px] leading-relaxed text-[#5A6B5A]">{description}</p>
+              <p className="mt-1 text-[13.5px] leading-relaxed text-koi-muted">{description}</p>
             )}
           </div>
         </div>

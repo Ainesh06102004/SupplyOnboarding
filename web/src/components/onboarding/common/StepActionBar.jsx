@@ -21,7 +21,7 @@ export default function StepActionBar({
 }) {
   return (
     <div
-      className="sticky bottom-0 z-30 w-full bg-white/80 backdrop-blur-md border-t border-[#E2E8D8]"
+      className="sticky bottom-0 z-30 w-full bg-white/80 backdrop-blur-md border-t border-koi-track"
       style={{ boxShadow: '0 -4px 20px rgba(14,64,50,0.04)' }}
     >
       <div className="max-w-[1100px] mx-auto flex items-center justify-between px-6 md:px-10 py-4">
@@ -33,7 +33,7 @@ export default function StepActionBar({
               variant="ghost"
               onClick={onBack}
               disabled={isSaving}
-              className="text-[#5A6B5A] hover:text-[#0E4032] gap-2"
+              className="text-koi-muted hover:text-koi-forest gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -49,7 +49,7 @@ export default function StepActionBar({
               variant="outline"
               onClick={onSaveDraft}
               disabled={isSaving}
-              className="border-[#E2E8D8] text-[#0E4032] hover:bg-[#EDF2E6] gap-2"
+              className="border-koi-track text-koi-forest hover:bg-koi-tint gap-2"
             >
               <Save className="w-4 h-4" />
               <span className="hidden sm:inline">Save Draft</span>

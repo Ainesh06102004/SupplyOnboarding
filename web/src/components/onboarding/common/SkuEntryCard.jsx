@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { useDropzone } from 'react-dropzone'
 
 const INPUT_CLASS =
-  'h-12 rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 text-sm placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'h-12 rounded-xl border-koi-track bg-koi-paper px-4 text-sm placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
 
 /**
  * SkuEntryCard
@@ -33,12 +33,12 @@ export default function SkuEntryCard({
   const skuNum = index + 1
 
   return (
-    <div className="border border-[#E5E7EB] rounded-xl overflow-hidden bg-card transition-all">
+    <div className="border border-koi-track rounded-xl overflow-hidden bg-card transition-all">
       {/* Collapse header */}
       <button
         type="button"
         onClick={() => setIsOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#FDFCFA] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-koi-paper transition-colors"
       >
         <div className="flex items-center gap-3">
           <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
@@ -58,7 +58,7 @@ export default function SkuEntryCard({
 
       {/* Body */}
       {isOpen && (
-        <div className="px-5 pb-5 pt-1 space-y-5 border-t border-[#E5E7EB]">
+        <div className="px-5 pb-5 pt-1 space-y-5 border-t border-koi-track">
           {/* Product Name */}
           <div>
             <label className="block text-[13px] font-semibold text-foreground mb-1.5 tracking-tight">
@@ -135,7 +135,7 @@ function LabelUploadField({
         </label>
 
         {/* Tab toggle */}
-        <div className="flex items-center bg-[#F0EBE3] rounded-lg p-0.5">
+        <div className="flex items-center bg-koi-track rounded-lg p-0.5">
           <button
             type="button"
             onClick={() => setMode('upload')}
@@ -167,7 +167,7 @@ function LabelUploadField({
 
       {mode === 'upload' ? (
         fileValue ? (
-          <div className="flex items-center justify-between bg-[#FDFCFA] border border-[#E5E7EB] rounded-xl px-4 py-2.5">
+          <div className="flex items-center justify-between bg-koi-paper border border-koi-track rounded-xl px-4 py-2.5">
             <div className="flex items-center gap-2.5">
               <File className="w-4 h-4 text-primary" />
               <span className="text-sm text-foreground truncate max-w-[200px]">
@@ -185,7 +185,7 @@ function LabelUploadField({
         ) : (
           <div
             {...getRootProps()}
-            className="flex items-center justify-center h-[52px] rounded-xl border border-dashed border-[#D9D2C8] bg-[#FDFCFA] cursor-pointer hover:border-primary/40 transition-colors"
+            className="flex items-center justify-center h-[52px] rounded-xl border border-dashed border-koi-track bg-koi-paper cursor-pointer hover:border-primary/40 transition-colors"
           >
             <input {...getInputProps()} />
             <span className="text-xs text-muted">

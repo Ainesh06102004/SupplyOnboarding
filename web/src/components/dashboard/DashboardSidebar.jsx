@@ -1,32 +1,29 @@
 "use client"
 
+// The night sidebar: the wordmark with KOI's dot, the portal's places, and the
+// way out. Settings has no page yet, so it is shown as coming rather than as a
+// link to nothing.
+
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import { signOutUser } from '@/lib/auth/supabaseAuth'
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShieldCheck, 
-  FileText, 
-  Settings, 
-  HelpCircle, 
-  BookOpen, 
-  LogOut 
-} from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { LayoutDashboard, Package, ShieldCheck, FileText, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Products', href: '/dashboard/products', icon: Package },
   { label: 'Verification', href: '/dashboard/verification', icon: ShieldCheck },
   { label: 'Compliance', href: '/dashboard/compliance', icon: FileText },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { label: 'Settings', href: null, icon: Settings },
 ]
 
 export default function DashboardSidebar({ onClose }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { user } = useAuth()
+  const who = user?.email || user?.phone || null
 
   const handleLogout = async () => {
     try {
@@ -38,63 +35,66 @@ export default function DashboardSidebar({ onClose }) {
   }
 
   return (
-    <div className="h-full w-full bg-[#F2F6EC] border-r border-[#E5E7EB] flex flex-col">
-      {/* Brand Header */}
-      <div className="h-[72px] px-6 flex items-center shrink-0">
-        <div className="flex flex-col">
-          <Link href="/dashboard" className="text-xl font-bold text-[#0E4032]" style={{ fontFamily: "var(--font-koi-heading)" }}>
-            KOI Health
-          </Link>
-          <span className="text-[11px] font-medium text-[#6B7280] tracking-wide uppercase">
-            Health-first Commerce
-          </span>
-        </div>
-      </div>
+    <aside aria-label="KOI for brands" className="flex h-full w-full flex-col gap-6 bg-koi-night px-4 py-6 font-koi-sans text-koi-bg">
+      <Link href="/dashboard" onClick={onClose} className="flex items-center gap-3 px-2 no-underline">
+        <span className="flex items-end gap-[3px] text-koi-bg">
+          <span className="font-koi-display text-[24px] font-extrabold leading-none tracking-[-0.02em]">KOI</span>
+          <span aria-hidden="true" className="mb-[3px] size-[6px] rounded-full bg-koi-ember" />
+        </span>
+        <span className="flex flex-col leading-tight">
+          <span className="text-[13px] font-bold text-koi-bg">KOI Health</span>
+          <span className="font-koi-mono text-[9.5px] uppercase tracking-[0.14em] text-koi-bg/55">Health-first Commerce</span>
+        </span>
+      </Link>
 
-      {/* Main Navigation */}
-      <div className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-medium transition-all duration-200 relative group",
-                isActive 
-                  ? "bg-[#F2F6EC] text-[#0E4032]" 
-                  : "text-[#6B7280] hover:bg-black/5 hover:text-[#111827]"
-              )}
-            >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0E4032] rounded-r-full" />
-              )}
-              <item.icon className={cn("w-[18px] h-[18px]", isActive ? "text-[#0E4032]" : "text-[#6B7280] group-hover:text-[#111827]")} />
-              {item.label}
-            </Link>
-          )
-        })}
-      </div>
+      <nav aria-label="Portal">
+        <ul className="m-0 flex list-none flex-col gap-1 p-0">
+          {NAV_ITEMS.map((item) => {
+            if (!item.href) {
+              return (
+                <li key={item.label} data-nav>
+                  <span className="flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-koi-bg/40">
+                    <item.icon className="size-[18px] shrink-0" />{item.label}
+                    <span className="ml-auto font-koi-mono text-[9.5px] uppercase tracking-[0.12em]">Soon</span>
+                  </span>
+                </li>
+              )
+            }
+            const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item.href)
+            return (
+              <li key={item.href} data-nav>
+                <Link
+                  href={item.href}
+                  onClick={onClose}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm no-underline transition-colors ${isActive ? 'bg-koi-bg/10 font-bold text-koi-lime' : 'font-semibold text-koi-bg/75 hover:bg-koi-bg/5 hover:text-koi-bg'}`}
+                >
+                  {isActive && <span aria-hidden="true" className="absolute -left-4 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-koi-lime" />}
+                  <item.icon className="size-[18px] shrink-0" />
+                  {item.label}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
 
-      {/* Bottom Pinned Utilities */}
-      <div className="p-4 border-t border-[#E5E7EB]/50 space-y-1">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium text-[#6B7280] hover:bg-black/5 hover:text-[#111827] transition-all duration-200">
-          <HelpCircle className="w-[18px] h-[18px]" />
-          Help Center
-        </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium text-[#6B7280] hover:bg-black/5 hover:text-[#111827] transition-all duration-200">
-          <BookOpen className="w-[18px] h-[18px]" />
-          Documentation
-        </button>
-        <button 
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium text-red-600/80 hover:bg-red-50 hover:text-red-700 transition-all duration-200 mt-2"
-        >
-          <LogOut className="w-[18px] h-[18px]" />
-          Logout
-        </button>
+      <div className="mt-auto flex flex-col gap-3">
+        {who && (
+          <div className="flex items-center gap-3 rounded-2xl bg-koi-bg/5 p-3">
+            <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl bg-koi-lime font-koi-display text-sm font-extrabold text-koi-forest">{String(who).replace(/^\+?\d{0,2}/, '').slice(0, 1).toUpperCase() || 'B'}</span>
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="truncate text-sm font-bold">{who}</span>
+              <span className="flex items-center gap-1.5 text-[11.5px] text-koi-mint"><span aria-hidden="true" className="size-1.5 rounded-full bg-koi-mint" />Signed in</span>
+            </span>
+          </div>
+        )}
+        <ul className="m-0 flex list-none flex-col gap-0.5 p-0 text-[13px] font-semibold text-koi-bg/60">
+          <li><button type="button" className="flex h-9 w-full items-center rounded-lg px-2 text-left transition-colors hover:text-koi-bg">Help Center</button></li>
+          <li><button type="button" className="flex h-9 w-full items-center rounded-lg px-2 text-left transition-colors hover:text-koi-bg">Documentation</button></li>
+          <li><button type="button" onClick={handleLogout} className="flex h-9 w-full items-center rounded-lg px-2 text-left transition-colors hover:text-koi-bg">Logout</button></li>
+        </ul>
       </div>
-    </div>
+    </aside>
   )
 }

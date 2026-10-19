@@ -147,24 +147,24 @@ function AccountMenu({ label, styles, className = "" }) {
 
       {open && (
         <div id={menuId} role="menu" aria-label="Your account"
-             className="absolute right-0 top-[calc(100%+8px)] z-[80] w-60 overflow-hidden rounded-[18px] border border-[rgba(20,22,15,.08)] bg-white text-[#1c1e17] shadow-[0_18px_50px_rgba(15,61,46,0.18)]">
+             className="absolute right-0 top-[calc(100%+8px)] z-[80] w-60 overflow-hidden rounded-[18px] border border-[rgba(20,22,15,.08)] bg-white text-koi-ink shadow-[0_18px_50px_rgba(15,61,46,0.18)]">
           {MENU.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href} role="menuitem" onClick={() => setOpen(false)}
-                    className="flex items-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-[#f6f5f1]">
+                    className="flex items-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-koi-bg">
                 <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#2f8050]" strokeWidth={2.2} />
                 <span>
-                  <span className="block text-[13px] font-bold text-[#1c1e17]">{item.label}</span>
-                  {item.hint && <span className="block text-[11px] text-[#6b6f63]">{item.hint}</span>}
+                  <span className="block text-[13px] font-bold text-koi-ink">{item.label}</span>
+                  {item.hint && <span className="block text-[11px] text-koi-muted">{item.hint}</span>}
                 </span>
               </Link>
             );
           })}
           <button type="button" role="menuitem" onClick={signOut} disabled={signingOut}
-                  className="flex w-full items-center gap-2.5 border-t border-[#f0eee7] px-4 py-2.5 text-left transition-colors hover:bg-[#f6f5f1] disabled:opacity-50">
-            <LogOut className="h-4 w-4 shrink-0 text-[#6b6f63]" strokeWidth={2.2} />
-            <span className="text-[13px] font-bold text-[#1c1e17]">{signingOut ? "Signing out…" : "Sign out"}</span>
+                  className="flex w-full items-center gap-2.5 border-t border-[#f0eee7] px-4 py-2.5 text-left transition-colors hover:bg-koi-bg disabled:opacity-50">
+            <LogOut className="h-4 w-4 shrink-0 text-koi-muted" strokeWidth={2.2} />
+            <span className="text-[13px] font-bold text-koi-ink">{signingOut ? "Signing out…" : "Sign out"}</span>
           </button>
         </div>
       )}

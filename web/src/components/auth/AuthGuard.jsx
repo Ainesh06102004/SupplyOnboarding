@@ -18,7 +18,7 @@ export default function AuthGuard({ children }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8F4EC]">
+      <div className="flex h-screen items-center justify-center bg-koi-bg">
         <p className="text-muted animate-pulse">Checking your session...</p>
       </div>
     );

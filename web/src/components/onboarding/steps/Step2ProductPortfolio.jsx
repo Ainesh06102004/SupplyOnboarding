@@ -226,7 +226,7 @@ export default function Step2ProductPortfolio() {
                   const v = e.target.value
                   if (v.length <= MAX_CHARS) setField('healthDifferentiation', v)
                 }}
-                className="min-h-[150px] rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
+                className="min-h-[150px] rounded-xl border-koi-track bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200"
               />
               <div className="flex items-center justify-between mt-1.5">
                 {errors.healthDifferentiation ? (

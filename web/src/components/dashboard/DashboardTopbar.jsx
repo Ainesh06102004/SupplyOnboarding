@@ -1,52 +1,39 @@
 "use client"
 
+// The portal's topbar: search, KOI's pill (its dot, and where you are), the
+// bell and the brand. Page titles live on the pages, in the display cut.
+
 import React from 'react'
 import { usePathname } from 'next/navigation'
 import { Search, Bell } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+
+const WHERE = {
+  '/dashboard': 'Your overview',
+  '/dashboard/products': 'Your products',
+  '/dashboard/products/new': 'Adding a product',
+  '/dashboard/verification': 'Verification',
+  '/dashboard/compliance': 'Compliance',
+}
 
 export default function DashboardTopbar() {
-  const pathname = usePathname()
-  
-  // Format the title from pathname
-  let pageTitle = 'Overview'
-  if (pathname !== '/dashboard') {
-    const segments = pathname.split('/').filter(Boolean)
-    if (segments.length > 1) {
-      pageTitle = segments[1].charAt(0).toUpperCase() + segments[1].slice(1)
-    }
-  }
+  const pathname = usePathname() ?? '/dashboard'
+  const where = WHERE[pathname] ?? 'KOI for brands'
 
   return (
-    <div className="h-[72px] flex items-center justify-between w-full">
-      {/* Left: Page Title */}
-      <h1 className="text-2xl font-display font-bold text-[#111827]" style={{ fontFamily: "var(--font-koi-heading)" }}>
-        {pageTitle}
-      </h1>
-
-      {/* Right: Search, Notifications, Avatar */}
-      <div className="flex items-center gap-4 md:gap-6">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#6B7280]" />
-          <Input 
-            type="text" 
-            placeholder="Search products, SKUs, documents..." 
-            className="w-[320px] h-[44px] pl-10 bg-white border-[#E5E7EB] rounded-xl text-[14px] focus-visible:ring-[#0E4032]"
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="relative text-[#6B7280] hover:text-[#111827] hover:bg-black/5 rounded-full">
-            <Bell className="w-[20px] h-[20px]" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#F8F4EC]"></span>
-          </Button>
-
-          <div className="w-10 h-10 border border-[#E5E7EB] rounded-full overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-[#EBE6EF] flex items-center justify-center text-[#0E4032] font-semibold">
-            B
-          </div>
-        </div>
-      </div>
+    <div className="flex h-[72px] w-full items-center gap-4">
+      <label className="hidden h-11 w-full max-w-[460px] items-center gap-3 rounded-full border border-koi-forest/10 bg-white px-4 md:flex">
+        <Search className="size-4 shrink-0 text-koi-muted" />
+        <span className="sr-only">Search</span>
+        <input type="text" autoComplete="off" placeholder="Search products, SKUs, documents..." className="h-full min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-koi-muted" />
+      </label>
+      <span className="ml-auto flex h-11 items-center gap-2.5 rounded-full border border-koi-forest/10 bg-white px-4 text-[13px] font-semibold text-koi-forest">
+        <span aria-hidden="true" className="size-[10px] shrink-0 rounded-full bg-koi-ember" />
+        <span>{where}</span>
+      </span>
+      <button type="button" aria-label="Notifications" className="relative grid size-11 place-items-center rounded-full border border-koi-forest/10 bg-white text-koi-forest">
+        <Bell className="size-[18px]" />
+        <span aria-hidden="true" className="absolute right-2.5 top-2.5 size-2 rounded-full bg-koi-red" />
+      </button>
     </div>
   )
 }

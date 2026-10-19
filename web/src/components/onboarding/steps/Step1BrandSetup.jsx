@@ -18,10 +18,10 @@ import { validateStep1 } from '@/lib/validations/step1'
  *  Shared input class - premium KOI styling
  * ──────────────────────────────────────────────── */
 const INPUT_CLASS =
-  'h-12 rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 text-sm placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'h-12 rounded-xl border-koi-track bg-koi-paper px-4 text-sm placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
 
 const TEXTAREA_CLASS =
-  'min-h-[140px] rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'min-h-[140px] rounded-xl border-koi-track bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
 
 /* ────────────────────────────────────────────────
  *  Initial form shape

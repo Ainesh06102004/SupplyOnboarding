@@ -21,7 +21,7 @@ const CLAIMS_WARN_THRESHOLD = 400
 const CLAIMS_DANGER_THRESHOLD = 480
 
 const TEXTAREA_CLASS =
-  'min-h-[180px] rounded-xl border-[#E5E7EB] bg-[#FDFCFA] px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-[#C9C1B6] focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
+  'min-h-[180px] rounded-xl border-koi-track bg-koi-paper px-4 py-3 text-sm resize-none placeholder:text-muted/60 hover:border-koi-track focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-200'
 
 const INITIAL_FORM = {
   fssaiFile: null,
@@ -219,7 +219,7 @@ export default function Step3Compliance() {
 function ClaimsSummarySection({ value, charCount, maxChars, counterColor, error, onChange }) {
   return (
     <section
-      className="bg-card border border-[#E5E7EB] px-7 pt-6 pb-7 md:px-8 md:pt-7 md:pb-8 rounded-[20px]"
+      className="bg-card border border-koi-track px-7 pt-6 pb-7 md:px-8 md:pt-7 md:pb-8 rounded-[20px]"
       style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
     >
       <div className="flex items-start gap-3.5 mb-5">

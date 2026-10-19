@@ -156,13 +156,13 @@ export default function Step3LabelUpload() {
         <p className="text-gray-500">Upload packaging and label files for AI extraction.</p>
       </div>
 
-      <div className="bg-[#0E4032]/5 border border-[#0E4032]/20 rounded-2xl p-4 flex gap-4 items-start">
-        <div className="w-10 h-10 rounded-full bg-[#0E4032]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <Sparkles className="w-5 h-5 text-[#0E4032]" />
+      <div className="bg-koi-forest/5 border border-koi-forest/20 rounded-2xl p-4 flex gap-4 items-start">
+        <div className="w-10 h-10 rounded-full bg-koi-forest/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <Sparkles className="w-5 h-5 text-koi-forest" />
         </div>
         <div>
-          <h5 className="font-bold text-[#0E4032] text-sm mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>AI-assisted extraction enabled</h5>
-          <p className="text-sm text-[#0E4032]/80 leading-relaxed">
+          <h5 className="font-bold text-koi-forest text-sm mb-1" style={{ fontFamily: "var(--font-koi-heading)" }}>AI-assisted extraction enabled</h5>
+          <p className="text-sm text-koi-forest/80 leading-relaxed">
             KOI AI will analyze uploaded assets to extract nutrition facts, ingredients, claims, and certification badges.
           </p>
         </div>
@@ -213,7 +213,7 @@ export default function Step3LabelUpload() {
               type="text" 
               value={assets.barcodeText || ''}
               onChange={(e) => updateAssets({ barcodeText: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0E4032]/20 focus:border-[#0E4032] transition-all text-sm"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-koi-forest/20 focus:border-koi-forest transition-all text-sm"
               placeholder="Enter Barcode / EAN"
             />
           </div>
@@ -241,7 +241,7 @@ export default function Step3LabelUpload() {
           <Button 
             onClick={handleContinue} 
             disabled={loading}
-            className="bg-[#0E4032] hover:bg-[#0a2e24] text-white h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
+            className="bg-koi-forest hover:bg-koi-night text-white h-12 px-8 rounded-xl font-semibold w-full sm:w-auto"
           >
             {loading ? (
               <div className="flex items-center gap-2">
