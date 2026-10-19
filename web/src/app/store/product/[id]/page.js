@@ -22,7 +22,6 @@ import { useGoalStore } from "@/store/goalStore";
 import { useLocation } from "@/contexts/LocationContext";
 import { useProductSupply } from "@/lib/marketplace/useProductSupply";
 import SupplyPanel from "@/components/store/product/SupplyPanel";
-import { C, HEADING } from "@/components/store/landing/tokens";
 import CloseUp from "@/components/store/product/CloseUp";
 import TrustBadge from "@/components/store/product/TrustBadge";
 import { StickyBuyBar } from "@/components/store/product/BuyPanel";
@@ -98,9 +97,9 @@ export default function ProductDetailPage({ params }) {
   // Loading (only until fetch resolves and only if not already in fallback)
   if (!vm && !loaded) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center" style={{ background: "var(--koi-bg)" }}>
-        <Leaf className="mb-4 h-8 w-8 animate-bounce" style={{ color: C.forest }} />
-        <p className="text-[15px] font-semibold text-[#083D2D]" style={{ fontFamily: "var(--font-koi-body)" }}>Loading product…</p>
+      <div role="status" className="flex min-h-[70vh] flex-col items-center justify-center gap-3 bg-koi-bg">
+        <span aria-hidden="true" className="size-[10px] animate-pulse rounded-full bg-koi-ember" />
+        <p className="m-0 font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-muted">Loading product…</p>
       </div>
     );
   }
@@ -108,10 +107,12 @@ export default function ProductDetailPage({ params }) {
   // Not found
   if (!vm) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center" style={{ background: "var(--koi-bg)" }}>
-        <h1 className="text-[28px] font-extrabold text-[#083D2D]" style={HEADING}>Product not found</h1>
-        <p className="mt-2 text-[15px] text-[#083D2D]/55">This item may have been delisted or the link is out of date.</p>
-        <button onClick={() => router.push("/store/shop")} className="mt-6 rounded-full px-6 py-3 text-[14px] font-bold text-white" style={{ background: C.forest }}>Back to shop</button>
+      // The States board's "not found": what happened, and the way back.
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 bg-koi-bg px-6 text-center">
+        <span aria-hidden="true" className="grid size-16 place-items-center rounded-full bg-koi-tint text-koi-forest"><Leaf className="size-7" /></span>
+        <h1 className="m-0 font-koi-display text-[30px] font-extrabold tracking-[-0.02em] text-koi-forest">Product not found</h1>
+        <p className="m-0 max-w-[360px] text-[15px] leading-relaxed text-koi-ink2">This item may have been delisted or the link is out of date.</p>
+        <button type="button" onClick={() => router.push("/store/shop")} className="mt-2 flex h-12 items-center rounded-full bg-koi-forest px-6 text-sm font-bold text-koi-lime">Back to shop</button>
       </div>
     );
   }
