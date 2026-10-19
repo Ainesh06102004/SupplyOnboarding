@@ -6,7 +6,7 @@
 // The same pieces draw the cart drawer (CartSheet), the /store/cart page and
 // the Plan's Cart step, so they cannot disagree about what is in the basket:
 //
-//   PlanGroup           "This week's plan · for N" — the lines the plan put
+//   PlanGroup           "This week · from your plan" — the lines the plan put
 //                       there, what was marked at home, and "plan said N"
 //                       where the shopper changed a count.
 //   OwnGroup            "Also in your cart" — everything the shopper added.
@@ -19,6 +19,9 @@
 // Every ₹ here is catalogue MRP × packs. Swiggy's own price, fees and delivery
 // are shown by Swiggy before payment, and the copy says so; there is no
 // "Delivery: Free" line, because KOI cannot know it.
+//
+// Cinematic storefront (Oct 2026): drawn in the koi-* Tailwind tokens; rows
+// carry data-item so the page can move them and KOI can point at them.
 // ============================================================================
 
 import { useMemo, useState } from "react";
@@ -28,10 +31,10 @@ import { useCartUi } from "@/store/cartUiStore";
 import { lineKey, packs, totals } from "@/lib/cart/lines";
 import { diffBaskets, basketSnapshot } from "@/lib/cart/plan";
 import { putPlanInCart, updateCartToPlan } from "@/lib/cart/client";
-import { averageScore, scoredOnly } from "@/lib/score";
+import { averageScore, scoredOnly, hasScore } from "@/lib/score";
 import { toPer100, toPerServing } from "@/lib/nutrition/basis";
 import { isLowSugar, rowFromProduct } from "@/lib/nutrition/claims";
-import { Button, Money, MonoLabel, ProductThumb, QtyStepper, Icon } from "@/components/store/system/primitives";
+import { Money, ProductThumb, QtyStepper, Icon } from "@/components/store/system/primitives";
 
 /**
  * Everything the cart surfaces read, derived once.
@@ -71,6 +74,9 @@ export function useCartGroups() {
   }, [items, plan, hydrated, resolved, latest]);
 }
 
+const scoreTone = (n) => (n >= 80 ? "border-koi-tint-border bg-koi-tint text-koi-primary" : n >= 50 ? "border-koi-amber-border bg-koi-amber-bg text-koi-amber-ink" : "border-koi-warm-border bg-koi-warm-bg text-koi-warm-ink");
+const mono = "font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em]";
+
 /**
  * One cart line: the pack shot, the name, the count, the money.
  * @param {{ line: object, planned?: number|null, compact?: boolean }} props
@@ -83,28 +89,36 @@ export function CartLine({ line, planned = null, compact = false }) {
   const amount = Number.isFinite(price) && price > 0 ? price * q : null;
   const edited = planned !== null && planned !== undefined && planned !== q;
   const meta = [line.brand && line.brand !== "Unknown" ? line.brand : null, line.weight && line.weight !== "N/A" ? line.weight : null].filter(Boolean).join(" · ");
+  const scored = hasScore(line.score);
+  const name = line.productId ? (
+    <Link href={`/store/product/${line.productId}`} className="text-inherit no-underline hover:underline">{line.name}</Link>
+  ) : line.name;
   return (
-    <div className="ks-line">
-      <ProductThumb src={line.image?.hero || null} alt="" size={compact ? 44 : 52} radius={compact ? 11 : 13} />
-      <div className="ks-line-main">
-        {line.productId ? (
-          <Link href={`/store/product/${line.productId}`} className="ks-line-name">{line.name}</Link>
-        ) : (
-          <span className="ks-line-name">{line.name}</span>
-        )}
-        <span className="ks-mono" style={{ letterSpacing: ".06em" }}>
-          {meta}
-          {edited && <span style={{ color: "var(--koi-warm)" }}>{meta ? " · " : ""}plan said <span className="ks-num">{planned}</span></span>}
-        </span>
+    <li
+      data-item={key}
+      className={`grid items-center border-b border-koi-forest/10 last:border-b-0 ${compact ? "grid-cols-[44px_minmax(0,1fr)_auto_auto] gap-3 px-4 py-3" : "grid-cols-[56px_minmax(0,1fr)_auto] gap-3 py-4 sm:grid-cols-[76px_minmax(0,1fr)_auto_92px] sm:gap-4"}`}
+    >
+      <ProductThumb src={line.image?.hero || null} alt="" size={compact ? 44 : 76} radius={compact ? 11 : 16} />
+      <div className="flex min-w-0 flex-col gap-1">
+        {meta && <span className="truncate font-koi-mono text-[10.5px] font-medium uppercase tracking-[0.13em] text-koi-muted">{meta}</span>}
+        <span className={`font-bold leading-snug text-koi-ink ${compact ? "text-[14px]" : "text-[15.5px] sm:text-[17px]"}`}>{name}</span>
+        {(!compact && scored) || edited ? (
+          <span className="flex flex-wrap gap-1.5">
+            {!compact && scored && <span className={`rounded-full border px-2.5 py-0.5 font-koi-num text-[11.5px] font-bold ${scoreTone(Number(line.score))}`}>KOI {Math.round(Number(line.score))}</span>}
+            {edited && <span className="rounded-full border border-koi-warm-border bg-koi-warm-bg px-2.5 py-0.5 text-[11.5px] font-semibold text-koi-warm-ink">plan said <span className="font-koi-num">{planned}</span></span>}
+          </span>
+        ) : null}
       </div>
       <QtyStepper value={q} onChange={(n) => setQty(key, n)} label={line.name} />
-      <span className="ks-line-amount">{amount !== null ? <Money value={amount} /> : <span className="ks-mono">No price</span>}</span>
-    </div>
+      <span className={`text-right font-koi-num font-semibold ${compact ? "min-w-[52px] text-[14px]" : "col-start-2 row-start-2 text-left text-base sm:col-start-auto sm:row-start-auto sm:text-right sm:text-lg"}`}>
+        {amount !== null ? <Money value={amount} /> : <span className="font-koi-mono text-[11px] text-koi-muted">No price</span>}
+      </span>
+    </li>
   );
 }
 
 /**
- * "This week's plan · for N". Expands in the drawer; open on a page.
+ * "This week · from your plan". Expands in the drawer; open on a page.
  * @param {{ groups: object, collapsible?: boolean, editHref?: string|null }} props
  */
 export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan?step=pantry" }) {
@@ -124,52 +138,56 @@ export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan
     }
   };
 
-  const head = (
-    <>
-      <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--koi-tint)", display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "none", color: "var(--koi-primary)" }}><Icon.Calendar /></span>
-      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1, textAlign: "left" }}>
-        <MonoLabel tone="green">This week&apos;s plan{members ? ` · for ${members}` : ""}</MonoLabel>
-        <span style={{ font: "600 13.5px var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>
-          <span className="ks-num">{planLines.length}</span> {planLines.length === 1 ? "product" : "products"} · <span className="ks-num">{planTotals.packs}</span> packs
-        </span>
-      </span>
-      <Money value={planTotals.total} size={16} />
-    </>
+  const summary = (
+    <span className="text-[13px] font-semibold text-koi-ink2">
+      <span className="font-koi-num">{planLines.length}</span> {planLines.length === 1 ? "product" : "products"} · <span className="font-koi-num">{planTotals.packs}</span> packs · <Money value={planTotals.total} />
+    </span>
   );
 
   return (
-    <section aria-label="This week's plan" className="ks-card" style={{ overflow: "hidden" }}>
+    <section aria-label="This week's plan" className={collapsible ? "overflow-hidden rounded-[20px] border border-koi-forest/10 bg-white" : ""}>
       {collapsible ? (
-        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fbfaf7", border: 0, cursor: "pointer", fontFamily: "inherit" }}>
-          {head}
-          <Icon.Chevron style={{ color: "var(--koi-ink2)", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-3 bg-koi-paper px-4 py-3.5 text-left">
+          <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-koi-tint text-koi-primary"><Icon.Calendar /></span>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className={`${mono} text-koi-primary`}>This week · from your plan{members ? ` · for ${members}` : ""}</span>
+            {summary}
+          </span>
+          <Icon.Chevron className={`text-koi-ink2 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px 12px", background: "#fbfaf7" }}>
-          {head}
-          {editHref && <Link href={editHref} className="ks-btn" data-variant="ghost" data-size="sm">Edit in Pantry</Link>}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-koi-forest/15 pb-3">
+          <span className="flex flex-col gap-1">
+            <span className={`${mono} text-koi-ink2`}>This week · from your plan{members ? ` · for ${members}` : ""}</span>
+            {summary}
+          </span>
+          {editHref && <Link href={editHref} className="text-sm font-semibold text-koi-primary hover:underline">Edit in Pantry</Link>}
         </div>
       )}
-      {open && planLines.map((l) => <CartLine key={lineKey(l)} line={l} planned={planned.get(String(l.skuId)) ?? null} compact={collapsible} />)}
+      {open && planLines.length > 0 && (
+        <ol className="m-0 list-none p-0">
+          {planLines.map((l) => <CartLine key={lineKey(l)} line={l} planned={planned.get(String(l.skuId)) ?? null} compact={collapsible} />)}
+        </ol>
+      )}
       {open && planLines.length === 0 && (
-        <p style={{ margin: 0, padding: "12px 20px", borderTop: "1px solid var(--koi-divider)", font: "400 13.5px var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>Everything on this week&apos;s plan is marked as already at home.</p>
+        <p className="m-0 border-t border-koi-forest/10 px-4 py-3 text-[13.5px] text-koi-ink2">Everything on this week’s plan is marked as already at home.</p>
       )}
       {(atHome.length > 0 || collapsible) && (
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 16px", borderTop: "1px solid var(--koi-divider)", font: "400 13px var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>
+        <div className={`flex flex-wrap items-center justify-between gap-2.5 text-[13px] text-koi-ink2 ${collapsible ? "border-t border-koi-forest/10 px-4 py-2.5" : "pt-3"}`}>
           {atHome.length > 0 ? (
-            <span style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-              <MonoLabel style={{ letterSpacing: ".06em" }}>{atHome.length} at home</MonoLabel>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-koi-muted"><span className="font-koi-num">{atHome.length}</span> at home</span>
               {atHome.slice(0, 3).map((skuId) => (
-                <span key={skuId} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                <span key={skuId} className="inline-flex items-center gap-1.5">
                   · {names.get(String(skuId)) ?? "an item"}
-                  <button type="button" onClick={() => putBack(skuId)} disabled={busy === skuId} style={{ border: 0, background: "none", padding: 0, cursor: "pointer", font: "600 13px var(--koi-sans-stack)", color: "var(--koi-primary)" }}>
+                  <button type="button" onClick={() => putBack(skuId)} disabled={busy === skuId} className="font-semibold text-koi-primary disabled:opacity-60">
                     {busy === skuId ? "Putting back…" : "Put it back"}
                   </button>
                 </span>
               ))}
             </span>
           ) : <span />}
-          {collapsible && <Link href="/store/plan?step=shop" style={{ font: "600 13px var(--koi-sans-stack)", textDecoration: "none", color: "var(--koi-primary)" }}>Open in Plan →</Link>}
+          {collapsible && <Link href="/store/plan?step=shop" className="font-semibold text-koi-primary no-underline">Open in Plan →</Link>}
         </div>
       )}
     </section>
@@ -181,23 +199,23 @@ export function OwnGroup({ groups, compact = false, title = "Also in your cart" 
   const { ownLines, plan } = groups;
   if (!ownLines.length) return null;
   return (
-    <section aria-label={plan ? title : "Your cart"} className="ks-card" style={{ overflow: "hidden" }}>
-      {plan && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: compact ? "12px 16px 8px" : "14px 20px 10px" }}>
-          <MonoLabel>{title}</MonoLabel>
-          {!compact && <Link href="/store/shop" className="ks-btn" data-variant="ghost" data-size="sm">Keep shopping</Link>}
-        </div>
-      )}
-      {ownLines.map((l) => <CartLine key={lineKey(l)} line={l} compact={compact} />)}
+    <section aria-label={plan ? title : "Your cart"} className={compact ? "overflow-hidden rounded-[20px] border border-koi-forest/10 bg-white" : ""}>
+      <div className={`flex items-center justify-between gap-3 ${compact ? "px-4 pb-1 pt-3" : "border-b border-koi-forest/15 pb-3"}`}>
+        <span className={`${mono} text-koi-ink2`}>{plan ? `${title} · you added these` : "In your cart"}</span>
+        {!compact && <Link href="/store/shop" className="text-sm font-semibold text-koi-primary hover:underline">Keep shopping</Link>}
+      </div>
+      <ol className="m-0 list-none p-0">
+        {ownLines.map((l) => <CartLine key={lineKey(l)} line={l} compact={compact} />)}
+      </ol>
     </section>
   );
 }
 
 /**
  * The plan moved since the cart was filled. Nothing changes without a tap.
- * @param {{ groups: object, compact?: boolean }} props
+ * @param {{ groups: object, compact?: boolean, onDecide?: (how: "kept"|"updated") => void }} props
  */
-export function PlanChangedBanner({ groups, compact = false }) {
+export function PlanChangedBanner({ groups, compact = false, onDecide }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const keepPlanAsIs = useCartStore((s) => s.keepPlanAsIs);
@@ -212,47 +230,54 @@ export function PlanChangedBanner({ groups, compact = false }) {
     try {
       await updateCartToPlan(latest);
       setUpdated({ at: Date.now() });
+      onDecide?.("updated");
     } finally {
       setBusy(false);
     }
   };
+  const keep = () => {
+    keepPlanAsIs(basketSnapshot(latest.basket));
+    onDecide?.("kept");
+  };
 
   return (
-    <section role="status" style={{ background: "var(--koi-warm-bg)", border: "1px solid var(--koi-warm-border)", borderRadius: compact ? 16 : 18, padding: compact ? "12px 14px" : "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        {!compact && (
-          <span style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--koi-warm)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "none" }}><Icon.Refresh /></span>
-        )}
-        <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 2 }}>
-          <span style={{ font: "700 15px var(--koi-sans-stack)", color: "var(--koi-warm-ink)" }}>Your plan changed since you added it</span>
-          <span style={{ font: "400 13.5px var(--koi-sans-stack)", color: "#8a5434" }}>{parts.join(" · ")}. Nothing in your cart has moved yet.</span>
+    <section data-banner role="status" className={`flex flex-col gap-3 border border-koi-amber-border bg-koi-amber-bg ${compact ? "rounded-2xl px-3.5 py-3" : "rounded-[22px] px-5 py-4"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 items-start gap-3.5">
+          {!compact && (
+            <span aria-hidden="true" className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-white text-koi-amber-ink"><Icon.Refresh /></span>
+          )}
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[15px] font-bold text-koi-ink">Your plan changed since you added it</span>
+            <span className="text-[13.5px] leading-normal text-koi-ink2">{parts.join(" · ")}. Your cart stays as it is until you say.</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-koi-amber-ink transition-colors hover:bg-white">
+            See what changed
+            <svg className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+          {open && <button type="button" onClick={keep} className="h-11 rounded-full border border-koi-forest/20 bg-white px-4 text-sm font-semibold text-koi-forest">Keep my cart</button>}
+          <button type="button" onClick={update} disabled={busy} aria-busy={busy} className="h-11 rounded-full bg-koi-forest px-4 text-sm font-bold text-koi-lime disabled:opacity-70">{busy ? "Updating…" : "Update cart"}</button>
         </div>
       </div>
       {open && (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, background: "#fff", borderRadius: 12, overflow: "hidden" }}>
-          {diff.added.map((d) => <DiffRow key={`a${d.skuId}`} mark="+" tone="var(--koi-primary)" name={names.get(d.skuId)} right={`× ${d.packs}`} />)}
-          {diff.removed.map((d) => <DiffRow key={`r${d.skuId}`} mark="−" tone="var(--koi-red)" name={names.get(d.skuId)} right={`× ${d.packs}`} strike />)}
-          {diff.changed.map((d) => <DiffRow key={`c${d.skuId}`} mark="~" tone="var(--koi-warm)" name={names.get(d.skuId)} right={`${d.from} → ${d.to}`} />)}
+        <ul className="m-0 list-none overflow-hidden rounded-2xl bg-white p-0 text-sm">
+          {diff.added.map((d) => <DiffRow key={`a${d.skuId}`} mark="+" tone="text-koi-primary" name={names.get(d.skuId)} right={`× ${d.packs}`} />)}
+          {diff.removed.map((d) => <DiffRow key={`r${d.skuId}`} mark="−" tone="text-koi-red" name={names.get(d.skuId)} right={`× ${d.packs}`} strike />)}
+          {diff.changed.map((d) => <DiffRow key={`c${d.skuId}`} mark="~" tone="text-koi-warm" name={names.get(d.skuId)} right={`${d.from} → ${d.to}`} />)}
         </ul>
       )}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {!open ? (
-          <Button variant="warm-outline" size="sm" onClick={() => setOpen(true)}>See what changed</Button>
-        ) : (
-          <Button variant="warm-outline" size="sm" onClick={() => keepPlanAsIs(basketSnapshot(latest.basket))}>Keep my cart</Button>
-        )}
-        <Button variant="warm" size="sm" onClick={update} busy={busy}>Update cart</Button>
-      </div>
     </section>
   );
 }
 
 function DiffRow({ mark, tone, name, right, strike = false }) {
   return (
-    <li style={{ display: "flex", gap: 10, padding: "9px 12px", font: "400 13.5px var(--koi-sans-stack)", borderTop: "1px solid var(--koi-divider)" }}>
-      <span className="ks-num" style={{ color: tone, width: 14 }} aria-hidden="true">{mark}</span>
-      <span style={{ flex: 1, textDecoration: strike ? "line-through" : "none", color: strike ? "var(--koi-ink2)" : "var(--koi-ink)" }}>{name ?? "A product no longer in the catalogue"}</span>
-      <span className="ks-num">{right}</span>
+    <li className="flex gap-2.5 border-t border-koi-forest/10 px-3.5 py-2.5 first:border-t-0">
+      <span className={`w-3.5 font-koi-num ${tone}`} aria-hidden="true">{mark}</span>
+      <span className={`flex-1 ${strike ? "text-koi-ink2 line-through" : "text-koi-ink"}`}>{name ?? "A product no longer in the catalogue"}</span>
+      <span className="font-koi-num font-semibold">{right}</span>
     </li>
   );
 }
@@ -261,30 +286,45 @@ function DiffRow({ mark, tone, name, right, strike = false }) {
 export const SWIGGY_NOTE = "MRP from KOI's catalogue. Swiggy shows the final price, fees and delivery before you pay.";
 
 /**
- * The totals and the way to checkout.
+ * The totals and the way to checkout: the forest summary.
  * @param {{ groups: object, checkoutHref?: string, children?: React.ReactNode }} props
  */
 export function CartSummary({ groups, checkoutHref = "/store/checkout", children }) {
-  const { all, planTotals, ownTotals, plan } = groups;
+  const { all, planTotals, ownTotals, plan, lines } = groups;
+  const avg = averageScore(lines);
+  const ready = all.products > 0;
   return (
-    <section className="ks-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
-      <MonoLabel>Summary</MonoLabel>
-      {plan && planTotals.products > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9, font: "400 14px var(--koi-sans-stack)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "var(--koi-ink2)" }}>This week&apos;s plan</span><Money value={planTotals.total} /></div>
-          {ownTotals.products > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "var(--koi-ink2)" }}>Also in your cart</span><Money value={ownTotals.total} /></div>}
-        </div>
-      )}
-      <div style={{ borderTop: plan && planTotals.products > 0 ? "1px solid var(--koi-divider)" : "none", paddingTop: plan && planTotals.products > 0 ? 14 : 0, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <span style={{ font: "700 15px var(--koi-sans-stack)" }}>MRP total</span>
-        <Money value={all.total} size={30} style={{ letterSpacing: "-.02em" }} />
+    <section data-summary aria-label="Summary" className="rounded-[26px] bg-koi-forest p-6 text-koi-bg">
+      <div className="flex items-baseline justify-between">
+        <span className="font-koi-display text-2xl font-extrabold">Summary</span>
+        <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.14em] text-koi-bg/70">MRP</span>
       </div>
-      <MonoLabel style={{ letterSpacing: ".06em" }}>
-        <span className="ks-num">{all.products}</span> {all.products === 1 ? "product" : "products"} · <span className="ks-num">{all.packs}</span> packs
-        {all.unpriced > 0 && <> · <span className="ks-num">{all.unpriced}</span> without a price yet</>}
-      </MonoLabel>
-      <Button href={checkoutHref} size="lg" block disabled={!all.products}>Checkout <span aria-hidden="true">→</span></Button>
-      <p style={{ margin: 0, font: "400 12.5px/1.5 var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>{SWIGGY_NOTE}</p>
+      <dl className="m-0 mt-5 flex flex-col gap-3 border-b border-koi-bg/15 pb-5 text-sm">
+        {plan && planTotals.products > 0 && (
+          <div className="flex justify-between"><dt className="text-koi-bg/75">This week’s plan</dt><dd className="m-0 font-koi-num font-semibold"><Money value={planTotals.total} /></dd></div>
+        )}
+        {plan && planTotals.products > 0 && ownTotals.products > 0 && (
+          <div className="flex justify-between"><dt className="text-koi-bg/75">Also in your cart</dt><dd className="m-0 font-koi-num font-semibold"><Money value={ownTotals.total} /></dd></div>
+        )}
+        <div className="flex justify-between"><dt className="text-koi-bg/75">Products</dt><dd className="m-0 font-koi-num font-semibold">{all.products}</dd></div>
+        <div className="flex justify-between"><dt className="text-koi-bg/75">Packs</dt><dd className="m-0 font-koi-num font-semibold">{all.packs}</dd></div>
+        {avg !== null && <div className="flex justify-between"><dt className="text-koi-bg/75">Average KOI score</dt><dd className="m-0 font-koi-num font-semibold">{avg}</dd></div>}
+        {all.unpriced > 0 && <div className="flex justify-between"><dt className="text-koi-bg/75">Without a price yet</dt><dd className="m-0 font-koi-num font-semibold">{all.unpriced}</dd></div>}
+      </dl>
+      <div className="flex items-baseline justify-between pt-5">
+        <span className="text-sm text-koi-bg/75">MRP total</span>
+        <span data-total className="inline-block font-koi-num text-[38px] font-semibold leading-none text-koi-lime"><Money value={all.total} /></span>
+      </div>
+      <p className="m-0 mt-3 text-[13px] leading-relaxed text-koi-bg/75">{SWIGGY_NOTE} KOI never takes payment.</p>
+      {ready ? (
+        <Link data-checkout href={checkoutHref} className="mt-6 flex h-[58px] items-center justify-center gap-2.5 rounded-full bg-koi-lime text-base font-bold text-koi-forest no-underline transition-transform hover:-translate-y-0.5">
+          Checkout
+          <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+        </Link>
+      ) : (
+        <span aria-disabled="true" className="mt-6 flex h-[58px] items-center justify-center rounded-full bg-koi-bg/15 text-base font-bold text-koi-bg/60">Checkout</span>
+      )}
+      <Link href="/store/shop" className="mt-2.5 flex h-11 items-center justify-center rounded-full text-sm font-semibold text-koi-bg/85 no-underline transition-colors hover:bg-koi-bg/10">Keep shopping</Link>
       {children}
     </section>
   );
@@ -313,14 +353,17 @@ export function CartRead({ lines }) {
   const sugars = lines.filter(sugarDeclared);
   const lowSugar = sugars.filter((i) => isLowSugar(rowFromProduct(i))).length;
   if (avgScore === null && protein === null && !sugars.length) return null;
-  const tile = { background: "rgba(255,255,255,.07)", borderRadius: 14, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 2 };
+  const tile = "flex flex-col gap-0.5 rounded-[14px] border border-koi-forest/10 bg-white px-3 py-2.5";
+  const label = "font-koi-mono text-[10px] font-medium uppercase tracking-[0.12em] text-koi-muted";
   return (
-    <section className="ks-card" data-tone="deep" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <MonoLabel tone="mint">KOI&apos;s read of this cart</MonoLabel>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-        {avgScore !== null && <div style={tile}><span className="ks-num" style={{ fontSize: 20 }}>{avgScore}</span><MonoLabel style={{ color: "rgba(255,255,255,.7)" }}>Avg KOI score · {scored.length} scored</MonoLabel></div>}
-        {sugars.length > 0 && <div style={tile}><span className="ks-num" style={{ fontSize: 20 }}>{lowSugar} of {sugars.length}</span><MonoLabel style={{ color: "rgba(255,255,255,.7)" }}>Low sugar · ≤5 g/100 g</MonoLabel></div>}
-        {protein !== null && <div style={tile}><span className="ks-num" style={{ fontSize: 20 }}>{protein} g</span><MonoLabel style={{ color: "rgba(255,255,255,.7)" }}>Protein · one serving each of {proteins.length}</MonoLabel></div>}
+    <section data-read className="flex flex-col gap-3 rounded-[22px] border border-koi-forest/10 bg-koi-paper p-5">
+      <span className="flex items-center gap-2 font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-ink2">
+        <span aria-hidden="true" className="size-[7px] rounded-full bg-koi-ember" />KOI’s read of this cart
+      </span>
+      <div className="grid grid-cols-2 gap-2.5">
+        {avgScore !== null && <div className={tile}><span className="font-koi-num text-xl font-semibold">{avgScore}</span><span className={label}>Avg KOI score · {scored.length} scored</span></div>}
+        {sugars.length > 0 && <div className={tile}><span className="font-koi-num text-xl font-semibold">{lowSugar} of {sugars.length}</span><span className={label}>Low sugar · ≤5 g/100 g</span></div>}
+        {protein !== null && <div className={tile}><span className="font-koi-num text-xl font-semibold">{protein} g</span><span className={label}>Protein · one serving each of {proteins.length}</span></div>}
       </div>
     </section>
   );
@@ -329,13 +372,13 @@ export function CartRead({ lines }) {
 /** Two honest routes in, no filler products. */
 export function CartEmpty({ onNavigate }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, padding: "48px 16px" }}>
-      <span style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", border: "1px solid var(--koi-line2)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#8fae98" }}><Icon.Bag style={{ width: 26, height: 26 }} /></span>
-      <span style={{ font: "800 20px var(--koi-sans-stack)", letterSpacing: "-.02em" }}>Your cart is empty</span>
-      <span style={{ font: "400 14px/1.5 var(--koi-sans-stack)", color: "var(--koi-ink2)", maxWidth: 300 }}>Plan the week and KOI fills it, or pick things yourself.</span>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-        <Button href="/store/plan" size="sm" onClick={onNavigate}>Plan this week</Button>
-        <Button href="/store/shop" variant="secondary" size="sm" onClick={onNavigate}>Browse the shop</Button>
+    <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+      <span className="grid size-16 place-items-center rounded-full border border-koi-forest/10 bg-white text-koi-green"><Icon.Bag style={{ width: 26, height: 26 }} /></span>
+      <span className="text-xl font-extrabold tracking-[-0.02em]">Your cart is empty</span>
+      <span className="max-w-[300px] text-sm leading-normal text-koi-ink2">Plan the week and KOI fills it, or pick things yourself.</span>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Link href="/store/plan" onClick={onNavigate} className="flex h-11 items-center rounded-full bg-koi-forest px-5 text-sm font-bold text-koi-lime no-underline">Plan this week</Link>
+        <Link href="/store/shop" onClick={onNavigate} className="flex h-11 items-center rounded-full border border-koi-forest/20 bg-white px-5 text-sm font-semibold text-koi-forest no-underline">Browse the shop</Link>
       </div>
     </div>
   );
@@ -344,8 +387,8 @@ export function CartEmpty({ onNavigate }) {
 /** While the saved basket is still being matched to the catalogue. */
 export function CartLoading() {
   return (
-    <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "32px 16px", font: "500 14px var(--koi-sans-stack)", color: "var(--koi-ink2)" }}>
-      <span aria-hidden="true" style={{ width: 14, height: 14, border: "2px solid var(--koi-track)", borderTopColor: "var(--koi-accent)", borderRadius: "50%", animation: "koiSpin .8s linear infinite" }} />
+    <div role="status" className="flex items-center gap-2.5 px-4 py-8 text-sm font-medium text-koi-ink2">
+      <span aria-hidden="true" className="size-3.5 animate-spin rounded-full border-2 border-koi-track border-t-koi-green" />
       Loading your cart…
     </div>
   );
