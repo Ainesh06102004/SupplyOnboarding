@@ -124,7 +124,7 @@ export default function YouStep({ s, onBack, onNext }) {
   useEffect(() => () => ember.rest(), [ember]);
 
   if (!person) {
-    return <StepHead eyebrow="Plan · step 2 of 6" title="Your baseline & the promise" sub="Add someone to the household to start — type a name in “Add member…” above." />;
+    return <StepHead eyebrow="Plan · step 2 of 5" title="Your baseline & the promise" sub="Add someone to the household to start — type a name in “Add member…” above." />;
   }
   const key = s.keyOf(person);
   const edit = (patch) => s.editProfile(key, patch);
@@ -149,7 +149,7 @@ export default function YouStep({ s, onBack, onNext }) {
 
   return (
     <div ref={root} className="font-koi-sans text-koi-ink">
-      <StepHead eyebrow="Plan · step 2 of 6" title="Your baseline & the promise" sub={`Where ${person.label === "Me" ? "you stand" : `${person.label} stands`} today — and what the plan's numbers work out to.`} />
+      <StepHead eyebrow="Plan · step 2 of 5" title="Your baseline & the promise" sub={`Where ${person.label === "Me" ? "you stand" : `${person.label} stands`} today — and what the plan's numbers work out to.`} />
 
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
         {/* About */}

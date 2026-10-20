@@ -4,7 +4,7 @@
 // PlanBar — the Plan's chapters and household, under the store's one header.
 //
 // The founder's design gave the Plan its own sticky header: the KOI mark, the
-// six steps, the household. The mark and the account now live in the shared
+// steps, the household. The mark and the account now live in the shared
 // StoreHeader, so this keeps only what is the Plan's: the numbered steps and
 // whose plan it is. It sticks just under the store header.
 //
@@ -14,6 +14,9 @@
 //
 // Step five was "Shop" and is "Cart" now — it IS the store's cart. Its key stays
 // `shop`, because ?step=shop and the agent's tools, router and eval all say so.
+//
+// Track was a sixth chapter; it is its own page now (/store/track), so the
+// Plan ends at the Cart.
 // ============================================================================
 
 import { useRef, useState } from "react";
@@ -29,7 +32,6 @@ export const STEPS = Object.freeze([
   { key: "plan", label: "Plan" },
   { key: "pantry", label: "Pantry" },
   { key: "shop", label: "Cart" },
-  { key: "track", label: "Track" },
 ]);
 
 export default function PlanBar({ step, onStep, profiles, activeKey, onActive, keyOf, onAddMember, saveState, weekLabel }) {
@@ -67,7 +69,7 @@ export default function PlanBar({ step, onStep, profiles, activeKey, onActive, k
         <span className="hidden w-[170px] shrink-0 font-koi-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-koi-primary lg:block">{weekLabel ?? "Plan"}</span>
 
         <nav aria-label="Plan steps" className="relative min-w-0 flex-1">
-          <ol className="relative m-0 grid h-11 list-none grid-cols-6 overflow-hidden rounded-xl bg-koi-track p-0">
+          <ol className="relative m-0 grid h-11 list-none grid-cols-5 overflow-hidden rounded-xl bg-koi-track p-0">
             {STEPS.map((s, i) => (
               <li key={s.key} className="relative z-10 flex">
                 <button

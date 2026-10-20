@@ -18,7 +18,7 @@ export async function postSegment({ request, memory, page, signal, onEvent }) {
   await readNdjson(response, onEvent);
 }
 
-const STEPS = ["define", "you", "plan", "pantry", "shop", "track"];
+const STEPS = ["define", "you", "plan", "pantry", "shop"];
 
 /** Where the dock is: /store/plan?step=pantry → { route: "plan", step: "pantry" }. */
 export function pageFrom(pathname, searchParams, { planId = null, cartCount = 0, week = null } = {}) {
@@ -26,6 +26,7 @@ export function pageFrom(pathname, searchParams, { planId = null, cartCount = 0,
   const step = searchParams?.get?.("step");
   const product = path.match(/^\/store\/product\/([^/?#]+)/)?.[1] ?? null;
   const route = path.startsWith("/store/plan") ? "plan"
+    : path.startsWith("/store/track") ? "track"
     : product ? "product"
       : path.startsWith("/store/shop") ? "shop"
         : path.startsWith("/store/cart") ? "cart"

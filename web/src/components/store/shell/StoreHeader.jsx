@@ -33,6 +33,7 @@ import CheckoutRail from "./CheckoutRail";
 const NAV = [
   { label: "Shop", href: "/store/shop", match: (p) => p === "/store/shop" || p.startsWith("/store/product") },
   { label: "Plan", href: "/store/plan", match: (p) => p === "/store/plan" || p === "/store/household" },
+  { label: "Track", href: "/store/track", match: (p) => p === "/store/track" },
   { label: "Orders", href: "/store/orders", match: (p) => p === "/store/orders" },
 ];
 

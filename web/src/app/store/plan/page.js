@@ -4,10 +4,12 @@
 // /store/plan — Plan
 //
 // The founder's Nutrition Planner design (KOI - Nutrition Planner.html) on
-// KOI's own backend: Define → You → Plan → Pantry → Cart → Track. The step is
-// in the address (?step=), so Back works. Step five's key is still `shop`
-// (links, the agent's tools and its eval use it); it is labelled Cart, because
-// it is the store's one cart, not a second one.
+// KOI's own backend: Define → You → Plan → Pantry → Cart. The step is in the
+// address (?step=), so Back works. Track was step six; since 20 Oct 2026 it is
+// its own page (/store/track), and ?step=track is sent there. Step five's key
+// is still `shop` (links, the agent's tools and its eval use it); it is
+// labelled Cart, because it is the store's one cart, not a second one. It is
+// the last step, so its footer goes on to checkout.
 //
 // The page sits inside the store's shell: the shared StoreHeader above, the
 // PlanBar (steps + household) under it. Signed out, it keeps the shell and
@@ -29,7 +31,6 @@ import YouStep from "@/components/store/plan/design/YouStep";
 import PlanStep from "@/components/store/plan/design/PlanStep";
 import PantryStep from "@/components/store/plan/design/PantryStep";
 import ShopStep from "@/components/store/plan/design/ShopStep";
-import TrackStep from "@/components/store/plan/design/TrackStep";
 import { Toast } from "@/components/store/plan/design/bits";
 import Link from "next/link";
 import { useAgent, useAgentBridge } from "@/components/agent/AgentProvider";
@@ -82,10 +83,15 @@ function Plan() {
   const params = useSearchParams();
   const router = useRouter();
   const asked = params.get("step");
+  // Old links and bookmarks to the Track step land on the Track page.
+  useEffect(() => {
+    if (asked === "track") router.replace("/store/track");
+  }, [asked, router]);
   const step = STEPS.some((x) => x.key === asked) ? asked : "define";
 
   // push, not replace: each step is a place in history, so Back goes back.
   const go = useCallback((key) => {
+    if (key === "track") { router.push("/store/track"); return; }
     router.push(`/store/plan?step=${key}`, { scroll: false });
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, [router]);
@@ -143,8 +149,7 @@ function Plan() {
         {step === "you" && <YouStep s={s} onBack={back} onNext={next} />}
         {step === "plan" && <PlanStep s={s} onBack={back} onNext={next} />}
         {step === "pantry" && <PantryStep s={s} onBack={back} onNext={() => go("shop")} />}
-        {step === "shop" && <ShopStep s={s} onBack={back} onNext={next} />}
-        {step === "track" && <TrackStep s={s} onBack={back} />}
+        {step === "shop" && <ShopStep s={s} onBack={back} onNext={() => router.push("/store/checkout?from=plan")} />}
       </main>
       <Toast toast={s.toast} />
     </>

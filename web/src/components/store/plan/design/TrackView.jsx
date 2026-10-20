@@ -1,6 +1,9 @@
 "use client";
 
-// Step 6 · Track — the person's own weigh-ins against the plan's arithmetic.
+// Track — the person's own weigh-ins against the plan's arithmetic. Its own
+// page (/store/track) since 20 Oct 2026: it was step 6 of the Plan, but the
+// Plan is the week's chapters (Define → Cart) and Track is the person's weeks,
+// so it stands apart and links back to the Plan where it needs to.
 //
 // Decided with the user (24 Sep 2026, 00077): weight only; kept until deleted
 // (from /store/profile/data); KOI may propose a new calorie target from the
@@ -20,7 +23,6 @@ import { trackRead, TRACK_RULES } from "@/lib/plan/track";
 import { goalsAllowed } from "@/lib/planner/goals";
 import { useCheckins } from "./useCheckins";
 import { inr } from "./tokens";
-import { StepHead } from "./bits";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
@@ -80,7 +82,27 @@ function readingOf(read) {
   return `You're ${perWeek(read.trend.kgPerWeek)}; the plan's arithmetic expected ${perWeek(read.planned)}.`;
 }
 
-export default function TrackStep({ s, onBack }) {
+/** The page's own head: Track is a place, not a step. */
+function TrackHead() {
+  const ref = useRef(null);
+  useGSAP(() => {
+    if (prefersReducedMotion()) return;
+    const gsap = setupMotion();
+    gsap.from(ref.current.querySelectorAll("[data-line]"), { yPercent: 115, duration: 1, ease: E.reveal });
+    gsap.from(ref.current.querySelectorAll("[data-rise]"), { autoAlpha: 0, y: 12, duration: 0.7, stagger: 0.08, ease: E.reveal, delay: 0.1, clearProps: "opacity,visibility,transform" });
+  }, { scope: ref });
+  return (
+    <header ref={ref} className="mb-7 flex flex-col gap-2">
+      <span data-rise className="font-koi-mono text-xs font-medium uppercase tracking-[0.18em] text-koi-muted">Track · just you</span>
+      <h1 className="koi-condensed m-0 font-koi-display text-[clamp(40px,5vw,68px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">
+        <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">Your weigh-ins against the plan</span></span>
+      </h1>
+      <p data-rise className="m-0 max-w-[720px] text-[15.5px] leading-relaxed text-koi-ink2">One weight a week is enough. KOI sets it against the plan&apos;s arithmetic, and only ever suggests.</p>
+    </header>
+  );
+}
+
+export default function TrackView({ s }) {
   const root = useRef(null);
   const ember = useEmber();
   const say = useKoiVoice((v) => v.say);
@@ -118,13 +140,14 @@ export default function TrackStep({ s, onBack }) {
   }, [read, loading, proposalKey, ember, say]);
   useEffect(() => () => ember.rest(), [ember]);
 
+  // Where Track hands back to the Plan: your targets, and the week they feed.
   const back = (
-    <nav aria-label="Step" className="mt-7 flex flex-wrap items-center justify-between gap-3">
-      <button type="button" onClick={onBack} className="h-14 rounded-2xl px-5 text-sm font-semibold text-koi-ink2 transition-colors hover:bg-white">← Back</button>
-      {adult && <button type="button" onClick={() => s.setNav?.("you")} className="h-14 rounded-2xl border border-koi-forest/15 bg-white px-6 text-[15px] font-semibold text-koi-forest transition-colors hover:border-koi-forest/40">Your targets in You</button>}
+    <nav aria-label="Related" className="mt-7 flex flex-wrap items-center gap-3">
+      {adult && <Link href="/store/plan?step=you" className="flex h-14 items-center rounded-2xl border border-koi-forest/15 bg-white px-6 text-[15px] font-semibold text-koi-forest no-underline transition-colors hover:border-koi-forest/40">Your targets in You</Link>}
+      <Link href="/store/plan?step=plan" className="flex h-14 items-center rounded-2xl px-5 text-sm font-semibold text-koi-ink2 no-underline transition-colors hover:bg-white">This week&apos;s plan →</Link>
     </nav>
   );
-  const head = <StepHead eyebrow="Plan · step 6 of 6" title="Your weigh-ins against the plan" sub="One weight a week is enough. KOI sets it against the plan's arithmetic, and only ever suggests." />;
+  const head = <TrackHead />;
 
   if (!s.session) return <div className="font-koi-sans">{head}<div className={card}><p className="m-0 text-sm font-medium">Sign in to track your own weigh-ins.</p></div>{back}</div>;
   if (!me || !adult) {

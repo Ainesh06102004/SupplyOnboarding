@@ -61,7 +61,7 @@ export default function ShopStep({ s, onBack, onNext }) {
   if (!plan) {
     return (
       <div>
-        <StepHead eyebrow="Plan · step 5 of 6" title="Your cart" sub="Plan the week first — KOI fills the cart from it. Anything you add from the shop is here too." />
+        <StepHead eyebrow="Plan · step 5 of 5" title="Your cart" sub="Plan the week first — KOI fills the cart from it. Anything you add from the shop is here too." />
         <Footer onBack={onBack} />
       </div>
     );
@@ -82,7 +82,7 @@ export default function ShopStep({ s, onBack, onNext }) {
 
   return (
     <div ref={root} className="font-koi-sans text-koi-ink">
-      <StepHead eyebrow="Plan · step 5 of 6" title="Your cart" sub="This week's plan and anything you added from the shop. One cart, one checkout." />
+      <StepHead eyebrow="Plan · step 5 of 5" title="Your cart" sub="This week's plan and anything you added from the shop. One cart, one checkout." />
 
       {groups.loading ? <CartLoading /> : (
         <div className="flex flex-col gap-5">
@@ -131,7 +131,7 @@ export default function ShopStep({ s, onBack, onNext }) {
         </div>
       )}
 
-      <Footer onBack={onBack} next={{ label: "Track", onClick: onNext }} />
+      <Footer onBack={onBack} next={{ label: "Checkout", onClick: onNext }} />
     </div>
   );
 }

@@ -290,7 +290,7 @@ export default function YourDataPage() {
             {(d.checkins ?? []).length ? (
               <>
                 <p className="m-0">{d.checkins.length} weigh-in{d.checkins.length === 1 ? "" : "s"}, from {date(d.checkins.at(-1).checked_on)} to {date(d.checkins[0].checked_on)}; the latest {d.checkins[0].weight_kg} kg.</p>
-                <p className="m-0 text-[12.5px] text-koi-muted">Only your weight and the day, which you entered yourself on Plan → Track. Kept until you delete them here.</p>
+                <p className="m-0 text-[12.5px] text-koi-muted">Only your weight and the day, which you entered yourself on Track. Kept until you delete them here.</p>
               </>
             ) : <Empty />}
           </Section>

@@ -712,7 +712,7 @@ export default function PlanStep({ s, onBack, onNext }) {
 
   return (
     <div ref={root} className="font-koi-sans text-koi-ink">
-      <StepHead eyebrow="Plan · step 3 of 6" title="A week of groceries, planned around everyone at home" sub="Tell KOI in plain words, or take a swap. Every change re-solves the plan — watch it work." />
+      <StepHead eyebrow="Plan · step 3 of 5" title="A week of groceries, planned around everyone at home" sub="Tell KOI in plain words, or take a swap. Every change re-solves the plan — watch it work." />
       <CommandBox s={s} />
       {s.saved.length > 0 && <ThisWeek s={s} />}
       {s.week && <WeekGrid s={s} />}

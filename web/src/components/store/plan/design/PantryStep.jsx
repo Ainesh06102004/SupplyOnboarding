@@ -69,7 +69,7 @@ export default function PantryStep({ s, onBack, onNext }) {
   if (!plan) {
     return (
       <div>
-        <StepHead eyebrow="Plan · step 4 of 6" title="One order. Whole week handled." sub="Plan the week first — your pantry and cart are built from it." />
+        <StepHead eyebrow="Plan · step 4 of 5" title="One order. Whole week handled." sub="Plan the week first — your pantry and cart are built from it." />
         <Footer onBack={onBack} />
       </div>
     );
@@ -129,7 +129,7 @@ export default function PantryStep({ s, onBack, onNext }) {
 
   return (
     <div ref={root} className="font-koi-sans text-koi-ink">
-      <StepHead eyebrow="Plan · step 4 of 6" title="One order. Whole week handled." sub="Your last plan against this one — and everything to buy. Untick what's already at home." />
+      <StepHead eyebrow="Plan · step 4 of 5" title="One order. Whole week handled." sub="Your last plan against this one — and everything to buy. Untick what's already at home." />
 
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-5">

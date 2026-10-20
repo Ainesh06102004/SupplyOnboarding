@@ -136,7 +136,7 @@ export default function ProfilePage() {
                   {profile?.targets?.kcal ? <>Plans to <strong className="font-koi-num text-koi-bg">{profile.targets.kcal} kcal</strong>{profile.targets.protein ? <> and <strong className="font-koi-num text-koi-bg">{profile.targets.protein} g protein</strong></> : null} a day</> : "No daily targets set yet"}
                 </span>
                 <div className="flex gap-2">
-                  <Link href="/store/plan?step=track" className="flex h-11 items-center rounded-full bg-koi-lime px-4 text-sm font-bold text-koi-forest no-underline">Open Track</Link>
+                  <Link href="/store/track" className="flex h-11 items-center rounded-full bg-koi-lime px-4 text-sm font-bold text-koi-forest no-underline">Open Track</Link>
                   <Link href="/store/shop#goals" className="flex h-11 items-center rounded-full border border-koi-bg/30 px-4 text-sm font-semibold text-koi-bg no-underline transition-colors hover:bg-koi-bg/10">Edit goal</Link>
                 </div>
               </div>

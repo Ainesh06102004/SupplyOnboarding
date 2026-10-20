@@ -60,7 +60,8 @@ export function rulesModel({ memory, state }) {
     if (name === "look") return pick(name, { what: "explanation" });
     if (name === "show") {
       const s = step.args?.step;
-      return pick(name, s === "cart" ? { target: "cart", step: null, product: null } : { target: "plan_step", step: ["define", "you", "plan", "pantry", "shop", "track"].includes(s) ? s : "plan", product: null });
+      if (s === "cart" || s === "track") return pick(name, { target: s, step: null, product: null });
+      return pick(name, { target: "plan_step", step: ["define", "you", "plan", "pantry", "shop"].includes(s) ? s : "plan", product: null });
     }
   }
   return pick("finish", { outcome: (memory.turnCalls ?? []).some((c) => c.ok) ? "done" : "nothing_to_do" });

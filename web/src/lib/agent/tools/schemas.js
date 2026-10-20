@@ -13,7 +13,7 @@ import { strictObject, nullableEnum, nullableNumber, enumArray } from "@/lib/ai/
 import { AGE_BAND_KEYS } from "@/lib/planner/brief";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 
-export const PLAN_STEPS = Object.freeze(["define", "you", "plan", "pantry", "shop", "track"]);
+export const PLAN_STEPS = Object.freeze(["define", "you", "plan", "pantry", "shop"]);
 const PROFILE_DIET_KEYS = DIET_TYPES.filter((d) => !d.forOnePlanOnly).map((d) => d.key);
 const AVOID_KEYS = FOODS_AVOID.map((a) => a.key);
 const say = { type: ["string", "null"], description: "One short line to show the shopper while this runs, or null. No numbers, no health claims." };
@@ -86,8 +86,8 @@ export const TOOL_SCHEMAS = Object.freeze([
   },
   {
     name: "show",
-    description: "Take the shopper to a page: a step of the plan (define, you, plan, pantry, shop, track), the shop, a product, the cart, or household settings.",
-    parameters: strictObject({ target: { type: "string", enum: ["plan_step", "shop", "product", "cart", "household"] }, step: nullableEnum(PLAN_STEPS), product: { type: ["string", "null"] }, say }),
+    description: "Take the shopper to a page: a step of the plan (define, you, plan, pantry, shop), the shop, a product, the cart, household settings, or Track (their weigh-ins).",
+    parameters: strictObject({ target: { type: "string", enum: ["plan_step", "shop", "product", "cart", "household", "track"] }, step: nullableEnum(PLAN_STEPS), product: { type: ["string", "null"] }, say }),
   },
   {
     name: "add_to_cart",
@@ -136,7 +136,7 @@ export const TOOL_SCHEMAS = Object.freeze([
   },
   {
     name: "accept_track_proposal",
-    description: "Track: use KOI's suggested daily calorie target from the shopper's weigh-in trend (the same suggestion the Track step offers), after they approve. Only for the account holder.",
+    description: "Track: use KOI's suggested daily calorie target from the shopper's weigh-in trend (the same suggestion the Track page offers), after they approve. Only for the account holder.",
     parameters: strictObject({ say }),
   },
   {

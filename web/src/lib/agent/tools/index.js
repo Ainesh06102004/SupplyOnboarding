@@ -595,6 +595,10 @@ async function checkProduct(ctx, { product, people }) {
 // ── show / add_to_cart / ask_shopper / finish ───────────────────────────────
 async function show(ctx, { target, step, product }) {
   // Asked for, so it happens whether or not the page is following KOI.
+  // Track is its own page; a stray step=track still gets there.
+  if (target === "track" || (target === "plan_step" && step === "track")) {
+    return { ok: true, summary: "Opened Track", forModel: "The page now shows Track: the shopper's weigh-ins.", ui: { navigate: { href: "/store/track", explicit: true } } };
+  }
   if (target === "plan_step") {
     const s = step ?? "plan";
     return { ok: true, summary: `Opened ${s[0].toUpperCase()}${s.slice(1)}`, forModel: `The page now shows the ${s} step.`, ui: { navigate: { href: `/store/plan?step=${s}`, step: s, explicit: true } } };
@@ -730,7 +734,7 @@ async function executeWeighIn(ctx, args) {
   if (planned.refused) return refuse(`Not logged: ${planned.refused}`);
   const { error } = await ctx.db.from("member_checkin").upsert({ member_id: planned.me.memberId, checked_on: planned.on, weight_kg: planned.kg }, { onConflict: "member_id,checked_on" });
   if (error) throw error;
-  return { ok: true, summary: `Logged ${planned.kg} kg`, forModel: "Logged today's weight. The Track step shows the trend.", ui: { navigate: { href: "/store/plan?step=track", step: "track" } } };
+  return { ok: true, summary: `Logged ${planned.kg} kg`, forModel: "Logged today's weight. The Track page shows the trend.", ui: { navigate: { href: "/store/track" } } };
 }
 
 // ── week_menu: the week's dishes, changed on the page ───────────────────────

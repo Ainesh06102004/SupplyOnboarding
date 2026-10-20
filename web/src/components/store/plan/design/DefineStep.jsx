@@ -97,7 +97,7 @@ export default function DefineStep({ s, onNext, onPlan }) {
     <div ref={root} className="font-koi-sans text-koi-ink">
       <section className="grid grid-cols-1 gap-10 pt-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="flex flex-col gap-4">
-          <span data-rise className="font-koi-mono text-xs font-medium uppercase tracking-[0.18em] text-koi-muted">Plan · step 1 of 6</span>
+          <span data-rise className="font-koi-mono text-xs font-medium uppercase tracking-[0.18em] text-koi-muted">Plan · step 1 of 5</span>
           <span data-rise className="font-koi-mono text-[13px] font-semibold uppercase tracking-[0.2em] text-koi-green">Let’s build</span>
           <h1 className="koi-condensed m-0 font-koi-display text-[clamp(52px,6.4vw,96px)] font-extrabold leading-[0.88] tracking-[-0.035em] text-koi-forest">
             <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">your outcome,</span></span>

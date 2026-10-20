@@ -180,7 +180,7 @@ export default function OrdersBoard({ intents, bySku, busyId, note, selected, on
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {hero.nutrition_plan_id && <Link href="/store/plan?step=track" className="flex h-11 items-center gap-2 rounded-full bg-koi-lime px-5 text-sm font-bold text-koi-forest no-underline">Track this week <span aria-hidden="true">→</span></Link>}
+                  {hero.nutrition_plan_id && <Link href="/store/track" className="flex h-11 items-center gap-2 rounded-full bg-koi-lime px-5 text-sm font-bold text-koi-forest no-underline">Track this week <span aria-hidden="true">→</span></Link>}
                   <button type="button" onClick={() => onSelect(hero)} className="h-11 rounded-full border border-koi-bg/30 px-5 text-sm font-semibold text-koi-bg transition-colors hover:bg-koi-bg/10">Details</button>
                 </div>
               </div>
