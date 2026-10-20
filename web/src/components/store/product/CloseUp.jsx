@@ -17,6 +17,7 @@
 // the line about who delivers.
 // ============================================================================
 
+import { useAgent } from "@/components/agent/AgentProvider";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { X, Maximize2, Share2, Heart, ShieldCheck, Truck } from "lucide-react";
@@ -84,6 +85,7 @@ function StockLine({ product }) {
 }
 
 export default function CloseUp({ product }) {
+  const agent = useAgent();
   const root = useRef(null);
   const ember = useEmber();
   const say = useKoiVoice((s) => s.say);
@@ -396,6 +398,17 @@ export default function CloseUp({ product }) {
               </button>
               <button type="button" onClick={() => shareProduct(product.name)} aria-label="Share" className="grid size-[58px] place-items-center rounded-full border border-koi-forest/20 bg-white text-koi-forest transition-colors hover:border-koi-forest/40">
                 <Share2 className="size-5" />
+              </button>
+            </div>
+            {/* The board's two quieter asks, both through KOI: the plan takes this
+                exact product (change_plan add_this_product, undoable), and a
+                question goes to KOI's bar. Signed out, KOI asks for sign-in first. */}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => agent?.send("Add this to this week's plan")} className="flex h-11 items-center gap-2 rounded-full border border-koi-forest/20 bg-white px-4 text-sm font-semibold text-koi-forest transition-colors hover:border-koi-forest/40">
+                Add to this week&apos;s plan
+              </button>
+              <button type="button" onClick={() => document.querySelector(".ka-input")?.focus()} className="flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-koi-primary transition-colors hover:bg-white">
+                <span aria-hidden="true" className="size-2 rounded-full bg-koi-ember" />Ask KOI about this product
               </button>
             </div>
             {inCart > 0 && (
