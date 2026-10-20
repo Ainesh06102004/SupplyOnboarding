@@ -121,9 +121,18 @@ export function StickyBuyBar({ product, sentinelRef }) {
   useEffect(() => {
     const el = sentinelRef?.current;
     if (!el) return undefined;
-    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting), { rootMargin: "-80px 0px 0px 0px" });
-    io.observe(el);
-    return () => io.disconnect();
+    // Only once the hero's own Add has scrolled away above. On a phone the
+    // marker starts below the fold, so "not intersecting" put the bar over the
+    // title on arrival; and an observer misses a jump from below to above, so
+    // the position is read on scroll instead.
+    const check = () => setShow(el.getBoundingClientRect().top < 80);
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
   }, [sentinelRef]);
 
   // While it shows, it holds layer 2 of the phone's bottom stack.

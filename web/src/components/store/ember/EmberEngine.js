@@ -52,6 +52,16 @@ export class EmberEngine {
     gsap.set(nodes.ember, { autoAlpha: 0 });
   }
 
+  /** The anchor's own size changes (shown, hidden by display:none, re-laid out) re-pin the dot. */
+  watch(el) {
+    if (typeof ResizeObserver === "undefined") return;
+    this.watcher ??= new ResizeObserver(() => this.pin());
+    if (this.watched === el) return;
+    if (this.watched) this.watcher.unobserve(this.watched);
+    this.watched = el;
+    if (el) this.watcher.observe(el);
+  }
+
   // ── geometry ──
   rect(el) {
     const R = this.root.getBoundingClientRect(), e = el.getBoundingClientRect();
@@ -76,8 +86,11 @@ export class EmberEngine {
   at(el, off) {
     if (!el) return;
     this.anchor = el;
+    this.watch(el);
     this.off = off || {};
-    this.g.set(this.n.ember, { autoAlpha: 1, rotation: 0, ...this.spot(el, this.off) });
+    // Not laid out (display:none): stay out of sight until it is (see pin).
+    this.anchorGone = el.getClientRects().length === 0;
+    this.g.set(this.n.ember, { autoAlpha: this.anchorGone ? 0 : 1, rotation: 0, ...(this.anchorGone ? {} : this.spot(el, this.off)) });
     if (!this.visible) { this.visible = true; this.idle(); }
   }
 
@@ -90,7 +103,17 @@ export class EmberEngine {
       if (this.homeEl?.isConnected) this.at(this.homeEl, this.homeOff);
       return;
     }
-    if (this.anchor && !this.flying) this.g.set(this.n.ember, this.spot(this.anchor, this.off));
+    if (this.anchor && !this.flying) {
+      // An anchor with no layout (display:none — the phone's compact dock hides
+      // the home slot) measures as 0,0: the dot would sit in the page's corner.
+      // It waits out of sight instead, and comes back where the anchor reappears.
+      const gone = this.anchor.getClientRects().length === 0;
+      if (gone !== Boolean(this.anchorGone)) {
+        this.anchorGone = gone;
+        if (this.visible) this.g.set(this.n.ember, { autoAlpha: gone ? 0 : 1 });
+      }
+      if (!gone) this.g.set(this.n.ember, this.spot(this.anchor, this.off));
+    }
     if (this.markState && !this.marking) {
       if (!this.markState.el.isConnected) { this.mark(null); return; }
       this.drawMark();
@@ -106,6 +129,7 @@ export class EmberEngine {
     const moving = Boolean(this.goTl);
     if (this.goTl) { this.goTl.kill(); this.goTl = null; }
     this.anchor = el;
+    this.watch(el);
     this.off = off || {};
     const from = { x: g.getProperty(n.ember, "x"), y: g.getProperty(n.ember, "y") };
     const to0 = this.spot(el, this.off);
@@ -353,6 +377,7 @@ export class EmberEngine {
 
   destroy() {
     this.goTl?.kill();
+    this.watcher?.disconnect();
     this.ctx.revert();
   }
 }
