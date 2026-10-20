@@ -108,14 +108,16 @@ export default function AgentDock() {
     setText("");
   };
   const dockState = running ? "running" : waiting ? "waiting" : "idle";
+  const sheet = state.open && agent.signedIn;
   const statusLine = state.statusLine;
 
   return (
     <div className="koi-agent" data-koi-bar>
-      {!state.open && (
+      {/* Signed out, the conversation never opens beside the page; the dock stays the dock. */}
+      {!sheet && (
         <div className="ka-subtitle" data-compact={compact ? "true" : undefined}><KoiSubtitle /></div>
       )}
-      {!state.open && (
+      {!sheet && (
         <form className="ka-dock ka-glass" data-state={dockState} data-compact={compact ? "true" : undefined} onSubmit={submit} role="search" aria-label="Ask KOI">
           <button type="button" className="ka-k" onClick={agent.open} aria-label="Ask KOI">K</button>
           <EmberSlot />
@@ -129,7 +131,7 @@ export default function AgentDock() {
               className="ka-input"
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 600))}
-              onFocus={() => { if (state.entries.length) agent.open(); }}
+              onFocus={() => { if (agent.signedIn && state.entries.length) agent.open(); }}
               placeholder={PLACEHOLDERS[ph]}
               aria-label="Tell KOI what you need"
             />
@@ -140,14 +142,14 @@ export default function AgentDock() {
             <button type="button" className="ka-pill ka-pill-warm" onClick={agent.open}>{state.pending?.kind === "approval" ? "Review" : "Answer"}</button>
           ) : (
             <>
-              {state.entries.length > 0 && <button type="button" className="ka-pill" onClick={agent.open}>Open</button>}
+              {agent.signedIn && state.entries.length > 0 && <button type="button" className="ka-pill" onClick={agent.open}>Open</button>}
               <button type="submit" className="ka-round ka-send" disabled={!text.trim()} aria-label="Send to KOI"><SendIcon /></button>
             </>
           )}
         </form>
       )}
 
-      {state.open && (
+      {sheet && (
         <section className="ka-sheet ka-glass" aria-label="KOI">
           <div className="ka-grip" style={{ display: "none", alignSelf: "center", width: 40, height: 5, borderRadius: 99, background: "#d9d7cd", margin: "10px auto 0" }} aria-hidden="true" />
           <header className="ka-head">

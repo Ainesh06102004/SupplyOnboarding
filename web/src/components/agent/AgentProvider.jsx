@@ -18,6 +18,7 @@ import { useCartStore, hydrateCart } from "@/store/cartStore";
 import { getCatalogue, putPlanInCart } from "@/lib/cart/client";
 import { agentReducer, initialAgentState, persistable } from "@/lib/agent/client/reducer";
 import { postSegment, pageFrom } from "@/lib/agent/client/transport";
+import { useKoiVoice } from "@/store/koiVoiceStore";
 
 const AgentContext = createContext(null);
 const GlowContext = createContext({ glowing: () => false });
@@ -72,6 +73,7 @@ export function AgentProvider({ children }) {
   const heldRef = useRef(null);
   const runRef = useRef(null);
   const [signIn, setSignIn] = useState(false);
+  const say = useKoiVoice((v) => v.say);
   const [glow, setGlow] = useState({});
 
   // ── The conversation, kept in this tab for this shopper ────────────────────
@@ -212,9 +214,12 @@ export function AgentProvider({ children }) {
   const send = useCallback((raw) => {
     const text = String(raw ?? "").trim().slice(0, 600);
     if (!text) return;
+    // Signed out, the conversation does not open beside the page (20 Oct 2026:
+    // it read as an empty side window). KOI keeps the message, says so in its
+    // subtitle, and asks for sign-in; the message goes once the shopper is in.
     if (!uid) {
       heldRef.current = text;
-      dispatch({ type: "open" });
+      say("Sign in with your phone and I’ll take it from there.");
       setSignIn(true);
       return;
     }
@@ -224,7 +229,7 @@ export function AgentProvider({ children }) {
     }
     dispatch({ type: "user", text });
     run({ kind: "message", text });
-  }, [uid, run]);
+  }, [uid, run, say]);
 
   // Signed in with a message held: it goes now.
   useEffect(() => {
@@ -318,7 +323,8 @@ export function AgentProvider({ children }) {
     newChat,
     undoRun,
     canUndoRun: () => Boolean(bridgeRef.current?.current?.canUndoRun),
-    open: () => dispatch({ type: "open" }),
+    // Signed out there is no conversation to open: the K asks for sign-in.
+    open: () => (uid ? dispatch({ type: "open" }) : setSignIn(true)),
     close: () => dispatch({ type: "close" }),
     toggle: () => dispatch({ type: "toggle" }),
     setFollow: (v) => dispatch({ type: "follow", value: v }),

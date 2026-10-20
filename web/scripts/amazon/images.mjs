@@ -42,14 +42,15 @@
     (c.images || []).forEach((url, i) => wanted.push({ asin: p.asin, role: "gallery", position: i + 1, amazon_url: url }));
     (c.description_images || []).forEach((url, i) => wanted.push({ asin: p.asin, role: "description", position: i + 1, amazon_url: url }));
   }
-  const have = new Map((await selectAll("image", "select=id,asin,role,position,sha256,kind,storage_path")).map((r) => [`${r.asin}|${r.role}|${r.position}`, r]));
+  const have = new Map((await selectAll("image", "select=id,asin,role,position,sha256,kind,storage_path,pruned_at")).map((r) => [`${r.asin}|${r.role}|${r.position}`, r]));
   console.log(`images: ${wanted.length} on ${new Set(wanted.map((w) => w.asin)).size} protein bars, ${have.size} already stored`);
   
   const rows = [];
   let n = 0;
   await pool(wanted, 12, async (w) => {
     const key = `${w.asin}|${w.role}|${w.position}`;
-    if (have.get(key)?.storage_path) return;
+    // Pruned copies (scripts/amazon/prune.mjs, 00086) stay pruned: they are never read.
+    if (have.get(key)?.storage_path || have.get(key)?.pruned_at) return;
     const dir = join(IMG_DIR, w.asin);
     mkdirSync(dir, { recursive: true });
     const file = join(dir, `${w.role}-${w.position}.jpg`);
