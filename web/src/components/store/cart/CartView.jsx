@@ -81,7 +81,7 @@ const mono = "font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em
  * One cart line: the pack shot, the name, the count, the money.
  * @param {{ line: object, planned?: number|null, compact?: boolean }} props
  */
-export function CartLine({ line, planned = null, compact = false }) {
+export function CartLine({ line, planned = null, compact = false, forWhom = null }) {
   const setQty = useCartStore((s) => s.setQty);
   const key = lineKey(line);
   const q = packs(line.quantity);
@@ -102,6 +102,7 @@ export function CartLine({ line, planned = null, compact = false }) {
       <div className="flex min-w-0 flex-col gap-1">
         {meta && <span className="truncate font-koi-mono text-[10.5px] font-medium uppercase tracking-[0.13em] text-koi-muted">{meta}</span>}
         <span className={`font-bold leading-snug text-koi-ink ${compact ? "text-[14px]" : "text-[15.5px] sm:text-[17px]"}`}>{name}</span>
+        {forWhom && <span className="text-[12.5px] font-medium text-koi-primary">{forWhom}</span>}
         {(!compact && scored) || edited ? (
           <span className="flex flex-wrap gap-1.5">
             {!compact && scored && <span className={`rounded-full border px-2.5 py-0.5 font-koi-num text-[11.5px] font-bold ${scoreTone(Number(line.score))}`}>KOI {Math.round(Number(line.score))}</span>}
@@ -121,7 +122,15 @@ export function CartLine({ line, planned = null, compact = false }) {
  * "This week · from your plan". Expands in the drawer; open on a page.
  * @param {{ groups: object, collapsible?: boolean, editHref?: string|null }} props
  */
-export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan?step=pantry" }) {
+/** "For Me and Kid 1" / "For everyone": who a planned line is for (Plan · Cart board). */
+const forLine = (eaters, everyone) => {
+  if (!eaters?.length) return null;
+  if (everyone > 1 && eaters.length >= everyone) return "For everyone";
+  const names = eaters.map((p) => p.label);
+  return `For ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]}`;
+};
+
+export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan?step=pantry", eaters = null, everyone = 0 }) {
   const [open, setOpen] = useState(!collapsible);
   const { planLines, planned, plan, names, planTotals } = groups;
   const [busy, setBusy] = useState(null);
@@ -166,7 +175,7 @@ export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan
       )}
       {open && planLines.length > 0 && (
         <ol className="m-0 list-none p-0">
-          {planLines.map((l) => <CartLine key={lineKey(l)} line={l} planned={planned.get(String(l.skuId)) ?? null} compact={collapsible} />)}
+          {planLines.map((l) => <CartLine key={lineKey(l)} line={l} planned={planned.get(String(l.skuId)) ?? null} compact={collapsible} forWhom={eaters ? forLine(eaters.get(String(l.skuId)), everyone) : null} />)}
         </ol>
       )}
       {open && planLines.length === 0 && (

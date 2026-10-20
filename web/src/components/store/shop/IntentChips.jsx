@@ -43,8 +43,10 @@ const KIND_STYLE = {
  * @param {number|null} props.matchCount products matching, or null when not narrowing
  * @param {Array<{chip: object, matched: number}>} [props.relaxations] offered when nothing matched
  * @param {string|null} [props.unverifiedNote] CAUTIONS.unverifiedInResults text, when any result is unchecked
+ * @param {(() => void)|null} [props.onPutBack] restores every chip the search first read, when some were taken off
+ * @param {boolean} [props.cleared] every chip was taken off: the whole shelf is back
  */
-export default function IntentChips({ chips = [], onRemove, onClearAll, matchCount = null, relaxations = [], unverifiedNote = null }) {
+export default function IntentChips({ chips = [], onRemove, onClearAll, matchCount = null, relaxations = [], unverifiedNote = null, onPutBack = null, cleared = false }) {
   const root = useRef(null);
   const empty = matchCount === 0;
 
@@ -56,7 +58,24 @@ export default function IntentChips({ chips = [], onRemove, onClearAll, matchCou
     if (sheet.length) gsap.from(sheet, { autoAlpha: 0, y: 14, duration: 0.5, stagger: 0.06, ease: E.reveal, clearProps: "opacity,visibility,transform" });
   }, { scope: root, dependencies: [empty] });
 
-  if (!chips.length) return null;
+  const putBack = onPutBack && (
+    <button type="button" onClick={onPutBack} className="h-9 rounded-full px-3 text-[13px] font-semibold text-koi-primary hover:underline">
+      Put them back
+    </button>
+  );
+
+  // Every limit taken off: say so, and offer them back (States board).
+  if (!chips.length) {
+    if (!cleared) return null;
+    return (
+      <section ref={root} id="intent" aria-label="How KOI read your search" className="mx-auto w-full max-w-[1400px] scroll-mt-28 px-5 pt-8 font-koi-sans sm:px-8 lg:px-12">
+        <div className="flex flex-wrap items-center gap-2 rounded-[22px] bg-koi-paper px-5 py-4">
+          <span className="text-[14px] font-semibold text-koi-forest">No limits left. The whole shelf is back.</span>
+          {putBack}
+        </div>
+      </section>
+    );
+  }
 
   return (
     // `scroll-mt-28` keeps the row clear of the sticky nav when it is the
@@ -99,6 +118,7 @@ export default function IntentChips({ chips = [], onRemove, onClearAll, matchCou
         >
           Clear
         </button>
+        {putBack}
       </div>
 
       {unverifiedNote && !empty && (

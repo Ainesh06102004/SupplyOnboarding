@@ -116,6 +116,8 @@ export default function ShopPage() {
   // not searched, or when nothing structured could be read out of the text — in
   // which case `searchQuery` carries the raw string and behaves as it always has.
   const [intent, setIntent] = useState(null);
+  // The search's whole reading, before any chip was taken off (for "Put them back").
+  const [asked, setAsked] = useState(null);
 
   // ── UI state ──
   const [searchOpen, setSearchOpen] = useState(false);
@@ -295,7 +297,7 @@ export default function ShopPage() {
   };
 
   const contextLabel = activeGoal || activeBrand || (searchQuery ? `“${searchQuery}”` : null);
-  const clearContext = () => { pullFocus(false); setActiveLens(null); setActiveGoal(null); setActiveBrand(null); setSearchQuery(""); setIntent(null); };
+  const clearContext = () => { pullFocus(false); setActiveLens(null); setActiveGoal(null); setActiveBrand(null); setSearchQuery(""); setIntent(null); setAsked(null); };
 
   const selectProduct = (p) => router.push(`/store/product/${p.id}`);
 
@@ -321,6 +323,8 @@ export default function ShopPage() {
     const meaningful = Boolean(next && (narrowing || next.unresolved.length));
 
     setIntent(meaningful ? next : null);
+    // The whole reading, so chips taken off can be put back (States board).
+    setAsked(meaningful ? next : null);
     // A sentence must never be used as a substring again — that is the bug this
     // replaces. When the intent narrows, resolveIntent has already applied any
     // residual word; otherwise that word is all there is to search on.
@@ -359,8 +363,8 @@ export default function ShopPage() {
     let readBack = false;
     pullFocus(true);
     setActiveLens(lens);
-    if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); setIntent(null); }
-    else if (brand !== undefined) { setActiveBrand(brand); setActiveGoal(null); setSearchQuery(""); setIntent(null); }
+    if (goal !== undefined) { setActiveGoal(goal); setActiveBrand(null); setSearchQuery(""); setIntent(null); setAsked(null); }
+    else if (brand !== undefined) { setActiveBrand(brand); setActiveGoal(null); setSearchQuery(""); setIntent(null); setAsked(null); }
     else if (incoming !== undefined || query !== undefined) {
       const next = incoming !== undefined ? incoming : interpret(query);
       readBack = applyIntent(next);
@@ -388,6 +392,14 @@ export default function ShopPage() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on the first catalogue
   }, [products.length]);
+
+  // Chips taken off come back in one tap, as the search first read them.
+  const putBack = () => {
+    if (!asked) return;
+    pullFocus(true);
+    applyIntent(asked);
+    scrollToId("intent");
+  };
 
   const removeChip = (chip) => {
     pullFocus(true);
@@ -504,6 +516,8 @@ export default function ShopPage() {
             chips={intentChips}
             onRemove={removeChip}
             onClearAll={clearContext}
+            onPutBack={asked && intent !== asked ? putBack : null}
+            cleared={Boolean(asked && !intent)}
             matchCount={resolved.ids ? filteredProducts.length : null}
             relaxations={relaxations}
             unverifiedNote={unverifiedNote}

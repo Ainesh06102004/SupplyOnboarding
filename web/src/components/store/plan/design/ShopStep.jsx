@@ -17,7 +17,12 @@
 // by the button; putting it in sends the ember to the cart with a tick.
 
 import { useEffect, useMemo, useRef } from "react";
-import { peopleOf, rupees } from "@/lib/plan/planView";
+import { peopleOf, rupees, eatersBySku } from "@/lib/plan/planView";
+import { goalShortLabel } from "@/lib/plan/goalCards";
+import { goalsAllowed } from "@/lib/planner/goals";
+import { AGE_BANDS } from "@/lib/planner/brief";
+import { FOODS_AVOID } from "@/lib/recommendation/config";
+import { inr } from "./tokens";
 import { packsToBuy } from "@/lib/cart/plan";
 import { useCartStore } from "@/store/cartStore";
 import { useCartGroups, PlanGroup, OwnGroup, PlanChangedBanner, CartSummary, CartLoading } from "@/components/store/cart/CartView";
@@ -26,6 +31,45 @@ import { StepHead, Footer } from "./bits";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+
+const labelIn = (list, key) => list.find((x) => x.key === key)?.label ?? key;
+const GOAL_WORDS = { Lose: "Lose weight", Muscle: "Build muscle", Recomp: "Recomposition" };
+
+/**
+ * "Who this week is for" (Plan · Cart board): each person, their goal and the
+ * planner's daily targets, and what the plan keeps out for them — so the cart
+ * reads as somebody's week, not a list. Targets are the planner's own; a child
+ * is planned to their age group, and says so instead of a number.
+ */
+function WhoFor({ people, profiles, keyOf }) {
+  if (!people.length) return null;
+  const byId = new Map(profiles.map((p) => [String(p.memberId ?? keyOf(p)), p]));
+  return (
+    <section data-card aria-label="Who this week is for" className="flex flex-col gap-3 rounded-[22px] border border-koi-forest/10 bg-white p-5">
+      <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-ink2">Who this week is for</span>
+      <ul className="m-0 flex list-none flex-col gap-3 p-0">
+        {people.map((person) => {
+          const form = byId.get(String(person.id)) ?? {};
+          const adult = goalsAllowed(form.age_band);
+          const keepOut = (form.avoids ?? []).filter((a) => a.severity === "allergy" || a.severity === "never");
+          const bits = adult
+            ? [GOAL_WORDS[goalShortLabel(form)] ?? goalShortLabel(form), person.target.kcal ? `${inr(person.target.kcal)} kcal` : null, person.target.protein ? `${person.target.protein} g protein a day` : null]
+            : [form.age_band ? labelIn(AGE_BANDS, form.age_band) : "Child", "planned to their age"];
+          const avoid = keepOut.map((a) => `${labelIn(FOODS_AVOID, a.key)}${a.severity === "allergy" ? " allergy" : ", never"}`);
+          return (
+            <li key={person.id} className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-2 text-[14.5px] font-bold">
+                <span aria-hidden="true" className={`size-2 rounded-full ${person.met ? "bg-koi-green" : "bg-koi-amber"}`} />
+                {person.label}
+              </span>
+              <span className="pl-4 text-[13px] leading-snug text-koi-ink2">{[...bits.filter(Boolean), ...avoid].join(" · ")}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
 
 export default function ShopStep({ s, onBack, onNext }) {
   const root = useRef(null);
@@ -38,6 +82,7 @@ export default function ShopStep({ s, onBack, onNext }) {
   const cartPlan = useCartStore((st) => st.plan);
   const people = useMemo(() => (plan ? peopleOf(plan.report, days).sort((a, b) => orderOf(a.id) - orderOf(b.id)) : []), [plan, days, orderOf]);
   const met = people.filter((p) => p.met).length;
+  const eaters = useMemo(() => (plan?.report ? eatersBySku(plan.report) : null), [plan]);
   const notYet = Boolean(plan) && !cartPlan;
 
   useGSAP(() => {
@@ -105,7 +150,7 @@ export default function ShopStep({ s, onBack, onNext }) {
 
           <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_400px]">
             <div className="flex min-w-0 flex-col gap-8">
-              <PlanGroup groups={groups} editHref="/store/plan?step=pantry" />
+              <PlanGroup groups={groups} editHref="/store/plan?step=pantry" eaters={eaters} everyone={people.length} />
               <OwnGroup groups={groups} />
               {!groups.lines.length && !notYet && (
                 <section data-card className="rounded-[26px] border border-koi-forest/10 bg-white p-6 text-sm text-koi-ink2">
@@ -115,6 +160,7 @@ export default function ShopStep({ s, onBack, onNext }) {
             </div>
             <aside className="flex flex-col gap-4 self-start lg:sticky lg:top-[calc(var(--koi-header-h)+84px)]">
               <CartSummary groups={groups} checkoutHref="/store/checkout?from=plan" />
+              <WhoFor people={people} profiles={s.profiles} keyOf={s.keyOf} />
               {people.length > 0 && (
                 <section data-card className="flex flex-col gap-2.5 rounded-[22px] border border-koi-forest/10 bg-white p-5">
                   <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-ink2">What this week covers</span>

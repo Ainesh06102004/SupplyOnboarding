@@ -22,6 +22,9 @@ import { profileService } from "@/lib/supabase/profileService";
 import { DIET_TYPES, FOODS_AVOID } from "@/lib/recommendation/config";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { goalsAllowed } from "@/lib/planner/goals";
+import { useCheckins } from "@/components/store/plan/design/useCheckins";
 
 const tile = "rounded-[24px] border border-koi-forest/10 bg-white p-6";
 const NAV = [
@@ -30,6 +33,48 @@ const NAV = [
   { href: "/store/household", label: "Household", hint: "Everyone you shop for" },
   { href: "/store/profile/data", label: "What KOI keeps", hint: "See it, or delete it" },
 ];
+
+const weeksAgo = (iso) => {
+  const days = Math.round((Date.now() - new Date(`${iso}T00:00:00`).getTime()) / 86400000);
+  if (days < 7) return days <= 0 ? "today" : `${days} day${days === 1 ? "" : "s"} ago`;
+  const w = Math.round(days / 7);
+  return `${w} week${w === 1 ? "" : "s"} ago`;
+};
+
+/**
+ * The weigh-ins as one line (You board): the shopper's own check-ins
+ * (member_checkin, 00077), first and latest labelled. Track holds the full
+ * chart against the plan's arithmetic; this is the glance.
+ */
+function WeighStrip({ rows }) {
+  const ref = useRef(null);
+  const pts = rows.map((r) => ({ date: r.checked_on, kg: Number(r.weight_kg) })).filter((r) => Number.isFinite(r.kg));
+  const sig = pts.map((p) => `${p.date}:${p.kg}`).join("|");
+  useGSAP(() => {
+    if (!pts.length || prefersReducedMotion()) return;
+    setupMotion().fromTo(ref.current.querySelector("[data-chart-line]"), { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 1.2, ease: E.dolly, delay: 0.3 });
+  }, { scope: ref, dependencies: [sig] });
+  if (!pts.length) return null;
+  const kgs = pts.map((p) => p.kg);
+  const [lo, hi] = [Math.min(...kgs) - 0.5, Math.max(...kgs) + 0.5];
+  const x = (i) => (pts.length === 1 ? 300 : 8 + (i * 584) / (pts.length - 1));
+  const y = (kg) => 8 + ((hi - kg) / Math.max(0.5, hi - lo)) * 64;
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.kg).toFixed(1)}`).join(" ");
+  const first = pts[0];
+  const last = pts.at(-1);
+  return (
+    <div ref={ref} className="mt-6 flex flex-col gap-2 rounded-2xl bg-koi-bg/10 p-4">
+      <svg viewBox="0 0 600 80" className="h-[80px] w-full overflow-visible" role="img" aria-label={`Your weigh-ins, ${first.kg} kg to ${last.kg} kg`}>
+        <path data-chart-line d={d} fill="none" stroke="#ddf247" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={x(pts.length - 1)} cy={y(last.kg)} r="5" fill="#ddf247" />
+      </svg>
+      <div className="flex justify-between gap-3 font-koi-mono text-[10.5px] uppercase tracking-[0.12em] text-koi-bg/70">
+        <span>{pts.length > 1 ? `${weeksAgo(first.date)} · ${first.kg} kg` : "First weigh-in"}</span>
+        <span className="text-koi-lime">Latest · {last.kg} kg</span>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -65,6 +110,18 @@ export default function ProfilePage() {
       .catch((err) => console.error("Could not load profile:", err));
     return () => { alive = false; };
   }, [user?.uid]);
+
+  // The account holder's own weigh-ins: the household member that is this
+  // account (goalProfileService's rule), and only an adult keeps any.
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    if (!user?.uid) return undefined;
+    let alive = true;
+    getSupabaseClient().from("household_member").select("id, age_band").eq("account_profile_id", user.uid).maybeSingle()
+      .then(({ data }) => { if (alive) setMe(data ?? null); });
+    return () => { alive = false; };
+  }, [user?.uid]);
+  const { rows: checkins } = useCheckins(me && goalsAllowed(me.age_band) ? me.id : null);
 
   const displayName = account?.display_name || user?.displayName || null;
   const contact = account?.email || user?.email || account?.phone || user?.phone || null;
@@ -130,6 +187,7 @@ export default function ProfilePage() {
                   <div className="flex flex-col gap-1 rounded-2xl bg-koi-lime p-4 text-koi-forest"><span className="font-koi-mono text-[10px] uppercase tracking-[0.14em] text-koi-forest/80">To go</span><span className="font-koi-num text-[28px] font-semibold leading-none">{weightDelta ?? "—"}<span className="ml-1 text-sm font-medium">kg</span></span></div>
                 </div>
               )}
+              <WeighStrip rows={checkins} />
               <p className="m-0 mt-6 text-[14px] leading-relaxed text-koi-bg/75">Your weigh-ins, and how they sit against the plan’s arithmetic, live in Track. KOI only ever suggests a change there.</p>
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-koi-bg/15 pt-5">
                 <span className="text-sm text-koi-bg/80">

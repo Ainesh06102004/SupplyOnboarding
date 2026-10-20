@@ -124,6 +124,24 @@ export function peopleOf(report = {}, days = 7) {
 }
 
 /**
+ * Who each product in the basket is for, from the planner's whoEatsWhat.
+ * @returns {Map<string, Array<{ id, label }>>} skuId → the people it was planned for
+ */
+export function eatersBySku(report = {}) {
+  const out = new Map();
+  for (const person of report.whoEatsWhat ?? []) {
+    for (const item of person.allowed ?? []) {
+      if (!(Number(item.packs) > 0) && !(Number(item.amount) > 0)) continue;
+      const k = String(item.skuId);
+      const list = out.get(k) ?? [];
+      if (!list.some((p) => p.id === person.member)) list.push({ id: person.member, label: person.label ?? "Someone" });
+      out.set(k, list);
+    }
+  }
+  return out;
+}
+
+/**
  * The week board: for each slot of a day, what each person has from the basket,
  * per day. The planner plans the week's food, not dishes, so a product sits in
  * the first slot its shelf serves; `also` names the others it could go in.
