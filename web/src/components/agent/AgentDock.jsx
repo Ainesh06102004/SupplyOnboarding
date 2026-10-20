@@ -7,6 +7,10 @@
 // checklist, the shopper's messages, KOI's lines, each tool with its streaming
 // lines, the questions and approvals, the results — in a glass sheet beside
 // the page (a bottom sheet on phones), so the page stays the proof.
+//
+// A long conversation plays as Commentary instead (Commentary board): the
+// lights go down on the page and the talk reads as a screenplay. It is the
+// same conversation in a second view; "Lights down" / "Side panel" switch.
 // ============================================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +20,7 @@ import { usePathname } from "next/navigation";
 import { useCartUi } from "@/store/cartUiStore";
 import { useAgent } from "./AgentProvider";
 import { TaskChecklist, ToolCard, AskCard, ApprovalCard, ResultCard } from "./cards";
+import Commentary from "./Commentary";
 import { EmberSlot, useEmber } from "@/components/store/ember/Ember";
 import KoiBar, { KoiSubtitle } from "@/components/store/shell/KoiBar";
 import { useKoiVoice } from "@/store/koiVoiceStore";
@@ -45,6 +50,8 @@ export default function AgentDock() {
   const compact = useCartUi((s) => s.totalBar);
   const [text, setText] = useState("");
   const [ph, setPh] = useState(0);
+  // The shopper's choice of view, once made; until then a long conversation is Commentary.
+  const [view, setView] = useState(null);
   const inputRef = useRef(null);
   const bodyRef = useRef(null);
   const state = agent?.state;
@@ -109,6 +116,8 @@ export default function AgentDock() {
   };
   const dockState = running ? "running" : waiting ? "waiting" : "idle";
   const sheet = state.open && agent.signedIn;
+  const LONG = 8;
+  const commentary = sheet && (view ?? (state.entries.length >= LONG ? "commentary" : "sheet")) === "commentary";
   const statusLine = state.statusLine;
 
   return (
@@ -149,7 +158,9 @@ export default function AgentDock() {
         </form>
       )}
 
-      {sheet && (
+      {commentary && <Commentary agent={agent} onLightsUp={agent.close} onSheet={() => setView("sheet")} />}
+
+      {sheet && !commentary && (
         <section className="ka-sheet ka-glass" aria-label="KOI">
           <div className="ka-grip" style={{ display: "none", alignSelf: "center", width: 40, height: 5, borderRadius: 99, background: "#d9d7cd", margin: "10px auto 0" }} aria-hidden="true" />
           <header className="ka-head">
@@ -160,6 +171,7 @@ export default function AgentDock() {
               </div>
               <div style={{ display: "flex", gap: 2 }}>
                 <button type="button" className="ka-icon-btn" onClick={() => agent.setFollow(!state.follow)} aria-pressed={state.follow} title="Move the page to where KOI is working">{state.follow ? "Following" : "Follow"}</button>
+                <button type="button" className="ka-icon-btn" onClick={() => setView("commentary")} title="Read the conversation full screen, as a script">Lights down</button>
                 <button type="button" className="ka-icon-btn" onClick={agent.newChat} disabled={running}>New chat</button>
                 <button type="button" className="ka-icon-btn" onClick={agent.close} aria-label="Close KOI">Close</button>
               </div>
