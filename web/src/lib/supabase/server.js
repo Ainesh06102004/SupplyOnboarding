@@ -18,6 +18,9 @@ import 'server-only'
 
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { isDemo } from './demo/mode'
+import { createDemoClient } from './demo/client'
+import { runDemo } from './demo/store'
 
 function credentials() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -41,6 +44,8 @@ function credentials() {
  * @returns {Promise<import('@supabase/supabase-js').SupabaseClient>}
  */
 export async function getServerSupabase() {
+  // Demo mode (development only): the demo shopper, against the demo database.
+  if (isDemo()) return createDemoClient({ send: runDemo })
   const { url, key } = credentials()
   const cookieStore = await cookies()
 

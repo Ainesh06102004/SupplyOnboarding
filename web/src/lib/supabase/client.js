@@ -36,9 +36,30 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { isDemo } from './demo/mode'
+import { createDemoClient } from './demo/client'
 
 let browserClient = null
 let anonServerClient = null
+let demoClient = null
+
+/**
+ * Demo mode (lib/supabase/demo, development only): the browser reaches the demo
+ * database over /api/demo/db; server code calls it directly when the dev server
+ * has it loaded, else over the same route.
+ */
+function demo() {
+    if (demoClient) return demoClient
+    const browser = typeof window !== 'undefined'
+    const post = (url) => (q) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(q) })
+        .then((r) => r.json())
+        .catch((err) => ({ data: null, error: { message: err?.message ?? 'The demo database could not be reached.' } }))
+    const send = browser
+        ? post('/api/demo/db')
+        : (q) => (globalThis.__koiDemoRun ? globalThis.__koiDemoRun(q) : post(`http://127.0.0.1:${process.env.PORT || 3000}/api/demo/db`)(q))
+    demoClient = createDemoClient({ send, browser })
+    return demoClient
+}
 
 function credentials() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -61,6 +82,7 @@ function credentials() {
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
 export function getSupabaseClient() {
+    if (isDemo()) return demo()
     const { url, key } = credentials()
 
     if (typeof window === 'undefined') {

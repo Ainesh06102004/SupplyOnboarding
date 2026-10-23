@@ -26,9 +26,14 @@ export const TEST_SKU_PREFIX = "off-";
 /** @param {string|null|undefined} id @returns {boolean} */
 export const isTestSku = (id) => String(id ?? "").startsWith(TEST_SKU_PREFIX);
 
-/** Read as a literal so Next inlines it into the browser bundle. */
+/**
+ * Read as a literal so Next inlines it into the browser bundle. Demo mode
+ * (development only, lib/supabase/demo) has no live catalogue, so it always
+ * uses this one.
+ */
 export function testCatalogueEnabled() {
-  return process.env.NEXT_PUBLIC_KOI_TEST_CATALOGUE === TEST_CATALOGUE;
+  return process.env.NEXT_PUBLIC_KOI_TEST_CATALOGUE === TEST_CATALOGUE
+    || (process.env.NEXT_PUBLIC_KOI_DEMO === "1" && process.env.NODE_ENV !== "production");
 }
 
 /**

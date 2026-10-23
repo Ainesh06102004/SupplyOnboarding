@@ -421,3 +421,21 @@ Apply in order through the Supabase MCP (standing consent) once KOI-PLATFORM is 
 - **00093 autoplan_notifications.**
 
 Until then, meals and calendar events are kept on the device (pending) and Take 2s in local storage. All of them sync on the first load after the tables exist.
+
+## Demo mode: every page without Supabase (23 Oct)
+Asked for while KOI-PLATFORM is blocked. `npm run dev:demo` (from `web/`) starts the dev server with `NEXT_PUBLIC_KOI_DEMO=1`.
+- **Signed in as a demo household:**
+  - Me: a lifter on his own numbers.
+  - Wife: vegetarian.
+  - Kid: a peanut allergy.
+- **Seeded data:** atta, rice and poha in the pantry; three Tuesday lunches out; Mon/Wed/Fri training; weigh-ins; an inbox note.
+- **The first plan:** made by the real planner over the test catalogue the first time the demo opens.
+- **How it works:**
+  - Every Supabase call goes to a local stand-in (`src/lib/supabase/demo`), browser, server and planner alike.
+  - `engine.js` covers the PostgREST subset KOI uses: filters, embeds, JSON paths, upsert on conflict columns, single rows, counts.
+  - `store.js` keeps the tables in `web/.demo/db.json` (gitignored) and emulates `save_household_member` and `calendar_feed`.
+  - `/api/demo/db` is the browser's way in.
+- **Signing in:** `getVerifiedUser` and `proxy.js` treat the demo shopper as signed in. Signing out works; signing in again takes any phone and code.
+- **"Demo · reset"** in the header restores the seed and clears this browser's `koi_*` keys.
+- **Development only:** `isDemo()` is false in production builds (`NODE_ENV`), and the route answers 404.
+- **Not in demo mode:** the agent's model calls still need their own keys (the rules model works offline), and Swiggy hand-off and label reading still need their real services.

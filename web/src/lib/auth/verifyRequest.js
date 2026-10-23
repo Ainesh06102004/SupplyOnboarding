@@ -31,6 +31,7 @@
 import 'server-only'
 
 import { createServerClient } from '@supabase/ssr'
+import { isDemo, DEMO_UID } from '@/lib/supabase/demo/mode'
 
 /**
  * The verified shopper behind a request, or null.
@@ -46,6 +47,8 @@ import { createServerClient } from '@supabase/ssr'
  * @returns {Promise<{ uid: string, email: string|null, role: string|null }|null>}
  */
 export async function getVerifiedUser(request) {
+  // Demo mode (development only, lib/supabase/demo): the demo shopper, never a reviewer.
+  if (isDemo()) return { uid: DEMO_UID, email: null, role: null }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   // Fail closed. An unconfigured project must never mean "accept anything".

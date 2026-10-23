@@ -28,6 +28,9 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { isDemo } from "./demo/mode";
+import { createDemoClient } from "./demo/client";
+import { runDemo } from "./demo/store";
 
 let client = null;
 let warned = false;
@@ -36,6 +39,8 @@ let warned = false;
  * @returns {import('@supabase/supabase-js').SupabaseClient|null}
  */
 export function getServiceClient() {
+  // Demo mode (development only) has one database and no service role.
+  if (isDemo()) return createDemoClient({ send: runDemo });
   if (client) return client;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -47,6 +47,9 @@ export async function proxy(request) {
   // able to turn this file into an auth round trip on every request.
   if (!isProtected) return NextResponse.next();
 
+  // Demo mode (development only, lib/supabase/demo): the demo shopper is signed in.
+  if (process.env.NEXT_PUBLIC_KOI_DEMO === '1' && process.env.NODE_ENV !== 'production') return NextResponse.next();
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   // Fail closed: an unconfigured project must not mean "everyone is signed in".
