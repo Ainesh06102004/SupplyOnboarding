@@ -525,7 +525,7 @@ export default function CheckoutPage() {
             </div>
             <dl className="m-0 mt-5 flex flex-col gap-3 border-b border-koi-bg/15 pb-5 text-sm">
               {planItems.length > 0 && <div className="flex justify-between"><dt className="text-koi-bg/75">This week’s plan{cartPlan?.members ? ` · for ${cartPlan.members}` : ""}</dt><dd className="m-0 font-koi-num font-semibold"><Money value={totals(planItems).total} /></dd></div>}
-              {ownItems.length > 0 && <div className="flex justify-between"><dt className="text-koi-bg/75">{planItems.length ? "Also in your cart" : "Your products"}</dt><dd className="m-0 font-koi-num font-semibold"><Money value={totals(ownItems).total} /></dd></div>}
+              {ownItems.length > 0 && <div className="flex justify-between"><dt className="text-koi-bg/75">{planItems.length ? "You added" : "Your products"}</dt><dd className="m-0 font-koi-num font-semibold"><Money value={totals(ownItems).total} /></dd></div>}
               <div className="flex justify-between"><dt className="text-koi-bg/75">Products · packs</dt><dd className="m-0 font-koi-num font-semibold">{all.products} · {all.packs}</dd></div>
               {averageKoiScore !== null && <div className="flex justify-between"><dt className="text-koi-bg/75">Average KOI score</dt><dd className="m-0 font-koi-num font-semibold">{averageKoiScore}</dd></div>}
               <div className="flex justify-between"><dt className="text-koi-bg/75">Payment</dt><dd className="m-0 font-semibold">On Swiggy</dd></div>

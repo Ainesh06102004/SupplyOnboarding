@@ -1183,7 +1183,11 @@ export function usePlanSession() {
     setCartResult({ planId, busy: true });
     try {
       const members = peopleOf(plan.report ?? {}, plan.days ?? 7).length || null;
-      const result = await putPlanInCart({ planId, basket: plan.report?.basket ?? [], atHome: have, members, products });
+      // What the week's dishes need that the cart doesn't bring, by name, for the
+      // cart's "Export ingredient list" (names only: amounts depend on the recipe).
+      const fresh = [...new Set([...(week?.alsoNeed?.fresh ?? []), ...(menuNeeds?.notStocked ?? [])].map((i) => i.ingredient).filter(Boolean))];
+      const kitchen = [...new Set((week?.alsoNeed?.kitchen ?? []).map((i) => i.ingredient).filter(Boolean))];
+      const result = await putPlanInCart({ planId, basket: plan.report?.basket ?? [], atHome: have, members, products, fresh, kitchen });
       setCartResult({ planId, packs: result.packs, products: result.products, missing: result.missing });
       notify(`This week's plan is in your cart: ${result.products} ${result.products === 1 ? "product" : "products"}, ${result.packs} ${result.packs === 1 ? "pack" : "packs"}.`);
       return result;
@@ -1191,7 +1195,7 @@ export function usePlanSession() {
       setCartResult({ planId, error: err?.message ?? "The plan could not be put in the cart." });
       return null;
     }
-  }, [plan, have, products, notify]);
+  }, [plan, have, products, notify, week, menuNeeds]);
 
   // "Put it in my cart" from the agent, once the plan it means is the one on screen.
   useEffect(() => {

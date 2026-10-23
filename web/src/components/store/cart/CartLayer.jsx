@@ -22,15 +22,15 @@ import { useEmber } from "@/components/store/ember/Ember";
 
 /**
  * Add packs of a product to the one cart and say so.
- * @returns {(product: object, n?: number) => void}
+ * @returns {(product: object, n?: number, from?: string|null) => void}
  */
 export function useAddToCart() {
   const add = useCartStore((s) => s.add);
   const showAdded = useCartUi((s) => s.showAdded);
   const ember = useEmber();
-  return useCallback((product, n = 1) => {
+  return useCallback((product, n = 1, from = null) => {
     if (!product) return;
-    add(product, n);
+    add(product, n, from);
     showAdded(lineKey({ skuId: product.skuId, productId: product.id }));
     // KOI carries it: the ember flies to whichever cart is on screen (the
     // header's, or the phone tab bar's), ticks, and goes home.

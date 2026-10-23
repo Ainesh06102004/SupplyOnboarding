@@ -51,9 +51,10 @@ export function ownPacks(line) {
  * @param {object} product a catalogue product (needs skuId or id)
  * @param {number} n packs to add
  * @param {number} now ms timestamp for a new line
+ * @param {string|null} [from] where a new line was added from ("pantry": the Plan's Pantry shop), kept on the line
  * @returns {Array<object>}
  */
-export function addPacks(items, product, n, now) {
+export function addPacks(items, product, n, now, from = null) {
   const add = packs(n);
   const key = lineKey({ skuId: product?.skuId, productId: product?.id });
   if (!add || !key) return items;
@@ -64,7 +65,7 @@ export function addPacks(items, product, n, now) {
     return { ...item, quantity: packs(item.quantity) + add };
   });
   if (found) return next;
-  return [...items, { ...product, skuId: product.skuId ?? null, productId: product.id ?? null, quantity: add, fromPlan: 0, addedAt: now }];
+  return [...items, { ...product, skuId: product.skuId ?? null, productId: product.id ?? null, quantity: add, fromPlan: 0, addedAt: now, ...(from ? { addedFrom: from } : {}) }];
 }
 
 /**
@@ -143,6 +144,7 @@ export function toRef(item, now) {
     quantity: packs(item.quantity),
     fromPlan: Math.min(packs(item.fromPlan), packs(item.quantity)),
     addedAt: item.addedAt ?? now,
+    ...(item.addedFrom ? { addedFrom: item.addedFrom } : {}),
   };
 }
 
@@ -174,7 +176,7 @@ export function resolveRefs(refs, catalogue, { authoritative = false } = {}) {
     if (!product) {
       if (!authoritative) {
         const key = lineKey(ref);
-        if (key && !out.has(key)) out.set(key, { skuId: ref.skuId ?? null, productId: ref.productId ?? null, quantity: packs(ref.quantity), fromPlan: packs(ref.fromPlan), addedAt: ref.addedAt ?? null });
+        if (key && !out.has(key)) out.set(key, { skuId: ref.skuId ?? null, productId: ref.productId ?? null, quantity: packs(ref.quantity), fromPlan: packs(ref.fromPlan), addedAt: ref.addedAt ?? null, ...(ref.addedFrom ? { addedFrom: ref.addedFrom } : {}) });
       }
       continue;
     }
@@ -185,11 +187,12 @@ export function resolveRefs(refs, catalogue, { authoritative = false } = {}) {
       quantity: packs(ref.quantity),
       fromPlan: Math.min(packs(ref.fromPlan), packs(ref.quantity)),
       addedAt: ref.addedAt ?? null,
+      ...(ref.addedFrom ? { addedFrom: ref.addedFrom } : {}),
     };
     const key = lineKey(line);
     const prior = out.get(key);
     if (prior) {
-      out.set(key, { ...line, quantity: packs(prior.quantity) + line.quantity, fromPlan: packs(prior.fromPlan) + line.fromPlan, addedAt: prior.addedAt ?? line.addedAt });
+      out.set(key, { ...line, quantity: packs(prior.quantity) + line.quantity, fromPlan: packs(prior.fromPlan) + line.fromPlan, addedAt: prior.addedAt ?? line.addedAt, ...(prior.addedFrom ? { addedFrom: prior.addedFrom } : {}) });
     } else {
       out.set(key, line);
     }

@@ -76,8 +76,8 @@ export const useCartStore = create(
        */
       setHydrated: () => set({ hydrated: true }),
 
-      /** Add packs of a product. Added packs are the shopper's own. */
-      add: (product, n = 1) => set((state) => ({ items: addPacks(state.items, product, n, Date.now()) })),
+      /** Add packs of a product. Added packs are the shopper's own; `from` says where ("pantry"). */
+      add: (product, n = 1, from = null) => set((state) => ({ items: addPacks(state.items, product, n, Date.now(), from) })),
 
       /** Set a line's packs (0 removes). Accepts a SKU key or a product id. */
       setQty: (idOrKey, n) => set((state) => {
@@ -95,10 +95,15 @@ export const useCartStore = create(
        * `lines` carry the resolved product for each SKU (lib/cart/client.js).
        * @param {{ planId: string|null, basket: Array<{skuId: string, packs: number}>, atHome: string[], members?: number|null, lines: Array<{skuId: string, packs: number, product?: object}> }} p
        */
-      applyPlan: ({ planId, basket, atHome = [], members = null, lines }) => set((state) => ({
+      applyPlan: ({ planId, basket, atHome = [], members = null, lines, fresh = null, kitchen = null }) => set((state) => ({
         undo: { items: state.items, plan: state.plan },
         items: applyPlanShare(state.items, lines, Date.now()),
-        plan: { planId: planId ?? null, basket, atHome: [...atHome].map(String), members: members ?? state.plan?.members ?? null, appliedAt: Date.now() },
+        plan: {
+          planId: planId ?? null, basket, atHome: [...atHome].map(String), members: members ?? state.plan?.members ?? null, appliedAt: Date.now(),
+          // The week's fresh food and kitchen basics, by name, for the exported list.
+          // An update from elsewhere (the cart's banner) keeps the last ones it had.
+          fresh: fresh ?? state.plan?.fresh ?? [], kitchen: kitchen ?? state.plan?.kitchen ?? [],
+        },
       })),
 
       /** Back to exactly the cart before the last plan update. */

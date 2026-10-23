@@ -7,6 +7,9 @@
 // honestly: your last plan against this one. Unticking a line means "I have
 // this at home": it stays in the plan and is left out of the cart.
 //
+// Below it, the whole shop (PantryShop): anything else for the week goes in the
+// same cart, as the shopper's own.
+//
 // It ends with "Put this week in my cart": the plan's packs go into the store's
 // ONE cart (lib/cart/client.js putPlanInCart), replacing whatever the plan put
 // there before — pressing it again never doubles — and the shopper's own items
@@ -25,6 +28,7 @@ import { ProductThumb } from "@/components/store/system/primitives";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+import PantryShop from "./PantryShop";
 
 const monoHead = "font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em]";
 
@@ -254,6 +258,7 @@ export default function PantryStep({ s, onBack, onNext }) {
           </article>
         </aside>
       </section>
+      <PantryShop s={s} />
       <Footer onBack={onBack} next={{ label: inCart ? "Open your cart" : "Go to your cart", onClick: onNext }} />
     </div>
   );

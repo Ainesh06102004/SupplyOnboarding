@@ -9,7 +9,8 @@
 //   PlanGroup           "This week · from your plan" — the lines the plan put
 //                       there, what was marked at home, and "plan said N"
 //                       where the shopper changed a count.
-//   OwnGroup            "Also in your cart" — everything the shopper added.
+//   OwnGroup            "You added" — everything the shopper added, and from
+//                       where when it says (the Plan's Pantry shop).
 //   PlanChangedBanner   the plan moved since it was added; OFFER the update
 //                       (See what changed · Keep my cart · Update cart).
 //   CartSummary         MRP total, the honest note about Swiggy's price, and
@@ -167,7 +168,11 @@ export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-koi-forest/15 pb-3">
           <span className="flex flex-col gap-1">
-            <span className={`${mono} text-koi-ink2`}>This week · from your plan{members ? ` · for ${members}` : ""}</span>
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-koi-lime px-2.5 py-0.5 font-koi-mono text-[10.5px] font-bold uppercase tracking-[0.08em] text-koi-forest">Plan</span>
+              <span className="font-koi-display text-[22px] font-extrabold leading-tight text-koi-forest">From this week&apos;s plan{members ? ` · for ${members}` : ""}</span>
+            </span>
+            <span className="text-[13px] text-koi-ink2">Bought so the week works. Each line says who it&apos;s for.</span>
             {summary}
           </span>
           {editHref && <Link href={editHref} className="text-sm font-semibold text-koi-primary hover:underline">Edit in Pantry</Link>}
@@ -203,18 +208,34 @@ export function PlanGroup({ groups, collapsible = false, editHref = "/store/plan
   );
 }
 
-/** "Also in your cart": what the shopper added themselves. */
-export function OwnGroup({ groups, compact = false, title = "Also in your cart" }) {
-  const { ownLines, plan } = groups;
+/** Where a line the shopper added came from, when it was somewhere worth saying. */
+const ADDED_FROM = Object.freeze({ pantry: "Added from the Pantry shop" });
+
+/** "You added": what the shopper added themselves, apart from the plan. */
+export function OwnGroup({ groups, compact = false, title = "You added" }) {
+  const { ownLines, ownTotals, plan } = groups;
   if (!ownLines.length) return null;
   return (
     <section aria-label={plan ? title : "Your cart"} className={compact ? "overflow-hidden rounded-[20px] border border-koi-forest/10 bg-white" : ""}>
-      <div className={`flex items-center justify-between gap-3 ${compact ? "px-4 pb-1 pt-3" : "border-b border-koi-forest/15 pb-3"}`}>
-        <span className={`${mono} text-koi-ink2`}>{plan ? `${title} · you added these` : "In your cart"}</span>
-        {!compact && <Link href="/store/shop" className="text-sm font-semibold text-koi-primary hover:underline">Keep shopping</Link>}
-      </div>
+      {compact ? (
+        <div className="flex items-center justify-between gap-3 px-4 pb-1 pt-3">
+          <span className={`${mono} text-koi-ink2`}>{plan ? title : "In your cart"}</span>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-koi-forest/15 pb-3">
+          <span className="flex flex-col gap-1">
+            <span className="flex flex-wrap items-center gap-2">
+              {plan && <span className="rounded-full bg-koi-warm-bg px-2.5 py-0.5 font-koi-mono text-[10.5px] font-bold uppercase tracking-[0.08em] text-koi-warm-ink">You</span>}
+              <span className="font-koi-display text-[22px] font-extrabold leading-tight text-koi-forest">{plan ? title : "In your cart"}</span>
+            </span>
+            {plan && <span className="text-[13px] text-koi-ink2">Not planned around. KOI still screens them for everyone at home.</span>}
+            <span className="text-[13px] font-semibold text-koi-ink2"><span className="font-koi-num">{ownLines.length}</span> {ownLines.length === 1 ? "product" : "products"} · <Money value={ownTotals.total} /></span>
+          </span>
+          <Link href="/store/shop" className="text-sm font-semibold text-koi-primary hover:underline">Keep shopping</Link>
+        </div>
+      )}
       <ol className="m-0 list-none p-0">
-        {ownLines.map((l) => <CartLine key={lineKey(l)} line={l} compact={compact} />)}
+        {ownLines.map((l) => <CartLine key={lineKey(l)} line={l} compact={compact} forWhom={ADDED_FROM[l.addedFrom] ?? null} />)}
       </ol>
     </section>
   );
@@ -310,10 +331,10 @@ export function CartSummary({ groups, checkoutHref = "/store/checkout", children
       </div>
       <dl className="m-0 mt-5 flex flex-col gap-3 border-b border-koi-bg/15 pb-5 text-sm">
         {plan && planTotals.products > 0 && (
-          <div className="flex justify-between"><dt className="text-koi-bg/75">This week’s plan</dt><dd className="m-0 font-koi-num font-semibold"><Money value={planTotals.total} /></dd></div>
+          <div className="flex justify-between"><dt className="text-koi-bg/75">From the plan · <span className="font-koi-num">{planTotals.products}</span></dt><dd className="m-0 font-koi-num font-semibold"><Money value={planTotals.total} /></dd></div>
         )}
         {plan && planTotals.products > 0 && ownTotals.products > 0 && (
-          <div className="flex justify-between"><dt className="text-koi-bg/75">Also in your cart</dt><dd className="m-0 font-koi-num font-semibold"><Money value={ownTotals.total} /></dd></div>
+          <div className="flex justify-between"><dt className="text-koi-bg/75">You added · <span className="font-koi-num">{ownTotals.products}</span></dt><dd className="m-0 font-koi-num font-semibold"><Money value={ownTotals.total} /></dd></div>
         )}
         <div className="flex justify-between"><dt className="text-koi-bg/75">Products</dt><dd className="m-0 font-koi-num font-semibold">{all.products}</dd></div>
         <div className="flex justify-between"><dt className="text-koi-bg/75">Packs</dt><dd className="m-0 font-koi-num font-semibold">{all.packs}</dd></div>

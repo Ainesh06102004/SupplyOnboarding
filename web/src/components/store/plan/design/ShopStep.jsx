@@ -27,6 +27,7 @@ import { packsToBuy } from "@/lib/cart/plan";
 import { useCartStore } from "@/store/cartStore";
 import { useCartGroups, PlanGroup, OwnGroup, PlanChangedBanner, CartSummary, CartLoading } from "@/components/store/cart/CartView";
 import { TotalBar } from "@/components/store/cart/CartLayer";
+import ExportList from "@/components/store/cart/ExportList";
 import { StepHead, Footer } from "./bits";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
@@ -131,6 +132,7 @@ export default function ShopStep({ s, onBack, onNext }) {
 
       {groups.loading ? <CartLoading /> : (
         <div className="flex flex-col gap-5">
+          {groups.lines.length > 0 && <ExportList groups={groups} className="self-end" />}
           {notYet ? (
             <section data-card className="flex flex-wrap items-center gap-5 rounded-[28px] bg-koi-forest p-6 text-koi-bg">
               <div className="flex flex-[1_1_280px] flex-col gap-1.5">

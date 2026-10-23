@@ -25,6 +25,17 @@ test("added packs are the shopper's own, and adding again grows the line", () =>
   assert.equal(addPacks(items, almonds, 0, NOW), items);
 });
 
+test("a line added from the Pantry shop says so, through storage and back", () => {
+  let items = addPacks([], almonds, 1, NOW, "pantry");
+  items = addPacks(items, almonds, 1, NOW + 5, "shop");
+  assert.equal(items[0].addedFrom, "pantry");
+  const ref = toRef(items[0], NOW);
+  assert.equal(ref.addedFrom, "pantry");
+  assert.equal(resolveRefs([ref], [almonds], { authoritative: true })[0].addedFrom, "pantry");
+  // A line added with no source stores no field at all.
+  assert.equal("addedFrom" in toRef(addPacks([], oats, 1, NOW)[0], NOW), false);
+});
+
 test("putting the plan in twice replaces its share — never doubles", () => {
   const plan = [{ skuId: "s-chv", packs: 5, product: chivda }, { skuId: "s-oat", packs: 1, product: oats }];
   const once = applyPlanShare([], plan, NOW);

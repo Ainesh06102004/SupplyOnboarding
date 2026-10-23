@@ -45,7 +45,7 @@ export function getCatalogue() {
  * @param {Array<object>} [p.products] a catalogue already in hand
  * @returns {Promise<{ products: number, packs: number, missing: string[] }>}
  */
-export async function putPlanInCart({ planId, basket, atHome = [], members = null, products }) {
+export async function putPlanInCart({ planId, basket, atHome = [], members = null, products, fresh = null, kitchen = null }) {
   await hydrateCart();
   const all = products?.length ? products : await getCatalogue();
   const bySku = new Map(all.map((p) => [String(p.skuId), p]));
@@ -57,7 +57,7 @@ export async function putPlanInCart({ planId, basket, atHome = [], members = nul
     if (product) lines.push({ ...l, product });
     else missing.push((basket.find((b) => String(b.skuId) === l.skuId)?.name) ?? l.skuId);
   }
-  useCartStore.getState().applyPlan({ planId, basket: basketSnapshot(basket), atHome: [...atHome].map(String), members, lines });
+  useCartStore.getState().applyPlan({ planId, basket: basketSnapshot(basket), atHome: [...atHome].map(String), members, lines, fresh, kitchen });
   return { products: lines.length, packs: lines.reduce((n, l) => n + l.packs, 0), missing };
 }
 

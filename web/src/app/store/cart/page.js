@@ -26,6 +26,7 @@ import { getCatalogue } from "@/lib/cart/client";
 import { hasScore } from "@/lib/score";
 import { useAddToCart, TotalBar } from "@/components/store/cart/CartLayer";
 import { useCartGroups, PlanGroup, OwnGroup, PlanChangedBanner, CartSummary, CartRead, CartEmpty, CartLoading } from "@/components/store/cart/CartView";
+import ExportList from "@/components/store/cart/ExportList";
 import { Money, ProductThumb, ScoreBadge } from "@/components/store/system/primitives";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
@@ -100,7 +101,8 @@ export default function CartPage() {
 
   return (
     <main ref={root} className="ks-page-pad mx-auto flex w-full max-w-[1440px] flex-col bg-koi-bg px-[clamp(16px,4vw,52px)] pt-8 font-koi-sans text-koi-ink">
-      <section className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+      {/* Above the rows (their entrance leaves them on layers of their own), so the export menu opens over them. */}
+      <section className="relative z-20 flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div className="flex flex-col gap-2.5">
           <div data-rise className="flex items-center gap-3">
             <span className="font-koi-mono text-xs font-semibold text-koi-primary">(05)</span>
@@ -111,6 +113,7 @@ export default function CartPage() {
           </h1>
         </div>
         <div data-rise className="flex flex-wrap items-center gap-2">
+          {lines.length > 0 && <ExportList groups={groups} />}
           <Link href="/store/plan?step=shop" className="flex h-11 items-center gap-2 rounded-full border border-koi-forest/15 px-4 text-sm font-semibold text-koi-forest no-underline transition-colors hover:bg-white">Open in Plan <span aria-hidden="true">→</span></Link>
           <Link href="/store/shop" className="flex h-11 items-center rounded-full px-4 text-sm font-semibold text-koi-forest no-underline transition-colors hover:bg-white">Keep shopping</Link>
         </div>
