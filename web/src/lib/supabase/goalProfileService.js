@@ -125,7 +125,9 @@ export async function syncAccountMember(uid, profile) {
   const supabase = getSupabaseClient();
   const { data: member, error } = await supabase
     .from("household_member")
-    .select("id, household_id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, appetite, meals_from_home, target_kcal, target_protein_g, target_source, account_profile_id, version, household_member_avoid(avoid_key, severity)")
+    // Every column: the save below sends every field of the form, so a field not
+    // read here (favourites, target weight, spice, carbs, fat) would be wiped.
+    .select("*, household_member_avoid(avoid_key, severity)")
     .eq("account_profile_id", uid)
     .maybeSingle();
   if (error || !member) return { synced: false };

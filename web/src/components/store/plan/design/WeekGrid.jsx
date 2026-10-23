@@ -16,6 +16,19 @@ import { goalShortLabel } from "@/lib/plan/goalCards";
 import { initialsOf, inr } from "./tokens";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useGlowing } from "@/components/agent/AgentProvider";
+import { plateWords } from "@/lib/plan/portions";
+
+/** One cell of a portioned week, for one person: the plates in grams and what they carry. */
+function plateFor(sized, dayIndex, cellKey) {
+  const day = sized?.days?.find((d) => d.index === dayIndex);
+  const items = (day?.items ?? []).filter((i) => i.kind === "dish" && i.cellKey === cellKey);
+  if (!items.length) return null;
+  return {
+    words: items.map((i) => plateWords(i, { max: 2 })).filter(Boolean).join(" · "),
+    kcal: Math.round(items.reduce((a, i) => a + i.nutrition.kcal, 0)),
+    protein: Math.round(items.reduce((a, i) => a + i.nutrition.protein, 0)),
+  };
+}
 
 const SWAPPABLE = { breakfast: ["breakfast"], lunch: ["lunch", "dinner"], dinner: ["lunch", "dinner"], snack: ["snack"], drinks: ["drinks"] };
 const amount = (a) => (a && a.amount ? `${a.amount}${a.unit ? ` ${a.unit}` : ""}` : null);
@@ -39,6 +52,8 @@ export default function WeekGrid({ s }) {
   const [over, setOver] = useState(null);
   const busy = Boolean(s.run && !s.run.done);
   const me = s.active?.memberId ? String(s.active.memberId) : null;
+  // Their own numbers: this person's plates are sized in grams (lib/plan/portions.js).
+  const sized = me ? s.portions?.[me] ?? null : null;
   const names = useMemo(() => new Map(s.lines.map((l) => [String(l.skuId), l.name])), [s.lines]);
 
   // The storyboard deals its panels in once; after that, a panel whose dishes
@@ -150,6 +165,17 @@ export default function WeekGrid({ s }) {
         </div>
       </div>
 
+      {sized && (
+        <div className={`mb-2.5 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 ${sized.within ? "bg-koi-tint text-koi-primary" : "bg-koi-amber-bg text-koi-amber-ink"}`}>
+          <span className="text-[13px] font-semibold">
+            {sized.within
+              ? `Sized to ${s.active.label === "Me" ? "your" : `${s.active.label}'s`} own numbers: every day lands within ±${sized.tolerance}%.`
+              : `Sized to ${s.active.label === "Me" ? "your" : `${s.active.label}'s`} own numbers: ${sized.days.filter((d) => d.within).length} of ${sized.days.length} days land within ±${sized.tolerance}%.`}
+          </span>
+          {!sized.within && <span className="text-[12px] font-medium">The rest say what they miss below. Ask KOI for a protein-richer swap, or widen the tolerance in You.</span>}
+        </div>
+      )}
+
       <div className="mb-3.5 flex flex-wrap items-center gap-4 rounded-xl bg-koi-paper px-3.5 py-2.5 text-[11px] font-medium text-koi-ink2">
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-tint ring-1 ring-koi-tint-border" />Base dish <span className="text-koi-muted">— same for everyone, cooked once</span></span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-lime-soft ring-1 ring-koi-lime" />{s.active?.label === "Me" ? "Your" : `${s.active?.label ?? "Their"}'s`} addition <span className="text-koi-muted">— on that plate only</span></span>
@@ -190,6 +216,9 @@ export default function WeekGrid({ s }) {
               const notes = me ? cell.notes[me] : null;
               const adds = me ? (week.additions[me] ?? []).filter((a) => a.slot === slot) : [];
               const others = Object.entries(cell.own).filter(([id]) => id !== me);
+              const plate = sized ? plateFor(sized, d.index, key) : null;
+              // A sized week says what each addition weighs that day, not the week's average.
+              const sizedAdd = (a) => sized?.days?.find((x) => x.index === d.index)?.items?.find((i) => i.kind === "addition" && i.skuId === String(a.skuId))?.grams;
               const dropOk = drag && drag !== key && SWAPPABLE[week.cells[drag]?.slot]?.includes(slot);
               const open = menu?.key === key;
               return (
@@ -230,9 +259,19 @@ export default function WeekGrid({ s }) {
                       {/* "Not for Me" only beside a dish others have; an empty slot isn't about Me. */}
                       {notMine && cell.shared && <Chip tone="cut" title={notMine}>Not for {s.active.label}</Chip>}
                       {notes?.leaveOut?.map((i) => <Chip key={i} tone="cut">−{i.toLowerCase()}</Chip>)}
-                      {adds.map((a) => <Chip key={a.skuId} tone="goal">+{a.asDish ? `${a.asDish.name} (${a.name}` : a.name}{a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : ""}{a.asDish ? ")" : ""}</Chip>)}
+                      {adds.map((a) => {
+                        const g = sizedAdd(a);
+                        const amount = g !== undefined ? ` ${g} g` : a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : "";
+                        return <Chip key={a.skuId} tone="goal">+{a.asDish ? `${a.asDish.name} (${a.name}` : a.name}{amount}{a.asDish ? ")" : ""}</Chip>;
+                      })}
                       {notes?.notVerifiedFor?.length > 0 && <Chip tone="warn" title="A spice blend can hide anything">Check for {notes.notVerifiedFor.join(", ")}</Chip>}
                       {others.map(([id, o]) => <Chip key={id} tone="shared">{s.eating.find((p) => String(p.memberId) === id)?.label}: {o.dishes.map((x) => x.name).join(" + ")}</Chip>)}
+                    </div>
+                  )}
+                  {plate && (
+                    <div className="mt-auto flex flex-col gap-0.5 pt-1">
+                      <span className="text-[10.5px] leading-snug text-koi-ink2">{plate.words}</span>
+                      <span className="font-koi-num text-[11.5px] font-semibold text-koi-ink">{inr(plate.kcal)} <span className="font-medium text-koi-muted">kcal · P {plate.protein}</span></span>
                     </div>
                   )}
                 </div>
@@ -240,6 +279,23 @@ export default function WeekGrid({ s }) {
             })}
           </div>
         ))}
+        {sized && (
+          <div className="mb-2.5 grid items-stretch gap-2.5" style={{ gridTemplateColumns: cols, minWidth }}>
+            <div className="flex items-center font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-forest">{s.active.label === "Me" ? "Your day" : `${s.active.label}'s day`}</div>
+            {week.days.map((d) => {
+              const day = sized.days.find((x) => x.index === d.index);
+              if (!day) return <div key={d.index} />;
+              const worst = Math.max(1, Math.ceil(Math.max(...["kcal", "protein", "carbs", "fat"].map((n) => Math.abs(day.deviation[n])))));
+              return (
+                <div key={d.index} className="flex flex-col gap-1 rounded-2xl border border-koi-forest/10 bg-koi-paper p-3">
+                  <span className="font-koi-num text-[16px] font-semibold text-koi-forest">{inr(day.totals.kcal)} <span className="text-[11px] font-medium text-koi-muted">kcal</span></span>
+                  <span className="font-koi-num text-[11.5px] font-medium text-koi-ink2">P {Math.round(day.totals.protein)} · C {Math.round(day.totals.carbs)} · F {Math.round(day.totals.fat)}</span>
+                  <span className={`self-start rounded-md px-1.5 py-0.5 text-[10.5px] font-bold ${day.within ? "bg-koi-tint text-koi-primary" : "bg-koi-amber-bg text-koi-amber-ink"}`}>{day.within ? `within ${worst}%` : day.gap}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {openCell && (

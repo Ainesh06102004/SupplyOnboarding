@@ -24,6 +24,18 @@ import { dishFor } from "@/lib/food/dishes";
 import { allergensIn } from "@/lib/food/allergens";
 import { slotsFor } from "@/lib/plan/planView";
 import { nodeInfo } from "@/lib/food/taxonomy";
+import { recipeFor, dishNutrition } from "@/lib/food/recipes";
+
+const DENSITY = new Map();
+/** Grams of protein per 100 kcal in one serving of a dish's recipe, or null without one. */
+export function proteinDensity(dishKey) {
+  if (!DENSITY.has(dishKey)) {
+    const r = recipeFor(dishKey);
+    const n = r ? dishNutrition(r) : null;
+    DENSITY.set(dishKey, n && n.kcal > 0 ? (n.protein / n.kcal) * 100 : null);
+  }
+  return DENSITY.get(dishKey);
+}
 
 export const SLOT_KEYS = Object.freeze(["breakfast", "lunch", "snack", "dinner", "drinks"]);
 export const SLOT_LABELS = Object.freeze({ breakfast: "Breakfast", lunch: "Lunch", snack: "Snack", dinner: "Dinner", drinks: "Drinks" });
@@ -64,8 +76,10 @@ function suppliersOf(line, basket) {
  * @param {"low"|"usual"|"high"} [input.repeat]
  * @param {Array} [input.dishes] defaults to dishData.js
  * @param {Array} [input.atHome] plan.explanation.products_at_home: { skuId, name, categoryKey }
+ * @param {Object<string,{proteinPer100kcal: number}>} [input.macroNeeds] memberId → how protein-dense their
+ *   day must be (exact macros). Their meals lean towards dishes that dense; nobody else's change.
  */
-export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [] }) {
+export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [], macroNeeds = {} }) {
   const d = Math.max(1, Math.min(14, Number(days) || 7));
   // What the kitchen already has (plan.explanation.products_at_home) is not
   // bought but is cooked: it can be a dish's staple for anyone the dish itself
@@ -146,6 +160,15 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       for (const u of used.filter((x) => x.anchor)) s += Math.max(0, owedUses(id, u.skuId)) * 1.2;
     }
     s /= Math.max(1, memberIds.length);
+    // Someone on their own numbers needs protein-dense plates: a base is
+    // portioned for carbs, so only the dishes that carry protein are leaned on.
+    if (dish.kind !== "base" && dish.kind !== "drink") {
+      for (const id of memberIds) {
+        const need = macroNeeds[id]?.proteinPer100kcal;
+        const density = proteinDensity(dish.key);
+        if (need > 0 && density !== null) s += 2.5 * Math.min(1.2, density / need);
+      }
+    }
     if (dish.lines.some((l) => l.supply === "shelf" && favourites.has(l.category))) s += 1;
     s -= penalty * (count.get(dish.key) ?? 0);
     if (lastServed.get(dish.key) === day - 1) s -= penalty;
@@ -292,7 +315,15 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
     .filter((l) => isAnchor(l) && !suppliersOf(l, basket).length)
     .map((l) => ({ ingredient: l.ingredient, category: l.category, anyOfShelf: l.anyOfShelf, anchor: true }));
 
-  return { days: dayList, slots, cells, additions, perServing, staplesMissing, usesFor: (dishKey, memberId) => usesFor(byDish.get(dishKey), memberId) ?? [], alsoNeed: alsoNeed(cells, byDish, basket) };
+  /** The basket product that fills one shelf line of a dish for this person (portions.js sizes it from its label). */
+  const supplierOf = (dishKey, lineIndex, memberId) => {
+    const line = byDish.get(dishKey)?.lines?.[lineIndex];
+    if (!line || line.supply !== "shelf") return null;
+    const theirs = eats.get(String(memberId)) ?? new Map();
+    return suppliersOf(line, basket).find((b) => theirs.has(b.skuId) || b.atHome)?.skuId ?? null;
+  };
+
+  return { days: dayList, slots, cells, additions, perServing, staplesMissing, supplierOf, usesFor: (dishKey, memberId) => usesFor(byDish.get(dishKey), memberId) ?? [], alsoNeed: alsoNeed(cells, byDish, basket) };
 }
 
 /** What the week's dishes need that the basket doesn't bring: fresh, kitchen, and shelves not bought. */

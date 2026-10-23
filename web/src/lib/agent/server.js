@@ -13,7 +13,9 @@ import { profileFromRow } from "@/lib/household/profile";
 import { AGENT_INSTRUCTIONS, TOOL_SCHEMAS } from "./tools/schemas";
 import { digestFor } from "./digest";
 
-const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
+// Every member column: a save sends all four targets (exact macros), so a read that
+// skipped carbs or fat would write them back as nothing.
+const MEMBER_FIELDS = "*, household_member_avoid(avoid_key, severity)";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const ROUTES = Object.freeze(["plan", "track", "product", "shop", "cart", "household", "home", "other"]);
 const STEPS = ["define", "you", "plan", "pantry", "shop"];

@@ -31,6 +31,10 @@ import { newRun, reduceRun } from "@/lib/plan/runSteps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { avoidsFromWords } from "@/lib/plan/restrictions";
 import { buildWeek, productsFor, alternativesFor } from "@/lib/plan/schedule";
+import { sizePortions, labelPer100 } from "@/lib/plan/portions";
+import { reconcileWeek } from "@/lib/plan/reconcile";
+import { parseAmount } from "@/lib/nutrition/basis";
+import { hasExactMacros } from "@/lib/household/profile";
 import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
 
 /** The shopper's own dish picks, kept in this browser, per household. */
@@ -49,7 +53,12 @@ const writePicks = (householdId, picks) => {
 };
 import { MEMBER_COLORS } from "./tokens";
 
-const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, household_member_avoid(avoid_key, severity)";
+// Every member column, whatever the schema has: exact macros added carbs and fat
+// (00044) and the tolerance and carb cycling (00089), and naming a column the
+// database does not have yet would fail the whole read.
+const MEMBER_FIELDS = "*, household_member_avoid(avoid_key, severity)";
+/** Until the Calendar says which days are training days (P6), the week has four. */
+const DEFAULT_TRAINING_DAYS = Object.freeze(["Mon", "Tue", "Thu", "Fri"]);
 const SAVE_AFTER_MS = 700;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -806,7 +815,27 @@ export function usePlanSession() {
         return diet && diet !== p.diet_type ? { ...p, diet_type: diet } : p;
       });
   }, [plan?.report?.perMember, profiles]);
-  const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat, atHome: plan.explanation?.products_at_home ?? [] }) : null), [plan, lines, eating, picks, repeat]);
+  // Exact macros: whoever plans to their own numbers needs protein-dense plates
+  // (the menu leans that way for them alone) and plates sized in grams.
+  const macroNeeds = useMemo(() => Object.fromEntries(eating.filter(hasExactMacros).map((p) => [
+    String(p.memberId), { proteinPer100kcal: (Number(p.target_protein_g) / Number(p.target_kcal)) * 100 },
+  ])), [eating]);
+  const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds }) : null), [plan, lines, eating, picks, repeat, macroNeeds]);
+
+  /** Each exact-macros person's week in grams (lib/plan/portions.js), and what it uses of the basket. */
+  const portions = useMemo(() => {
+    if (!week) return {};
+    const labels = new Map(lines.map((l) => [String(l.skuId), labelPer100(l.product)]).filter(([, v]) => v));
+    const shares = new Map((plan?.report?.whoEatsWhat ?? []).map((w) => [String(w.member), w.allowed ?? []]));
+    const basket = lines.map((l) => ({ skuId: String(l.skuId), name: l.name, packAmount: parseAmount(l.weight)?.value ?? null }));
+    const training = new Set(week.days.filter((d) => DEFAULT_TRAINING_DAYS.includes(d.label)).map((d) => d.index));
+    const out = {};
+    for (const p of eating.filter(hasExactMacros)) {
+      const sized = sizePortions({ week, person: p, labels, basket, trainingDays: p.carb_cycling ? training : null });
+      out[String(p.memberId)] = { ...sized, reconcile: reconcileWeek({ week, portions: sized, share: shares.get(String(p.memberId)) ?? [], basket }) };
+    }
+    return out;
+  }, [week, lines, eating, plan?.report?.whoEatsWhat]);
 
   /** Put these dishes in this cell (a swap from the menu). */
   const pickDishes = useCallback((cellKey, dishKeys) => setPicks((all) => {
@@ -958,7 +987,7 @@ export function usePlanSession() {
     mode, plan, lines, compareTo, run, requests, brief, setBrief, command, makePlan, followUp, undo, undoRun, canUndoRun, keepBrief, editBrief, saveHouseholdChanges,
     edges, without, seeWithout,
     // the week of dishes
-    week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds,
+    week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds, portions,
     // the agent's page actions
     nav, setNav, agentBridge,
     // pantry / cart

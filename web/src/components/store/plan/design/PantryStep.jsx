@@ -191,6 +191,7 @@ export default function PantryStep({ s, onBack, onNext }) {
             </div>
             <p className="m-0 mt-1 text-[14px] text-koi-ink2">Everything the plan buys, and who it’s for. Untick anything you already have.</p>
             <ul className="m-0 mt-3 flex list-none flex-col p-0">{weekly.map((l) => <Row key={l.skuId} line={l} />)}</ul>
+            <SizedNeeds s={s} />
             <AlsoNeed s={s} />
             <p className="m-0 mt-4 rounded-2xl bg-koi-paper px-4 py-3 text-[13px] text-koi-ink2">
               Staples you always keep in go in <Link href="/store/household" className="font-semibold text-koi-primary underline-offset-4 hover:underline">your household pantry</Link> — plans won’t buy them again.
@@ -266,6 +267,62 @@ const UUIDish = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(id));
  * what a kitchen usually has. Names only — no amounts: a recipe's grams are
  * not KOI's to invent.
  */
+/**
+ * For someone on their own numbers, the week is sized in grams, so the list can
+ * say how much: the fresh food by weight, and any KOI product the portions now
+ * use more of than the plan bought (lib/plan/reconcile.js). An offer, never a
+ * change: "Add 1 pack" is the person's to tap.
+ */
+function SizedNeeds({ s }) {
+  const me = s.active?.memberId ? String(s.active.memberId) : null;
+  const sized = me ? s.portions?.[me] : null;
+  if (!sized?.reconcile) return null;
+  const { fresh, short } = sized.reconcile;
+  if (!fresh.length && !short.length) return null;
+  const whose = s.active.label === "Me" ? "your" : `${s.active.label}'s`;
+  const label = "mt-4 block font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em]";
+  return (
+    <div className="mt-5 border-t border-koi-forest/10 pt-5">
+      <span className="text-base font-bold">For {whose} sized week</span>
+      <p className="m-0 mt-1 text-[13.5px] text-koi-ink2">Weighed from {whose} portions, so it&apos;s what the week really uses.</p>
+      {short.length > 0 && (
+        <>
+          <span className={`${label} text-koi-warm`}>The portions use more than the plan bought</span>
+          <ul className="m-0 mt-1 list-none p-0">
+            {short.map((row) => {
+              const line = s.lines.find((l) => String(l.skuId) === row.skuId);
+              return (
+                <li key={row.skuId} className="flex items-center gap-2.5 border-b border-koi-forest/10 py-2.5">
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[14px] font-semibold">{row.name}</span>
+                    <span className="font-koi-num text-[12.5px] text-koi-muted">uses {row.grams} g · {whose} share {row.have} g</span>
+                  </span>
+                  {line && (
+                    <button type="button" onClick={() => s.setPacks(row.skuId, s.packsFor(line) + row.morePacks)} className="h-9 shrink-0 rounded-full bg-koi-tint px-3.5 text-xs font-semibold text-koi-primary">
+                      Add {row.morePacks} {row.morePacks === 1 ? "pack" : "packs"}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      {fresh.length > 0 && <span className={`${label} text-koi-green`}>Fresh, for the week</span>}
+      {fresh.length > 0 && (
+        <ul className="m-0 mt-1 grid list-none grid-cols-1 gap-x-6 p-0 md:grid-cols-2">
+          {fresh.map((row) => (
+            <li key={row.food} className="flex items-baseline justify-between gap-3 border-b border-koi-forest/10 py-2.5">
+              <span className="text-[14px] font-semibold">{row.name.replace(/\s*\(.*?\)/g, "")}</span>
+              <span className="font-koi-num text-[13px] font-semibold text-koi-ink2">{row.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function AlsoNeed({ s }) {
   const need = s.week?.alsoNeed;
   if (!need || (!need.fresh.length && !need.shop.length && !need.kitchen.length)) return null;

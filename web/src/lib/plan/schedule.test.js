@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { DISHES } from "@/lib/food/dishData";
 import { dishFacts, dishFor, refusalsOf } from "@/lib/food/dishes";
-import { buildWeek, alternativesFor, productsFor, SLOT_KEYS } from "./schedule";
+import { buildWeek, alternativesFor, productsFor, proteinDensity, SLOT_KEYS } from "./schedule";
 
 const dish = (key) => DISHES.find((d) => d.key === key);
 
@@ -227,4 +227,32 @@ test("rice and dal at home still make lunch and dinner, though the plan doesn't 
   assert.equal(dinners(withHome), 3);
   // Nothing at home is an addition to anyone's plate: it wasn't bought.
   for (const id of ["me", "wife", "son"]) assert.ok(!withHome.additions[id].some((a) => ["rice", "moong"].includes(a.skuId)));
+});
+
+// ── exact macros: the menu leans protein-dense for whoever needs it ─────────
+test("someone on their own numbers gets protein-dense plates; nobody else's menu changes", () => {
+  const lifterLines = [...lines,
+    { skuId: "egg", name: "Farm Fresh Eggs", categoryKey: "eggs.hen_eggs" },
+    { skuId: "soya", name: "Soya Chunks", categoryKey: "staples.pulses" },
+    { skuId: "paneer", name: "Malai Paneer", categoryKey: "dairy.paneer" }];
+  const me = [{ memberId: "me", label: "Me", age_band: "adult_19_59", diet_type: "non_vegetarian", avoids: [] }];
+  const r = { whoEatsWhat: [{ member: "me", allowed: allowed([["rice", 1400], ["moong", 700], ["chana", 700], ["egg", 900], ["soya", 400], ["paneer", 800]]) }] };
+  const density = (week) => {
+    const plates = Object.values(week.cells).flatMap((c) => c.shared?.dishes ?? []).filter((x) => x.kind !== "base" && x.kind !== "drink");
+    return plates.reduce((a, x) => a + (proteinDensity(x.key) ?? 0), 0) / plates.length;
+  };
+  const plain = buildWeek({ report: r, lines: lifterLines, people: me, days: 7, start });
+  const lifter = buildWeek({ report: r, lines: lifterLines, people: me, days: 7, start, macroNeeds: { me: { proteinPer100kcal: 7.3 } } });
+  assert.ok(density(lifter) > density(plain), `${density(lifter).toFixed(2)} vs ${density(plain).toFixed(2)}`);
+  // A household without exact macros gets the very same week as before.
+  const before = buildWeek({ report, lines, people, days: 7, start });
+  const after = buildWeek({ report, lines, people, days: 7, start, macroNeeds: {} });
+  assert.deepEqual(Object.values(after.cells).map((c) => c.shared?.dishes?.map((x) => x.key)), Object.values(before.cells).map((c) => c.shared?.dishes?.map((x) => x.key)));
+});
+
+test("supplierOf names the basket product that fills a shelf line, for sizing from its label", () => {
+  const week = buildWeek({ report, lines, people, days: 7, start });
+  assert.equal(week.supplierOf("steamed_rice", 0, "me"), "rice");
+  assert.equal(week.supplierOf("steamed_rice", 0, "nobody"), null);
+  assert.equal(week.supplierOf("aloo_gobi", 0, "me"), null, "a fresh line has no supplier");
 });

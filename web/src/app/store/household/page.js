@@ -40,7 +40,9 @@ const LABEL = "text-[13px] font-semibold text-koi-ink";
 const HINT = "mt-1 block text-[12px] text-koi-muted";
 const HARD_ALLERGENS = FOODS_AVOID.filter((a) => a.mode === "hard" && a.kind === "allergen");
 
-const MEMBER_FIELDS = "id, label, relation, age_band, sex, activity_level, diet_type, energy_goal, eating_pattern, age_years, weight_kg, height_cm, target_weight_kg, appetite, spice_tolerance, meals_from_home, favourite_categories, target_kcal, target_protein_g, target_source, account_profile_id, version, created_at, updated_at, household_member_avoid(avoid_key, severity)";
+// Every member column: a save sends all four targets (exact macros), so a read that
+// skipped carbs or fat would write them back as nothing.
+const MEMBER_FIELDS = "*, household_member_avoid(avoid_key, severity)";
 
 const when = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
 

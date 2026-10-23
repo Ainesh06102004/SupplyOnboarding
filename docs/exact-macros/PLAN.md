@@ -203,3 +203,26 @@ UI: the AutoPlan sheet (`components/store/system/Sheet.jsx`) and a header inbox 
   - **No hard ±tolerance bands in the basket solver.** The solver buys KOI shelf packs only, but a day's food also includes fresh chicken, eggs and vegetables from elsewhere. Hard bands on the basket would be infeasible or wrong. The four-number guarantee moves to the portion engine (P3), which sizes every line of every dish.
   - The explorer's `resetToSuggestion` "bug" is not one: `"suggested"` is a sentinel that `withSuggestedTargets` always resolves (`save.js:35`).
 - Verified: `macros.test.js` (8), the suite, eslint and `next build`. Not verified live: the You step with a signed-in household (the database is blocked).
+
+### 23 Oct · P3 portions in grams
+- `lib/plan/portions.js` sizes a person's week. It is a pure box-constrained least squares solved by coordinate descent, so it runs in the browser. HiGHS is server-only.
+  - **Sized by component**, the way a lifter cooks. Each plate's protein, carb, fat and rest lines get their own scale (`ROLE_BOUNDS`; oil can halve but never vanish). Scaling the whole dish carried oil up with the protein, and fat ran 6–17% over.
+  - The tie-break penalties (`couple`, `stay`) sit an order of magnitude below a 5% miss, so they never buy a miss.
+  - Bulk lines go in 5 g steps. Quarter cups of rice are too coarse at 46 g, about 160 kcal. Small lines snap to spoons. Each day is re-checked from the rounded grams.
+  - A day that misses names the miss ("short 30 g carbs").
+  - Results: a protein-forward lifter week with whey lands **7/7 days within 5%** (worst 4.6%). An ordinary home week honestly reports short protein.
+- `schedule.js`:
+  - `macroNeeds` leans the menu protein-dense for whoever has their own numbers only, scored by `proteinDensity` from the recipes. Other households' weeks are unchanged (test).
+  - `supplierOf` names the basket product for a shelf line, so it is sized from that product's label.
+- `lib/plan/reconcile.js` takes the sized week and gives:
+  - shelf grams against the person's share, with short items as "+N packs";
+  - a fresh list by weight or count.
+- UI:
+  - `usePlanSession` computes `portions`. Training days default to Mon/Tue/Thu/Fri until the Calendar (P6).
+  - WeekGrid shows the plate in grams and kcal·P per cell, sized additions, a "Your day" row with within-N% or the miss, and a banner.
+  - PantryStep has "For your sized week": shortfalls with an "Add N packs" offer, and the fresh list.
+- **Data-loss bugs found and fixed:**
+  - Every member read that leads to a save now selects `*`: the Plan session, the household page, the agent's `loadContext` and `syncAccountMember`. `memberPayload` sends every field, so a read that skipped carbs or fat would have saved them as nothing.
+  - **Pre-existing:** `syncAccountMember` never read `favourite_categories`, `target_weight_kg` or `spice_tolerance`, so every goal-setup sync wiped them.
+  - Reading `*` also keeps the query valid before and after 00089.
+- Tests: `portions.test.js` (10), `reconcile.test.js` (2), and 2 new in `schedule.test.js`. Suite 637/637; eslint and `next build` pass. Not verified live: the week with a signed-in household.
