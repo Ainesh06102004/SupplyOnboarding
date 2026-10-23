@@ -186,3 +186,20 @@ UI: the AutoPlan sheet (`components/store/system/Sheet.jsx`) and a header inbox 
 - Notes:
   - IFCT's paneer (14.8 g fat) and chicken breast (9 g fat) run fattier than packaged products. Shelf lines use the product label whenever the basket has one.
   - Eaten-out dishes (canteen biryani and so on) come in P5.
+
+### 23 Oct · P2 your own numbers
+- `profile.js` carries `target_carbs_g`, `target_fat_g`, `target_tolerance_pct` (2–15, default 5) and `carb_cycling` (adults only). New helpers: `hasExactMacros` and `toleranceOf`.
+- `save.js`:
+  - `withSuggestedTargets` keeps all four numbers when any is stated. Going back to KOI's suggestion clears carbs, fat and carb cycling, since KOI suggests only kcal and protein.
+  - `applyProfileSet` (used by the agent) accepts carbs, fat and tolerance.
+- `projection.js` adds:
+  - `dailyFigures` with `carbs`, `fat` and `macrosStated`;
+  - `macroCheck` (4/4/9, within 1% or 25 kcal, plus the carbs that would make it add up);
+  - `carbCycle` (training days get 20% more carbs, rest days fewer, the same week in total).
+- One-plan overrides accept carbs and fat (`requestBody.js`, `plan.js`).
+- UI: `OwnNumbers.jsx` sits in YouStep's Baseline card behind a "KOI's suggestion | My own numbers" switch. It has the four inputs, the add-up check with "Fit carbs to the calories", g per kg, more carbs on training days, and ±3/5/10%. The first switch pre-fills KOI's kcal and protein, with fat at 25% of calories and carbs taking the rest.
+- Migration **00089_member_macro_targets** adds the two columns and restates `save_household_member` with them, derived from 00067's text. **Not applied**; the database is blocked.
+- **Deviation from the plan, and why:**
+  - **No hard ±tolerance bands in the basket solver.** The solver buys KOI shelf packs only, but a day's food also includes fresh chicken, eggs and vegetables from elsewhere. Hard bands on the basket would be infeasible or wrong. The four-number guarantee moves to the portion engine (P3), which sizes every line of every dish.
+  - The explorer's `resetToSuggestion` "bug" is not one: `"suggested"` is a sentinel that `withSuggestedTargets` always resolves (`save.js:35`).
+- Verified: `macros.test.js` (8), the suite, eslint and `next build`. Not verified live: the You step with a signed-in household (the database is blocked).

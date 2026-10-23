@@ -64,8 +64,12 @@ export function readPlanRequest(body) {
     const targets = {};
     const protein = Number(choice.targets?.protein);
     const kcal = Number(choice.targets?.kcal);
+    const carbs = Number(choice.targets?.carbs);
+    const fat = Number(choice.targets?.fat);
     if (Number.isFinite(protein) && protein > 0 && protein <= 400) targets.protein = protein;
     if (Number.isFinite(kcal) && kcal > 0 && kcal <= 6000) targets.kcal = kcal;
+    if (Number.isFinite(carbs) && carbs >= 0 && carbs <= 1000) targets.carbs = carbs;
+    if (Number.isFinite(fat) && fat >= 0 && fat <= 400) targets.fat = fat;
     if (dietType || prefer.length || skip.length || Object.keys(targets).length) {
       thisWeek[memberId] = { dietType, prefer, skip, targets };
     }

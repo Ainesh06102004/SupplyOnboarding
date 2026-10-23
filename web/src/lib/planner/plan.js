@@ -135,6 +135,8 @@ export async function planForHousehold({
       // that plan; their profile keeps what it had.
       ...(Number(targets.protein) > 0 ? { target_protein_g: Number(targets.protein) } : {}),
       ...(Number(targets.kcal) > 0 ? { target_kcal: Number(targets.kcal) } : {}),
+      ...(Number.isFinite(Number(targets.carbs)) && targets.carbs !== undefined ? { target_carbs_g: Number(targets.carbs) } : {}),
+      ...(Number.isFinite(Number(targets.fat)) && targets.fat !== undefined ? { target_fat_g: Number(targets.fat) } : {}),
       avoids: avoidsByMember.get(row.id) ?? [],
       dietForThisPlan: choices.dietType ?? null,
       preferCategories: prefer,

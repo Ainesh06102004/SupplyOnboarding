@@ -91,6 +91,11 @@ export function blankProfile() {
     favourite_categories: [],
     target_kcal: "",
     target_protein_g: "",
+    // Exact macros (00089): carbs and fat only when the person states their own numbers.
+    target_carbs_g: "",
+    target_fat_g: "",
+    target_tolerance_pct: "5",
+    carb_cycling: false,
     target_source: "stated",
     is_account_holder: false,
     avoids: [],
@@ -122,6 +127,10 @@ export function profileFromRow(row) {
     favourite_categories: row.favourite_categories ?? [],
     target_kcal: text(row.target_kcal),
     target_protein_g: text(row.target_protein_g),
+    target_carbs_g: text(row.target_carbs_g),
+    target_fat_g: text(row.target_fat_g),
+    target_tolerance_pct: text(row.target_tolerance_pct ?? 5),
+    carb_cycling: Boolean(row.carb_cycling),
     target_source: row.target_source ?? "stated",
     is_account_holder: Boolean(row.account_profile_id),
     avoids: (row.household_member_avoid ?? []).map((a) => ({ key: a.avoid_key, severity: a.severity ?? defaultSeverityFor(a.avoid_key) })),
@@ -159,10 +168,24 @@ export function memberPayload(form) {
     favourite_categories: form.favourite_categories ?? [],
     target_kcal: whole(form.target_kcal),
     target_protein_g: whole(form.target_protein_g),
+    target_carbs_g: whole(form.target_carbs_g),
+    target_fat_g: whole(form.target_fat_g),
+    target_tolerance_pct: String(toleranceOf(form)),
+    carb_cycling: adult && Boolean(form.carb_cycling),
     target_source: form.target_source || "stated",
     is_account_holder: Boolean(form.is_account_holder),
   };
 }
+
+/** How close each planned day must land, ± %: 5 unless chosen, within 00089's 2–15. */
+export function toleranceOf(form) {
+  const t = Math.round(Number(form?.target_tolerance_pct));
+  return Number.isFinite(t) && t >= 2 && t <= 15 ? t : 5;
+}
+
+/** Does this person plan to their own calories and all three macros? */
+export const hasExactMacros = (form) =>
+  form?.target_source === "stated" && [form.target_kcal, form.target_protein_g, form.target_carbs_g, form.target_fat_g].every(isNum);
 
 /** The p_avoids argument: each avoid with its severity. */
 export const avoidsPayload = (form) => (form.avoids ?? []).map(({ key, severity }) => ({ key, severity: severity || defaultSeverityFor(key) }));

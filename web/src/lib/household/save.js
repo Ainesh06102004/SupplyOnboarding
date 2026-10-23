@@ -20,7 +20,8 @@ const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v)
 
 /** Targets that follow KOI's suggestion unless the shopper stated their own. Shared by the page and the agent. */
 export function withSuggestedTargets(form) {
-  if (form.target_source === "stated" && (form.target_kcal !== "" || form.target_protein_g !== "")) return form;
+  const stated = ["target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g"].some((k) => (form[k] ?? "") !== "");
+  if (form.target_source === "stated" && stated) return form;
   const s = suggestTargets({
     ageBand: form.age_band,
     sex: form.sex || null,
@@ -33,7 +34,9 @@ export function withSuggestedTargets(form) {
   });
   // No suggestion to follow: the source must still be one the column allows.
   if (!s) return form.target_source === "stated" ? form : { ...form, target_source: "stated" };
-  return { ...form, target_kcal: String(s.kcal), target_protein_g: String(s.protein), target_source: s.source };
+  // KOI suggests calories and protein only; the planner balances carbs and fat,
+  // so a person's own carbs and fat go when they go back to the suggestion.
+  return { ...form, target_kcal: String(s.kcal), target_protein_g: String(s.protein), target_carbs_g: "", target_fat_g: "", carb_cycling: false, target_source: s.source };
 }
 
 /** How strongly an avoid is held. A move down this list is a downgrade. */
@@ -107,7 +110,7 @@ const PROFILE_DIETS = new Set(DIET_TYPES.filter((d) => !d.forOnePlanOnly).map((d
  * taken; anything else is reported, never guessed.
  *
  * @param {object} form  the current profile form (lib/household/profile.js)
- * @param {object} set   { age_band?, diet_type?, energy_goal?, eating_pattern?, sex?, activity_level?, target_kcal?, target_protein_g? }
+ * @param {object} set   { age_band?, diet_type?, energy_goal?, eating_pattern?, sex?, activity_level?, target_kcal?, target_protein_g?, target_carbs_g?, target_fat_g?, target_tolerance_pct? }
  * @returns {{ form: object, changed: Array<{field, from, to}>, rejected: string[] }}
  */
 export function applyProfileSet(form, set = {}) {
@@ -121,6 +124,9 @@ export function applyProfileSet(form, set = {}) {
     activity_level: (v) => ["sedentary", "light", "moderate", "heavy"].includes(v),
     target_kcal: (v) => Number.isFinite(Number(v)) && Number(v) > 0 && Number(v) < 10000,
     target_protein_g: (v) => Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) < 1000,
+    target_carbs_g: between(0, 1500),
+    target_fat_g: between(0, 600),
+    target_tolerance_pct: between(2, 15),
     // The body figures the You step takes (00050's bounds). Adults only: memberPayload drops them for anyone under 19.
     age_years: between(1, 120),
     height_cm: between(100, 250),
@@ -128,7 +134,7 @@ export function applyProfileSet(form, set = {}) {
     target_weight_kg: between(25, 300),
     label: (v) => typeof v === "string" && v.trim().length > 0 && v.trim().length <= 40,
   };
-  const whole = new Set(["target_kcal", "target_protein_g", "age_years"]);
+  const whole = new Set(["target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g", "target_tolerance_pct", "age_years"]);
   const next = { ...form };
   const changed = [];
   const rejected = [];
@@ -144,7 +150,7 @@ export function applyProfileSet(form, set = {}) {
     changed.push({ field, from: next[field] ?? null, to });
     next[field] = to;
   }
-  if (changed.some((c) => c.field === "target_kcal" || c.field === "target_protein_g")) next.target_source = "stated";
+  if (changed.some((c) => ["target_kcal", "target_protein_g", "target_carbs_g", "target_fat_g"].includes(c.field))) next.target_source = "stated";
   // A new body figure or goal re-suggests the targets, unless the shopper stated their own.
   else if (changed.some((c) => ["age_band", "age_years", "height_cm", "weight_kg", "sex", "activity_level", "energy_goal", "eating_pattern"].includes(c.field)) && next.target_source !== "stated") {
     next.target_source = "suggested";

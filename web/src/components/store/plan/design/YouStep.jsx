@@ -20,6 +20,7 @@ import { ACTIVITY_PILLS, DIET_PILLS, SEX_PILLS, RESTRICTION_CHIPS, chipOn, toggl
 import { peopleOf } from "@/lib/plan/planView";
 import { inr } from "./tokens";
 import { StepHead, Footer, Chip, RemovableChip, Ring } from "./bits";
+import OwnNumbers, { startingNumbers } from "./OwnNumbers";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
@@ -137,10 +138,12 @@ export default function YouStep({ s, onBack, onNext }) {
   const sex = cyclePill(SEX_PILLS, person.sex || "unspecified");
   const avoids = (person.avoids ?? []).filter((a) => !RESTRICTION_CHIPS.some((c) => c.avoids?.some((x) => x.key === a.key)));
   const whose = person.label === "Me" ? "Your" : `${person.label}'s`;
+  // Their own numbers (stated), or KOI's suggestion. Adults only, like every goal.
+  const own = adult && person.target_source === "stated";
 
   const setBand = (band) => edit(goalsAllowed(band)
     ? { age_band: band }
-    : { age_band: band, age_years: "", weight_kg: "", height_cm: "", target_weight_kg: "", energy_goal: "maintain", eating_pattern: "balanced" });
+    : { age_band: band, age_years: "", weight_kg: "", height_cm: "", target_weight_kg: "", energy_goal: "maintain", eating_pattern: "balanced", carb_cycling: false });
   const addAvoid = () => {
     if (!avoidWords.trim()) return;
     s.addAvoidWords(avoidWords, key);
@@ -246,7 +249,15 @@ export default function YouStep({ s, onBack, onNext }) {
         <div className="flex min-w-0 flex-col gap-5">
           {/* Baseline */}
           <article data-card aria-label={`${whose} baseline`} className="flex flex-col gap-4 rounded-[28px] bg-koi-forest p-6 text-koi-bg">
-            <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-lime">{whose} baseline</span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="font-koi-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-koi-lime">{whose} baseline</span>
+              {figures && (
+                <div role="radiogroup" aria-label="Where the targets come from" className="flex gap-1 rounded-full bg-koi-bg/10 p-1">
+                  <button type="button" role="radio" aria-checked={!own} onClick={() => own && s.resetToSuggestion(key)} className={`h-9 rounded-full px-3.5 text-[13px] font-bold transition-colors ${own ? "text-koi-bg/85 hover:text-koi-bg" : "bg-koi-lime text-koi-forest"}`}>KOI&apos;s suggestion</button>
+                  <button type="button" role="radio" aria-checked={own} onClick={() => !own && edit(startingNumbers(figures))} className={`h-9 rounded-full px-3.5 text-[13px] font-bold transition-colors ${own ? "bg-koi-lime text-koi-forest" : "text-koi-bg/85 hover:text-koi-bg"}`}>My own numbers</button>
+                </div>
+              )}
+            </div>
             {figures ? (
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -269,6 +280,9 @@ export default function YouStep({ s, onBack, onNext }) {
                     <span className="text-[12px] text-koi-bg/70">{planned ? "of the protein target" : "no plan yet"}</span>
                   </div>
                 </div>
+                {own ? (
+                  <div data-targets><OwnNumbers person={person} figures={figures} onEdit={edit} /></div>
+                ) : (<>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div data-targets className="flex flex-col gap-1 rounded-2xl bg-koi-lime p-4 text-koi-forest">
                     <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-koi-forest/75">Target calories</span>
@@ -285,16 +299,19 @@ export default function YouStep({ s, onBack, onNext }) {
                     <span className="flex items-baseline gap-2"><span className="font-koi-num text-[38px] font-semibold leading-none">{inr(figures.protein)}</span><span className="text-sm font-medium text-koi-bg/75">g/day</span></span>
                   </div>
                 </div>
-                {figures.kcalStated || figures.proteinStated ? (
-                  <p className="m-0 flex flex-wrap items-center gap-2 text-[13px] text-koi-bg/80">
-                    Targets you set yourself.
-                    <button type="button" onClick={() => s.resetToSuggestion(key)} className="h-9 rounded-full bg-koi-bg/10 px-3.5 text-[13px] font-semibold text-koi-lime transition-colors hover:bg-koi-bg/20">Use KOI’s suggestion</button>
-                  </p>
-                ) : figures.suggested?.basis?.length ? (
+                {figures.suggested?.basis?.length ? (
                   <ul className="m-0 flex list-none flex-col gap-1 p-0">
                     {figures.suggested.basis.map((b) => <li key={b} className="flex gap-2 text-[13px] leading-snug text-koi-bg/80"><span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-full bg-koi-lime" />{b}</li>)}
+                    <li className="flex gap-2 text-[13px] leading-snug text-koi-bg/80"><span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-full bg-koi-lime" />Carbs and fat: KOI&apos;s planner balances them. Switch to your own numbers to set both.</li>
                   </ul>
                 ) : null}
+                </>)}
+                {(own || figures.kcalStated || figures.proteinStated) && (
+                  <p className="m-0 flex flex-wrap items-center gap-2 text-[13px] text-koi-bg/80">
+                    Targets you set yourself. KOI never changes them without asking.
+                    <button type="button" onClick={() => s.resetToSuggestion(key)} className="h-9 rounded-full bg-koi-bg/10 px-3.5 text-[13px] font-semibold text-koi-lime transition-colors hover:bg-koi-bg/20">Use KOI’s suggestion</button>
+                  </p>
+                )}
               </>
             ) : (
               <p className="m-0 text-sm text-koi-bg/80">Choose an age group to see the daily figures KOI plans to.</p>

@@ -55,15 +55,58 @@ export function dailyFigures(form = {}) {
   // "Stated" is the shopper's own figure; a stored suggestion (mifflin_st_jeor,
   // icmr_nin_2020) is still KOI's, even though it has a value.
   const stated = form.target_source === "stated";
+  // Carbs and fat exist only as the person's own numbers: KOI suggests neither.
+  const carbs = stated && isNum(form.target_carbs_g) ? Number(form.target_carbs_g) : null;
+  const fat = stated && isNum(form.target_fat_g) ? Number(form.target_fat_g) : null;
   return {
     maintenance: maintenance?.kcal ?? null,
     maintenanceSource: maintenance?.source ?? null,
     kcal,
     protein,
+    carbs,
+    fat,
     kcalStated: stated && isNum(form.target_kcal),
     proteinStated: stated && isNum(form.target_protein_g),
+    macrosStated: carbs !== null && fat !== null,
     suggested,
     gap: isNum(maintenance?.kcal) && isNum(kcal) ? Math.round(maintenance.kcal - kcal) : null,
+  };
+}
+
+/**
+ * Do four stated numbers add up? Energy from macros is protein × 4 + carbs × 4
+ * + fat × 9 (Atwater); within 1% or 25 kcal of the calories they typed counts.
+ * @param {{ kcal: number, protein: number, carbs: number, fat: number }} t
+ * @returns {{ fromMacros: number, diff: number, adds: boolean, fitCarbs: number }}
+ *   fitCarbs is the carbs that would make it add up, holding protein and fat.
+ */
+export function macroCheck({ kcal, protein, carbs, fat }) {
+  const fromMacros = Math.round(protein * 4 + carbs * 4 + fat * 9);
+  const diff = fromMacros - Math.round(kcal);
+  return {
+    fromMacros,
+    diff,
+    adds: Math.abs(diff) <= Math.max(25, kcal * 0.01),
+    fitCarbs: Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4)),
+  };
+}
+
+/**
+ * Carb cycling: training days get more carbs, rest days fewer, the week's total
+ * unchanged. The swing is 20% of the day's carbs on training days, rounded to 5 g.
+ * @param {{ kcal: number, carbs: number }} t
+ * @param {number} trainingDays 1–6 of 7
+ * @returns {{ training: {kcal, carbs}, rest: {kcal, carbs} }|null}
+ */
+export function carbCycle({ kcal, carbs }, trainingDays) {
+  const n = Math.round(Number(trainingDays));
+  if (!(n >= 1 && n <= 6) || !(carbs > 0)) return null;
+  const up = Math.round((carbs * 0.2) / 5) * 5;
+  const down = Math.round((up * n) / (7 - n));
+  if (down >= carbs) return null;
+  return {
+    training: { kcal: Math.round(kcal + up * 4), carbs: carbs + up },
+    rest: { kcal: Math.round(kcal - down * 4), carbs: carbs - down },
   };
 }
 
