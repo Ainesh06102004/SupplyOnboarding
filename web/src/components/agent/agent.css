@@ -67,7 +67,7 @@
   row-gap: 0;
 }
 /* KOI's line: the dock's top row, folded away once read (KoiSubtitle). */
-.ka-dock > .ka-line { flex: 1 0 100%; padding-right: 12px; }
+.ka-dock > .ka-line { flex: 1 0 100%; padding-right: 12px; display: grid; }
 /* A page asking in the bar: the question takes the dock's place. */
 .ka-ask { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--ka-dock-bottom); width: min(720px, calc(100vw - 32px)); z-index: 70; display: flex; justify-content: center; }
 .ka-dock[data-state="running"] { box-shadow: 0 0 0 2.5px var(--ka-accent), 0 0 24px rgba(159, 231, 196, 0.75), var(--ka-shadow); animation: kaBreathe 3s ease-in-out infinite; }
