@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tell KOI you ate out · phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f6f5f1; color: #1c1e17; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <header style="flex: none; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: rgba(246,245,241,0.92); border-bottom: 1px solid rgba(20,22,15,0.07)">
+    <span style="display: inline-flex; align-items: baseline; gap: 4px; color: #0f3d2e"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.02em; line-height: 1">KOI</span><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b"></span></span>
+    <span style="flex: 1"></span>
+    <button type="button" aria-label="Search or ask KOI" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(20,22,15,0.08); background: #ffffff; display: grid; place-items: center; color: #6b6f63"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+    <span style="height: 40px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(20,22,15,0.08); background: #ffffff; font: 600 13px 'Plus Jakarta Sans', sans-serif"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>Bengaluru</span>
+  </header>
+
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 12px">
+
+    <sc-if value="{{showToday}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 8px">
+          <div>
+            <span style="font: 500 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #4a4d44">Track · Tue 27 Oct · training day</span>
+            <h1 class="kc" style="margin: 2px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 40px; line-height: 0.95; letter-spacing: -0.03em; color: #083d2d">Today</h1>
+          </div>
+          <span style="text-align: right"><span style="display: block; font: 600 22px 'Space Grotesk', sans-serif; color: #083d2d">{{soFar}}</span><span style="font: 500 10px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; color: #4a4d44">of 2,600 kcal so far</span></span>
+        </div>
+        <div aria-hidden="true" style="height: 8px; border-radius: 999px; background: #ebe8df; overflow: hidden"><div style="height: 100%; width: {{soFarPct}}%; background: #16a06e; border-radius: 999px"></div></div>
+
+        <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: 16px; background: #083d2d; color: #ddf247; padding: 12px 14px; font-size: 13.5px; font-weight: 600">
+            <span>{{toastText}}</span>
+            <button type="button" onClick="{{reset}}" style="height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(221,242,71,0.16); color: #ddf247; font: 700 12.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Undo</button>
+          </div>
+        </sc-if>
+
+        <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+          <sc-for list="{{meals}}" as="m" hint-placeholder-count="5">
+            <li style="display: flex; flex-direction: column; gap: 8px; border-radius: 18px; padding: 12px 14px; background: {{m.bg}}; border: {{m.border}}">
+              <div style="display: flex; gap: 12px; align-items: flex-start">
+                <span aria-hidden="true" style="flex: none; width: 24px; height: 24px; margin-top: 2px; border-radius: 50%; background: {{m.dotBg}}; border: {{m.dotBorder}}; box-sizing: border-box; display: grid; place-items: center; color: #ffffff"><sc-if value="{{m.eaten}}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if></span>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                  <span style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: {{m.slotColor}}">{{m.slot}} · {{m.time}}</span>
+                  <span style="font-size: 15px; font-weight: 700; line-height: 1.3; color: {{m.nameColor}}">{{m.name}}</span>
+                  <sc-if value="{{m.hasChip}}" hint-placeholder-val="{{ false }}"><span style="align-self: flex-start; border-radius: 6px; padding: 2px 7px; background: {{m.chipBg}}; color: {{m.chipFg}}; font-size: 10.5px; font-weight: 700">{{m.chip}}</span></sc-if>
+                  <span style="font: 500 12px 'Space Grotesk', sans-serif; color: #4a4d44">{{m.macro}}</span>
+                </div>
+              </div>
+              <sc-if value="{{m.actions}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; gap: 8px; padding-left: 36px">
+                  <button type="button" style="flex: 1; height: 44px; border: 0; border-radius: 14px; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Ate it</button>
+                  <button type="button" onClick="{{something}}" style="flex: 1; height: 44px; border-radius: 14px; border: 1px solid rgba(8,61,45,0.2); background: #ffffff; color: #083d2d; font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Something else</button>
+                </div>
+              </sc-if>
+            </li>
+          </sc-for>
+        </ol>
+        <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+          <div style="border-radius: 16px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #4a4d44">Today lands at</span>
+            <span style="font: 600 20px 'Space Grotesk', sans-serif; color: #083d2d">{{dayKcal}} kcal <span style="font-size: 13px; font-weight: 500; color: #3d4a43">· P {{dayP}} · C {{dayC}} · F {{dayF}}</span></span>
+            <span style="font-size: 12.5px; color: #3d4a43">{{moveLine}}</span>
+            <span style="font-size: 12.5px; color: #3d4a43">{{doneWeek}}</span>
+            <button type="button" onClick="{{reset}}" style="align-self: flex-start; margin-top: 4px; height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: #e8f1ea; color: #1f5c3a; font: 600 12.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Start the demo again</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showChat}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <span style="font: 500 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #4a4d44">Tue 27 Oct · 13:40 · lunch</span>
+        <div style="align-self: flex-end; max-width: 82%; border-radius: 18px 18px 4px 18px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 10px 14px; font-size: 15px; line-height: 1.4">Had chicken biryani at the office canteen</div>
+
+        <sc-if value="{{asking}}" hint-placeholder-val="{{ true }}">
+          <form style="border-radius: 18px; border: 1.5px solid #c2683a; background: #ffffff; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+            <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; color: #c2683a">One quick thing</span>
+            <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+              <legend style="padding: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700">How much biryani?</legend>
+              <div role="radiogroup" aria-label="How much biryani" style="display: flex; flex-wrap: wrap; gap: 6px">
+                <sc-for list="{{askOpts}}" as="o" hint-placeholder-count="3">
+                  <button type="button" role="radio" aria-checked="{{o.aria}}" onClick="{{o.pick}}" style="min-height: 40px; padding: 8px 13px; border-radius: 999px; border: {{o.border}}; background: {{o.bg}}; color: {{o.fg}}; font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{o.label}}</button>
+                </sc-for>
+              </div>
+            </fieldset>
+            <p style="margin: 0; font-size: 12px; color: #6b6f63">A canteen plate is usually about 400 g. Rough is fine.</p>
+            <button type="button" onClick="{{cont}}" aria-disabled="{{contOff}}" style="align-self: flex-start; height: 44px; padding: 0 18px; border: 0; border-radius: 14px; background: #1f5c3a; color: #ffffff; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer; opacity: {{contOpacity}}">Continue</button>
+          </form>
+        </sc-if>
+
+        <sc-if value="{{offering}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <article style="border-radius: 22px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <span style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #4a4d44">Lunch · KOI's estimate</span>
+              <span style="font-size: 16px; font-weight: 800">Chicken biryani · {{portionWords}}</span>
+              <span style="display: flex; align-items: baseline; gap: 10px"><span style="font: 600 34px 'Space Grotesk', sans-serif; line-height: 1; color: #083d2d">≈ {{estKcal}}</span><span style="font-size: 13px; color: #3d4a43">kcal · likely {{estLow}}–{{estHigh}}</span></span>
+              <span style="font: 500 13px 'Space Grotesk', sans-serif; color: #3d4a43">Protein {{estP}} g · Carbs {{estC}} g · Fat {{estF}} g</span>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+                <span style="font-size: 12.5px; font-weight: 600; color: #3d4a43">Not quite?</span>
+                <sc-for list="{{portionOpts}}" as="o" hint-placeholder-count="3">
+                  <button type="button" aria-pressed="{{o.aria}}" onClick="{{o.pick}}" style="height: 32px; padding: 0 11px; border-radius: 999px; border: {{o.border}}; background: {{o.bg}}; color: {{o.fg}}; font: 600 12px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{o.label}}</button>
+                </sc-for>
+              </div>
+              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #4a4d44">From a standard chicken biryani recipe (IFCT 2017 values), with a canteen's oil and portion. Canteens vary, so it's a range, not a label.</p>
+            </article>
+
+            <article style="border-radius: 22px; background: #083d2d; color: #f6f5f1; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <svg aria-hidden="true" width="40" height="36" viewBox="0 0 48 44" style="flex: none"><rect x="2" y="4" width="44" height="9" rx="1.5" fill="#f6f5f1"></rect><path d="M9 4l6 9M20 4l6 9M31 4l6 9" stroke="#083d2d" stroke-width="3.2"></path><rect x="2" y="15" width="44" height="27" rx="2" fill="#f6f5f1"></rect><rect x="7" y="21" width="20" height="3" rx="1.5" fill="#083d2d" opacity="0.55"></rect><rect x="7" y="28" width="30" height="3" rx="1.5" fill="#083d2d" opacity="0.35"></rect></svg>
+                <span style="display: flex; flex-direction: column; gap: 2px">
+                  <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.18em; color: #ddf247">Take 2 · the rest of today</span>
+                  <span style="font-size: 16px; font-weight: 700; line-height: 1.3">Nothing changes until you choose</span>
+                </span>
+              </div>
+
+              <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+                <legend style="padding: 0; margin-bottom: 6px; font-size: 14px; font-weight: 700">The bowl you skipped <span style="font-weight: 500; color: rgba(246,245,241,0.72)">· box A2, good until Thu 29 Oct</span></legend>
+                <sc-for list="{{boxOpts}}" as="o" hint-placeholder-count="2">
+                  <button type="button" role="radio" aria-checked="{{o.aria}}" onClick="{{o.pick}}" style="text-align: left; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 12px; border-radius: 14px; border: {{o.border}}; background: {{o.bg}}; color: #f6f5f1; font: 600 13.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer">
+                    <span aria-hidden="true" style="flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{o.ring}}; box-sizing: border-box; display: grid; place-items: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{o.fill}}"></span></span>
+                    <span style="flex: 1">{{o.label}}</span>
+                    <sc-if value="{{o.rec}}" hint-placeholder-val="{{ false }}"><span style="font: 700 9.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; color: #9fe7c4">Recommended</span></sc-if>
+                  </button>
+                </sc-for>
+              </fieldset>
+
+              <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+                <legend style="padding: 0; margin-bottom: 6px; font-size: 14px; font-weight: 700">{{fixTitle}}</legend>
+                <sc-for list="{{fixOpts}}" as="o" hint-placeholder-count="2">
+                  <button type="button" role="radio" aria-checked="{{o.aria}}" onClick="{{o.pick}}" style="text-align: left; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 12px; border-radius: 14px; border: {{o.border}}; background: {{o.bg}}; color: #f6f5f1; font: 600 13.5px 'Plus Jakarta Sans', sans-serif; cursor: pointer">
+                    <span aria-hidden="true" style="flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{o.ring}}; box-sizing: border-box; display: grid; place-items: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{o.fill}}"></span></span>
+                    <span style="flex: 1">{{o.label}}</span>
+                    <sc-if value="{{o.rec}}" hint-placeholder-val="{{ false }}"><span style="font: 700 9.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; color: #9fe7c4">Recommended</span></sc-if>
+                  </button>
+                </sc-for>
+              </fieldset>
+
+              <div style="border-radius: 16px; background: rgba(246,245,241,0.1); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+                <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Today would land at</span>
+                <span style="font: 600 22px 'Space Grotesk', sans-serif">{{dayKcal}} kcal <span style="font-size: 13px; font-weight: 500; color: rgba(246,245,241,0.8)">· P {{dayP}} · C {{dayC}} · F {{dayF}}</span></span>
+                <span style="align-self: flex-start; border-radius: 999px; padding: 3px 10px; background: {{verdictBg}}; color: {{verdictFg}}; font-size: 11.5px; font-weight: 700">{{verdict}}</span>
+                <span style="font-size: 12.5px; line-height: 1.45; color: rgba(246,245,241,0.82)">{{moveLine}}</span>
+                <span style="font-size: 12.5px; line-height: 1.45; color: rgba(246,245,241,0.82)">{{weekLine}}</span>
+              </div>
+
+              <div style="display: flex; gap: 8px">
+                <button type="button" onClick="{{use}}" style="flex: 1; height: 46px; border: 0; border-radius: 999px; background: #ddf247; color: #083d2d; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Use take 2</button>
+                <button type="button" onClick="{{keep}}" style="flex: 1; height: 46px; border-radius: 999px; border: 1px solid rgba(246,245,241,0.3); background: transparent; color: #f6f5f1; font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Keep take 1</button>
+              </div>
+            </article>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <section aria-label="Ask KOI" style="flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 16px 10px; background: linear-gradient(to top, #f6f5f1 70%, rgba(246,245,241,0))">
+    <p aria-live="polite" style="margin: 0; text-align: center; font-size: 15.5px; font-weight: 500; line-height: 1.4; color: #1c1e17; padding: 2px 12px; border-radius: 14px; background: rgba(246,245,241,0.8)">{{line}}</p>
+    <form style="position: relative; width: 100%; height: 56px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 16px; border-radius: 999px; border: {{promptBorder}}; background: rgba(255,255,255,0.95); box-shadow: 0 24px 44px -28px rgba(15,61,46,0.45)">
+      <span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: #e8743b; box-shadow: 0 0 0 5px rgba(232,116,59,0.16)"></span>
+      <label for="ask-phone" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Ask KOI</label>
+      <input id="ask-phone" type="text" value="{{promptValue}}" onChange="{{noop}}" placeholder="Ate something else? Tell KOI…" style="flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: 500 15px 'Plus Jakarta Sans', sans-serif; color: #1c1e17">
+      <button type="button" onClick="{{send}}" aria-label="Send to KOI" style="flex: none; width: 44px; height: 44px; border: 0; border-radius: 999px; background: {{sendBg}}; color: {{sendFg}}; display: grid; place-items: center; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></button>
+    </form>
+  </section>
+
+  <nav aria-label="Store" style="flex: none; margin: 0 16px 16px; height: 64px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; background: rgba(255,255,255,0.97); border-radius: 22px; box-shadow: 0 10px 30px rgba(15,61,46,0.14); border: 1px solid rgba(20,22,15,0.05)">
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans', sans-serif; color: #6b6f63"><span style="width: 38px; height: 26px; display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"></path></svg></span>Home</a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans', sans-serif; color: #6b6f63"><span style="width: 38px; height: 26px; display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1 11H5zM8 9V7a4 4 0 018 0v2"></path></svg></span>Shop</a>
+    <a href="#" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans', sans-serif; color: #1f5c3a"><span style="width: 38px; height: 26px; border-radius: 999px; background: #e8f1ea; display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4"></path></svg></span>Plan</a>
+    <a href="#" style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans', sans-serif; color: #6b6f63"><span style="width: 38px; height: 26px; display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1.5 11h-11z"></path><path d="M9 7a3 3 0 016 0"></path></svg></span>Cart<span style="position: absolute; top: 0; left: calc(50% + 6px); font: 700 10px 'Space Grotesk', sans-serif; background: #ddf247; color: #0f3d2e; border-radius: 999px; padding: 0 5px; line-height: 16px">6</span></a>
+    <a href="#" style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font: 600 10.5px 'Plus Jakarta Sans', sans-serif; color: #6b6f63"><span style="width: 38px; height: 26px; display: grid; place-items: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c1-4 4-6 8-6s7 2 8 6"></path></svg></span>You</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { stage: 'today', asked: null, portion: 1, box: 'tonight', fix: 'a' };
+  }
+  renderVals() {
+    const s = this.state;
+    const T = { kcal: 2600, p: 190, c: 290, f: 75 };
+    const M = {
+      breakfast: { name: 'Egg bhurji & toast', kcal: 601, p: 40.1, c: 78.4, f: 14.3 },
+      bowl: { name: 'Chicken, rice & veg bowl · box A2', kcal: 656, p: 50.5, c: 80.1, f: 13.1 },
+      bar: { name: 'Protein bar & almonds', kcal: 288, p: 22.1, c: 24.2, f: 13.0 },
+      curd: { name: 'Hung curd, almonds & honey', kcal: 296, p: 24.2, c: 20.4, f: 14.0 },
+      shake: { name: 'Whey, banana & milk', kcal: 329, p: 35.5, c: 45.4, f: 2.2 },
+      shakeUp: { name: 'Whey shake, 1½ scoops, no banana', kcal: 282, p: 46.2, c: 19.5, f: 2.55 },
+      tikka: { name: 'Paneer tikka, 2 roti & salad', kcal: 681, p: 37.0, c: 64.6, f: 32.3 }
+    };
+    const P = s.portion;
+    const biryani = { name: 'Chicken biryani', kcal: 800 * P, p: 32 * P, c: 95 * P, f: 32 * P };
+    const fmt = (n) => Math.round(n).toLocaleString('en-IN');
+    const box = s.box === 'tonight';
+    const fixA = s.fix === 'a';
+    // What the rest of today holds under the chosen take.
+    const applied = s.stage !== 'kept';
+    const dinner = applied && box ? M.bowl : M.tikka;
+    const shake = applied && P === 1 && fixA ? M.shakeUp : M.shake;
+    const extra = applied && P === 0.5 && fixA ? [M.curd] : [];
+    const dayItems = [M.breakfast, biryani, M.bar, shake, dinner].concat(extra);
+    const sum = (k) => dayItems.reduce((a, m) => a + m[k], 0);
+    const day = { kcal: sum('kcal'), p: sum('p'), c: sum('c'), f: sum('f') };
+    const dev = (k) => ((day[k] - T[k]) / T[k]) * 100;
+    const worst = Math.max(...['kcal', 'p', 'c', 'f'].map((k) => Math.abs(dev(k))));
+    const names = { p: 'protein', c: 'carbs', f: 'fat' };
+    let verdict;
+    if (worst <= 5) verdict = 'Lands within ' + Math.max(1, Math.ceil(worst)) + '% of your numbers';
+    else if (Math.abs(dev('kcal')) > 5) verdict = fmt(Math.abs(day.kcal - T.kcal)) + ' kcal ' + (day.kcal > T.kcal ? 'over' : 'under') + ' today';
+    else {
+      const k = ['p', 'c', 'f'].sort((a, b) => Math.abs(dev(b)) - Math.abs(dev(a)))[0];
+      verdict = names[k] + ' ' + Math.round(Math.abs(dev(k))) + '% ' + (dev(k) > 0 ? 'over' : 'short');
+    }
+    const good = worst <= 5;
+    const fixSets = {
+      0.5: { title: 'A lighter lunch', a: 'Add a snack: hung curd & almonds', b: 'Leave it, a lighter day is fine' },
+      1: { title: 'The rest of today', a: 'Top up the shake: 1½ scoops, no banana', b: 'Leave the rest as planned' },
+      1.5: { title: 'A bigger lunch', a: 'Spread it over Wed–Sun dinners', b: 'Leave it, the week absorbs it' }
+    };
+    const fixSet = fixSets[P];
+    const over = Math.max(0, day.kcal - T.kcal);
+    const weekLine = P === 1.5
+      ? (fixA ? 'Wed–Sun dinners get about ' + fmt(over / 5) + ' kcal lighter each: a little less rice and oil. The week still averages your numbers.' : 'The week ends about ' + fmt(over) + ' kcal over, about ' + fmt(over / 7) + ' a day. That is fine.')
+      : 'Nothing new to buy, nothing thrown away.';
+    const moveLine = !applied ? 'Box A2 is still in the fridge, good until Thursday. KOI will remind you.' : box ? 'Box A2 becomes tonight’s dinner. Paneer tikka moves to next week; the paneer keeps until 3 Nov.' : 'Box A2 goes in the freezer for next week. Dinner stays paneer tikka.';
+    const radio = (on, rec) => ({ aria: on ? 'true' : 'false', bg: on ? 'rgba(221,242,71,0.14)' : 'rgba(246,245,241,0.06)', border: on ? '1.5px solid #ddf247' : '1px solid rgba(246,245,241,0.2)', ring: on ? '#ddf247' : 'rgba(246,245,241,0.5)', fill: on ? '#ddf247' : 'transparent', rec });
+    const chip = (on) => ({ aria: on ? 'true' : 'false', bg: on ? '#e8f1ea' : '#ffffff', fg: on ? '#1f5c3a' : '#1c1e17', border: on ? '1.5px solid #1f5c3a' : '1px solid #d9d7cd' });
+    const portionWord = { 0.5: 'half a plate (about 200 g)', 1: 'one plate (about 400 g)', 1.5: 'a plate and a half (about 600 g)' };
+
+    const stage = s.stage;
+    const after = stage === 'done' || stage === 'kept';
+    const changed = stage === 'done';
+    const eatenLunch = after;
+    const meal = (o) => ({
+      hasChip: Boolean(o.chip), chip: o.chip || '', chipBg: o.chipBg || '#f4fbd0', chipFg: o.chipFg || '#083d2d',
+      actions: Boolean(o.actions), eaten: Boolean(o.eaten),
+      bg: o.now ? '#ffffff' : (o.eaten ? 'rgba(255,255,255,0.55)' : '#ffffff'),
+      border: o.now ? '1.5px solid #1f5c3a' : '1px solid rgba(8,61,45,0.1)',
+      dotBg: o.eaten ? '#16a06e' : 'transparent', dotBorder: o.eaten ? '0' : '2px solid #cfcbbf',
+      slotColor: o.now ? '#1f5c3a' : '#4a4d44', nameColor: o.eaten ? '#3d4a43' : '#1c1e17',
+      slot: o.slot, time: o.time, name: o.name, macro: o.macro
+    });
+    const mac = (m) => fmt(m.kcal) + ' kcal · P ' + Math.round(m.p);
+    const usedShake = changed ? shake : M.shake;
+    const usedDinner = changed ? dinner : M.tikka;
+    const meals = [
+      meal({ slot: 'Breakfast', time: '08:00', name: M.breakfast.name, macro: mac(M.breakfast), eaten: true }),
+      eatenLunch
+        ? meal({ slot: 'Lunch', time: '13:40', name: 'Chicken biryani, ' + { 0.5: 'half a plate', 1: 'one plate', 1.5: 'a plate and a half' }[P], macro: '≈ ' + mac(biryani) + ' · estimate', eaten: true, chip: 'You told KOI', chipBg: '#faece2', chipFg: '#7a3d1c' })
+        : meal({ slot: 'Lunch', time: 'now', name: M.bowl.name, macro: mac(M.bowl), now: true, actions: stage === 'today' }),
+      meal({ slot: 'Snack', time: '16:30', name: M.bar.name, macro: mac(M.bar) })
+    ];
+    if (changed && extra.length) meals.push(meal({ slot: 'Snack', time: '17:30', name: M.curd.name, macro: mac(M.curd), chip: 'Take 2 · added' }));
+    meals.push(meal({ slot: 'After training', time: '19:00', name: usedShake.name, macro: mac(usedShake), chip: changed && usedShake === M.shakeUp ? 'Take 2 · topped up' : '' }));
+    meals.push(meal({ slot: 'Dinner', time: '20:30', name: usedDinner.name, macro: mac(usedDinner), chip: changed && box ? 'Moved from lunch' : (changed ? '' : '') }));
+
+    const eatenKcal = M.breakfast.kcal + (eatenLunch ? biryani.kcal : 0);
+    const lines = {
+      today: 'Lunch is box A2 from Sunday’s cook.',
+      typed: 'Tell me what you had. I’ll work out the rest.',
+      ask: 'Chicken biryani, instead of the bowl. One question first.',
+      take2: 'Here’s my second take. Nothing changes until you choose.',
+      done: box ? 'Done. Tonight’s dinner is the bowl you skipped.' : 'Done. The bowl is in the freezer for next week.',
+      kept: 'Logged. Your plan stays as it was.'
+    };
+    return {
+      showToday: ['today', 'typed', 'done', 'kept'].includes(stage),
+      showChat: stage === 'ask' || stage === 'take2',
+      asking: stage === 'ask', offering: stage === 'take2',
+      done: after, toast: after,
+      toastText: changed ? 'Today is updated.' : 'Lunch is logged. Nothing else changed.',
+      meals,
+      soFar: fmt(eatenKcal), soFarPct: Math.min(100, Math.round((eatenKcal / T.kcal) * 100)),
+      line: lines[stage],
+      promptValue: stage === 'typed' ? 'Had chicken biryani at the office canteen' : '',
+      promptBorder: stage === 'typed' ? '1.5px solid #1f5c3a' : '1px solid rgba(8,61,45,0.15)',
+      sendBg: stage === 'typed' ? '#083d2d' : '#ebe8df', sendFg: stage === 'typed' ? '#ddf247' : '#4a4d44',
+      noop: () => {},
+      something: () => this.setState({ stage: 'typed' }),
+      send: () => { if (s.stage === 'typed') this.setState({ stage: 'ask' }); },
+      askOpts: [[0.5, 'Half a plate'], [1, 'One plate'], [1.5, 'More than a plate']].map(([v, label]) => ({ label, ...chip(s.asked === v), pick: () => this.setState({ asked: v }) })),
+      contOff: s.asked === null ? 'true' : 'false', contOpacity: s.asked === null ? '0.45' : '1',
+      cont: () => { if (s.asked !== null) this.setState({ stage: 'take2', portion: s.asked, fix: 'a', box: 'tonight' }); },
+      portionWords: portionWord[P],
+      estKcal: fmt(biryani.kcal), estLow: fmt(650 * P), estHigh: fmt(950 * P),
+      estP: Math.round(biryani.p), estC: Math.round(biryani.c), estF: Math.round(biryani.f),
+      portionOpts: [[0.5, '½ plate'], [1, '1 plate'], [1.5, '1½ plates']].map(([v, label]) => ({ label, ...chip(P === v), pick: () => this.setState({ portion: v, fix: 'a' }) })),
+      boxOpts: [
+        { label: 'Tonight’s dinner, instead of paneer tikka', ...radio(box, true), pick: () => this.setState({ box: 'tonight' }) },
+        { label: 'Freeze it for next week', ...radio(!box, false), pick: () => this.setState({ box: 'freeze' }) }
+      ],
+      fixTitle: fixSet.title,
+      fixOpts: [
+        { label: fixSet.a, ...radio(fixA, true), pick: () => this.setState({ fix: 'a' }) },
+        { label: fixSet.b, ...radio(!fixA, false), pick: () => this.setState({ fix: 'b' }) }
+      ],
+      dayKcal: fmt(day.kcal), dayP: Math.round(day.p), dayC: Math.round(day.c), dayF: Math.round(day.f),
+      verdict, verdictBg: good ? '#9fe7c4' : '#faece2', verdictFg: good ? '#083d2d' : '#7a3d1c',
+      moveLine, weekLine,
+      doneWeek: changed && P === 1.5 ? weekLine : '',
+      use: () => this.setState({ stage: 'done' }),
+      keep: () => this.setState({ stage: 'kept' }),
+      reset: () => this.setState({ stage: 'today', asked: null, portion: 1, box: 'tonight', fix: 'a' })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recipe · Chicken, rice &amp; veg bowl</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+.k-check{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:0;border-radius:8px;border:2px solid rgba(8,61,45,.28);background:#fff;cursor:pointer;display:grid;place-items:center}
+.k-check:checked{background:#083d2d;border-color:#083d2d}
+.k-check:checked::after{content:"";width:10px;height:6px;border-left:2.5px solid #ddf247;border-bottom:2.5px solid #ddf247;transform:translateY(-1px) rotate(-45deg)}
+.k-item:has(.k-check:checked) .k-ing{text-decoration:line-through;color:#4a4d44}
+@media (max-width:1023px){.k-recipe{grid-template-columns:minmax(0,1fr)!important}.k-sticky{position:static!important}.k-facts{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:767px){.k-nav,.k-hide-sm{display:none!important}.k-hpad{padding:0 16px!important}.k-search{width:40px!important;padding:0!important;justify-content:center}.k-search span,.k-search kbd{display:none}.k-boxes{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #f6f5f1; color: #1c1e17; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="position: sticky; top: 0; z-index: 50; height: 64px; background: rgba(246,245,241,0.92); border-bottom: 1px solid rgba(20,22,15,0.07)">
+    <div class="k-hpad" style="max-width: 1400px; height: 100%; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; gap: 24px">
+      <a href="#" aria-label="KOI home" style="display: inline-flex; align-items: baseline; gap: 4px; text-decoration: none; color: #0f3d2e; flex: none"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.02em; line-height: 1">KOI</span><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b"></span></a>
+      <nav class="k-nav" aria-label="Store" style="display: flex; gap: 2px">
+        <a href="#" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Shop</a>
+        <a href="../Week.dc.html" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans', sans-serif; color: #1f5c3a; background: #e8f1ea; text-decoration: none; padding: 8px 14px; border-radius: 999px">Plan</a>
+        <a href="../Calendar.dc.html" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Calendar</a>
+        <a href="../Track.dc.html" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Track</a>
+        <a href="#" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Orders</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="k-search" aria-label="Search or ask KOI" style="width: 260px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 14px; background: #ffffff; border: 1px solid rgba(20,22,15,0.08); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-align: left; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Search or ask KOI</span><kbd style="margin-left: auto; font: 500 10.5px 'IBM Plex Mono', monospace; border: 1px solid rgba(20,22,15,0.14); border-radius: 6px; padding: 2px 6px; color: #6b6f63">⌘K</kbd></button>
+        <button type="button" class="k-hide-sm" aria-label="Open cart, 6 products" style="height: 40px; display: inline-flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border: 0; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans', sans-serif; color: #ffffff; cursor: pointer"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1.5 11h-11z"></path><path d="M9 7a3 3 0 016 0"></path></svg>Cart<span style="font: 700 13px 'Space Grotesk', sans-serif; background: #ddf247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px">6</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main style="width: 100%; max-width: 1180px; margin: 0 auto; padding: 24px clamp(16px,4vw,40px) 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+    <a href="../Week.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 14px; font-weight: 600; color: #1f5c3a; text-decoration: none"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>This week</a>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 820px">
+      <span style="font: 600 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.18em; color: #16a06e">{{eyebrow}}</span>
+      <h1 class="kc" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(44px, 6vw, 80px); line-height: 0.9; letter-spacing: -0.035em; color: #083d2d">Chicken, rice &amp; veg bowl</h1>
+      <p style="margin: 0; font-size: 18px; line-height: 1.55; color: #3d4a43">Spiced chicken, fluffy basmati and quick-fried veg. {{lede}}</p>
+    </div>
+
+    <div class="k-facts" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <div style="display: flex; gap: 12px; align-items: center; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 20px; padding: 16px">
+        <span aria-hidden="true" style="flex: none; width: 44px; height: 44px; border-radius: 14px; background: #e8f1ea; color: #1f5c3a; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg></span>
+        <span style="display: flex; flex-direction: column"><span style="font: 600 20px 'Space Grotesk', sans-serif">{{time}}</span><span style="font-size: 13px; color: #3d4a43">{{hands}}</span></span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 20px; padding: 16px">
+        <span aria-hidden="true" style="flex: none; width: 44px; height: 44px; border-radius: 14px; background: #e8f1ea; color: #1f5c3a; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"></rect><path d="M3 12h18M8 8V5h8v3"></path></svg></span>
+        <span style="display: flex; flex-direction: column"><span style="font: 600 20px 'Space Grotesk', sans-serif">{{makes}}</span><span style="font-size: 13px; color: #3d4a43">{{makesSub}}</span></span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 20px; padding: 16px">
+        <span aria-hidden="true" style="flex: none; width: 44px; height: 44px; border-radius: 14px; background: #e8f1ea; color: #1f5c3a; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 6l14 12M19 6 5 18"></path></svg></span>
+        <span style="display: flex; flex-direction: column"><span style="font: 600 20px 'Space Grotesk', sans-serif">{{keeps}}</span><span style="font-size: 13px; color: #3d4a43">{{keepsSub}}</span></span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; background: #083d2d; color: #f6f5f1; border-radius: 20px; padding: 16px">
+        <span aria-hidden="true" style="flex: none; width: 44px; height: 44px; border-radius: 14px; background: rgba(221,242,71,0.16); color: #ddf247; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 5 4 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 .5 2 1.5 2.5 2 2 .5-1-1-3 1-7Z"></path></svg></span>
+        <span style="display: flex; flex-direction: column"><span style="font: 600 20px 'Space Grotesk', sans-serif">656 kcal</span><span style="font-size: 13px; color: rgba(246,245,241,0.78)">each, with 51 g protein</span></span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 22px; padding: 14px 16px">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+        <span id="make-l" style="font-size: 15px; font-weight: 700">Make</span>
+        <div role="radiogroup" aria-labelledby="make-l" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #ebe8df">
+          <sc-for list="{{servOpts}}" as="o" hint-placeholder-count="3">
+            <button type="button" role="radio" aria-checked="{{o.aria}}" onClick="{{o.pick}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: {{o.bg}}; color: {{o.fg}}; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer; box-shadow: {{o.shadow}}">{{o.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+        <span id="unit-l" style="font-size: 15px; font-weight: 700">Show amounts in</span>
+        <div role="radiogroup" aria-labelledby="unit-l" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #ebe8df">
+          <sc-for list="{{unitOpts}}" as="o" hint-placeholder-count="2">
+            <button type="button" role="radio" aria-checked="{{o.aria}}" onClick="{{o.pick}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: {{o.bg}}; color: {{o.fg}}; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer; box-shadow: {{o.shadow}}">{{o.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div class="k-recipe" style="display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 24px; align-items: start">
+      <section class="k-sticky" aria-labelledby="need-h" style="position: sticky; top: 84px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+          <h2 id="need-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; color: #083d2d">What you need</h2>
+          <span style="font: 500 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: #4a4d44">for {{servWords}}</span>
+        </div>
+        <p style="margin: 0 0 6px; font-size: 13px; color: #4a4d44">Tick things off as you get them out.</p>
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+          <div style="display: flex; flex-direction: column">
+            <span style="padding: 12px 0 4px; font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #16a06e">{{g.title}}</span>
+            <sc-for list="{{g.items}}" as="i" hint-placeholder-count="3">
+              <label class="k-item" style="display: flex; align-items: center; gap: 14px; padding: 11px 0; border-top: 1px solid #f0eee7; cursor: pointer">
+                <input type="checkbox" class="k-check" aria-label="{{i.aria}}">
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+                  <span class="k-ing" style="font-size: 16px; line-height: 1.35"><strong style="font-weight: 700">{{i.qty}}</strong> {{i.name}}</span>
+                  <span style="font-size: 12.5px; color: {{i.whereColor}}">{{i.where}}</span>
+                </span>
+              </label>
+            </sc-for>
+          </div>
+        </sc-for>
+      </section>
+
+      <div style="display: flex; flex-direction: column; gap: 24px; min-width: 0">
+        <section aria-labelledby="how-h" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 8px">
+            <h2 id="how-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 800; color: #083d2d">How to make it</h2>
+            <a href="../CookMode.dc.html" style="height: 48px; display: inline-flex; align-items: center; gap: 10px; padding: 0 20px; border-radius: 16px; background: #083d2d; color: #ddf247; font-size: 15px; font-weight: 700; text-decoration: none"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Start cook mode</a>
+          </div>
+          <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+            <sc-for list="{{steps}}" as="st" hint-placeholder-count="6">
+              <li style="display: flex; gap: 18px; padding: 20px 0; border-top: 1px solid #f0eee7">
+                <span aria-hidden="true" style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: {{st.dotBg}}; color: {{st.dotFg}}; display: grid; place-items: center; font: 700 17px 'Space Grotesk', sans-serif">{{st.n}}</span>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+                    <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #1c1e17">{{st.title}}</h3>
+                    <span style="display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px; background: #ebe8df; font: 600 12px 'Space Grotesk', sans-serif; color: #3d4a43"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2"></path></svg>{{st.time}}</span>
+                  </div>
+                  <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #1c1e17; max-width: 62ch">{{st.text}}</p>
+                  <sc-if value="{{st.hasUses}}" hint-placeholder-val="{{ true }}">
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px">
+                      <sc-for list="{{st.uses}}" as="u" hint-placeholder-count="3">
+                        <span style="border-radius: 8px; padding: 3px 9px; background: #f4fbd0; color: #083d2d; font-size: 12.5px; font-weight: 600">{{u}}</span>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+
+        <sc-if value="{{multi}}" hint-placeholder-val="{{ true }}">
+          <section aria-labelledby="split-h" style="background: #083d2d; color: #f6f5f1; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+            <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #ddf247">The only weighing you do</span>
+            <h2 id="split-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 800; line-height: 1.1">Split it into {{n}} equal boxes</h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; color: rgba(246,245,241,0.85); max-width: 62ch">Weigh the empty pot, then the full one. The difference is about {{totalKg}} kg. Fill each box with about 515 g and every lunch is on your numbers, so nothing gets weighed at the plate.</p>
+            <div class="k-boxes" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+              <sc-for list="{{boxes}}" as="b" hint-placeholder-count="4">
+                <div style="border-radius: 18px; background: rgba(246,245,241,0.1); padding: 14px; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.7)">Box {{b.n}}</span>
+                  <span style="font-size: 17px; font-weight: 700">{{b.day}}</span>
+                  <span style="font: 600 15px 'Space Grotesk', sans-serif; color: #ddf247">≈ 515 g</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 0; font-size: 14px; color: rgba(246,245,241,0.8)">Reheat 2 minutes in the microwave with a splash of water, or eat it cold.</p>
+          </section>
+        </sc-if>
+        <sc-if value="{{single}}" hint-placeholder-val="{{ false }}">
+          <section style="background: #083d2d; color: #f6f5f1; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 8px">
+            <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #ddf247">No weighing at the plate</span>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; color: rgba(246,245,241,0.85)">Cook it, plate all of it, eat it. The amounts above are already sized to your numbers.</p>
+          </section>
+        </sc-if>
+
+        <section aria-labelledby="in-h" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="in-h" style="margin: 0; font-size: 18px; font-weight: 800">What's in one {{unitWord}}</h2>
+          <div class="k-facts" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+            <div style="border-radius: 16px; background: #fbfaf6; padding: 14px"><div style="font-size: 13px; color: #3d4a43">Calories</div><div style="font: 600 26px 'Space Grotesk', sans-serif; color: #083d2d">656</div></div>
+            <div style="border-radius: 16px; background: #fbfaf6; padding: 14px"><div style="font-size: 13px; color: #3d4a43">Protein</div><div style="font: 600 26px 'Space Grotesk', sans-serif; color: #083d2d">51 g</div></div>
+            <div style="border-radius: 16px; background: #fbfaf6; padding: 14px"><div style="font-size: 13px; color: #3d4a43">Carbs</div><div style="font: 600 26px 'Space Grotesk', sans-serif; color: #083d2d">80 g</div></div>
+            <div style="border-radius: 16px; background: #fbfaf6; padding: 14px"><div style="font-size: 13px; color: #3d4a43">Fat</div><div style="font: 600 26px 'Space Grotesk', sans-serif; color: #083d2d">13 g</div></div>
+          </div>
+          <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #4a4d44">From raw weights: IFCT 2017 values for the fresh things, the pack label for what comes from KOI. Typical home cooking; a different pan or more oil changes it a little.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <section aria-label="Ask KOI" style="position: sticky; bottom: 0; z-index: 40; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 16px 20px; background: linear-gradient(to top, #f6f5f1 60%, rgba(246,245,241,0))">
+    <p aria-live="polite" style="margin: 0; max-width: 780px; text-align: center; font-size: 19px; font-weight: 500; line-height: 1.45; color: #1c1e17; padding: 4px 16px; border-radius: 16px; background: rgba(246,245,241,0.8)">Cook it once on Sunday. Every box is already on your numbers.</p>
+    <form style="position: relative; width: 100%; max-width: 680px; height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 20px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); background: rgba(255,255,255,0.92); box-shadow: 0 24px 44px -28px rgba(15,61,46,0.45)">
+      <span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: #e8743b; box-shadow: 0 0 0 5px rgba(232,116,59,0.16)"></span>
+      <label for="ask-recipe" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Ask KOI</label>
+      <input id="ask-recipe" type="text" placeholder="Out of broccoli? Ask KOI for a swap…" style="flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: 500 16px 'Plus Jakarta Sans', sans-serif; color: #1c1e17">
+      <button type="button" style="flex: none; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border: 0; border-radius: 999px; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Ask KOI<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></button>
+    </form>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2050}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { n: 4, unit: 'kitchen' };
+  }
+  renderVals() {
+    const n = this.state.n;
+    const kitchen = this.state.unit === 'kitchen';
+    const pick = (map) => map[n];
+    const g = (grams, unit) => Math.round(grams * n * 10) / 10 + ' ' + (unit || 'g');
+    const KOI = { where: 'In your KOI order', color: '#1f6b45' };
+    const FRESH = { where: 'Buy fresh, wherever you usually do', color: '#7a5413' };
+    const HOME = { where: 'From your kitchen', color: '#4a4d44' };
+    const item = (qty, name, src) => ({ qty, name, where: src.where, whereColor: src.color, aria: qty + ' ' + name });
+    const amt = {
+      chicken: kitchen ? pick({ 1: '1 large', 2: '2 large', 4: '4 large' }) : g(180),
+      paste: kitchen ? pick({ 1: '1 tsp', 2: '2 tsp', 4: '4 tsp' }) : g(5),
+      masala: kitchen ? pick({ 1: '½ tsp', 2: '1 tsp', 4: '2 tsp' }) : g(1),
+      salt: kitchen ? pick({ 1: '¼ tsp', 2: '½ tsp', 4: '1 tsp' }) : g(1.5),
+      lemon: pick({ 1: '¼', 2: '½', 4: '1' }),
+      rice: kitchen ? pick({ 1: '½ cup', 2: '1 cup', 4: '2 cups' }) : g(95),
+      water: kitchen ? pick({ 1: '1 cup', 2: '2 cups', 4: '4 cups' }) : g(240, 'ml'),
+      veg: kitchen ? pick({ 1: '1 cup', 2: '2 cups', 4: '4 cups' }) : g(100),
+      oil: kitchen ? pick({ 1: '2 tsp', 2: '1½ tbsp', 4: '3 tbsp' }) : g(10),
+      oilA: kitchen ? pick({ 1: '1½ tsp', 2: '1 tbsp', 4: '2 tbsp' }) : g(6.7),
+      oilB: kitchen ? pick({ 1: '½ tsp', 2: '½ tbsp', 4: '1 tbsp' }) : g(3.3)
+    };
+    const breast = n === 1 ? 'chicken breast, boneless' : 'chicken breasts, boneless';
+    const groups = [
+      { title: 'For the chicken', items: [
+        item(amt.chicken, breast, FRESH),
+        item(amt.paste, 'ginger-garlic paste', KOI),
+        item(amt.masala, 'garam masala', KOI),
+        item(amt.salt, 'salt', HOME),
+        item(amt.lemon, n === 4 ? 'lemon' : 'of a lemon', HOME)
+      ] },
+      { title: 'For the rice', items: [
+        item(amt.rice, 'basmati rice', KOI),
+        item(amt.water, 'water', HOME)
+      ] },
+      { title: 'For the veg', items: [
+        item(amt.veg, 'broccoli, capsicum and onion, chopped', FRESH)
+      ] },
+      { title: 'To cook', items: [
+        item(amt.oil, 'cold-pressed groundnut oil', KOI)
+      ] }
+    ];
+    const multi = n > 1;
+    const steps = [
+      { title: 'Marinate the chicken', time: '5 min + 20 resting', text: 'Cut the chicken into bite-size pieces. Mix in the ginger-garlic paste, garam masala, salt and the lemon juice. Leave it for 20 minutes.', uses: [amt.chicken + ' chicken', amt.paste + ' paste', amt.masala + ' garam masala'] },
+      { title: 'Start the rice', time: '15 min', text: 'Rinse the rice three times in cold water. Put it in a pot with ' + amt.water + ' of water and bring it to a boil. Cover, turn the heat to low and cook for 12 minutes. Then turn it off and leave the lid on.', uses: [amt.rice + ' rice', amt.water + ' water'] },
+      { title: 'While the rice cooks, chop the veg', time: '5 min', text: 'Chop the broccoli, capsicum and onion into small pieces, all about the same size, so they cook evenly.', uses: [amt.veg + ' veg'] },
+      { title: 'Cook the chicken', time: '8 min', text: 'Heat ' + amt.oilA + ' of oil in a wide pan on high. Add the chicken in one layer. Cook 5 to 6 minutes, turning once, until no pink is left inside.', uses: [amt.oilA + ' oil'] },
+      { title: 'Cook the veg', time: '4 min', text: 'Push the chicken to one side. Add the rest of the oil and the veg, and stir-fry for 4 minutes so the veg stays a little crunchy. Mix everything with the rice.', uses: [amt.oilB + ' oil'] },
+      multi
+        ? { title: 'Split it into ' + n + ' boxes', time: '10 min', text: 'Weigh the empty pot, then the full one. Fill each box with about 515 g. Let them cool, put the lids on and keep them in the fridge.', uses: [] }
+        : { title: 'Plate it', time: '1 min', text: 'Everything on one plate. That is one serving, already sized to your numbers.', uses: [] }
+    ].map((s, i, all) => ({ ...s, n: i + 1, hasUses: s.uses.length > 0, dotBg: i === all.length - 1 ? '#ddf247' : '#083d2d', dotFg: i === all.length - 1 ? '#083d2d' : '#ddf247' }));
+    const days = ['Mon', 'Tue', 'Wed', 'Thu'];
+    const opt = (on) => ({ aria: on ? 'true' : 'false', bg: on ? '#ffffff' : 'transparent', fg: on ? '#083d2d' : '#3d4a43', shadow: on ? '0 1px 3px rgba(20,22,15,0.12)' : 'none' });
+    return {
+      n, multi, single: !multi, groups, steps,
+      keeps: multi ? '4 days' : 'Tonight',
+      keepsSub: multi ? 'in the fridge, lids on' : 'best eaten fresh',
+      eyebrow: multi ? 'Batch A · cook Sunday 25 Oct · lunch Mon–Thu' : 'Cook it tonight · one serving',
+      lede: multi ? 'Cook it once on Sunday and eat it four times.' : 'One plate, cooked fresh.',
+      time: pick({ 1: '55 min', 2: '60 min', 4: '70 min' }),
+      hands: pick({ 1: '20 min of it hands-on', 2: '25 min of it hands-on', 4: '30 min of it hands-on' }),
+      makes: multi ? n + ' boxes' : '1 plate',
+      makesSub: multi ? (n === 4 ? 'lunch Monday to Thursday' : 'two lunches') : 'dinner tonight',
+      servWords: multi ? n + ' boxes' : '1 serving',
+      unitWord: multi ? 'box' : 'serving',
+      totalKg: (Math.round(515 * n / 10) / 100).toFixed(2),
+      boxes: days.slice(0, n).map((day, i) => ({ day: { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday' }[day], n: i + 1 })),
+      servOpts: [1, 2, 4].map((k) => ({ label: k === 1 ? '1 serving' : k + ' boxes', ...opt(n === k), pick: () => this.setState({ n: k }) })),
+      unitOpts: [['kitchen', 'Cups & spoons'], ['grams', 'Grams']].map(([k, label]) => ({ label, ...opt(this.state.unit === k), pick: () => this.setState({ unit: k }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

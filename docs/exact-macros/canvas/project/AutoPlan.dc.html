@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KOI auto-plan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+</style>
+</helmet>
+<div style="position: relative; width: 1200px; height: 1000px; overflow: hidden; background: #f6f5f1; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1c1e17">
+  <div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column">
+    <div style="height: 64px; display: flex; align-items: center; gap: 24px; padding: 0 32px; border-bottom: 1px solid rgba(20,22,15,0.07)">
+      <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; color: #0f3d2e">KOI</span>
+      <span style="width: 340px; height: 14px; border-radius: 999px; background: #ebe8df"></span>
+    </div>
+    <div style="padding: 36px 52px; display: flex; flex-direction: column; gap: 18px">
+      <span style="width: 520px; height: 48px; border-radius: 14px; background: #ebe8df"></span>
+      <span style="width: 380px; height: 14px; border-radius: 999px; background: #ebe8df"></span>
+      <div style="margin-top: 12px; width: 700px; height: 640px; border-radius: 28px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 1px; overflow: hidden">
+        <sc-for list="{{ghost}}" as="g" hint-placeholder-count="35"><span style="background: #ffffff; box-shadow: 0 0 0 1px #f0eee7; padding: 10px"><span style="display: block; width: {{g.w}}%; height: 12px; border-radius: 6px; background: {{g.c}}"></span></span></sc-for>
+      </div>
+    </div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(15,30,22,0.38)"></div>
+
+  <aside role="dialog" aria-labelledby="ap-h" style="position: absolute; top: 0; right: 0; bottom: 0; width: 440px; background: #f6f5f1; box-shadow: 0 24px 60px -20px rgba(15,61,46,0.45); display: flex; flex-direction: column">
+    <div style="flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 6px">
+      <span style="display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; border: 1.5px dashed #083d2d; padding: 4px 10px; font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #083d2d">KOI auto-plan · {{statusWord}}</span>
+      <a href="../Calendar.dc.html" aria-label="Close" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(20,22,15,0.08); background: #ffffff; display: grid; place-items: center; color: #1c1e17"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h2 id="ap-h" class="kc" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 38px; line-height: 0.95; letter-spacing: -0.03em; color: #083d2d">KOI drafts next week</h2>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.55; color: #3d4a43">Once a week, KOI builds the next plan to your own numbers, around your calendar, then waits for you. It never buys anything on its own.</p>
+      </div>
+
+      <section aria-labelledby="when-h" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+        <span id="when-h" style="font-size: 15px; font-weight: 700">Every</span>
+        <div role="radiogroup" aria-labelledby="when-h" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+          <sc-for list="{{dayOpts}}" as="o" hint-placeholder-count="7">
+            <button type="button" role="radio" aria-checked="{{o.aria}}" onClick="{{o.pick}}" style="height: 44px; border-radius: 12px; border: 1px solid {{o.border}}; background: {{o.bg}}; color: {{o.fg}}; font: 700 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{o.d}}</button>
+          </sc-for>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <label for="ap-time" style="font-size: 14px; font-weight: 600; color: #3d4a43">at</label>
+          <input id="ap-time" type="time" value="20:00" onChange="{{noop}}" style="height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; font: 600 15px 'Space Grotesk', sans-serif; color: #1c1e17">
+        </div>
+        <span style="font-size: 12.5px; color: #4a4d44">{{nextWords}}</span>
+      </section>
+
+      <section aria-labelledby="each-h" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 22px; padding: 6px 16px">
+        <span id="each-h" style="display: block; padding: 10px 0 2px; font-size: 15px; font-weight: 700">Each draft</span>
+        <sc-for list="{{rules}}" as="r" hint-placeholder-count="6">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid #f0eee7">
+            <span style="min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 700">{{r.title}}</span><span style="font-size: 12.5px; line-height: 1.45; color: #4a4d44">{{r.sub}}</span></span>
+            <button type="button" role="switch" aria-checked="{{r.aria}}" aria-label="{{r.title}}" onClick="{{r.toggle}}" style="flex: none; width: 52px; height: 30px; border: 0; border-radius: 999px; padding: 3px; background: {{r.bg}}; display: flex; justify-content: {{r.justify}}; cursor: pointer"><span style="width: 24px; height: 24px; border-radius: 50%; background: {{r.knob}}; display: block"></span></button>
+          </div>
+        </sc-for>
+      </section>
+
+      <div style="display: flex; gap: 12px; align-items: flex-start; border-radius: 18px; background: #e8f1ea; padding: 14px 16px; color: #0f3d2e">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+        <p style="margin: 0; font-size: 13px; line-height: 1.55"><strong>You approve every week.</strong> The draft arrives as a message on {{dayLong}}. The cart fills only after you tap Approve, and you place the order yourself. No answer by the next evening? KOI asks once more, then leaves the draft waiting.</p>
+      </div>
+
+      <section aria-labelledby="tell-h" style="display: flex; flex-direction: column; gap: 8px">
+        <span id="tell-h" style="font-size: 14px; font-weight: 700">Tell me by</span>
+        <div role="group" aria-labelledby="tell-h" style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{channels}}" as="c" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{c.aria}}" onClick="{{c.toggle}}" style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid {{c.border}}; background: {{c.bg}}; color: {{c.fg}}; font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{c.mark}}{{c.label}}</button>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="runs-h" style="display: flex; flex-direction: column; gap: 8px">
+        <span id="runs-h" style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #4a4d44">Last drafts</span>
+        <div style="display: flex; justify-content: space-between; gap: 12px; border-radius: 14px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 10px 14px; font-size: 13px"><span>Thu 15 Oct · week of 19 Oct</span><span style="font-weight: 700; color: #1f6b45">Approved Fri, 2 swaps</span></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px; border-radius: 14px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 10px 14px; font-size: 13px"><span>Thu 8 Oct · week of 12 Oct</span><span style="font-weight: 700; color: #1f6b45">Approved Thu, as drafted</span></div>
+      </section>
+    </div>
+
+    <div style="flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 20px 18px; border-top: 1px solid rgba(8,61,45,0.1); background: #f6f5f1">
+      <button type="button" onClick="{{togglePause}}" style="height: 48px; padding: 0 12px; border: 0; background: transparent; color: #1f5c3a; font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{pauseLabel}}</button>
+      <span style="display: flex; gap: 8px">
+        <button type="button" style="height: 48px; padding: 0 16px; border-radius: 14px; border: 1px solid rgba(20,22,15,0.14); background: #ffffff; color: #1c1e17; font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Draft one now</button>
+        <button type="button" style="height: 48px; padding: 0 22px; border: 0; border-radius: 14px; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Save</button>
+      </span>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { day: 'Thu', paused: false, on: { numbers: true, calendar: true, learn: true, pantry: true, variety: false, cart: true }, ch: { push: true, email: false, whatsapp: true } };
+  }
+  renderVals() {
+    const s = this.state;
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const longs = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
+    const nextDate = { Mon: '26 Oct', Tue: '27 Oct', Wed: '28 Oct', Thu: '22 Oct', Fri: '23 Oct', Sat: '24 Oct', Sun: '25 Oct' };
+    const R = [
+      ['numbers', 'Keep my own numbers', '2,600 kcal · P 190 · C 290 · F 75, with more carbs on training days.'],
+      ['calendar', 'Plan around my calendar', 'Nights out, travel and prep days shape the week before anything is bought.'],
+      ['learn', 'Learn from my swaps and meals out', 'Dishes you swapped out come back less. A lunch you often eat out gets planned as out.'],
+      ['pantry', 'Use up the pantry first', 'Half a bag of rice left? Next week starts from it.'],
+      ['variety', 'Change the dishes more often', 'Off: KOI repeats what worked, so you shop and cook less.'],
+      ['cart', 'Fill the cart when I approve', 'Off: KOI only drafts the plan. You shop it yourself.']
+    ];
+    const C = [['push', 'App notification'], ['whatsapp', 'WhatsApp'], ['email', 'Email']];
+    const ghostColors = ['#e8f1ea', '#faf3e4', '#ebe8df', '#ffffff'];
+    return {
+      statusWord: s.paused ? 'paused' : 'on',
+      pauseLabel: s.paused ? 'Resume' : 'Pause',
+      togglePause: () => this.setState({ paused: !s.paused }),
+      noop: () => {},
+      dayLong: longs[s.day],
+      nextWords: s.paused ? 'Paused. No drafts until you resume.' : 'Next draft: ' + longs[s.day] + ' ' + nextDate[s.day] + ' at 20:00, for the week that starts the Monday after.',
+      dayOpts: days.map((d) => {
+        const on = s.day === d;
+        return { d, aria: on ? 'true' : 'false', bg: on ? '#083d2d' : '#ffffff', fg: on ? '#ddf247' : '#1c1e17', border: on ? '#083d2d' : 'rgba(8,61,45,0.15)', pick: () => this.setState({ day: d }) };
+      }),
+      rules: R.map(([k, title, sub]) => {
+        const on = s.on[k];
+        return { title, sub, aria: on ? 'true' : 'false', bg: on ? '#083d2d' : '#d9d7cd', knob: on ? '#ddf247' : '#ffffff', justify: on ? 'flex-end' : 'flex-start', toggle: () => this.setState({ on: { ...s.on, [k]: !on } }) };
+      }),
+      channels: C.map(([k, label]) => {
+        const on = s.ch[k];
+        return { label, mark: on ? '✓ ' : '', aria: on ? 'true' : 'false', bg: on ? '#083d2d' : '#ffffff', fg: on ? '#ddf247' : '#3d4a43', border: on ? '#083d2d' : 'rgba(8,61,45,0.15)', toggle: () => this.setState({ ch: { ...s.ch, [k]: !on } }) };
+      }),
+      ghost: Array.from({ length: 35 }, (_, i) => ({ w: 30 + ((i * 37) % 55), c: ghostColors[i % 4] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

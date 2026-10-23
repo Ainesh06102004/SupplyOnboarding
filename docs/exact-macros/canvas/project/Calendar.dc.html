@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calendar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+.k-day:hover{background:#fbfaf6}
+@media (max-width:1023px){.k-split{grid-template-columns:minmax(0,1fr)!important}.k-sticky{position:static!important}}
+@media (max-width:767px){.k-nav,.k-hide-sm{display:none!important}.k-hpad{padding:0 16px!important}.k-search{width:40px!important;padding:0!important;justify-content:center}.k-search span,.k-search kbd{display:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #f6f5f1; color: #1c1e17; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="position: sticky; top: 0; z-index: 50; height: 64px; background: rgba(246,245,241,0.92); border-bottom: 1px solid rgba(20,22,15,0.07)">
+    <div class="k-hpad" style="max-width: 1400px; height: 100%; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; gap: 24px">
+      <a href="#" aria-label="KOI home" style="display: inline-flex; align-items: baseline; gap: 4px; text-decoration: none; color: #0f3d2e; flex: none"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.02em; line-height: 1">KOI</span><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b"></span></a>
+      <nav class="k-nav" aria-label="Store" style="display: flex; gap: 2px">
+        <a href="#" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Shop</a>
+        <a href="../Week.dc.html" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Plan</a>
+        <a href="#" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans', sans-serif; color: #1f5c3a; background: #e8f1ea; text-decoration: none; padding: 8px 14px; border-radius: 999px">Calendar</a>
+        <a href="../Track.dc.html" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Track</a>
+        <a href="#" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Orders</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="k-search" aria-label="Search or ask KOI" style="width: 260px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 14px; background: #ffffff; border: 1px solid rgba(20,22,15,0.08); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-align: left; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Search or ask KOI</span><kbd style="margin-left: auto; font: 500 10.5px 'IBM Plex Mono', monospace; border: 1px solid rgba(20,22,15,0.14); border-radius: 6px; padding: 2px 6px; color: #6b6f63">⌘K</kbd></button>
+        <button type="button" class="k-hide-sm" aria-label="Open cart, 6 products" style="height: 40px; display: inline-flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border: 0; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans', sans-serif; color: #ffffff; cursor: pointer"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1.5 11h-11z"></path><path d="M9 7a3 3 0 016 0"></path></svg>Cart<span style="font: 700 13px 'Space Grotesk', sans-serif; background: #ddf247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px">6</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main style="width: 100%; max-width: 1440px; margin: 0 auto; padding: 28px clamp(16px,4vw,52px) 24px; box-sizing: border-box">
+    <div style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 500 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.18em; color: #4a4d44">Calendar · your weeks</span>
+        <h1 class="kc" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(40px, 5vw, 68px); line-height: 0.92; letter-spacing: -0.03em; color: #083d2d">Plan days, prep days, nights out</h1>
+        <p style="margin: 0; max-width: 720px; font-size: 15.5px; line-height: 1.6; color: #3d4a43">Add them yourself, or tell KOI your routine and it sets them up. A night out moves the plan around it, before you shop.</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <div role="radiogroup" aria-label="View" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #ebe8df">
+          <button type="button" role="radio" aria-checked="true" style="height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: #ffffff; color: #083d2d; font: 700 14px 'Plus Jakarta Sans', sans-serif; box-shadow: 0 1px 3px rgba(20,22,15,0.12); cursor: pointer">Month</button>
+          <button type="button" role="radio" aria-checked="false" style="height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: #3d4a43; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Week</button>
+        </div>
+        <button type="button" style="height: 48px; padding: 0 20px; border: 0; border-radius: 16px; background: #083d2d; color: #ddf247; font: 700 15px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Add a reminder</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; border-radius: 12px; background: #fbfaf6; padding: 10px 14px; font-size: 12px; font-weight: 500; color: #3d4a43" aria-label="Legend">
+      <sc-for list="{{legend}}" as="l" hint-placeholder-count="6">
+        <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 12px; height: 12px; box-sizing: border-box; border-radius: 4px; background: {{l.bg}}; border: {{l.border}}"></span>{{l.label}}</span>
+      </sc-for>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="font: 600 9.5px 'IBM Plex Mono', monospace; letter-spacing: 0.1em; color: #1f6b45">LIFT</span>training day, from You</span>
+    </div>
+
+    <section class="k-split" style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start">
+      <article aria-labelledby="month-h" style="min-width: 0; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid rgba(8,61,45,0.1)">
+          <h2 id="month-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; color: #083d2d">October – November 2026</h2>
+          <div style="display: flex; gap: 6px">
+            <button type="button" aria-label="Earlier weeks" style="width: 40px; height: 40px; border-radius: 12px; border: 1px solid rgba(8,61,45,0.15); background: #ffffff; color: #083d2d; display: grid; place-items: center; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+            <button type="button" aria-label="Later weeks" style="width: 40px; height: 40px; border-radius: 12px; border: 1px solid rgba(8,61,45,0.15); background: #ffffff; color: #083d2d; display: grid; place-items: center; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+          </div>
+        </div>
+        <div style="overflow-x: auto">
+          <div style="min-width: 720px">
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-bottom: 1px solid rgba(8,61,45,0.1)">
+              <sc-for list="{{dow}}" as="w" hint-placeholder-count="7"><div style="padding: 10px 12px; font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #3d4a43">{{w}}</div></sc-for>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr))">
+              <sc-for list="{{cells}}" as="d" hint-placeholder-count="35">
+                <button type="button" class="k-day" onClick="{{d.pick}}" aria-pressed="{{d.pressed}}" aria-label="{{d.aria}}" style="min-height: 124px; box-sizing: border-box; padding: 8px; border: 0; border-right: 1px solid #f0eee7; border-bottom: 1px solid #f0eee7; background: {{d.bg}}; box-shadow: {{d.ring}}; text-align: left; display: flex; flex-direction: column; gap: 4px; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif">
+                  <span style="display: flex; align-items: center; justify-content: space-between; gap: 4px">
+                    <span style="min-width: 26px; height: 26px; box-sizing: border-box; padding: 0 7px; border-radius: 8px; background: {{d.numBg}}; color: {{d.numFg}}; display: inline-flex; align-items: center; justify-content: center; font: 600 13px 'Space Grotesk', sans-serif">{{d.num}}</span>
+                    <sc-if value="{{d.lift}}" hint-placeholder-val="{{ false }}"><span style="font: 600 9.5px 'IBM Plex Mono', monospace; letter-spacing: 0.1em; color: #1f6b45">LIFT</span></sc-if>
+                  </span>
+                  <sc-for list="{{d.shown}}" as="e" hint-placeholder-count="2">
+                    <span style="display: block; box-sizing: border-box; padding: 3px 6px; border-radius: 6px; background: {{e.bg}}; color: {{e.fg}}; border: {{e.border}}; font-size: 11px; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.short}}</span>
+                  </sc-for>
+                  <sc-if value="{{d.hasMore}}" hint-placeholder-val="{{ false }}"><span style="padding-left: 4px; font-size: 11px; color: #4a4d44">+{{d.more}} more</span></sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <aside class="k-sticky" style="position: sticky; top: 84px; display: flex; flex-direction: column; gap: 16px">
+        <article aria-labelledby="day-h" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <h2 id="day-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; color: #083d2d">{{selTitle}}</h2>
+          <sc-if value="{{selEmpty}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: #4a4d44">Nothing on this day.</p></sc-if>
+          <sc-for list="{{selEvents}}" as="e" hint-placeholder-count="2">
+            <div style="display: flex; gap: 12px; border-radius: 18px; background: #fbfaf6; padding: 12px 14px">
+              <span aria-hidden="true" style="flex: none; width: 6px; border-radius: 999px; background: {{e.bar}}"></span>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                <span style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #4a4d44">{{e.time}} · {{e.kindLabel}}</span>
+                <span style="font-size: 15px; font-weight: 700">{{e.title}}</span>
+                <span style="font-size: 13px; line-height: 1.45; color: #3d4a43">{{e.detail}}</span>
+                <sc-if value="{{e.isAuto}}" hint-placeholder-val="{{ false }}"><a href="../AutoPlan.dc.html" style="padding-top: 2px; font-size: 13px; font-weight: 700; color: #1f5c3a; text-decoration: none">Edit the job →</a></sc-if>
+                <sc-if value="{{e.isOut}}" hint-placeholder-val="{{ false }}"><a href="../Week.dc.html" style="padding-top: 2px; font-size: 13px; font-weight: 700; color: #1f5c3a; text-decoration: none">See Friday in the plan →</a></sc-if>
+              </span>
+            </div>
+          </sc-for>
+        </article>
+
+        <article aria-label="Tell KOI your routine" style="border-radius: 28px; background: #083d2d; color: #f6f5f1; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #e8743b"></span><span style="font-size: 15px; font-weight: 700">Tell KOI your routine</span><span style="font: 400 11px 'IBM Plex Mono', monospace; color: rgba(246,245,241,0.6)">it asks before adding anything</span></span>
+          <form style="display: flex; gap: 8px">
+            <label for="routine" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Tell KOI your routine</label>
+            <input id="routine" type="text" placeholder="I cook on Sundays, out Friday night…" style="height: 52px; min-width: 0; flex: 1; border: 0; border-radius: 16px; background: #ffffff; padding: 0 14px; font: 500 14px 'Plus Jakarta Sans', sans-serif; color: #1c1e17">
+            <button type="button" style="height: 52px; flex: none; border: 0; border-radius: 16px; background: #ddf247; color: #083d2d; padding: 0 16px; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Set up</button>
+          </form>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(246,245,241,0.2); background: rgba(246,245,241,0.1); color: #9fe7c4; font: 500 12px 'Plus Jakarta Sans', sans-serif; cursor: pointer">+ I lift Mon, Tue, Thu, Fri</button>
+            <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(246,245,241,0.2); background: rgba(246,245,241,0.1); color: #9fe7c4; font: 500 12px 'Plus Jakarta Sans', sans-serif; cursor: pointer">+ Weigh me in on Mondays</button>
+            <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(246,245,241,0.2); background: rgba(246,245,241,0.1); color: #9fe7c4; font: 500 12px 'Plus Jakarta Sans', sans-serif; cursor: pointer">+ Out for dinner on Saturday</button>
+          </div>
+          <div style="border-top: 1px solid rgba(246,245,241,0.15); padding-top: 12px">
+            <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: rgba(246,245,241,0.6)">Your routine · saved</span>
+            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+              <span style="border-radius: 999px; background: #ffffff; color: #1c1e17; padding: 5px 12px; font-size: 12px; font-weight: 600">Batch cooks Sun 10:00 · Wed 19:30</span>
+              <span style="border-radius: 999px; background: #ffffff; color: #1c1e17; padding: 5px 12px; font-size: 12px; font-weight: 600">Groceries Sat 10–12</span>
+              <span style="border-radius: 999px; background: #ffffff; color: #1c1e17; padding: 5px 12px; font-size: 12px; font-weight: 600">Weigh-in Mon 07:00</span>
+            </div>
+          </div>
+        </article>
+
+        <a href="../AutoPlan.dc.html" style="display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #1c1e17; background: #ffffff; border: 1.5px dashed #083d2d; border-radius: 22px; padding: 18px 20px">
+          <span style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #1f5c3a">KOI auto-plan · on</span><span style="font-size: 13px; font-weight: 700; color: #1f5c3a">Edit →</span></span>
+          <span style="font-size: 15px; font-weight: 700">Every Thursday at 20:00, KOI drafts next week</span>
+          <span style="font-size: 13px; line-height: 1.45; color: #3d4a43">To your own numbers, around your nights out. Nothing is bought until you approve it on Friday. Next draft: Thu 22 Oct.</span>
+        </a>
+        <a href="#" style="padding: 0 8px; font-size: 13px; font-weight: 600; color: #1f5c3a; text-decoration: none">Add these to Google Calendar</a>
+      </aside>
+    </section>
+  </main>
+
+  <section aria-label="Ask KOI" style="position: sticky; bottom: 0; z-index: 40; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 16px 20px; background: linear-gradient(to top, #f6f5f1 60%, rgba(246,245,241,0))">
+    <p aria-live="polite" style="margin: 0; max-width: 780px; text-align: center; font-size: 19px; font-weight: 500; line-height: 1.45; color: #1c1e17; padding: 4px 16px; border-radius: 16px; background: rgba(246,245,241,0.8)">Friday's dinner is out, so I left it off the plan and the cart.</p>
+    <form style="position: relative; width: 100%; max-width: 680px; height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 20px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); background: rgba(255,255,255,0.92); box-shadow: 0 24px 44px -28px rgba(15,61,46,0.45)">
+      <span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: #e8743b; box-shadow: 0 0 0 5px rgba(232,116,59,0.16)"></span>
+      <label for="ask-cal" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Ask KOI</label>
+      <input id="ask-cal" type="text" placeholder="Move Sunday's cook to Saturday…" style="flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: 500 16px 'Plus Jakarta Sans', sans-serif; color: #1c1e17">
+      <button type="button" style="flex: none; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border: 0; border-radius: 999px; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Ask KOI<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></button>
+    </form>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1320}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: '2026-10-30' };
+  }
+  renderVals() {
+    const K = {
+      plan:   { label: 'Approve the plan', bg: '#083d2d', fg: '#ddf247', border: '0', bar: '#083d2d' },
+      auto:   { label: 'KOI drafts', bg: '#ffffff', fg: '#083d2d', border: '1.5px dashed #083d2d', bar: '#1f5c3a' },
+      shop:   { label: 'Groceries', bg: '#faf3e4', fg: '#7a5413', border: '0', bar: '#b07d2b' },
+      prep:   { label: 'Batch cook', bg: '#e8f1ea', fg: '#1f5c3a', border: '0', bar: '#16a06e' },
+      remind: { label: 'Reminder', bg: '#ebe8df', fg: '#3d4a43', border: '0', bar: '#4a4d44' },
+      out:    { label: 'Eating out', bg: '#faece2', fg: '#7a3d1c', border: '0', bar: '#c2683a' }
+    };
+    const weekly = {
+      1: [{ k: 'remind', time: '07:00', short: 'Weigh-in', title: 'Weigh-in', detail: 'Before breakfast. Track reads the weekly trend, not the day.' }],
+      3: [{ k: 'prep', time: '19:30', short: 'Batch cook B', title: 'Batch cook B · 40 min', detail: 'Soya chunk pulao × 3, for lunch Friday to Sunday.' }],
+      4: [{ k: 'auto', time: '20:00', short: 'KOI drafts next week', title: 'KOI drafts next week', detail: 'To your own numbers, last week’s swaps and meals out, and what’s in your pantry. Nothing is ordered.' }],
+      5: [{ k: 'plan', time: '19:00', short: 'Approve next week', title: 'Look over next week and approve it', detail: 'Swap anything, then send the list to your cart. About 5 minutes.' }],
+      6: [{ k: 'shop', time: '10–12', short: 'Groceries arrive', title: 'Groceries arrive', detail: 'Everything for next week, in one order, the day before the Sunday cook.' }],
+      0: [{ k: 'prep', time: '10:00', short: 'Batch cook A', title: 'Batch cook A · 70 min', detail: 'Chicken, rice & veg bowl × 4, for lunch Monday to Thursday.' }]
+    };
+    const oneOff = {
+      '2026-10-30': [{ k: 'out', time: '20:00', short: 'Dinner out', title: 'Dinner out with friends', detail: 'KOI took Friday dinner off the plan and the cart, and leaves room for about 900 kcal. Breakfast and lunch stay as planned.' }],
+      '2026-11-08': [{ k: 'out', time: 'Evening', short: 'Diwali dinner', title: 'Diwali dinner', detail: 'Off the plan. KOI keeps Saturday a little lighter so the week still averages your numbers.' }],
+      '2026-11-12': [{ k: 'remind', time: 'All day', short: 'Travelling', title: 'Travelling, 12–15 Nov', detail: 'No batch cook that week. KOI plans ready-to-eat protein you can pack.' }]
+    };
+    const lift = [1, 2, 4, 5];
+    const start = Date.UTC(2026, 9, 19);
+    const todayKey = '2026-10-21';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const longDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const cells = [];
+    let selEvents = [];
+    let selTitle = '';
+    for (let i = 0; i < 35; i++) {
+      const d = new Date(start + i * 86400000);
+      const key = d.toISOString().slice(0, 10);
+      const dow = d.getUTCDay();
+      const travelling = key >= '2026-11-12' && key <= '2026-11-15';
+      const repeats = (weekly[dow] || []).filter((e) => !(travelling && e.k === 'prep'));
+      const evs = [].concat(oneOff[key] || [], repeats).map((e) => ({ ...e, ...K[e.k], kindLabel: K[e.k].label, isAuto: e.k === 'auto', isOut: e.k === 'out' && key === '2026-10-30' }));
+      const isSel = key === this.state.sel;
+      const isToday = key === todayKey;
+      const past = key < todayKey;
+      if (isSel) { selEvents = evs; selTitle = longDays[dow] + ' ' + d.getUTCDate() + ' ' + months[d.getUTCMonth()]; }
+      cells.push({
+        num: d.getUTCDate() === 1 ? '1 ' + months[d.getUTCMonth()] : String(d.getUTCDate()),
+        numBg: isToday ? '#083d2d' : 'transparent', numFg: isToday ? '#ddf247' : (past ? '#4a4d44' : '#1c1e17'),
+        lift: lift.includes(dow) && !travelling,
+        bg: isSel ? '#f4fbd0' : (past ? '#fbfaf6' : '#ffffff'),
+        ring: isSel ? 'inset 0 0 0 2px #083d2d' : 'none',
+        pressed: isSel ? 'true' : 'false',
+        aria: longDays[dow] + ' ' + d.getUTCDate() + ' ' + months[d.getUTCMonth()] + ', ' + evs.length + (evs.length === 1 ? ' item' : ' items'),
+        shown: evs.slice(0, 3), hasMore: evs.length > 3, more: evs.length - 3,
+        pick: () => this.setState({ sel: key })
+      });
+    }
+    const legend = ['auto', 'plan', 'shop', 'prep', 'out', 'remind'].map((k) => ({ label: K[k].label, bg: K[k].bg, border: K[k].border === '0' ? '0' : K[k].border }));
+    return {
+      dow: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      cells, legend, selEvents, selTitle, selEmpty: selEvents.length === 0
+    };
+  }
+}
+</script>
+</body>
+</html>

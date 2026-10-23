@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plan · You · My own numbers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+@media (max-width:1023px){.k-grid2{grid-template-columns:minmax(0,1fr)!important}.k-hide-md{display:none!important}}
+@media (max-width:767px){.k-nav,.k-hide-sm{display:none!important}.k-hpad{padding:0 16px!important}.k-search{width:40px!important;padding:0!important;justify-content:center}.k-search span,.k-search kbd{display:none}.k-tiles4{grid-template-columns:repeat(2,minmax(0,1fr))!important}.k-tiles3{grid-template-columns:minmax(0,1fr)!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #f6f5f1; color: #1c1e17; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="position: sticky; top: 0; z-index: 50; height: 64px; background: rgba(246,245,241,0.92); border-bottom: 1px solid rgba(20,22,15,0.07)">
+    <div class="k-hpad" style="max-width: 1400px; height: 100%; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; gap: 24px">
+      <a href="#" aria-label="KOI home" style="display: inline-flex; align-items: baseline; gap: 4px; text-decoration: none; color: #0f3d2e; flex: none"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.02em; line-height: 1">KOI</span><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #e8743b"></span></a>
+      <nav class="k-nav" aria-label="Store" style="display: flex; gap: 2px">
+        <a href="#" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Shop</a>
+        <a href="#" aria-current="page" style="font: 700 14px 'Plus Jakarta Sans', sans-serif; color: #1f5c3a; background: #e8f1ea; text-decoration: none; padding: 8px 14px; border-radius: 999px">Plan</a>
+        <a href="../Calendar.dc.html" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Calendar</a>
+        <a href="../Track.dc.html" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Track</a>
+        <a href="#" style="font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-decoration: none; padding: 8px 14px; border-radius: 999px">Orders</a>
+      </nav>
+      <div style="flex: 1"></div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="k-search" aria-label="Search or ask KOI" style="width: 260px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 14px; background: #ffffff; border: 1px solid rgba(20,22,15,0.08); border-radius: 999px; font: 500 14px 'Plus Jakarta Sans', sans-serif; color: #6b6f63; text-align: left; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span>Search or ask KOI</span><kbd style="margin-left: auto; font: 500 10.5px 'IBM Plex Mono', monospace; border: 1px solid rgba(20,22,15,0.14); border-radius: 6px; padding: 2px 6px; color: #6b6f63">⌘K</kbd></button>
+        <button type="button" class="k-hide-sm" aria-label="Delivery location: Bengaluru" style="height: 40px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; background: #ffffff; border: 1px solid rgba(20,22,15,0.08); border-radius: 999px; font: 600 13.5px 'Plus Jakarta Sans', sans-serif; color: #1c1e17; cursor: pointer"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1f5c3a" stroke-width="2" stroke-linecap="round"><path d="M12 21s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>Bengaluru</button>
+        <button type="button" class="k-hide-sm" aria-label="Open cart, 6 products" style="height: 40px; display: inline-flex; align-items: center; gap: 9px; padding: 0 16px 0 14px; background: #0f3d2e; border: 0; border-radius: 999px; font: 700 14px 'Plus Jakarta Sans', sans-serif; color: #ffffff; cursor: pointer"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1.5 11h-11z"></path><path d="M9 7a3 3 0 016 0"></path></svg>Cart<span style="font: 700 13px 'Space Grotesk', sans-serif; background: #ddf247; color: #0f3d2e; border-radius: 999px; padding: 1px 8px">6</span></button>
+      </div>
+    </div>
+  </header>
+
+  <div style="position: sticky; top: 64px; z-index: 40; border-bottom: 1px solid rgba(8,61,45,0.1); background: rgba(246,245,241,0.94)">
+    <div style="max-width: 1440px; margin: 0 auto; display: flex; align-items: center; gap: 24px; padding: 10px clamp(16px,4vw,52px); box-sizing: border-box">
+      <span class="k-hide-md" style="width: 170px; flex: none; font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #1f5c3a">Week of 26 Oct</span>
+      <nav aria-label="Plan steps" style="position: relative; flex: 1; min-width: 0">
+        <ol style="position: relative; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: 44px; border-radius: 12px; background: #ebe8df; overflow: hidden">
+          <li aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: #083d2d"></li>
+          <li style="position: relative; display: flex"><a href="#" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: #ddf247; text-decoration: none">01<span class="k-hide-sm">Define</span></a></li>
+          <li style="position: relative; display: flex"><a href="#" aria-current="step" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: #ddf247; text-decoration: none">02<span>You</span></a></li>
+          <li style="position: relative; display: flex"><a href="../Week.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: #4a4d44; text-decoration: none">03<span class="k-hide-sm">Plan</span></a></li>
+          <li style="position: relative; display: flex"><a href="#" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: #4a4d44; text-decoration: none">04<span class="k-hide-sm">Pantry</span></a></li>
+          <li style="position: relative; display: flex"><a href="#" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: #4a4d44; text-decoration: none">05<span class="k-hide-sm">Cart</span></a></li>
+        </ol>
+        <div aria-hidden="true" style="position: absolute; top: -6px; left: 40%; margin-left: -1px; width: 2px; height: 56px; border-radius: 2px; background: #e8743b"><span style="position: absolute; left: -5px; top: -4px; width: 12px; height: 8px; border-radius: 2px; background: #e8743b"></span></div>
+      </nav>
+      <button type="button" aria-label="Household: 1 person" style="height: 44px; flex: none; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0 14px 0 6px; border-radius: 999px; font: 600 13px 'Plus Jakarta Sans', sans-serif; color: #1f5c3a; cursor: pointer"><span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #f6f5f1; background: #1f5c3a; color: #ffffff; display: grid; place-items: center; font: 700 10px 'Space Grotesk', sans-serif">ME</span><span class="k-hide-sm">Household</span></button>
+    </div>
+  </div>
+
+  <main style="width: 100%; max-width: 1440px; margin: 0 auto; padding: 28px clamp(16px,4vw,52px) 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 0">
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px">
+      <span style="font: 500 12px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.18em; color: #4a4d44">Plan · step 2 of 5</span>
+      <h1 class="kc" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(36px, 4.4vw, 60px); line-height: 0.95; letter-spacing: -0.03em; color: #083d2d">Your baseline &amp; the promise</h1>
+      <p style="margin: 0; max-width: 720px; font-size: 15.5px; line-height: 1.6; color: #3d4a43">Where you stand today, and what the plan's numbers work out to. Already follow numbers from a coach or an app? Use them: KOI plans every day to fit them.</p>
+    </div>
+
+    <section class="k-grid2" style="display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 20px; align-items: start">
+      <article aria-label="About you" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; padding: 24px; display: flex; flex-direction: column">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+          <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #4a4d44">About you</span>
+          <span style="font: 600 11px 'IBM Plex Mono', monospace; color: #16a06e">saved ✓</span>
+        </div>
+        <dl style="margin: 8px 0 0; display: flex; flex-direction: column">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Name</dt><dd style="margin: 0; font: 700 14px 'Plus Jakarta Sans', sans-serif">Me</dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Age group</dt><dd style="margin: 0; font: 600 14px 'Plus Jakarta Sans', sans-serif">Adult, 19–59</dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Age</dt><dd style="margin: 0; display: flex; align-items: baseline; gap: 6px"><span style="font: 600 15px 'Space Grotesk', sans-serif">27</span><span style="font-size: 12px; color: #4a4d44">yrs</span></dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Height</dt><dd style="margin: 0; display: flex; align-items: baseline; gap: 6px"><span style="font: 600 15px 'Space Grotesk', sans-serif">178</span><span style="font-size: 12px; color: #4a4d44">cm</span></dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Weight</dt><dd style="margin: 0; display: flex; align-items: baseline; gap: 6px"><span style="font: 600 15px 'Space Grotesk', sans-serif">80</span><span style="font-size: 12px; color: #4a4d44">kg</span></dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Target weight</dt><dd style="margin: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px"><span style="display: flex; align-items: baseline; gap: 6px"><span style="font: 600 15px 'Space Grotesk', sans-serif">76</span><span style="font-size: 12px; color: #4a4d44">kg</span></span><span style="font-size: 11.5px; font-weight: 600; color: #1f6b45">{{targetNote}}</span></dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Sex <span style="font-size: 11px; color: #4a4d44">for the maintenance formula</span></dt><dd style="margin: 0"><span style="display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; font: 600 13px 'Plus Jakarta Sans', sans-serif; color: #083d2d">Male ⇅</span></dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(8,61,45,0.1)"><dt style="font-size: 14px; color: #3d4a43">Activity</dt><dd style="margin: 0"><span style="display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; font: 600 13px 'Plus Jakarta Sans', sans-serif; color: #083d2d">Moderately active ⇅</span></dd></div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0"><dt style="font-size: 14px; color: #3d4a43">Diet</dt><dd style="margin: 0"><span style="display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; font: 600 13px 'Plus Jakarta Sans', sans-serif; color: #083d2d">Non-vegetarian ⇅</span></dd></div>
+        </dl>
+        <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; border-radius: 16px; background: #fbfaf6">
+          <span style="display: flex; flex-direction: column">
+            <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #4a4d44">Goal · step 1 to change</span>
+            <span style="font-size: 15px; font-weight: 700; color: #083d2d">Lose Fat &amp; Build Muscle</span>
+            <span style="font-size: 12px; color: #3d4a43">80 kg → 76 kg target</span>
+          </span>
+          <a href="#" style="font-size: 13px; font-weight: 600; color: #1f5c3a; text-decoration: none">Change</a>
+        </div>
+      </article>
+
+      <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0">
+        <article aria-label="Your baseline" style="background: #083d2d; color: #f6f5f1; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+            <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #ddf247">Your baseline</span>
+            <div role="radiogroup" aria-label="Where your targets come from" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(246,245,241,0.1)">
+              <button type="button" role="radio" aria-checked="{{koiPressed}}" onClick="{{pickKoi}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{koiBg}}; color: {{koiFg}}; font: 700 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer">KOI's suggestion</button>
+              <button type="button" role="radio" aria-checked="{{ownPressed}}" onClick="{{pickOwn}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{ownBg}}; color: {{ownFg}}; font: 700 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer">My own numbers</button>
+            </div>
+          </div>
+
+          <div class="k-tiles3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+              <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Maintenance</span>
+              <span style="font: 600 34px 'Space Grotesk', sans-serif; line-height: 1">2,760</span>
+              <span style="font-size: 12px; color: rgba(246,245,241,0.72)">kcal/day · Mifflin–St Jeor</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+              <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">At this target</span>
+              <span style="font: 600 34px 'Space Grotesk', sans-serif; line-height: 1">{{kgWk}}<span style="margin-left: 4px; font-size: 16px; font-weight: 500">kg</span></span>
+              <span style="font-size: 12px; color: rgba(246,245,241,0.72)">a week, by the arithmetic</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+              <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Latest plan</span>
+              <span style="font: 600 34px 'Space Grotesk', sans-serif; line-height: 1">100<span style="margin-left: 2px; font-size: 16px; font-weight: 500">%</span></span>
+              <span style="font-size: 12px; color: rgba(246,245,241,0.72)">of the protein target</span>
+            </div>
+          </div>
+
+          <sc-if value="{{own}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <div class="k-tiles4" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+                <div style="display: flex; flex-direction: column; gap: 6px; border-radius: 16px; background: #ddf247; color: #083d2d; padding: 16px">
+                  <label for="t-kcal" style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(8,61,45,0.75)">Calories</label>
+                  <span style="display: flex; align-items: baseline; gap: 6px"><input id="t-kcal" type="number" inputmode="numeric" value="{{kcal}}" onChange="{{onKcal}}" style="width: 100%; min-width: 0; border: 0; border-bottom: 2px solid rgba(8,61,45,0.35); background: transparent; padding: 0 0 2px; font: 600 34px 'Space Grotesk', sans-serif; color: #083d2d"><span style="font-size: 13px; font-weight: 500">kcal</span></span>
+                  <span style="align-self: flex-start; border-radius: 999px; background: #083d2d; color: #ddf247; padding: 3px 9px; font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em">{{gapChip}}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+                  <label for="t-p" style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Protein</label>
+                  <span style="display: flex; align-items: baseline; gap: 6px"><input id="t-p" type="number" inputmode="numeric" value="{{p}}" onChange="{{onP}}" style="width: 100%; min-width: 0; border: 0; border-bottom: 2px solid rgba(246,245,241,0.3); background: transparent; padding: 0 0 2px; font: 600 34px 'Space Grotesk', sans-serif; color: #f6f5f1"><span style="font-size: 13px; color: rgba(246,245,241,0.75)">g</span></span>
+                  <span style="font-size: 12px; color: rgba(246,245,241,0.72)">{{pKg}} g per kg</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+                  <label for="t-c" style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Carbs</label>
+                  <span style="display: flex; align-items: baseline; gap: 6px"><input id="t-c" type="number" inputmode="numeric" value="{{c}}" onChange="{{onC}}" style="width: 100%; min-width: 0; border: 0; border-bottom: 2px solid rgba(246,245,241,0.3); background: transparent; padding: 0 0 2px; font: 600 34px 'Space Grotesk', sans-serif; color: #f6f5f1"><span style="font-size: 13px; color: rgba(246,245,241,0.75)">g</span></span>
+                  <span style="font-size: 12px; color: rgba(246,245,241,0.72)">{{cKg}} g per kg</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+                  <label for="t-f" style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Fat</label>
+                  <span style="display: flex; align-items: baseline; gap: 6px"><input id="t-f" type="number" inputmode="numeric" value="{{f}}" onChange="{{onF}}" style="width: 100%; min-width: 0; border: 0; border-bottom: 2px solid rgba(246,245,241,0.3); background: transparent; padding: 0 0 2px; font: 600 34px 'Space Grotesk', sans-serif; color: #f6f5f1"><span style="font-size: 13px; color: rgba(246,245,241,0.75)">g</span></span>
+                  <span style="font-size: 12px; color: rgba(246,245,241,0.72)">{{fKg}} g per kg</span>
+                </div>
+              </div>
+
+              <sc-if value="{{adds}}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: rgba(159,231,196,0.14)">
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe7c4" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M5 12l5 5 9-10"></path></svg>
+                  <p style="margin: 0; font-size: 14px; line-height: 1.5"><strong>It adds up.</strong> <span style="font-family: 'Space Grotesk', sans-serif">{{p}} × 4 + {{c}} × 4 + {{f}} × 9 = {{fromMacros}}</span> kcal, {{diffWords}} your {{kcalWords}}.</p>
+                </div>
+              </sc-if>
+              <sc-if value="{{offBy}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 16px; background: #faece2; color: #7a3d1c">
+                  <p style="margin: 0; font-size: 14px; line-height: 1.5"><strong>These don't add up.</strong> <span style="font-family: 'Space Grotesk', sans-serif">{{p}} × 4 + {{c}} × 4 + {{f}} × 9 = {{fromMacros}}</span> kcal, {{diffWords}} your {{kcalWords}}.</p>
+                  <button type="button" onClick="{{balance}}" style="height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Fit carbs to the calories</button>
+                </div>
+              </sc-if>
+
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid rgba(246,245,241,0.15)">
+                <div style="min-width: 0">
+                  <div style="font-size: 15px; font-weight: 700">More carbs on training days</div>
+                  <div style="font-size: 13px; color: rgba(246,245,241,0.75)">The same week in total. KOI reads your training days from the Calendar.</div>
+                </div>
+                <button type="button" role="switch" aria-checked="{{cycleAria}}" aria-label="More carbs on training days" onClick="{{toggleCycle}}" style="flex: none; width: 56px; height: 32px; border: 0; border-radius: 999px; padding: 3px; cursor: pointer; background: {{cycleBg}}; display: flex; justify-content: {{cycleJustify}}"><span style="width: 26px; height: 26px; border-radius: 50%; background: {{cycleKnob}}; display: block"></span></button>
+              </div>
+              <sc-if value="{{cycle}}" hint-placeholder-val="{{ false }}">
+                <div class="k-tiles3" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+                  <div style="border-radius: 16px; background: rgba(246,245,241,0.1); padding: 14px 16px"><div style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Training · Mon Tue Thu Fri</div><div style="font: 600 22px 'Space Grotesk', sans-serif">{{trainKcal}} kcal · C {{trainC}} g</div></div>
+                  <div style="border-radius: 16px; background: rgba(246,245,241,0.1); padding: 14px 16px"><div style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Rest · Wed Sat Sun</div><div style="font: 600 22px 'Space Grotesk', sans-serif">{{restKcal}} kcal · C {{restC}} g</div></div>
+                </div>
+              </sc-if>
+
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid rgba(246,245,241,0.15)">
+                <div style="min-width: 0">
+                  <div style="font-size: 15px; font-weight: 700">How close is close enough</div>
+                  <div style="font-size: 13px; color: rgba(246,245,241,0.75)">Every day lands within this, on calories and each macro. Tighter means more repeats.</div>
+                </div>
+                <div role="radiogroup" aria-label="How close each day lands" style="display: flex; gap: 6px">
+                  <sc-for list="{{tolOpts}}" as="t" hint-placeholder-count="3">
+                    <button type="button" role="radio" aria-checked="{{t.aria}}" onClick="{{t.pick}}" style="height: 40px; min-width: 64px; padding: 0 12px; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: 600 14px 'Space Grotesk', sans-serif; cursor: pointer">± {{t.n}}%</button>
+                  </sc-for>
+                </div>
+              </div>
+
+              <p style="margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: rgba(246,245,241,0.8)">Targets you set yourself. KOI never changes them without asking.<button type="button" onClick="{{pickKoi}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: rgba(246,245,241,0.1); color: #ddf247; font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Use KOI's suggestion</button></p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{koi}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <div class="k-tiles3" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+                <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; background: #ddf247; color: #083d2d; padding: 16px">
+                  <span style="font: 600 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(8,61,45,0.75)">Target calories</span>
+                  <span style="display: flex; align-items: baseline; gap: 8px"><span style="font: 600 38px 'Space Grotesk', sans-serif; line-height: 1">2,760</span><span style="font-size: 14px; font-weight: 500">kcal/day</span></span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; background: rgba(246,245,241,0.1); padding: 16px">
+                  <span style="font: 500 10.5px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(246,245,241,0.72)">Target protein</span>
+                  <span style="display: flex; align-items: baseline; gap: 8px"><span style="font: 600 38px 'Space Grotesk', sans-serif; line-height: 1">128</span><span style="font-size: 14px; color: rgba(246,245,241,0.75)">g/day</span></span>
+                </div>
+              </div>
+              <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px">
+                <li style="display: flex; gap: 8px; font-size: 13px; line-height: 1.4; color: rgba(246,245,241,0.82)"><span aria-hidden="true" style="flex: none; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: #ddf247"></span>Maintenance 2,760 kcal: Mifflin–St Jeor for 80 kg, 178 cm, 27 years, × 1.55 for activity</li>
+                <li style="display: flex; gap: 8px; font-size: 13px; line-height: 1.4; color: rgba(246,245,241,0.82)"><span aria-hidden="true" style="flex: none; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: #ddf247"></span>Protein 128 g: 1.6 g per kg of 80 kg, for high protein</li>
+                <li style="display: flex; gap: 8px; font-size: 13px; line-height: 1.4; color: rgba(246,245,241,0.82)"><span aria-hidden="true" style="flex: none; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: #ddf247"></span>Carbs and fat: KOI's planner balances them. Switch to your own numbers to set both.</li>
+              </ul>
+            </div>
+          </sc-if>
+        </article>
+
+        <article aria-label="Your journey preview" style="background: #ffffff; border: 1px solid rgba(8,61,45,0.1); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
+            <span style="font: 600 11px 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.16em; color: #4a4d44">Your journey preview</span>
+            <span style="font: 500 11px 'IBM Plex Mono', monospace; color: #4a4d44">Weight (kg)</span>
+          </div>
+          <sc-if value="{{own}}" hint-placeholder-val="{{ true }}">
+            <svg viewBox="0 0 640 200" role="img" aria-label="Weight at this plan's energy balance, from 80 to 76 kg" style="width: 100%; height: 200px; overflow: visible">
+              <line x1="40" y1="20" x2="40" y2="160" stroke="#ebe8df"></line>
+              <line x1="40" y1="160" x2="620" y2="160" stroke="#ebe8df"></line>
+              <text x="4" y="34" font-family="IBM Plex Mono" font-size="11" fill="#4a4d44">81</text>
+              <text x="4" y="160" font-family="IBM Plex Mono" font-size="11" fill="#4a4d44">75</text>
+              <path d="M60,50 L150,64 L240,76 L330,92 L420,104 L510,118 L600,130" fill="none" stroke="#1f5c3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+              <circle cx="60" cy="50" r="4.5" fill="#1f5c3a"></circle><circle cx="150" cy="64" r="4.5" fill="#1f5c3a"></circle><circle cx="240" cy="76" r="4.5" fill="#1f5c3a"></circle><circle cx="330" cy="92" r="4.5" fill="#1f5c3a"></circle><circle cx="420" cy="104" r="4.5" fill="#1f5c3a"></circle><circle cx="510" cy="118" r="4.5" fill="#1f5c3a"></circle><circle cx="600" cy="130" r="6" fill="#ddf247" stroke="#1f5c3a" stroke-width="3"></circle>
+              <g font-family="Space Grotesk" font-size="11" font-weight="600" fill="#3d4a43" text-anchor="middle"><text x="60" y="38">80</text><text x="150" y="52">79.3</text><text x="240" y="64">78.7</text><text x="330" y="80">77.9</text><text x="420" y="92">77.3</text><text x="510" y="106">76.6</text><text x="600" y="118">76</text></g>
+              <g font-family="IBM Plex Mono" font-size="10" fill="#4a4d44" text-anchor="middle"><text x="60" y="186">WK0</text><text x="150" y="186">WK5</text><text x="240" y="186">WK9</text><text x="330" y="186">WK14</text><text x="420" y="186">WK18</text><text x="510" y="186">WK23</text><text x="600" y="186">WK27</text></g>
+            </svg>
+            <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 14px; border-top: 1px solid rgba(8,61,45,0.1)">
+              <span style="font-size: 13px; color: #4a4d44">At this rate, you'd reach</span>
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px; line-height: 1.1; letter-spacing: -0.01em; color: #083d2d">76 kg by 28 Apr 2027</span>
+              <span style="font-size: 12.5px; line-height: 1.5; color: #4a4d44">Arithmetic, not a prediction: about 7,700 kcal is taken as 1 kg of body weight. Real change is rarely a straight line.</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{koi}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 0">
+              <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px; line-height: 1.1; color: #083d2d">Weight holds steady</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #4a4d44">A recomp at maintenance changes what the kilos are made of, not the number on the scale.</span>
+            </div>
+          </sc-if>
+        </article>
+      </div>
+    </section>
+
+    <nav aria-label="Step" style="margin-top: 28px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+      <a href="#" style="height: 56px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 16px; font-size: 14px; font-weight: 600; color: #3d4a43; text-decoration: none">← Back</a>
+      <a href="../Week.dc.html" style="height: 56px; display: inline-flex; align-items: center; gap: 10px; padding: 0 28px; border-radius: 16px; background: #083d2d; color: #ddf247; font-size: 16px; font-weight: 700; text-decoration: none">Customize my plan<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+    </nav>
+  </main>
+
+  <section aria-label="Ask KOI" style="position: sticky; bottom: 0; z-index: 40; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 16px 20px; background: linear-gradient(to top, #f6f5f1 60%, rgba(246,245,241,0))">
+    <p aria-live="polite" style="margin: 0; max-width: 780px; text-align: center; font-size: 19px; font-weight: 500; line-height: 1.45; color: #1c1e17; padding: 4px 16px; border-radius: 16px; background: rgba(246,245,241,0.8)">Your own numbers. I'll plan every day to land close to them.</p>
+    <form style="position: relative; width: 100%; max-width: 680px; height: 60px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 20px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); background: rgba(255,255,255,0.92); box-shadow: 0 24px 44px -28px rgba(15,61,46,0.45)">
+      <span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: #e8743b; box-shadow: 0 0 0 5px rgba(232,116,59,0.16)"></span>
+      <label for="ask-you" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Ask KOI</label>
+      <input id="ask-you" type="text" placeholder="My coach moved my carbs to 320…" style="flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: 500 16px 'Plus Jakarta Sans', sans-serif; color: #1c1e17">
+      <button type="button" style="flex: none; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 18px; border: 0; border-radius: 999px; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Ask KOI<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></button>
+    </form>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'own', kcal: 2600, p: 190, c: 290, f: 75, cycle: false, tol: 5 };
+  }
+  renderVals() {
+    const s = this.state;
+    const W = 80;
+    const MAINT = 2760;
+    const num = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0; };
+    const fmt = (n) => Math.round(n).toLocaleString('en-IN');
+    const own = s.mode === 'own';
+    const target = own ? s.kcal : MAINT;
+    const fromMacros = s.p * 4 + s.c * 4 + s.f * 9;
+    const diff = fromMacros - s.kcal;
+    const adds = Math.abs(diff) <= Math.max(25, s.kcal * 0.01);
+    const gap = MAINT - target;
+    const kgWk = Math.round(((gap * 7) / 7700) * 100) / 100;
+    const swing = 60;
+    const restDrop = Math.round((swing * 4) / 3);
+    return {
+      own, koi: !own,
+      ownPressed: own ? 'true' : 'false', koiPressed: own ? 'false' : 'true',
+      ownBg: own ? '#ddf247' : 'transparent', ownFg: own ? '#083d2d' : 'rgba(246,245,241,0.85)',
+      koiBg: own ? 'transparent' : '#ddf247', koiFg: own ? 'rgba(246,245,241,0.85)' : '#083d2d',
+      pickOwn: () => this.setState({ mode: 'own' }),
+      pickKoi: () => this.setState({ mode: 'koi' }),
+      kcal: s.kcal, p: s.p, c: s.c, f: s.f,
+      onKcal: (e) => this.setState({ kcal: num(e.target.value) }),
+      onP: (e) => this.setState({ p: num(e.target.value) }),
+      onC: (e) => this.setState({ c: num(e.target.value) }),
+      onF: (e) => this.setState({ f: num(e.target.value) }),
+      fromMacros: fmt(fromMacros), kcalWords: fmt(s.kcal),
+      diffWords: diff === 0 ? 'exactly' : fmt(Math.abs(diff)) + (diff > 0 ? ' over' : ' under'),
+      adds, offBy: !adds,
+      balance: () => this.setState({ c: Math.max(0, Math.round((s.kcal - s.p * 4 - s.f * 9) / 4)) }),
+      pKg: (s.p / W).toFixed(1), cKg: (s.c / W).toFixed(1), fKg: (s.f / W).toFixed(1),
+      gapChip: gap > 0 ? 'Deficit ' + fmt(gap) : gap < 0 ? 'Surplus ' + fmt(-gap) : 'Maintenance',
+      kgWk: (kgWk > 0 ? '−' : kgWk < 0 ? '+' : '±') + Math.abs(kgWk),
+      targetNote: own ? (kgWk > 0 ? 'about ' + kgWk + ' kg/wk at this target' : 'your target is maintenance') : 'your target is maintenance',
+      cycle: s.cycle,
+      cycleAria: s.cycle ? 'true' : 'false',
+      cycleBg: s.cycle ? '#ddf247' : 'rgba(246,245,241,0.22)',
+      cycleKnob: s.cycle ? '#083d2d' : '#f6f5f1',
+      cycleJustify: s.cycle ? 'flex-end' : 'flex-start',
+      toggleCycle: () => this.setState({ cycle: !s.cycle }),
+      trainKcal: fmt(s.kcal + swing * 4), trainC: s.c + swing,
+      restKcal: fmt(s.kcal - restDrop * 4), restC: Math.max(0, s.c - restDrop),
+      tol: s.tol,
+      tolOpts: [3, 5, 10].map((n) => ({
+        n,
+        aria: s.tol === n ? 'true' : 'false',
+        bg: s.tol === n ? '#ddf247' : 'transparent',
+        fg: s.tol === n ? '#083d2d' : '#f6f5f1',
+        border: s.tol === n ? '#ddf247' : 'rgba(246,245,241,0.3)',
+        pick: () => this.setState({ tol: n })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
