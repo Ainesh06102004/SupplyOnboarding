@@ -139,5 +139,12 @@
 {"key": "salt", "name": "Salt", "source": "koi_estimate", "ref": "No energy", "per100": {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fibre": 0}, "m": {"tsp": 6, "pinch": 0.4}},
 {"key": "black_salt", "name": "Black salt (kala namak)", "source": "koi_estimate", "ref": "No energy", "per100": {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fibre": 0}, "m": {"tsp": 5, "pinch": 0.4}},
 {"key": "rock_salt", "name": "Rock salt (sendha namak)", "source": "koi_estimate", "ref": "No energy", "per100": {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fibre": 0}, "m": {"tsp": 6, "pinch": 0.4}},
-{"key": "baking_soda", "name": "Baking soda", "source": "koi_estimate", "ref": "No energy", "per100": {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fibre": 0}, "m": {"tsp": 4.6, "pinch": 0.3}}
+{"key": "baking_soda", "name": "Baking soda", "source": "koi_estimate", "ref": "No energy", "per100": {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0, "fibre": 0}, "m": {"tsp": 4.6, "pinch": 0.3}},
+{"key": "khoya", "name": "Khoya (khoa)", "ifct": "L004", "fridge": 5, "m": {"tbsp": 15}},
+{"key": "cheese", "name": "Cheese (mozzarella)", "source": "usda_fdc", "ref": "Cheese, mozzarella, whole milk", "per100": {"kcal": 300, "protein": 22.17, "carbs": 2.19, "fat": 22.35, "fibre": 0}, "fridge": 14, "m": {"cup": 113, "tbsp": 7}},
+{"key": "mayonnaise", "name": "Mayonnaise (eggless)", "source": "koi_estimate", "ref": "Typical Indian eggless mayonnaise label, about 300 kcal per 100 g", "per100": {"kcal": 300, "protein": 1.0, "carbs": 10.0, "fat": 29.0, "fibre": 0}, "m": {"tbsp": 15}},
+{"key": "ice_cream", "name": "Ice cream (vanilla)", "source": "usda_fdc", "ref": "Ice creams, vanilla", "per100": {"kcal": 207, "protein": 3.5, "carbs": 22.9, "fat": 11.0, "fibre": 0.7}, "m": {"cup": 132}},
+{"key": "cola", "name": "Cola", "source": "koi_estimate", "ref": "Typical Indian cola label, 42 kcal and 10.6 g sugar per 100 ml", "per100": {"kcal": 42, "protein": 0, "carbs": 10.6, "fat": 0, "fibre": 0}, "m": {"cup": 240}},
+{"key": "ketchup", "name": "Tomato ketchup", "source": "usda_fdc", "ref": "Catsup", "per100": {"kcal": 101, "protein": 1.04, "carbs": 27.1, "fat": 0.1, "fibre": 0.3}, "m": {"tbsp": 17}},
+{"key": "pasta", "name": "Pasta (dry)", "source": "usda_fdc", "ref": "Pasta, dry, unenriched", "per100": {"kcal": 371, "protein": 13.04, "carbs": 71.5, "fat": 1.51, "fibre": 3.2}, "yield": 2.3, "m": {"cup": 100}}
 ]

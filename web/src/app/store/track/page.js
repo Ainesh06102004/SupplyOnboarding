@@ -15,9 +15,9 @@
 // through the same bridge.
 // ============================================================================
 
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginUi } from "@/store/loginUiStore";
 import { usePlanSession } from "@/components/store/plan/design/usePlanSession";
 import TrackView from "@/components/store/plan/design/TrackView";
@@ -28,7 +28,7 @@ function Loading() {
   return (
     <div role="status" className="koi-page flex items-center gap-2.5 font-koi-sans text-sm font-medium text-koi-muted">
       <span aria-hidden="true" className="size-3 animate-spin rounded-full border-2 border-koi-track border-t-koi-green" />
-      Loading your weigh-ins…
+      Loading Track…
     </div>
   );
 }
@@ -39,9 +39,9 @@ function SignedOut() {
     <main className="koi-page font-koi-sans text-koi-ink">
       <section className="flex max-w-[860px] flex-col gap-4">
         <span className="font-koi-mono text-xs font-medium uppercase tracking-[0.18em] text-koi-muted">Track</span>
-        <h1 className="koi-condensed m-0 font-koi-display text-[clamp(44px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">Your weigh-ins, against the plan</h1>
+        <h1 className="koi-condensed m-0 font-koi-display text-[clamp(44px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">Your meals and weigh-ins, against the plan</h1>
         <p className="m-0 max-w-[600px] text-[17px] leading-relaxed text-koi-ink2">
-          Sign in with your phone to track your own weight. Your weigh-ins are yours alone, kept until you delete them, and KOI only ever suggests.
+          Sign in with your phone to track your own meals and weight. They are yours alone, kept until you delete them, and KOI only ever suggests.
         </p>
         <div className="mt-2 flex flex-wrap gap-3">
           <button type="button" onClick={() => openLogin()} className="flex h-14 items-center rounded-2xl bg-koi-forest px-7 text-[15px] font-bold text-koi-lime">Sign in with phone</button>
@@ -53,8 +53,20 @@ function SignedOut() {
 }
 
 export default function TrackPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <Track />
+    </Suspense>
+  );
+}
+
+function Track() {
   const session = usePlanSession();
   const router = useRouter();
+  // A meal said to KOI opens Track on it: ?meal=<their words> from the KOI bar,
+  // ?take2=<date>:<slot> after KOI's agent logged it.
+  const search = useSearchParams();
+  const ask = useMemo(() => ({ meal: search.get("meal"), take2: search.get("take2") }), [search]);
   // KOI Agent Mode: "tell KOI" on this page goes to the dock, as on the Plan.
   const agent = useAgent();
   const agentSend = agent?.send;
@@ -81,7 +93,7 @@ export default function TrackPage() {
             <button type="button" onClick={() => s.setError(null)} aria-label="Dismiss" className="text-sm font-bold">×</button>
           </div>
         )}
-        <TrackView s={s} />
+        <TrackView s={s} ask={ask} onAsked={() => router.replace("/store/track", { scroll: false })} />
       </main>
       <Toast toast={s.toast} />
     </>

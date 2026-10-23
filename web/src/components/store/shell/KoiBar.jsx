@@ -16,6 +16,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useKoiVoice } from "@/store/koiVoiceStore";
 import { EmberSlot, useEmber } from "@/components/store/ember/Ember";
 import { setupMotion, prefersReducedMotion, E } from "@/lib/motion/koiMotion";
+import { readMealSentence } from "@/lib/food/mealWords";
 
 const PLACEHOLDERS = {
   "/store": "Snacks for evening tea, crunchy, not sweet…",
@@ -81,6 +82,12 @@ export default function KoiBar() {
     const q = text.trim();
     if (!q) return;
     setText("");
+    // "Had biryani at the office", "kal raat pizza khaya": a meal goes to Track, which reads it and offers a Take 2.
+    if (readMealSentence(q).isMeal) {
+      ember.status("Reading");
+      router.push(`/store/track?meal=${encodeURIComponent(q)}`);
+      return;
+    }
     // On the shelf, KOI pulls focus in place; anywhere else the ask goes to it.
     if (pathname === "/store/shop") { window.dispatchEvent(new CustomEvent("koi:ask", { detail: q })); return; }
     ember.status("Reading");

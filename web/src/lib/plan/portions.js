@@ -144,9 +144,13 @@ function roundLine(foodKey, grams) {
  * @param {Set<number>} [input.trainingDays] day indexes that are training days (carb cycling)
  * @param {Object<string,string>} [input.ties] item id → group id, for portions that must match (a batch)
  * @param {Object<string,string[]>} [input.leaveOut] cell key → optional ingredients left out for this person
+ * @param {Object<string,{name?: string, nutrition: object}|null>} [input.fixed] cell key → what this person
+ *   eats there, already decided (a meal logged on Track, a box already cooked, a Take 2's leftovers): it
+ *   counts towards the day as it is and is never resized; null means nothing is eaten there
+ * @param {Object<number,object>} [input.shift] day index → nutrients added to that day's target (a Take 2)
  * @returns {object} see the bottom of this function
  */
-export function sizePortions({ week, person, labels = new Map(), basket = [], trainingDays = null, ties = {}, leaveOut = {} }) {
+export function sizePortions({ week, person, labels = new Map(), basket = [], trainingDays = null, ties = {}, leaveOut = {}, fixed = {}, shift = {} }) {
   const R = PORTION_RULES;
   const memberId = String(person.memberId);
   const tolerance = Math.max(2, Math.min(15, Number(person.target_tolerance_pct) || 5));
@@ -159,6 +163,11 @@ export function sizePortions({ week, person, labels = new Map(), basket = [], tr
     for (const slot of week.slots ?? []) {
       const cell = week.cells[`${day.index}:${slot}`];
       if (!cell) continue;
+      if (Object.hasOwn(fixed, cell.key)) {
+        const f = fixed[cell.key];
+        if (f) items.push({ id: `${cell.key}|fixed`, kind: "fixed", cellKey: cell.key, slot, name: f.name ?? null, nutrition: { ...zero(), ...f.nutrition }, components: {} });
+        continue;
+      }
       for (const d of dishesFor(cell, memberId)) {
         const recipe = recipeFor(d.key);
         if (!recipe) continue;
@@ -180,13 +189,21 @@ export function sizePortions({ week, person, labels = new Map(), basket = [], tr
         items.push({ id, kind: "dish", cellKey: cell.key, slot, dishKey: d.key, name: recipe.name, recipe, lines, per100For, components });
       }
     }
+    // Something decided in a slot the week has no meal in (a snack logged on a day without one).
+    for (const [key, f] of Object.entries(fixed)) {
+      const [d, slot] = key.split(":");
+      if (Number(d) !== day.index || !f || week.cells[key]) continue;
+      items.push({ id: `${key}|fixed`, kind: "fixed", cellKey: key, slot, name: f.name ?? null, nutrition: { ...zero(), ...f.nutrition }, components: {} });
+    }
     for (const a of week.additions?.[memberId] ?? []) {
       const per100 = labels.get(String(a.skuId));
       if (!per100 || !isNum(a.perDay) || Number(a.perDay) <= 0) continue;
       const grams = Number(a.perDay);
       items.push({ id: `${day.index}|add|${a.skuId}`, kind: "addition", slot: a.slot ?? "snack", skuId: String(a.skuId), name: a.name ?? nameOfSku.get(String(a.skuId)) ?? "A product", grams, per100, components: { addition: { role: "addition", unit: scaleNutrients(per100, grams) } } });
     }
-    const target = dayTargets(person, { training: trainingDays ? trainingDays.has(day.index) : false, trainingDays: trainCount });
+    const base = dayTargets(person, { training: trainingDays ? trainingDays.has(day.index) : false, trainingDays: trainCount });
+    const moved = shift[day.index] ?? {};
+    const target = Object.fromEntries(Object.entries(base).map(([n, v]) => [n, Number.isFinite(moved[n]) ? Math.max(0, v + moved[n]) : v]));
     return { index: day.index, date: day.date, label: day.label, items, target };
   });
 
@@ -200,6 +217,7 @@ export function sizePortions({ week, person, labels = new Map(), basket = [], tr
   };
   for (const day of days) {
     for (const item of day.items) {
+      if (item.kind === "fixed") continue;
       const group = ties[item.id] ?? item.id;
       item.vars = {};
       if (item.kind === "addition") {
@@ -226,8 +244,8 @@ export function sizePortions({ week, person, labels = new Map(), basket = [], tr
     }
   }
 
-  // Running totals per day and nutrient at the current scales.
-  const total = new Map(days.map((d) => [d.index, zero()]));
+  // Running totals per day and nutrient at the current scales, starting from what is already decided.
+  const total = new Map(days.map((d) => [d.index, d.items.filter((i) => i.kind === "fixed").reduce((acc, i) => addNutrients(acc, i.nutrition), zero())]));
   const dayOf = new Map(days.map((d) => [d.index, d]));
   for (const v of vars) for (const t of v.terms) { const tot = total.get(t.day); for (const n of MACROS) tot[n] += t.unit[n] * v.value; }
 
@@ -270,6 +288,7 @@ export function sizePortions({ week, person, labels = new Map(), basket = [], tr
   // ── Round to the kitchen, then re-check the day from the rounded grams ───
   const out = days.map((day) => {
     const items = day.items.map((item) => {
+      if (item.kind === "fixed") return { kind: "fixed", id: item.id, cellKey: item.cellKey, slot: item.slot, name: item.name, nutrition: item.nutrition };
       const scaleOf = (role) => vars[item.vars[role]].value;
       if (item.kind === "addition") {
         const grams = Math.round((item.grams * scaleOf("addition")) / 5) * 5;
@@ -319,6 +338,7 @@ function gapWords(nutrient, delta) {
 /** What a portioned plate says, line by line, for the week grid: "rice 95 g · chicken 180 g". */
 export function plateWords(item, { max = 3 } = {}) {
   if (item.kind === "addition") return `${item.name} ${item.grams} g`;
+  if (item.kind === "fixed") return item.name ?? "";
   return item.lines
     .filter((l) => l.supply !== "kitchen" && !/salt|masala|powder|seeds|leaves|chilli|garlic|ginger/.test(l.food))
     .sort((a, b) => b.grams - a.grams)

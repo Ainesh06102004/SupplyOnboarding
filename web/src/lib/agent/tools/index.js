@@ -37,6 +37,8 @@ import { swapsFor } from "@/lib/food/swaps";
 import { readFavourites, MAX_FAVOURITES } from "@/lib/plan/favourites";
 import { noteLines } from "@/lib/plan/planView";
 import { trackRead } from "@/lib/plan/track";
+import { readMealSentence, slotAt, dateFor } from "@/lib/food/mealWords";
+import { estimateMeal, estimateWords, matchDishes, SETTINGS as MEAL_SETTINGS } from "@/lib/food/estimate";
 import { festivalNamed, FAST_WORDS } from "@/lib/calendar/festivals";
 import { blankProfile, memberPayload, profileProblems, profilesNamedIn, SEVERITIES } from "@/lib/household/profile";
 import { mergeAvoids, applyProfileSet, withSuggestedTargets, weakens } from "@/lib/household/save";
@@ -737,6 +739,96 @@ async function executeWeighIn(ctx, args) {
   return { ok: true, summary: `Logged ${planned.kg} kg`, forModel: "Logged today's weight. The Track page shows the trend.", ui: { navigate: { href: "/store/track" } } };
 }
 
+// ── log_meal (approval): a meal off the plan, told to KOI ───────────────────
+// The shopper's words are read by rules (lib/food/mealWords.js): the dishes,
+// counts, meal, day and place come from there, never from the model, and a
+// word that fits several dishes is asked about, not guessed. The figure is
+// estimate.js's range. The Take 2 is the shopper's to pick on Track.
+const SLOT_NAME = Object.freeze({ breakfast: "breakfast", lunch: "lunch", snack: "snack", dinner: "dinner", drinks: "drinks" });
+
+/** The meal the shopper said: their latest words, or a short answer completing the meal they said before it. */
+function mealSaid(ctx, quote) {
+  const said = wordsFor(ctx, quote);
+  if (said.error) return { error: said.error };
+  const read = readMealSentence(said.text);
+  if (read.isMeal) return { read, text: said.text };
+  const prev = ctx.memory.said.at(-2) ?? "";
+  if (readMealSentence(prev).isMeal && wordsOf(said.text).length <= 4) return { read: readMealSentence(`${prev} ${said.text}`), text: `${prev} ${said.text}` };
+  return { read, text: said.text };
+}
+
+async function planMeal(ctx, { quote, slot, day, setting }) {
+  const me = ctx.saved.find((p) => p.is_account_holder);
+  if (!me) return { refused: "KOI doesn't know which saved person is the shopper. Ask which_person, then save_people source=changes with this_is_me." };
+  if (!ADULT_BANDS.has(me.age_band)) return { refused: "Meals are tracked for adults only." };
+  const said = mealSaid(ctx, quote);
+  if (said.error) return { refused: said.error };
+  const { read } = said;
+  if (!read.isMeal) return { refused: "That doesn't say a meal the shopper ate, skipped or half ate. Only log a meal they said." };
+  if (read.ambiguous.length) {
+    const m = read.ambiguous[0];
+    return { refused: `"${m.words.join(" ")}" could be ${joinLabels(m.options.map((o) => o.name))}. Ask with ask_shopper topic=clarify, the options exactly these names.` };
+  }
+  const hourIST = new Date(Date.now() + 5.5 * 3600_000).getUTCHours();
+  const mealSlot = read.slot ?? (SLOT_NAME[slot] ? slot : null) ?? slotAt(hourIST);
+  const when = read.day ?? (day === "yesterday" ? "yesterday" : "today");
+  const where = read.setting ?? (MEAL_SETTINGS[setting] ? setting : null) ?? "restaurant";
+  const items = read.status !== "other" ? []
+    : read.items.length ? read.items.map((i) => ({ dishKey: i.dishKey, portion: i.portion ?? read.portion ?? "usual", count: i.count ?? 1 }))
+      : [{ text: said.text.slice(0, 80), portion: read.portion ?? "usual" }];
+  const estimate = read.status === "other" ? estimateMeal({ items, setting: where, slot: mealSlot }) : null;
+  return { me, status: read.status, on: dateFor(when), when, slot: mealSlot, setting: where, items, estimate };
+}
+
+const mealPrint = (p) => fingerprint({ m: p.me.memberId, on: p.on, slot: p.slot, status: p.status, setting: p.setting, items: p.items });
+
+async function prepareMeal(ctx, args) {
+  const p = await planMeal(ctx, args);
+  if (p.refused) return p;
+  const when = `${SLOT_NAME[p.slot]} ${p.when}`;
+  const rows = p.status === "skipped" ? [{ text: `Skipped ${when}`, tone: "changed" }]
+    : p.status === "partial" ? [{ text: `Some of ${when}, as planned`, tone: "changed" }]
+      : [
+        ...p.estimate.parts.map((x) => ({ text: `${x.name}, ${x.amountText}`, tone: "added" })),
+        { text: `${MEAL_SETTINGS[p.setting].label}: ${estimateWords(p.estimate)}`, tone: "changed" },
+      ];
+  return {
+    card: {
+      kind: "rules",
+      title: `Log ${when} on Track?`,
+      rows,
+      note: p.status === "other"
+        ? "KOI's estimate is a range: nobody can see the oil. Then Track offers a Take 2 for the rest of your day; nothing changes unless you pick one."
+        : "Then Track offers a Take 2 for the rest of your day; nothing changes unless you pick one.",
+    },
+    fp: mealPrint(p),
+  };
+}
+
+async function executeMeal(ctx, args, prepared) {
+  const p = await planMeal(ctx, args);
+  if (p.refused) return refuse(`Not logged: ${p.refused}`);
+  if (mealPrint(p) !== prepared.fp) return refuse("The meal changed since the shopper saw the card. Nothing was logged; call log_meal again.");
+  const { error } = await ctx.db.from("member_meal_log").upsert({
+    member_id: p.me.memberId,
+    eaten_on: p.on,
+    slot: p.slot,
+    status: p.status,
+    planned: null,
+    other: p.status === "other" ? { items: p.items.map(({ dishKey, text, portion, count }) => ({ ...(dishKey ? { dish_key: dishKey } : { text }), portion, count })), setting: p.setting } : p.status === "partial" ? { share: 0.5 } : null,
+    estimate: p.estimate ? { point: p.estimate.point, low: p.estimate.low, high: p.estimate.high, basis: p.estimate.basis } : null,
+    source: "koi",
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "member_id,eaten_on,slot" });
+  if (error) throw error;
+  return {
+    ok: true,
+    summary: `Logged ${SLOT_NAME[p.slot]} ${p.when}`,
+    forModel: "Logged the meal. Track shows the shopper a Take 2 for the rest of the day and the planned meal they didn't eat; it is theirs to pick on the page. Don't change the plan for it.",
+    ui: { navigate: { href: `/store/track?take2=${p.on}:${p.slot}` } },
+  };
+}
+
 // ── week_menu: the week's dishes, changed on the page ───────────────────────
 // The week of dishes is built in the browser from the plan (lib/plan/schedule.js);
 // a change to it is the page's own pickDishes / swapCells / clearPicks, run
@@ -848,9 +940,11 @@ function askCard(ctx, { topic, about, options }) {
     if (!labels.length) return { refused: "There's nobody saved or drafted to choose from." };
     return { card: { kind: "ask", title: "One quick thing", questions: [{ id: "which", kind: "single", header: "Who", question: about ? `Who do you mean by "${String(about).slice(0, 40)}"?` : "Who do you mean?", allowOther: false, options: labels.map((l) => ({ key: `person:${l}`, label: l })) }] } };
   }
-  // clarify: options must be the shopper's own words, a label or a basket product.
+  // clarify: options must be the shopper's own words, a label, a basket product, or a dish
+  // their words name ("biryani": chicken, veg or mutton biryani, from estimate.js).
   const ev = ctx.evidence();
-  const known = new Set([...ev.words, ...labels.flatMap(wordsOf), ...ev.products.flatMap(wordsOf)]);
+  const dishNames = matchDishes(ctx.memory.said.slice(-2).join(" ")).flatMap((m) => m.options.map((o) => o.name));
+  const known = new Set([...ev.words, ...labels.flatMap(wordsOf), ...ev.products.flatMap(wordsOf), ...dishNames.flatMap(wordsOf)]);
   const opts = (options ?? []).map((o) => String(o).trim()).filter(Boolean).slice(0, 4);
   if (opts.length < 2 || !opts.every((o) => wordsOf(o).every((w) => known.has(w) || w.length <= 2))) {
     return { refused: "clarify options must be two to four choices in the shopper's own words (or labels, or products in the plan)." };
@@ -879,6 +973,7 @@ export const TOOLS = Object.freeze({
   edit_cart: { kind: "approval", prepare: prepareCartEdit, execute: executeCartEdit, clientExecutes: true },
   accept_track_proposal: { kind: "approval", prepare: prepareProposal, execute: executeProposal, step: "track" },
   log_weigh_in: { kind: "approval", prepare: prepareWeighIn, execute: executeWeighIn, step: "track" },
+  log_meal: { kind: "approval", prepare: prepareMeal, execute: executeMeal, step: "track" },
   ask_shopper: { kind: "ask", card: askCard },
   finish: { kind: "end", run: finish },
 });

@@ -80,6 +80,6 @@ export function restoreFrom(rows, stored) {
   const earlier = (rows ?? []).find((r) => !inChain.has(String(r.id)) && String(r.created_at) < String(root.created_at));
   const compareTo = earlier ? { basket: earlier.basket ?? [], cost: earlier.cost ?? null, label: "Your last plan" } : null;
 
-  // The week's first plan: its dish picks are the week's (00078).
-  return { plan: chain[0].plan, requests, compareTo, weekRootId: root.id };
+  // The week's first plan: its dish picks are the week's (00078), and the week starts the day it was made.
+  return { plan: chain[0].plan, requests, compareTo, weekRootId: root.id, weekStart: root.created_at ?? null };
 }

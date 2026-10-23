@@ -123,6 +123,16 @@ test("nobody is served something they can't have", () => {
   }
 });
 
+test("a meal a Take 2 keeps in place is KOI's, not the shopper's pick; today is a date, not day one", () => {
+  const first = buildWeek({ report, lines, people, days: 7, start });
+  const dishes = first.cells["3:dinner"].shared.dishes.map((x) => x.key);
+  const week = buildWeek({ report, lines, people, days: 7, start, today: new Date("2026-09-25T06:00:00Z"), overrides: { "3:dinner": { dishes, kept: true }, "2:lunch": { dishes: first.cells["2:lunch"].shared.dishes.map((x) => x.key) } } });
+  assert.equal(week.cells["3:dinner"].shared.chosen, false);
+  assert.equal(week.cells["2:lunch"].shared.chosen, true);
+  assert.deepEqual(week.cells["3:dinner"].shared.dishes.map((x) => x.key), dishes);
+  assert.deepEqual(week.days.filter((d) => d.today).map((d) => d.index), [2], "the 25th is the week's third day");
+});
+
 test("variety: the same main does not fill every lunch", () => {
   const week = buildWeek({ report, lines, people, days: 7, start });
   const mains = week.days.map((d) => week.cells[`${d.index}:lunch`].shared?.dishes.map((x) => x.key).join("+"));

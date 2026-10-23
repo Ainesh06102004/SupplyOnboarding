@@ -37,6 +37,9 @@ import { planBatches, COOKING_STYLES, DEFAULT_PREP_DAYS } from "@/lib/plan/batch
 import { parseAmount } from "@/lib/nutrition/basis";
 import { hasExactMacros } from "@/lib/household/profile";
 import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
+import { takeTwo, applyAdjustments, adjustmentFrom } from "@/lib/plan/rebalance";
+import { goalsAllowed } from "@/lib/planner/goals";
+import { useMealLog } from "./useMealLog";
 
 /** The shopper's own dish picks, kept in this browser, per household. */
 const WEEK_KEY = "koi_plan_week_v1";
@@ -52,6 +55,28 @@ const writePicks = (householdId, picks) => {
     window.localStorage.setItem(`${WEEK_KEY}:${householdId}`, JSON.stringify(picks));
   } catch { /* private mode: picks last for this visit */ }
 };
+/** A week's Take 2s, kept in this browser too, until plan_week.adjustments (00091) can hold them. */
+const ADJUST_KEY = "koi_week_adjustments_v1";
+const readAdjustments = (rootId) => {
+  try {
+    const list = JSON.parse(window.localStorage.getItem(`${ADJUST_KEY}:${rootId}`) ?? "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+};
+const writeAdjustments = (rootId, list) => {
+  try {
+    window.localStorage.setItem(`${ADJUST_KEY}:${rootId}`, JSON.stringify(list));
+  } catch { /* private mode: Take 2s last for this visit */ }
+};
+/** The local calendar day, n days from this one. */
+const dayFromToday = (n = 0) => {
+  const d = new Date(Date.now() + n * 86400000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+/** How far back Track reads meals: enough weeks to see a habit. */
+const MEAL_HISTORY_DAYS = 56;
 import { MEMBER_COLORS } from "./tokens";
 
 // Every member column, whatever the schema has: exact macros added carbs and fat
@@ -109,10 +134,12 @@ async function readHousehold() {
       const ids = chainOf(rows).map((r) => r.id);
       const { data: full } = await supabase.from("plan").select("id, report, explanation").in("id", ids);
       restore = restoreFrom(rows, new Map((full ?? []).map((r) => [String(r.id), r])));
-      // The week's dish picks, kept with its first plan (00078).
+      // The week's dish picks, kept with its first plan (00078), and its Take 2s (00091;
+      // every column, so the read holds before that migration too).
       if (restore?.weekRootId) {
-        const { data: week } = await supabase.from("plan_week").select("picks").eq("plan_id", restore.weekRootId).maybeSingle();
+        const { data: week } = await supabase.from("plan_week").select("*").eq("plan_id", restore.weekRootId).maybeSingle();
         if (week?.picks) restore.picks = week.picks;
+        if (Array.isArray(week?.adjustments)) restore.adjustments = week.adjustments;
       }
     }
   }
@@ -151,7 +178,12 @@ export function usePlanSession() {
   const [picks, setPicks] = useState({});
   // The week's first plan: its picks are the week's, saved against it (00078).
   const [weekRootId, setWeekRootId] = useState(null);
+  // When that week started (the day its first plan was made), so its days are real dates.
+  const [weekStart, setWeekStart] = useState(null);
+  // The week's Take 2s (00091): choices made after a meal off the plan.
+  const [adjustments, setAdjustments] = useState([]);
   const savedPicks = useRef({ root: null, json: "{}" });
+  const savedAdjustments = useRef({ root: null, json: "[]" });
   const timers = useRef({});
   const draftSeq = useRef(1);
   const toastTimer = useRef(null);
@@ -194,6 +226,11 @@ export function usePlanSession() {
         setRequests(read.restore.requests);
         setCompareTo(read.restore.compareTo);
         setWeekRootId(read.restore.weekRootId);
+        setWeekStart(read.restore.weekStart ? { root: read.restore.weekRootId, at: read.restore.weekStart } : null);
+        // Saved Take 2s win; before 00091 they live in this browser.
+        const kept = read.restore.adjustments ?? readAdjustments(read.restore.weekRootId);
+        setAdjustments(kept);
+        savedAdjustments.current = { root: read.restore.weekRootId, json: JSON.stringify(read.restore.adjustments ?? []) };
         // Saved picks win over this browser's copy; a week saved nowhere keeps it.
         if (read.restore.picks) {
           setPicks(read.restore.picks);
@@ -400,8 +437,9 @@ export function usePlanSession() {
     showPlan(made, before);
     setWeekRootId(made.planId);
     setRequests([]);
-    // A new plan is a new week: yesterday's dish picks don't carry over.
+    // A new plan is a new week: yesterday's dish picks and Take 2s don't carry over.
     setPicks({});
+    setAdjustments([]);
     writePicks(householdId, {});
     return made;
   }, [days, budget, picked, householdId, plan, last, stream, choiceFor, showPlan]);
@@ -486,7 +524,7 @@ export function usePlanSession() {
         showPlan(message.payload, before);
         setWeekRootId(message.payload.planId);
         setRequests([]);
-        if (first) { setPicks({}); writePicks(householdId, {}); }
+        if (first) { setPicks({}); writePicks(householdId, {}); setAdjustments([]); }
         setDays(message.payload.days ?? days);
         latest = message.payload;
         snapshot.created.push(message.payload.planId);
@@ -572,7 +610,7 @@ export function usePlanSession() {
           showPlan(data.payload, before);
           setWeekRootId(data.payload.planId);
           setRequests([]);
-          if (r.first) { setPicks({}); writePicks(b.householdId, {}); }
+          if (r.first) { setPicks({}); writePicks(b.householdId, {}); setAdjustments([]); }
           setDays(data.payload.days ?? b.days);
           r.latest = data.payload;
           r.created.push(data.payload.planId);
@@ -831,14 +869,36 @@ export function usePlanSession() {
   // The week, then its batches (lib/plan/batch.js): a batching household gets the
   // same meal boxed across the days after each prep day, and the week is built
   // again with those meals in place. The shopper's own picks win over a batch.
+  // The week starts the day its first plan was made, so "Tuesday lunch" is a real
+  // Tuesday: picks saved one day mean the same meal the next, and Track can log
+  // a meal against its day. A week made in this visit starts today.
+  const startedAt = weekStart?.root && weekStart.root === weekRootId ? weekStart.at : null;
   const { week, batches } = useMemo(() => {
     if (!plan) return { week: null, batches: planBatches({ week: null }) };
-    const input = { report: plan.report, lines, people: eating, days: plan.days, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds };
+    const input = { report: plan.report, lines, people: eating, days: plan.days, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds, ...(startedAt ? { start: new Date(startedAt) } : {}) };
     const first = buildWeek({ ...input, overrides: picks });
     const batching = planBatches({ week: first, style: cooking.style, prepDays: cooking.prepDays, picks });
     if (!batching.batches.length) return { week: first, batches: batching };
     return { week: buildWeek({ ...input, overrides: { ...batching.overrides, ...picks } }), batches: batching };
-  }, [plan, lines, eating, picks, repeat, macroNeeds, cooking]);
+  }, [plan, lines, eating, picks, repeat, macroNeeds, cooking, startedAt]);
+
+  // Track (00091): the account holder's own meals, as an adult, for this week and
+  // the weeks before it (enough to notice a habit).
+  const me = useMemo(() => profiles.find((p) => p.is_account_holder && p.memberId) ?? null, [profiles]);
+  const meTracks = Boolean(me && goalsAllowed(me.age_band));
+  const firstDay = week?.days?.[0]?.date ?? null;
+  const lastDay = week?.days?.at(-1)?.date ?? null;
+  const mealSpan = useMemo(() => {
+    const from = [dayFromToday(-MEAL_HISTORY_DAYS), firstDay].filter(Boolean).sort()[0];
+    const to = [dayFromToday(0), lastDay].filter(Boolean).sort().at(-1);
+    return { from, to };
+  }, [firstDay, lastDay]);
+  const mealLog = useMealLog(meTracks ? String(me.memberId) : null, mealSpan);
+  const logsByDate = useMemo(() => {
+    const by = {};
+    for (const r of mealLog.rows) (by[r.eaten_on] ??= []).push(r);
+    return by;
+  }, [mealLog.rows]);
 
   /** How the household cooks: kept on the household (00090), so the next plan batches the same way. */
   const setCooking = useCallback(async (patch) => {
@@ -849,20 +909,97 @@ export function usePlanSession() {
     if (saveError) notify("Your cooking style is set for this plan. It couldn't be saved for next time yet.", "warn");
   }, [cooking, householdId, notify]);
 
-  /** Each exact-macros person's week in grams (lib/plan/portions.js), and what it uses of the basket. */
-  const portions = useMemo(() => {
-    if (!week) return {};
+  /**
+   * Each exact-macros person's week in grams (lib/plan/portions.js), and what it
+   * uses of the basket. The account holder's week is as their Take 2s leave it
+   * (lib/plan/rebalance.js); what it buys is still the week as planned.
+   */
+  const { portions, sizingOf } = useMemo(() => {
+    if (!week) return { portions: {}, sizingOf: {} };
     const labels = new Map(lines.map((l) => [String(l.skuId), labelPer100(l.product)]).filter(([, v]) => v));
     const shares = new Map((plan?.report?.whoEatsWhat ?? []).map((w) => [String(w.member), w.allowed ?? []]));
     const basket = lines.map((l) => ({ skuId: String(l.skuId), name: l.name, packAmount: parseAmount(l.weight)?.value ?? null }));
     const training = new Set(week.days.filter((d) => DEFAULT_TRAINING_DAYS.includes(d.label)).map((d) => d.index));
     const out = {};
+    const sizing = {};
     for (const p of eating.filter(hasExactMacros)) {
-      const sized = sizePortions({ week, person: p, labels, basket, trainingDays: p.carb_cycling ? training : null, ties: batches.ties(String(p.memberId)) });
-      out[String(p.memberId)] = { ...sized, reconcile: reconcileWeek({ week, portions: sized, share: shares.get(String(p.memberId)) ?? [], basket }) };
+      const id = String(p.memberId);
+      sizing[id] = { labels, basket, trainingDays: p.carb_cycling ? training : null };
+      const base = sizePortions({ week, person: p, ...sizing[id], ties: batches.ties(id) });
+      const sized = meTracks && id === String(me.memberId) && adjustments.length
+        ? applyAdjustments({ week, person: p, base, adjustments, logsByDate, sizing: sizing[id] }).sized
+        : base;
+      out[id] = { ...sized, reconcile: reconcileWeek({ week, portions: base, share: shares.get(id) ?? [], basket }) };
     }
-    return out;
-  }, [week, batches, lines, eating, plan?.report?.whoEatsWhat]);
+    return { portions: out, sizingOf: sizing };
+  }, [week, batches, lines, eating, plan?.report?.whoEatsWhat, meTracks, me, adjustments, logsByDate]);
+
+  // ── Take 2: the week's answer to a meal that wasn't the plan ──────────────
+  /** The account holder as this week plans them (a diet chosen for the week included). */
+  const meEating = useMemo(() => (me ? eating.find((p) => String(p.memberId) === String(me.memberId)) ?? me : null), [me, eating]);
+  /** What the account holder's Take 2s do: swapped plates, plate scales, what moved to next week, the freezer. */
+  const myTake2 = useMemo(() => (meTracks && meEating ? applyAdjustments({ week, person: meEating, base: null, adjustments }) : null), [meTracks, meEating, week, adjustments]);
+
+  /** KOI's options after this meal (lib/plan/rebalance.js): figures from the engines, nothing applied. */
+  const takeTwoFor = useCallback((entry) => {
+    if (!meTracks || !meEating) return null;
+    const id = String(meEating.memberId);
+    return takeTwo({
+      week, batches: batches.batches, person: meEating, sized: portions[id] ?? null, entry, logsByDate,
+      swaps: myTake2?.swaps ?? [], shift: myTake2?.shift ?? {}, sizing: sizingOf[id] ?? {},
+    });
+  }, [meTracks, meEating, week, batches, portions, logsByDate, myTake2, sizingOf]);
+
+  /** Keep the options the person picked: a dish moved is a pick, the rest is the week's adjustment. */
+  const applyTakeTwo = useCallback(({ entry, numbers = null, meal = null }) => {
+    const changes = (numbers && numbers.id !== "leave") || (meal && meal.id !== "drop");
+    if (!changes) return null;
+    const moved = meal?.effect?.picks ?? {};
+    // A dish moved into a day would make the scheduler choose every later meal
+    // again, and the dish it displaced could come straight back. So the week's
+    // other meals from that day on are kept as they are (not batch boxes, which
+    // batch.js owns), and undo lets them go again.
+    const from = week?.days?.find((d) => d.date === entry.eaten_on)?.index ?? 0;
+    const kept = {};
+    if (Object.keys(moved).length && week) {
+      for (const cell of Object.values(week.cells)) {
+        if (cell.day < from || picks[cell.key] || moved[cell.key] || cell.shared?.batch || !cell.shared?.dishes?.length) continue;
+        kept[cell.key] = { dishes: cell.shared.dishes.map((d) => d.key), kept: true };
+      }
+    }
+    const patch = { ...kept, ...moved };
+    const adjustment = adjustmentFrom({ entry, numbers, meal, picksBefore: Object.fromEntries(Object.keys(patch).map((k) => [k, picks[k] ?? null])) });
+    adjustment.effect.picks = patch;
+    if (Object.keys(patch).length) {
+      setPicks((all) => {
+        const next = { ...all, ...patch };
+        if (householdId) writePicks(householdId, next);
+        return next;
+      });
+    }
+    setAdjustments((all) => [...all, adjustment]);
+    return adjustment;
+  }, [picks, householdId, week]);
+
+  /** Take a Take 2 back: its picks return to what they were, unless changed since. */
+  const undoAdjustment = useCallback((id) => {
+    const a = adjustments.find((x) => x.id === id && !x.undone);
+    if (!a) return;
+    setAdjustments((all) => all.map((x) => (x.id === id ? { ...x, undone: true } : x)));
+    const moved = a.effect?.picks ?? {};
+    if (Object.keys(moved).length) {
+      setPicks((all) => {
+        const next = { ...all };
+        for (const [cell, set] of Object.entries(moved)) {
+          if (JSON.stringify(next[cell]) !== JSON.stringify(set)) continue;
+          if (a.picksBefore?.[cell]) next[cell] = a.picksBefore[cell];
+          else delete next[cell];
+        }
+        if (householdId) writePicks(householdId, next);
+        return next;
+      });
+    }
+  }, [adjustments, householdId]);
 
   /** Put these dishes in this cell (a swap from the menu). */
   const pickDishes = useCallback((cellKey, dishKeys) => setPicks((all) => {
@@ -1000,6 +1137,23 @@ export function usePlanSession() {
     return () => clearTimeout(timer);
   }, [picks, weekRootId]);
 
+  // The week's Take 2s, saved beside its picks (00091). This browser keeps a copy
+  // too, which is all there is until that migration runs.
+  useEffect(() => {
+    if (!weekRootId) return undefined;
+    const json = JSON.stringify(adjustments);
+    const saved = savedAdjustments.current.root === weekRootId ? savedAdjustments.current.json : "[]";
+    if (json === saved) return undefined;
+    writeAdjustments(weekRootId, adjustments);
+    const timer = setTimeout(async () => {
+      const { error: saveError } = await getSupabaseClient()
+        .from("plan_week")
+        .upsert({ plan_id: weekRootId, adjustments, updated_at: new Date().toISOString() });
+      if (!saveError) savedAdjustments.current = { root: weekRootId, json };
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [adjustments, weekRootId]);
+
   const setChoice = useCallback((memberId, patch) => setThisWeek((all) => ({ ...all, [memberId]: { ...(all[memberId] ?? { dietType: null, prefer: [], skip: [] }), ...patch } })), []);
 
   return {
@@ -1016,6 +1170,8 @@ export function usePlanSession() {
     // the week of dishes
     week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds, portions,
     batches: batches.batches, cooking, setCooking,
+    // Track: the account holder's meals and the week's Take 2s
+    me: meEating, meTracks, mealLog, logsByDate, adjustments, myTake2, takeTwoFor, applyTakeTwo, undoAdjustment,
     // the agent's page actions
     nav, setNav, agentBridge,
     // pantry / cart

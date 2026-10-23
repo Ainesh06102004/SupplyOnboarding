@@ -79,7 +79,7 @@ function suppliersOf(line, basket) {
  * @param {Object<string,{proteinPer100kcal: number}>} [input.macroNeeds] memberId → how protein-dense their
  *   day must be (exact macros). Their meals lean towards dishes that dense; nobody else's change.
  */
-export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [], macroNeeds = {} }) {
+export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), today = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [], macroNeeds = {} }) {
   const d = Math.max(1, Math.min(14, Number(days) || 7));
   // What the kitchen already has (plan.explanation.products_at_home) is not
   // bought but is cooked: it can be a dish's staple for anyone the dish itself
@@ -219,11 +219,14 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
   };
 
   const slots = SLOT_KEYS.filter((slot) => eatersOf(slot).length);
+  // The shopper's own calendar day, not UTC's: at 6 am in India it is still yesterday in UTC.
+  const localDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const todayLocal = localDate(today);
+  // The week starts the day it was planned, so its days are real dates (Track logs meals against them).
   const dayList = Array.from({ length: d }, (_, i) => {
     const date = new Date(start.getTime() + i * 86400000);
-    // The shopper's own calendar day, not UTC's: at 6 am in India it is still yesterday in UTC.
-    const local = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    return { index: i, date: local, label: DAY_NAMES[date.getDay()], dayOfMonth: date.getDate(), month: date.getMonth(), today: i === 0 };
+    const local = localDate(date);
+    return { index: i, date: local, label: DAY_NAMES[date.getDay()], dayOfMonth: date.getDate(), month: date.getMonth(), today: local === todayLocal };
   });
 
   const cells = {};
@@ -244,8 +247,9 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       let meal;
       if (forced?.length) {
         const can = at.filter((id) => forced.every((dish) => verdict(dish, people.find((p) => String(p.memberId) === id) ?? {}).ok));
-        // A batch (lib/plan/batch.js) repeats a meal through overrides too; it is KOI's, not the shopper's pick.
-        meal = { dishes: forced, can, chosen: !overrides[key].batch, batch: overrides[key].batch ?? null };
+        // A batch (lib/plan/batch.js) repeats a meal through overrides too, and a Take 2 keeps the
+        // week's meals where they were (kept); both are KOI's, not the shopper's pick.
+        meal = { dishes: forced, can, chosen: !overrides[key].batch && !overrides[key].kept, batch: overrides[key].batch ?? null };
       } else {
         meal = mealFor(slot, at, day.index);
       }

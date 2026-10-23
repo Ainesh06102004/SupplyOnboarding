@@ -26,8 +26,31 @@ import { inr } from "./tokens";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+import TodayCard from "@/components/store/track/TodayCard";
+import WeekStrip from "@/components/store/track/WeekStrip";
+import { readMealSentence, slotAt } from "@/lib/food/mealWords";
 
 const localDate = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+/** The meal the page was opened on: a sentence from the KOI bar, or a meal KOI's agent logged. */
+function openingFrom(ask) {
+  if (ask?.take2 && /^\d{4}-\d{2}-\d{2}:[a-z]+$/.test(ask.take2)) {
+    const [date, slot] = ask.take2.split(":");
+    return { date, slot, fromLog: true };
+  }
+  if (ask?.meal) {
+    const read = readMealSentence(ask.meal);
+    if (!read.isMeal) return null;
+    const now = new Date();
+    return {
+      date: localDate(read.day === "yesterday" ? new Date(now.getTime() - 86400000) : now),
+      slot: read.slot ?? slotAt(now.getHours()),
+      sentence: ask.meal,
+      read,
+    };
+  }
+  return null;
+}
 const signed = (n, unit = "kg") => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)} ${unit}`;
 const perWeek = (n) => `${n > 0 ? "gaining" : n < 0 ? "losing" : "holding"}${n ? ` ${Math.abs(n)} kg` : ""} a week`;
 const card = "flex flex-col gap-3 rounded-[28px] border border-koi-forest/10 bg-white p-6";
@@ -95,14 +118,14 @@ function TrackHead() {
     <header ref={ref} className="mb-7 flex flex-col gap-2">
       <span data-rise className="font-koi-mono text-xs font-medium uppercase tracking-[0.18em] text-koi-muted">Track · just you</span>
       <h1 className="koi-condensed m-0 font-koi-display text-[clamp(40px,5vw,68px)] font-extrabold leading-[0.92] tracking-[-0.03em] text-koi-forest">
-        <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">Your weigh-ins against the plan</span></span>
+        <span className="-mb-[0.06em] block overflow-hidden pb-[0.06em]"><span data-line className="block">Your meals and weigh-ins, against the plan</span></span>
       </h1>
-      <p data-rise className="m-0 max-w-[720px] text-[15.5px] leading-relaxed text-koi-ink2">One weight a week is enough. KOI sets it against the plan&apos;s arithmetic, and only ever suggests.</p>
+      <p data-rise className="m-0 max-w-[720px] text-[15.5px] leading-relaxed text-koi-ink2">Tick off meals as you eat them, or tell KOI what you had instead and it offers a Take 2. One weight a week is enough. KOI only ever suggests.</p>
     </header>
   );
 }
 
-export default function TrackView({ s }) {
+export default function TrackView({ s, ask = null, onAsked = null }) {
   const root = useRef(null);
   const ember = useEmber();
   const say = useKoiVoice((v) => v.say);
@@ -111,6 +134,10 @@ export default function TrackView({ s }) {
   const { rows, loading, error, save } = useCheckins(adult ? me.memberId : null);
   const [kg, setKg] = useState("");
   const [date, setDate] = useState(() => localDate());
+  // The day the meals card shows: today, a day picked on the week strip, or the meal the page opened on.
+  const opening = useMemo(() => openingFrom(ask), [ask]);
+  const [mealDate, setMealDate] = useState(() => opening?.date ?? localDate());
+  const today = localDate();
   const [busy, setBusy] = useState(false);
   const [dismissed, setDismissed] = useState(null);
   const read = useMemo(() => (me ? trackRead(me, rows) : null), [me, rows]);
@@ -196,9 +223,23 @@ export default function TrackView({ s }) {
     ember.home();
   };
 
+  const carried = s.myTake2?.carry ?? [];
+  const frozen = s.myTake2?.freeze ?? [];
+  const names = (list) => list.flatMap((x) => x.dishes.map((d) => d.name ?? d.key)).join(", ");
+
   return (
     <div ref={root} className="font-koi-sans text-koi-ink">
       {head}
+      <section aria-label="Your meals" className="mb-5 flex flex-col gap-4">
+        <WeekStrip s={s} date={mealDate} today={today} onDate={setMealDate} />
+        <TodayCard s={s} date={mealDate} today={today} opening={opening} onOpened={onAsked} />
+        {(carried.length > 0 || frozen.length > 0) && (
+          <div data-card className="flex flex-wrap gap-x-8 gap-y-2 rounded-[22px] bg-koi-paper px-5 py-4 text-[13.5px]">
+            {carried.length > 0 && <span><span className="font-semibold">Moved to next week:</span> {names(carried)}</span>}
+            {frozen.length > 0 && <span><span className="font-semibold">In your freezer:</span> {names(frozen)}</span>}
+          </div>
+        )}
+      </section>
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-5">
           <article data-card aria-label="Weigh-ins vs the plan’s arithmetic" className={card}>

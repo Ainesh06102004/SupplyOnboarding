@@ -73,6 +73,10 @@ export const LOOP_CASES = Object.freeze([
   { id: "keep-out", start: { saved: FAMILY, plan: true }, messages: ["we never keep peanuts in the house, remember that"], expect: { tools: ["save_kitchen_rules"], never: ["draft_people"] } },
   { id: "weigh-in", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["I weighed 82.5 kg this morning, log it"], expect: { tools: ["log_weigh_in"], never: ["make_plan", "change_plan"] } },
   { id: "weigh-in-who", start: { saved: FAMILY, plan: true }, messages: ["log my weight, 70 kg"], expect: { never: ["make_plan", "change_plan"] } },
+  // Meals out (P5): logged on Track with KOI's estimate, never a plan change.
+  { id: "meal-out", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["had 2 samosas at the canteen for snack"], expect: { tools: ["log_meal"], never: ["make_plan", "change_plan", "week_menu"] } },
+  { id: "meal-hinglish", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["kal raat bahar pizza khaya"], expect: { anyOf: ["log_meal"], asked: true, never: ["make_plan", "change_plan"] } },
+  { id: "meal-skipped", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["I skipped lunch today"], expect: { tools: ["log_meal"], never: ["change_plan", "week_menu"] } },
 
   // ── Reported live, 27 Sep, and "everything" the pages can do ───────────────
   { id: "show-plan", start: { saved: SON_FAMILY, plan: true, page: { route: "home" } }, messages: ["show me the plan"], expect: { tools: ["show"], never: ["make_plan", "change_plan"] } },

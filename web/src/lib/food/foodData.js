@@ -8,7 +8,7 @@
 // usda_fdc, icmr_nvif_1989, or koi_estimate (a typical label, to be replaced by
 // the product's own label wherever KOI sells it).
 
-export const FOOD_VERSION = "bcd84c4291a4";
+export const FOOD_VERSION = "e47c5369839e";
 
 export const FOODS = Object.freeze([
  {
@@ -2448,6 +2448,122 @@ export const FOODS = Object.freeze([
   "measures": {
    "tsp": 4.6,
    "pinch": 0.3
+  }
+ },
+ {
+  "key": "khoya",
+  "name": "Khoya (khoa)",
+  "per100": {
+   "kcal": 316,
+   "protein": 16.34,
+   "carbs": 16.53,
+   "fat": 20.62,
+   "fibre": 0.0
+  },
+  "source": "ifct_2017",
+  "sourceRef": "L004 Khoa",
+  "fridgeDays": 5,
+  "measures": {
+   "tbsp": 15
+  }
+ },
+ {
+  "key": "cheese",
+  "name": "Cheese (mozzarella)",
+  "per100": {
+   "kcal": 300,
+   "protein": 22.17,
+   "carbs": 2.19,
+   "fat": 22.35,
+   "fibre": 0
+  },
+  "source": "usda_fdc",
+  "sourceRef": "Cheese, mozzarella, whole milk",
+  "fridgeDays": 14,
+  "measures": {
+   "cup": 113,
+   "tbsp": 7
+  }
+ },
+ {
+  "key": "mayonnaise",
+  "name": "Mayonnaise (eggless)",
+  "per100": {
+   "kcal": 300,
+   "protein": 1.0,
+   "carbs": 10.0,
+   "fat": 29.0,
+   "fibre": 0
+  },
+  "source": "koi_estimate",
+  "sourceRef": "Typical Indian eggless mayonnaise label, about 300 kcal per 100 g",
+  "measures": {
+   "tbsp": 15
+  }
+ },
+ {
+  "key": "ice_cream",
+  "name": "Ice cream (vanilla)",
+  "per100": {
+   "kcal": 207,
+   "protein": 3.5,
+   "carbs": 22.9,
+   "fat": 11.0,
+   "fibre": 0.7
+  },
+  "source": "usda_fdc",
+  "sourceRef": "Ice creams, vanilla",
+  "measures": {
+   "cup": 132
+  }
+ },
+ {
+  "key": "cola",
+  "name": "Cola",
+  "per100": {
+   "kcal": 42,
+   "protein": 0,
+   "carbs": 10.6,
+   "fat": 0,
+   "fibre": 0
+  },
+  "source": "koi_estimate",
+  "sourceRef": "Typical Indian cola label, 42 kcal and 10.6 g sugar per 100 ml",
+  "measures": {
+   "cup": 240
+  }
+ },
+ {
+  "key": "ketchup",
+  "name": "Tomato ketchup",
+  "per100": {
+   "kcal": 101,
+   "protein": 1.04,
+   "carbs": 27.1,
+   "fat": 0.1,
+   "fibre": 0.3
+  },
+  "source": "usda_fdc",
+  "sourceRef": "Catsup",
+  "measures": {
+   "tbsp": 17
+  }
+ },
+ {
+  "key": "pasta",
+  "name": "Pasta (dry)",
+  "per100": {
+   "kcal": 371,
+   "protein": 13.04,
+   "carbs": 71.5,
+   "fat": 1.51,
+   "fibre": 3.2
+  },
+  "source": "usda_fdc",
+  "sourceRef": "Pasta, dry, unenriched",
+  "cookedYield": 2.3,
+  "measures": {
+   "cup": 100
   }
  }
 ]);

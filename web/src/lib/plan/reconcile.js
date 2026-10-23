@@ -46,6 +46,8 @@ export function reconcileWeek({ week, portions, share = [], basket = [] }) {
         add(shelf, item.skuId, item.grams, { skuId: item.skuId, name: item.name });
         continue;
       }
+      // A meal already decided (eaten out, a box already cooked) buys nothing more.
+      if (item.kind === "fixed") continue;
       for (const l of item.lines) {
         const sku = l.supply === "shelf" ? week.supplierOf?.(item.dishKey, l.index, memberId) : null;
         if (sku) add(shelf, String(sku), l.grams, { skuId: String(sku), name: lineOf.get(String(sku))?.name ?? shareOf.get(String(sku))?.name ?? "A product" });

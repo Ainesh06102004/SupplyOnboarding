@@ -28,6 +28,19 @@ import { ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
 import { DIET_TYPES, FOODS_AVOID, FOODS_LOVE, MEALS, GOAL_PROFILES } from "@/lib/recommendation/config";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+import { MEAL_LOG_KEY } from "@/components/store/plan/design/useMealLog";
+
+/** Meals this browser is still holding to save (useMealLog): they are yours too, and go with the rest. */
+const heldMeals = () => {
+  try {
+    return Object.values(JSON.parse(window.localStorage.getItem(MEAL_LOG_KEY) ?? "{}") ?? {}).flat().map((r) => ({ ...r, held: true }));
+  } catch {
+    return [];
+  }
+};
+const forgetHeldMeals = () => {
+  try { window.localStorage.removeItem(MEAL_LOG_KEY); } catch { /* nothing held */ }
+};
 
 const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
 const date = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
@@ -100,8 +113,13 @@ async function readEverything() {
     if (queryError) throw queryError;
     return result;
   };
+  // A table newer than this page's database (00091 before it runs) is read as empty, not as a failure.
+  const maybeRows = async (query) => {
+    const { data: result, error: queryError } = await query;
+    return queryError ? [] : result ?? [];
+  };
   try {
-    const [account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy, checkins] = await Promise.all([
+    const [account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy, checkins, mealLog] = await Promise.all([
         rows(supabase.from("customer_profiles").select("display_name, email, phone, city, pincode, created_at").maybeSingle()),
         rows(supabase.from("user_health_profile").select("*").maybeSingle()),
         rows(supabase.from("user_diet_type").select("diet_type").maybeSingle()),
@@ -117,8 +135,10 @@ async function readEverything() {
         fetch("/api/marketplace/connect").then((r) => (r.ok ? r.json() : null)).catch(() => null),
         // Track (00077): your own weigh-ins, and nobody else's (RLS).
         rows(supabase.from("member_checkin").select("member_id, checked_on, weight_kg").order("checked_on", { ascending: false }).limit(400)),
+        // Track (00091): your own meals, and nobody else's (RLS).
+        maybeRows(supabase.from("member_meal_log").select("member_id, eaten_on, slot, status").order("eaten_on", { ascending: false }).limit(2000)),
       ]);
-    return { user: signedIn, data: { account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy, checkins }, error: null };
+    return { user: signedIn, data: { account, health, diet, avoided, loved, meals, cooking, budget, households, plans, addresses, orders, swiggy, checkins, mealLog: [...mealLog, ...heldMeals()].sort((a, b) => String(b.eaten_on).localeCompare(String(a.eaten_on))) }, error: null };
   } catch (err) {
     return { user: signedIn, data: null, error: err?.message ?? "What KOI keeps could not be loaded." };
   }
@@ -295,7 +315,29 @@ export default function YourDataPage() {
             ) : <Empty />}
           </Section>
 
-          <Section no={6} title="Delivery addresses" count={(d.addresses ?? []).length ? String(d.addresses.length) : null}>
+          <Section no={6} title="Meals" count={(d.mealLog ?? []).length ? String(d.mealLog.length) : null}
+                   action={(d.mealLog ?? []).length > 0 && (
+                     <ConfirmDelete label="Delete all meals" what={`all ${d.mealLog.length} meals`}
+                                    onConfirm={async () => {
+                                      forgetHeldMeals();
+                                      const ids = [...new Set(d.mealLog.filter((m) => !m.held).map((m) => m.member_id))];
+                                      if (ids.length) await remove(supabase.from("member_meal_log").delete().in("member_id", ids));
+                                      else await load();
+                                    }} />
+                   )}>
+            {(d.mealLog ?? []).length ? (
+              <>
+                <p className="m-0">
+                  {d.mealLog.length} meal{d.mealLog.length === 1 ? "" : "s"} logged on Track, from {date(d.mealLog.at(-1).eaten_on)} to {date(d.mealLog[0].eaten_on)};{" "}
+                  {d.mealLog.filter((m) => m.status === "other").length} of them something other than the plan.
+                  {d.mealLog.some((m) => m.held) && " Some are still on this device, waiting to be saved."}
+                </p>
+                <p className="m-0 text-[12.5px] text-koi-muted">What you ate, meal by meal, and KOI&apos;s estimate where it wasn&apos;t the plan. You entered them yourself (or approved KOI&apos;s card). Kept until you delete them here.</p>
+              </>
+            ) : <Empty />}
+          </Section>
+
+          <Section no={7} title="Delivery addresses" count={(d.addresses ?? []).length ? String(d.addresses.length) : null}>
             {(d.addresses ?? []).length ? d.addresses.map((a) => (
               <div key={a.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>{[a.label, a.city, a.pincode].filter(Boolean).join(" · ")}{a.is_default ? " (default)" : ""}</span>
@@ -304,7 +346,7 @@ export default function YourDataPage() {
             )) : <Empty />}
           </Section>
 
-          <Section no={7} title="Swiggy"
+          <Section no={8} title="Swiggy"
                    action={d.swiggy?.connected && (
                      <ConfirmDelete label="Disconnect" what="the Swiggy connection"
                                     onConfirm={async () => {
@@ -317,7 +359,7 @@ export default function YourDataPage() {
           </Section>
 
           {(d.orders ?? []).length > 0 && (
-            <Section no={8} title="Baskets handed to Swiggy" count={String(d.orders.length)} kept>
+            <Section no={9} title="Baskets handed to Swiggy" count={String(d.orders.length)} kept>
               {d.orders.map((o) => <p key={o.id} className="m-0">{date(o.created_at)} · {o.item_count} items · {o.state}</p>)}
               <p className="m-0 text-[12.5px] text-koi-muted">Kept as the record of what was sent, so they are not deleted here.</p>
             </Section>

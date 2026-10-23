@@ -266,3 +266,59 @@ UI: the AutoPlan sheet (`components/store/system/Sheet.jsx`) and a header inbox 
   - `batch.test.js` (6), `cookPlan.test.js` (4), the suite (647/647), eslint and `next build`;
   - Playwright at 390 and 1440: the recipe page, cook mode, and timers through time's up (with a fake clock).
 - Not verified live: batch weeks and the batch/cell recipe links with a signed-in household (the database is blocked; the unit tests cover the cook plan).
+
+### 23 Oct · P5 Today, meals out, Take 2
+- **Food data:**
+  - 7 new foods: khoya (IFCT L004); cheese, ice cream, ketchup and pasta (USDA FDC, carbs as available carbohydrate); mayonnaise and cola (labelled KOI estimates). That makes 148; 00087 regenerated.
+  - `recipes/eatenOut.js` holds **38 eaten-out dishes**, written as the place makes them (a stall samosa carries its frying), unit `plate` or `piece`. A home dish eaten out (biryani, dosa) is the home recipe with the setting's factors; it isn't repeated.
+- `lib/food/estimate.js`:
+  - `estimateMeal({items, setting, slot})` returns point, low and high, plus the basis.
+  - Fat lines (oil, ghee, butter, cream, nuts) and the serving are scaled by `SETTINGS`: home ×1/×1 (±15%), canteen ×1.5/×1.1 (±25%), restaurant ×2/×1.3 (±30%), street ×1.5/×1 (±30%). Each dish is scaled relative to where it's usually made.
+  - One portion question: small 0.7 / usual / big 1.4 / seconds 1.9, or a count for pieces.
+  - A meal KOI can't name is a typical meal of that slot, ±40%, and the basis asks for the dish.
+  - `matchDishes` reads dishes and counts from a sentence. A word that fits several dishes ("biryani", "pizza") is **one mention with options, never a guess**.
+  - Sample estimates: restaurant chicken biryani ≈ 1,060 kcal (740–1,380) against 710 at home; chole bhature ≈ 890; a canteen veg thali ≈ 1,010.
+- `lib/food/mealWords.js` (`readMealSentence`, `mealFromConversation`):
+  - English and Hinglish: "kal raat bahar pizza khaya, full plate" is yesterday's dinner, at a restaurant, a big plate, pizza to choose.
+  - Also skipped and half-eaten meals.
+  - The KOI bar, the agent (model or rules) and Track's sheet all read sentences this way.
+- `lib/plan/today.js`: `platesOfDay` gives the person's plate per meal (sized grams, or the recipe's serving, plus additions and swaps). `dayLedger` gives eaten so far, the day as it's going, and the gap.
+- `lib/plan/rebalance.js`, the Take 2, which offers and never applies:
+  - **The numbers:**
+    - leave (always);
+    - today: resize the meals still to come (the portion engine for exact macros, a plate scale within 0.6–1.3 otherwise);
+    - spread: later days, each by at most 10% and 300 kcal, never under the floor; what doesn't fit is said.
+    - Protein is never cut: a protein-rich meal out raises that day's protein so later meals keep theirs.
+  - **The uneaten meal**, by kind:
+    - box: to a later meal before its use-by, or freeze it;
+    - leftovers: a shared dish that keeps, packed for a later meal;
+    - fresh: cook it on a later day (that day's dish moves to next week), or next week;
+    - keeps: nothing to move.
+  - `applyAdjustments` re-derives the week. Resized days use `sizePortions`' new `fixed` (logged meals, cooked boxes, swapped plates) and `shift` options.
+- **Measured against the plan, not the target, for people not on their own numbers** (found building it). Their plates are recipe servings, not sized to them, so judging the day by their target would call every planned day "800 under". The gap is what the meal changed; their target only guards the floor.
+- Migration **00091_member_meal_log**:
+  - `member_meal_log`: one row per meal, status `ate | partial | skipped | other`, `other` + `estimate`, and `source` `track | koi | whatsapp`. RLS copies 00077: account holder only, adults only.
+  - `plan_week.adjustments`, and `food.dish.context`.
+  - **Not applied** (database blocked).
+- **The week is anchored to the day it was planned** (`restore.weekStart`, `buildWeek({today})`). It used to start "today" on every load, so a pick saved for Wednesday's dinner slid a day each day, which was a pre-existing bug. Track needs real dates, so it's fixed here.
+- **Session (`usePlanSession`):**
+  - The account holder's meal log comes through `useMealLog`. It's offline-first: an entry the database can't take is kept on the device, marked pending, and sent on the next load.
+  - Adjusted portions; `takeTwoFor`, `applyTakeTwo`, `undoAdjustment`.
+  - Adjustments are saved on `plan_week` with a local copy until 00091 runs.
+  - A dish moved by a Take 2 pins the week's other meals as `kept` picks (KOI's, not shown as "Your pick"; batch boxes are left to batch.js). Without that, the scheduler re-chose the later meals and the displaced dish came straight back, which the browser walk caught.
+- **UI:**
+  - The Track page gets a week strip (a dot per meal, the day's delta) and a Today card: plates, "Ate it" and "Something else", the bar, Take 2s with Undo, and "Moved to next week / In your freezer".
+  - `MealOutSheet`: dish search, the portion question, where, the estimate card, the two Take 2 choices with KOI's suggestion, and "Log it and apply".
+  - `/store/track?meal=…` (from the KOI bar) and `?take2=date:slot` (after KOI's agent logs) open the sheet prefilled.
+  - Track has its own layout: opened directly, it had no page padding (pre-existing).
+  - `/store/profile/data` has a Meals section that deletes the database rows and this device's held copy. It reads leniently before 00091.
+- **KOI:**
+  - Agent tool `log_meal` (approval, card kind `rules`). Dishes, counts, meal, day and place come from the shopper's words via `mealWords`, never the model. An ambiguous dish is refused with the names to ask about; `ask_shopper` clarify now accepts dish names the shopper's words matched.
+  - The rules model routes meal sentences (ask, then log). Eval cases `meal-out`, `meal-hinglish` and `meal-skipped` pass under rules.
+  - The KOI bar sends meal sentences to Track.
+- `lib/plan/patterns.js` (`eatOutPatterns`): "lunch out three Tuesdays of the last four". Its "plan it as out" action is a weekly Calendar event, so it is wired in P6.
+- **Deviation from the plan:** there are no `/api/track/meal` or `/api/track/rebalance` routes. Track writes through RLS like the weigh-ins (useCheckins), the engines are pure and run where the data is (the browser for Track, the server for the agent), and the WhatsApp webhook will call the same modules.
+- **Verified:**
+  - Tests: estimate (9), mealWords (4), rebalance (9), patterns (2), and 1 new in schedule. The suite is 671/671; eslint passes, as do `buildRecipes --check` and `next build`.
+  - **A Playwright walk with Supabase answered by fixtures** (cookie session, household, a plan over test-catalogue SKUs made two days earlier, the meal log in memory), at 1440 and 390: ate breakfast; logged lunch out (a big restaurant chicken biryani, ≈ 1,480 kcal); applied "spread over 4 days" plus "cook it on Saturday lunch"; undid it and redid it; opened from "kal raat bahar pizza khaya".
+- **Not verified live:** the real database (00091 unapplied), `/store/profile/data` (gated server-side), the agent's `log_meal` with a model, and an exact-macros Take 2 in the browser (the unit test covers it).

@@ -48,6 +48,7 @@ const TASKS = Object.freeze({
   add_to_cart: "Add to cart",
   save_kitchen_rules: "Save kitchen rules",
   log_weigh_in: "Log your weigh-in",
+  log_meal: "Log your meal",
   week_menu: "Change the week's dishes",
   edit_cart: "Change your cart",
   accept_track_proposal: "Update your daily calories",

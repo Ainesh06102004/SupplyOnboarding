@@ -13,6 +13,7 @@ import { readBrief, draftFrom } from "@/lib/planner/brief";
 import { ASKS_CART } from "../router";
 import { asksForParticularProducts } from "../cartWords";
 import { isQuote, norm } from "../evidence";
+import { mealFromConversation } from "@/lib/food/mealWords";
 
 /**
  * @param {{ saved?: Array<{label, age_band, diet_type}>, plan?: boolean, basket?: string[], page?: object }} start
@@ -166,13 +167,27 @@ export function simulated(start = {}) {
       },
       execute: async (c, { kg }) => { world.weighIn = kg; return { ok: true, summary: "Logged", forModel: "Logged." }; },
     },
+    log_meal: {
+      kind: "approval",
+      prepare: async (c) => {
+        if (!world.saved.some((p) => p.is_account_holder)) return { refused: "KOI doesn't know which saved person is the shopper. Ask which_person, then save_people source=changes with this_is_me." };
+        const read = mealFromConversation(c.memory.said);
+        if (!read.isMeal) return { refused: "That doesn't say a meal the shopper ate, skipped or half ate." };
+        const m = read.ambiguous[0];
+        if (m) return { refused: `"${m.words.join(" ")}" could be ${m.options.map((o) => o.name).join(", ")}. Ask with ask_shopper topic=clarify, the options exactly these names.` };
+        return { card: { kind: "rules", rows: [] } };
+      },
+      execute: async (c) => { world.meal = mealFromConversation(c.memory.said); return { ok: true, summary: "Logged", forModel: "Logged the meal." }; },
+    },
     ask_shopper: {
       kind: "ask",
-      card: (c, { topic, about }) => {
+      card: (c, { topic, about, options }) => {
         world.askedTopics = [...(world.askedTopics ?? []), topic];
         const held = world.saved.find((p) => norm(p.label) === norm(about ?? ""));
         if (topic === "details") return held ? { card: detailsCardFor({ ...held, age_band: held.age_band ?? "adult_19_59" }, { saved: true, fields: ["age_years", "weight_kg"] }) } : { refused: "about must be a saved person's label." };
         if (topic === "age" || topic === "diet") return held ? { card: askCardFor([{ kind: topic, person: held.label }], { draft: { members: [held] } }) } : { refused: "about must be a saved person's label." };
+        // A choice between the shopper's own options ("Veg pizza or Chicken pizza") offers those.
+        if (topic === "clarify" && (options ?? []).length >= 2) return { card: { kind: "ask", questions: [{ id: "clarify", header: "Which", kind: "single", options: options.slice(0, 4).map((o, i) => ({ key: `opt:${i}`, label: o })) }] } };
         return { card: { kind: "ask", questions: [{ id: topic, header: topic, kind: "single", options: [{ key: "a", label: "7 days" }, { key: "b", label: "No budget" }] }] } };
       },
     },

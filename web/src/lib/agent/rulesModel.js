@@ -10,6 +10,7 @@
 
 import { routeMessage, asksForChange } from "./router";
 import { readFollowUp } from "@/lib/planner/followup";
+import { mealFromConversation } from "@/lib/food/mealWords";
 import { norm } from "./evidence";
 
 const productWords = (text) => {
@@ -46,6 +47,16 @@ export function rulesModel({ memory, state }) {
   }
   if (state.page?.productId && ASKS_ABOUT_THIS.test(lower)) return tried.has("check_product") ? done() : pick("check_product", { product: "this", people: [] });
   if (FIND.test(lower)) return tried.has("explore") ? done() : pick("explore", { kind: "products", product: null });
+
+  // A meal they ate, skipped or ate out goes to Track, never into the plan. A
+  // dish word that fits several ("pizza") is asked about first, with KOI's names.
+  const meal = mealFromConversation(memory.said);
+  if (meal.isMeal) {
+    if (ok.has("log_meal") || tried.get("log_meal") > 1) return done();
+    if (meal.ambiguous.length && !tried.has("ask_shopper")) return pick("ask_shopper", { topic: "clarify", about: null, options: meal.ambiguous[0].options.map((o) => o.name) });
+    if (!meal.ambiguous.length) return pick("log_meal", { quote: null, slot: null, day: null, setting: null });
+    return done("cannot_do");
+  }
 
   const steps = routeMessage(text, { hasPlan: state.hasPlan, productWords });
   for (const step of steps) {
