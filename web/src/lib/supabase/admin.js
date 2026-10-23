@@ -12,6 +12,13 @@
 // the floor. Reaching for this client to "make a query work" deletes defence
 // in depth for the whole table.
 //
+// One sanctioned exception: the auto-plan job (/api/engine/autoplan, behind
+// CRON_SECRET, 00093) drafts a plan for a household nobody is signed in to.
+// It acts only for households whose owner created an autoplan_job under RLS,
+// scopes every read and write to that household id in its own code, writes
+// the plan as a draft, and writes the notification table (which no browser
+// can insert into).
+//
 // Returns null when unconfigured rather than throwing. A missing service key
 // is a deployment state, not a bug in the request being served: callers
 // degrade to `unknown`, which is true — without the key, KOI genuinely cannot

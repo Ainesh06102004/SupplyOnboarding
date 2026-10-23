@@ -88,10 +88,14 @@ export async function planForHousehold({
   thisWeek = {},
   onStep = null,
   signal = null,
+  // The auto-plan job (/api/engine/autoplan) plans for a household nobody is
+  // signed in to: it passes the service client, scoped in its own code to the
+  // household whose owner set the job up. Everyone else plans as themselves.
+  db: given = null,
 }) {
   if (!householdId) throw new Error("A household id is required.");
   const emit = listener(onStep);
-  const db = await getServerSupabase();
+  const db = given ?? await getServerSupabase();
 
   // RLS does the authorising: no rows means not yours (or not there).
   const { data: household, error: householdError } = await db

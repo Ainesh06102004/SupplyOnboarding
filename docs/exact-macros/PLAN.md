@@ -371,3 +371,53 @@ UI: the AutoPlan sheet (`components/store/system/Sheet.jsx`) and a header inbox 
   - Then next week's board, Track's Tuesday ("Out, from your Calendar"), and the Plan grid (Wife's lunch cooked, "Me: out").
   - The feed route's 404 and 503.
 - **Not verified live:** 00092 applied, a real subscription in Google or Apple Calendar, and `schedule` with a model.
+
+### 23 Oct · P7 Auto-plan and notifications
+- Migration **00093_autoplan_notifications**. **Not applied** (database blocked; the Supabase MCP refuses this account).
+  - `autoplan_job`: one per household, with a weekday, an IST `local_time`, `rules` (days, budget, member_ids, start), `channels` (in_app, whatsapp), `paused`, `next_run_at` and the last run. RLS through the household owner.
+  - `notification`, the inbox. It is written by the server only; the recipient gets SELECT and DELETE and `UPDATE (read_at)`. Each row has:
+    - `template` and `template_params`, the WhatsApp template it maps to;
+    - `channels` and `sent` per channel;
+    - a unique `(recipient_id, ref)`, so it is sent once.
+  - `notify_consent`: per person and channel; opted in or out, when, and how (settings, a WhatsApp reply, KOI). The phone stays the auth identity, never copied.
+  - `plan.status` already allowed `draft` (00044).
+- `lib/plan/autoplan.js`:
+  - `nextRunAt`: IST, strictly after now, correct across UTC and IST midnight.
+  - `startsOnFor` (the day after the run, or the Monday after), `rulesOf`, `jobWords` and `dueJobs`.
+- `lib/notify/templates.js`: one template per kind (autoplan_ready, autoplan_failed, reminder, plan_day, shop_day), plus `whatsappPayload` (the Cloud API template message, parameters in order).
+- `lib/notify/dispatch.js`:
+  - The in-app row is the message, and `ref` dedupes.
+  - The WhatsApp adapter is written against the Cloud API but inert: it needs `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` and a recorded opt-in that hasn't been withdrawn. The number comes from `auth.admin.getUserById`.
+- `lib/plan/autoplanRun.js` (`runAutoplan`, `runReminders`):
+  - Due jobs go through `planForHousehold` with the job's client. **New optional `db` parameter; every other caller is unchanged.**
+  - The plan is marked `draft` with `constraints.starts_on` and `auto: true`, scoped by `household_id`. The owner is notified; the next run and last plan are set.
+  - An infeasible plan is deleted, and the owner gets a plain reason.
+  - Reminders, planning days and shopping days from the Calendar are sent in their hour, 9 am if untimed, once per event per day.
+- `GET /api/engine/autoplan`: behind CRON_SECRET, with the service client because nobody is signed in. The `lib/supabase/admin.js` header now records this as the one sanctioned user-data use and why.
+- `vercel.json` gets an hourly cron. **Check before deploying: Vercel Hobby only allows daily crons** and rejects the deploy otherwise. The run catches up on everything due, so a daily schedule (e.g. `30 12 * * *`, 6 pm IST) would still work, only less precisely.
+- **Drafts never replace the week until approved:**
+  - the restore query skips `status = 'draft'`;
+  - `weekStartOf` starts a week on its `starts_on`;
+  - `reviewDraft`, `approveDraft({toCart})` and `discardDraft`;
+  - `/store/plan?review=<id>` opens a draft with `DraftBanner` (Approve and add to cart / Approve / Discard).
+  - Changes come after approval, so a draft is never half-adopted.
+- **UI:**
+  - On the Calendar: the Auto-plan card (On or Paused, the next run, the last run or its error, Change, Pause) and `AutoPlanSheet`. The sheet sets the day and time, days, start, budget and who's eating; in-app is always on, and WhatsApp shows as coming soon, opt-in only.
+  - The job is drawn on the board as an "auto" event.
+  - The header bell (`Inbox`) has an unread badge and a sheet of notifications: open (marks read), Mark all read, Dismiss. It refreshes on focus and every 5 minutes, and reads leniently before 00093.
+- **Verified:**
+  - Tests: autoplan (3), templates (3), autoplanRun (3) against a fake Supabase that records scoping. The suite is 688/688; eslint, `buildRecipes --check` and `next build` pass.
+  - The live route: 401 without the secret; with it, it reaches the database, which returns the 402.
+  - A fixture-backed Playwright walk: turn on auto-plan; the card reads "Every Sunday at 6 pm… Next: Sun 25 Oct" and the board shows it; the bell reads "1 new"; the notification opens the draft (the grid starts Wed 28, its `starts_on`); Approve removes the banner and the bell clears.
+- **Not verified live:** a real cron run (needs the database and the planner's catalogue), WhatsApp (no credentials, by decision), and approving into a real cart.
+
+## Waiting on the database
+Apply in order through the Supabase MCP (standing consent) once KOI-PLATFORM is out of its 402 restriction and this account has access, then verify each with SQL:
+- **00087 food_items** and **00088 recipe_quantities**: regenerate with `buildRecipes.mjs` first if foods or recipes changed (`--check`).
+- **00089 member_macro_targets.**
+- **00090 household_cooking.**
+- **00091 member_meal_log.**
+- **00092 calendar_event.**
+- **00093 autoplan_notifications.**
+
+Until then, meals and calendar events are kept on the device (pending) and Take 2s in local storage. All of them sync on the first load after the tables exist.

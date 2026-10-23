@@ -21,6 +21,8 @@ import { mealDishFor, SETTINGS } from "@/lib/food/estimate";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import EventSheet from "./EventSheet";
+import { useAutoplan } from "./useAutoplan";
+import { AutoPlanCard, AutoPlanSheet } from "./AutoPlan";
 
 const TONE = Object.freeze({
   out: { chip: "bg-koi-warm-bg text-koi-warm-ink", dot: "bg-koi-ember" },
@@ -193,9 +195,18 @@ export default function CalendarView({ s, ask = null, onAsked = null }) {
   const me = people.find((p) => p.is_account_holder) ?? people[0] ?? null;
   const [from, setFrom] = useState(() => mondayOf(today));
   const [sheet, setSheet] = useState(() => (ask ? { id: "ask", event: eventFromWords(ask, { people, me, today }), asked: true } : null));
+  const auto = useAutoplan(s.householdId);
+  const [autoOpen, setAutoOpen] = useState(false);
   const to = addDays(from, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
-  const byDate = useMemo(() => occurrences(s.calendar.rows, from, to), [s.calendar.rows, from, to]);
+  // The auto-plan job is on the board too: a weekly "auto" event that opens its own sheet.
+  const rows = useMemo(() => {
+    const job = auto.job;
+    if (!job || job.paused) return s.calendar.rows;
+    const since = String(job.created_at ?? "").slice(0, 10) || today;
+    return [...s.calendar.rows, { id: "autoplan", kind: "auto", starts_on: since, repeat_days: [job.weekday], at_time: job.local_time, title: "KOI drafts your next plan" }];
+  }, [s.calendar.rows, auto.job, today]);
+  const byDate = useMemo(() => occurrences(rows, from, to), [rows, from, to]);
   const labelOf = (id) => people.find((p) => String(p.memberId) === String(id))?.label ?? null;
   const planned = (date) => Boolean(s.weekSpan && date >= s.weekSpan.from && date <= s.weekSpan.to);
 
@@ -239,7 +250,7 @@ export default function CalendarView({ s, ask = null, onAsked = null }) {
                     <button type="button" onClick={() => setSheet({ id: `new-${date}`, event: { starts_on: date } })} aria-label={`Add on ${WEEKDAY_NAMES[weekdayOf(date)]} ${shortDate(date)}`} className="grid size-8 place-items-center rounded-full text-[16px] font-semibold text-koi-primary hover:bg-white">+</button>
                   </div>
                   {list.map((e) => (
-                    <button key={`${e.id}-${date}`} type="button" onClick={() => setSheet({ id: e.id, event: e })} className={`flex flex-col items-start gap-0.5 rounded-xl px-2.5 py-2 text-left ${TONE[e.kind]?.chip ?? TONE.remind.chip}`}>
+                    <button key={`${e.id}-${date}`} type="button" onClick={() => (e.kind === "auto" ? setAutoOpen(true) : setSheet({ id: e.id, event: e }))} className={`flex flex-col items-start gap-0.5 rounded-xl px-2.5 py-2 text-left ${TONE[e.kind]?.chip ?? TONE.remind.chip}`}>
                       <span className="flex items-center gap-1.5 text-[12.5px] font-bold leading-tight">
                         <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${TONE[e.kind]?.dot ?? TONE.remind.dot}`} />
                         {eventTitle(e, labelOf(e.member_id))}
@@ -256,6 +267,7 @@ export default function CalendarView({ s, ask = null, onAsked = null }) {
 
         <aside className="flex flex-col gap-4 self-start lg:sticky lg:top-[calc(var(--koi-header-h)+84px)]">
           <Suggestions s={s} today={today} />
+          <AutoPlanCard s={s} auto={auto} onOpen={() => setAutoOpen(true)} />
           <article data-card aria-label="How the plan reads it" className={card}>
             <span className="text-base font-bold">How KOI plans around it</span>
             <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[13px] text-koi-ink2">
@@ -270,6 +282,7 @@ export default function CalendarView({ s, ask = null, onAsked = null }) {
       </section>
 
       {sheet && <EventSheet key={sheet.id} s={s} initial={sheet.event} onClose={close} />}
+      {autoOpen && <AutoPlanSheet s={s} auto={auto} onClose={() => setAutoOpen(false)} />}
     </div>
   );
 }

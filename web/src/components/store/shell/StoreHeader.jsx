@@ -23,6 +23,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AccountButton from "@/components/auth/AccountButton";
+import Inbox from "./Inbox";
 import LocationModal from "@/components/store/LocationModal";
 import { useLocation } from "@/contexts/LocationContext";
 import { useCartStore, selectLineCount } from "@/store/cartStore";
@@ -145,6 +146,7 @@ export default function StoreHeader({ pathname, mode }) {
               <span style={{ maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{location?.city || "Location"}</span>
               {location?.pincode && <span className="ks-num ks-hide-phone" style={{ fontWeight: 500, opacity: 0.7 }}>{location.pincode}</span>}
             </button>
+            <Inbox lightInk={lightInk} />
             <AccountButton className="ks-hide-phone" />
             <button type="button" data-cart-target className="ks-cart-btn ks-hide-phone" onClick={openSheet} aria-label={`Open cart, ${hydrated ? count : 0} products`}>
               <Icon.Bag />

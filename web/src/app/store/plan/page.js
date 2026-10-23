@@ -21,7 +21,7 @@
 // shows what KOI does know instead, or nothing.
 // ============================================================================
 
-import { Suspense, useCallback, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginUi } from "@/store/loginUiStore";
 import { usePlanSession } from "@/components/store/plan/design/usePlanSession";
@@ -31,6 +31,7 @@ import YouStep from "@/components/store/plan/design/YouStep";
 import PlanStep from "@/components/store/plan/design/PlanStep";
 import PantryStep from "@/components/store/plan/design/PantryStep";
 import ShopStep from "@/components/store/plan/design/ShopStep";
+import DraftBanner from "@/components/store/plan/design/DraftBanner";
 import { Toast } from "@/components/store/plan/design/bits";
 import Link from "next/link";
 import { useAgent, useAgentBridge } from "@/components/agent/AgentProvider";
@@ -89,6 +90,17 @@ function Plan() {
   }, [asked, router]);
   const step = STEPS.some((x) => x.key === asked) ? asked : "define";
 
+  // An auto-plan draft opens from its notification (?review=<plan id>), once the
+  // household has loaded, on the week of dishes.
+  const review = params.get("review");
+  const reviewed = useRef(null);
+  const { householdId, reviewDraft } = session;
+  useEffect(() => {
+    if (!review || !householdId || reviewed.current === review) return;
+    reviewed.current = review;
+    reviewDraft(review).then(() => router.replace("/store/plan?step=plan", { scroll: false }));
+  }, [review, householdId, reviewDraft, router]);
+
   // push, not replace: each step is a place in history, so Back goes back.
   const go = useCallback((key) => {
     if (key === "track") { router.push("/store/track"); return; }
@@ -145,6 +157,7 @@ function Plan() {
             <button type="button" onClick={() => s.setError(null)} aria-label="Dismiss" className="text-sm font-bold">×</button>
           </div>
         )}
+        {s.plan?.draft && <DraftBanner s={s} />}
         {step === "define" && <DefineStep s={s} onNext={next} onPlan={() => go("plan")} />}
         {step === "you" && <YouStep s={s} onBack={back} onNext={next} />}
         {step === "plan" && <PlanStep s={s} onBack={back} onNext={next} />}

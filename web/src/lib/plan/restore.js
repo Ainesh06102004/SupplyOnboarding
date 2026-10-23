@@ -80,6 +80,13 @@ export function restoreFrom(rows, stored) {
   const earlier = (rows ?? []).find((r) => !inChain.has(String(r.id)) && String(r.created_at) < String(root.created_at));
   const compareTo = earlier ? { basket: earlier.basket ?? [], cost: earlier.cost ?? null, label: "Your last plan" } : null;
 
-  // The week's first plan: its dish picks are the week's (00078), and the week starts the day it was made.
-  return { plan: chain[0].plan, requests, compareTo, weekRootId: root.id, weekStart: root.created_at ?? null };
+  // The week's first plan: its dish picks are the week's (00078), and the week starts the day it was made,
+  // or the day it was drafted to start (an auto-plan, 00093). A start date is a day in India.
+  return { plan: chain[0].plan, requests, compareTo, weekRootId: root.id, weekStart: weekStartOf(root) };
+}
+
+/** When a plan's week starts: its own start date (an auto-plan's), else the moment it was made. */
+export function weekStartOf(row) {
+  if (row?.starts_on && /^\d{4}-\d{2}-\d{2}$/.test(row.starts_on)) return `${row.starts_on}T00:00:00+05:30`;
+  return row?.created_at ?? null;
 }

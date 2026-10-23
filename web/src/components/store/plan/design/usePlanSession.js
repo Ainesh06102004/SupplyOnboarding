@@ -36,7 +36,7 @@ import { reconcileWeek } from "@/lib/plan/reconcile";
 import { planBatches, COOKING_STYLES, DEFAULT_PREP_DAYS } from "@/lib/plan/batch";
 import { parseAmount } from "@/lib/nutrition/basis";
 import { hasExactMacros } from "@/lib/household/profile";
-import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
+import { restoreFrom, chainOf, planFromRow, weekStartOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
 import { takeTwo, applyAdjustments, adjustmentFrom } from "@/lib/plan/rebalance";
 import { goalsAllowed } from "@/lib/planner/goals";
 import { weekFromCalendar } from "@/lib/calendar/events";
@@ -123,10 +123,12 @@ async function readHousehold() {
   let last = null;
   let restore = null;
   if (household?.id) {
+    // An auto-plan draft (00093) isn't the week until it's approved: it opens from its notification.
     const { data: rows } = await supabase
       .from("plan")
-      .select("id, days, budget_rupees, status, created_at, follows:constraints->>follows, change:constraints->change, members:constraints->members, cost:achieved->cost, basket:achieved->basket")
+      .select("id, days, budget_rupees, status, created_at, follows:constraints->>follows, change:constraints->change, members:constraints->members, cost:achieved->cost, basket:achieved->basket, starts_on:constraints->>starts_on")
       .eq("household_id", household.id)
+      .neq("status", "draft")
       .order("created_at", { ascending: false })
       .limit(MAX_RESTORED_CHANGES + 2);
     const plan = rows?.[0];
@@ -1016,6 +1018,49 @@ export function usePlanSession() {
     return adjustment;
   }, [picks, householdId, week]);
 
+  // ── Auto-plan drafts (00093) ──────────────────────────────────────────────
+  /** Open a draft KOI made on schedule, beside this week's plan, for the owner to approve or discard. */
+  const reviewDraft = useCallback(async (planId) => {
+    const { data: row, error: readError } = await getSupabaseClient()
+      .from("plan")
+      .select("id, days, budget_rupees, status, created_at, report, explanation, starts_on:constraints->>starts_on")
+      .eq("id", planId)
+      .maybeSingle();
+    if (readError || !row) { notify("That draft isn't there any more.", "warn"); return false; }
+    if (row.status !== "draft") { notify("That plan is already approved: it's on screen.", "info"); return false; }
+    setCompareTo(plan?.report ? { basket: plan.report.basket ?? [], cost: plan.report.cost ?? null, label: "This week's plan" } : null);
+    setPlan({ ...planFromRow(row, row), draft: true, startsOn: row.starts_on ?? null });
+    setWeekRootId(row.id);
+    setWeekStart({ root: row.id, at: weekStartOf(row) });
+    setRequests([]);
+    setPicks({});
+    setAdjustments([]);
+    return true;
+  }, [plan, notify]);
+
+  /** The draft becomes the household's plan; the cart only if they asked. */
+  const approveDraft = useCallback(async ({ toCart = false } = {}) => {
+    if (!plan?.draft) return false;
+    const { error: approveError } = await getSupabaseClient().from("plan").update({ status: "solved" }).eq("id", plan.planId);
+    if (approveError) { notify("It couldn't be approved just now. Try again in a moment.", "error"); return false; }
+    setPlan((p) => ({ ...p, draft: false, status: "solved" }));
+    notify(toCart ? "Approved. Putting it in your cart." : "Approved: it's your plan from its first day.", "info");
+    if (toCart) setPendingCart(true);
+    return true;
+  }, [plan, notify]);
+
+  /** Not this one: delete the draft and go back to this week's plan. */
+  const discardDraft = useCallback(async () => {
+    if (!plan?.draft) return;
+    const { error: deleteError } = await getSupabaseClient().from("plan").delete().eq("id", plan.planId);
+    if (deleteError) { notify("It couldn't be discarded just now.", "error"); return; }
+    reopened.current = false;
+    const read = await load();
+    // No plan before it: the page goes back to having none.
+    if (!read?.restore) { setPlan(null); setWeekRootId(null); setWeekStart(null); }
+    notify(read?.restore ? "Discarded. This week's plan is back." : "Discarded.", "info");
+  }, [plan, notify, load]);
+
   /** Take a Take 2 back: its picks return to what they were, unless changed since. */
   const undoAdjustment = useCallback((id) => {
     const a = adjustments.find((x) => x.id === id && !x.undone);
@@ -1209,6 +1254,8 @@ export function usePlanSession() {
     me: meEating, meTracks, mealLog, logsByDate, adjustments, myTake2, takeTwoFor, applyTakeTwo, undoAdjustment,
     // the Calendar
     calendar, fromCalendar, weekSpan, outsByMember, myOuts: outsByMember[String(meEating?.memberId)] ?? {},
+    // auto-plan drafts
+    reviewDraft, approveDraft, discardDraft,
     // the agent's page actions
     nav, setNav, agentBridge,
     // pantry / cart
