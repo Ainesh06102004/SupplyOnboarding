@@ -37,6 +37,7 @@ import Link from "next/link";
 import { useAgent, useAgentBridge } from "@/components/agent/AgentProvider";
 import { useCartUi } from "@/store/cartUiStore";
 import { peopleOf } from "@/lib/plan/planView";
+import { useBarFacts } from "@/components/store/shell/useBarPrompt";
 
 export default function PlanPage() {
   return (
@@ -89,6 +90,8 @@ function Plan() {
     if (asked === "track") router.replace("/store/track");
   }, [asked, router]);
   const step = STEPS.some((x) => x.key === asked) ? asked : "define";
+  // The KOI bar suggests for this step, for the person open (lib/koi/barWords.js).
+  useBarFacts({ step, person: s.active?.label ?? null, planned: Boolean(s.plan) });
 
   // An auto-plan draft opens from its notification (?review=<plan id>), once the
   // household has loaded, on the week of dishes.

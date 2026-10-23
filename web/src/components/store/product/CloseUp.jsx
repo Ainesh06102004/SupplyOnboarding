@@ -31,6 +31,7 @@ import { QtyStepper } from "@/components/store/system/primitives";
 import { setupMotion, prefersReducedMotion, useGSAP, SplitText, E } from "@/lib/motion/koiMotion";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+import { useBarFacts } from "@/components/store/shell/useBarPrompt";
 
 const VIEWS = { hero: "Pack", label: "Label", lifestyle: "In use" };
 const ringTone = (n) => (n >= 80 ? "#1f5c3a" : n >= 50 ? "#b07d2b" : "#c2683a");
@@ -93,6 +94,8 @@ export default function CloseUp({ product }) {
   const openSheet = useCartUi((s) => s.openSheet);
   const item = product.raw || product;
   const key = lineKey({ skuId: item.skuId, productId: item.id });
+  // The KOI bar asks about this product by name.
+  useBarFacts({ product: product.name, category: product.subcategory || product.category || null });
   const inCart = useCartStore((s) => packs(s.items.find((i) => lineKey(i) === key)?.quantity));
 
   const views = ["hero", "label", "lifestyle"].filter((k) => product.image?.[k]);

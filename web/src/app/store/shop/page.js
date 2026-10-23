@@ -43,6 +43,7 @@ import { nutrientValue } from "@/components/store/shop/ShopProductCard";
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
 import { Flip } from "@/lib/motion/koiMotion";
+import { useBarFacts } from "@/components/store/shell/useBarPrompt";
 
 // The lenses: each is a sentence KOI reads with the intent engine, exactly as if
 // the shopper had typed it. Kept to the ones the engine understands.
@@ -107,6 +108,8 @@ export default function ShopPage() {
   const [activeGoal, setActiveGoal] = useState(null);
   const [activeBrand, setActiveBrand] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  // The KOI bar builds on the search ("Like “oats”, but cheaper").
+  useBarFacts({ query: searchQuery.trim().slice(0, 40) || null });
   const [activeSort, setActiveSort] = useState("Recommended");
   const [filterPrice, setFilterPrice] = useState("All");
   const [filterScore, setFilterScore] = useState("All");

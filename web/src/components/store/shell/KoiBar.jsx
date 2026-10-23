@@ -22,15 +22,7 @@ import { setupMotion, prefersReducedMotion, E } from "@/lib/motion/koiMotion";
 import { readMealSentence, dateFor } from "@/lib/food/mealWords";
 import { readScheduleSentence } from "@/lib/calendar/words";
 import { AskSlot } from "./KoiAsk";
-
-const PLACEHOLDERS = {
-  "/store": "Snacks for evening tea, crunchy, not sweet…",
-  "/store/shop": "High protein, no palm oil…",
-  "/store/cart": "Anything here my kid shouldn’t have?",
-  "/store/orders": "Make last week’s basket again…",
-  "/store/household": "My mother is staying with us this week…",
-};
-const placeholderFor = (path) => PLACEHOLDERS[path] ?? (path.startsWith("/store/product") ? "Is this okay for my dad? He’s diabetic…" : "Ask KOI…");
+import { useBarPrompt } from "./useBarPrompt";
 
 /** How long a line stays up: long enough to read it, then the bar folds back to the prompt. */
 const holdMs = (line) => Math.min(12000, 4000 + line.split(" ").length * 280);
@@ -77,6 +69,8 @@ export default function KoiBar() {
   const ember = useEmber();
   const [text, setText] = useState("");
   const asking = useKoiBar((b) => b.ask);
+  // Only what this bar can carry out without the agent: a meal, a schedule, a search (lib/koi/barWords.js).
+  const placeholder = useBarPrompt({ agent: false, paused: Boolean(text) });
 
   // Checkout is the one page with nothing but the checkout on it: KOI still
   // speaks (its line) and its dot still has a home, but there is nothing to
@@ -141,7 +135,7 @@ export default function KoiBar() {
               autoComplete="off"
               value={text}
               onChange={(e) => { setText(e.target.value.slice(0, 300)); ember.bump(); }}
-              placeholder={placeholderFor(pathname)}
+              placeholder={placeholder}
               className="h-full min-w-0 flex-1 border-0 bg-transparent font-koi-sans text-base font-medium text-koi-ink outline-none placeholder:text-koi-muted"
             />
             <button type="submit" className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-koi-forest px-[18px] font-koi-sans text-sm font-bold text-koi-lime disabled:opacity-60" disabled={!text.trim()}>

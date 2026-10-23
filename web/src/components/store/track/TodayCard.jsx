@@ -22,6 +22,7 @@ import { SLOT_KEYS, SLOT_LABELS } from "@/lib/plan/schedule";
 import { mealDishFor } from "@/lib/food/estimate";
 import { inr } from "@/components/store/plan/design/tokens";
 import MealAsk, { itemOf } from "./MealAsk";
+import { useBarFacts } from "@/components/store/shell/useBarPrompt";
 
 /** What the bar's ask opens with: the sentence's reading, or the meal as KOI's agent logged it. */
 function initialFor(opening, log) {
@@ -105,6 +106,9 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
   };
   const undo = async (row) => { await s.mealLog.remove(date, row.slot); };
   const freeSlots = SLOT_KEYS.filter((k) => k !== "drinks" && !ledger.rows.some((r) => r.slot === k));
+  // Today's next meal still to log: the KOI bar offers it by name ("… instead of Jeera rice").
+  const next = date === today ? ledger.rows.find((r) => !r.log && !r.out && r.dishes.length) ?? null : null;
+  useBarFacts({ nextMeal: next ? { slot: next.slot, dish: next.dishes.map((d) => d.name).join(" with ") } : null });
 
   return (
     <article data-card aria-label={`${dayLabel}'s meals`} className={card}>

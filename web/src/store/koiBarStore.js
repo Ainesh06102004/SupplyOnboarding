@@ -17,6 +17,13 @@ export const useKoiBar = create((set, get) => ({
   ask: null,
   /** The bar's element the ask renders into (set by whichever bar is mounted). */
   slot: null,
+  /**
+   * What the page open knows that the bar can suggest from (lib/koi/barWords.js):
+   * { step, product, category, dish, person, planned, nextMeal: {slot, dish}, query }.
+   * Set by the page with useBarFacts; cleared when it leaves.
+   */
+  facts: {},
+  setFacts: (facts) => set({ facts: facts ?? {} }),
   open: (ask) => set({ ask }),
   /** Closes the ask only if it is still this one: a newer ask is left alone. */
   close: (id) => { if (get().ask?.id === id) set({ ask: null }); },

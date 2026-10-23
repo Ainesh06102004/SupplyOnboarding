@@ -41,6 +41,7 @@ import { AGE_BANDS } from "@/lib/planner/brief";
 import { goalsAllowed, ENERGY_GOALS, EATING_PATTERNS } from "@/lib/planner/goals";
 import { dailyFigures } from "@/lib/plan/projection";
 import { withSuggestedTargets } from "@/lib/household/save";
+import { useBarFacts } from "@/components/store/shell/useBarPrompt";
 import {
   blankProfile, profileFromRow, memberPayload, avoidsPayload, profileProblems, profileSummary,
   severitiesFor, defaultSeverityFor, fromGoalSetup, ACTIVITY_LEVELS, MEALS_FROM_HOME, APPETITES, SPICE_TOLERANCES, SEVERITIES,
@@ -520,6 +521,8 @@ export default function HouseholdPage() {
   const savedOf = (id) => (id === NEW ? null : members.find((m) => m.memberId === id) ?? null);
   const blankFor = () => ({ ...blankProfile(), label: members.length ? "" : "Me", is_account_holder: !members.length });
   const form = drafts[openId] ?? savedOf(openId) ?? blankFor();
+  // The KOI bar suggests for the person open ("Wife has started avoiding gluten").
+  useBarFacts({ person: form.label || null });
   const isDirty = (id) => Boolean(drafts[id]) && (id === NEW || changedFields(drafts[id], savedOf(id)).length > 0);
 
   const reload = useCallback(async () => show(await readHousehold()), [show]);

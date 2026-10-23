@@ -19,6 +19,7 @@ import { lineText, renderText } from "@/lib/food/recipes";
 import { gramsText } from "@/lib/food/measures";
 import { inr } from "@/components/store/plan/design/tokens";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
+import { useBarFacts } from "@/components/store/shell/useBarPrompt";
 
 const SUPPLY = [
   { key: "shelf", title: "From your KOI order", tone: "text-koi-green" },
@@ -65,6 +66,7 @@ function Fact({ value, label, dark = false }) {
 export default function RecipeView({ plan, context, unit, onUnit, servings, onServings, onCook }) {
   const root = useRef(null);
   const { recipe } = plan;
+  useBarFacts({ dish: recipe.name });
   useGSAP(() => {
     if (prefersReducedMotion()) return;
     const gsap = setupMotion();

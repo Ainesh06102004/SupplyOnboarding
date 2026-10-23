@@ -26,16 +26,10 @@ import KoiBar, { KoiSubtitle } from "@/components/store/shell/KoiBar";
 import { AskSlot } from "@/components/store/shell/KoiAsk";
 import { useKoiVoice } from "@/store/koiVoiceStore";
 import { useKoiBar } from "@/store/koiBarStore";
+import { useBarPrompt, useWorkingWord } from "@/components/store/shell/useBarPrompt";
 import "./agent.css";
 
 const LoginSheet = dynamic(() => import("@/components/auth/LoginSheet"), { ssr: false });
-
-const PLACEHOLDERS = [
-  "Tell KOI what you need this week…",
-  "Plan this week for my family",
-  "Make my plan cheaper",
-  "Is this ok for my son?",
-];
 
 function SendIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5" /><path d="m5 12 7-7 7 7" /></svg>;
@@ -51,7 +45,6 @@ export default function AgentDock() {
   // round K beside it rather than stacking on top (app/store/koi.css).
   const compact = useCartUi((s) => s.totalBar);
   const [text, setText] = useState("");
-  const [ph, setPh] = useState(0);
   const asking = useKoiBar((b) => b.ask);
   // The shopper's choice of view, once made; until then a long conversation is Commentary.
   const [view, setView] = useState(null);
@@ -63,12 +56,11 @@ export default function AgentDock() {
   const running = state?.status === "running";
   const waiting = state?.status === "waiting";
 
-  // The placeholder cycles through what KOI can do, while idle.
-  useEffect(() => {
-    if (running || text) return undefined;
-    const t = setInterval(() => setPh((i) => (i + 1) % PLACEHOLDERS.length), 3800);
-    return () => clearInterval(t);
-  }, [running, text]);
+  // The placeholder is something KOI can do on this page, for what is on it (lib/koi/barWords.js).
+  const placeholder = useBarPrompt({ agent: true, paused: running || Boolean(text) });
+  // While KOI works: a kitchen word for the tool it's running, and the time ("Squinting at the label… 6s").
+  const tool = useMemo(() => [...(state?.entries ?? [])].reverse().find((e) => e.kind === "tool" && e.state === "running")?.tool ?? null, [state?.entries]);
+  const working = useWorkingWord(tool, state?.runStartedAt ?? null, running);
 
   // "/" focuses the dock; Esc stops a run, or closes the sheet.
   useEffect(() => {
@@ -136,7 +128,14 @@ export default function AgentDock() {
           <EmberSlot />
           {running || waiting ? (
             <button type="button" onClick={agent.open} style={{ flex: 1, minWidth: 0, border: "none", background: "transparent", textAlign: "left", cursor: "pointer", padding: "10px 0" }} aria-label="Open KOI's conversation">
-              <span className="ka-status" data-tone={waiting ? "warm" : undefined}>{waiting ? (state.pending?.kind === "approval" ? "KOI needs your OK" : "KOI needs you") : statusLine ?? "KOI is working"}</span>
+              {waiting || !working ? (
+                <span className="ka-status" data-tone={waiting ? "warm" : undefined}>{waiting ? (state.pending?.kind === "approval" ? "KOI needs your OK" : "KOI needs you") : statusLine ?? "KOI is working"}</span>
+              ) : (
+                <span className="ka-status" aria-live="off">
+                  <span className="font-semibold">{working.word}…</span>
+                  <span className="opacity-60"> {working.time}{statusLine ? ` · ${statusLine}` : ""}</span>
+                </span>
+              )}
             </button>
           ) : (
             <input
@@ -145,7 +144,7 @@ export default function AgentDock() {
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 600))}
               onFocus={() => { if (agent.signedIn && state.entries.length) agent.open(); }}
-              placeholder={PLACEHOLDERS[ph]}
+              placeholder={placeholder}
               aria-label="Tell KOI what you need"
             />
           )}
@@ -171,7 +170,11 @@ export default function AgentDock() {
             <div className="ka-head-row">
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span className="ka-dot" aria-hidden="true" />
-                <span className="ka-status" data-tone={waiting ? "warm" : undefined}>{statusLine ?? "KOI"}</span>
+                {working && !waiting ? (
+                  <span className="ka-status" aria-live="off"><span className="font-semibold">{working.word}…</span><span className="opacity-60"> {working.time}{statusLine ? ` · ${statusLine}` : ""}</span></span>
+                ) : (
+                  <span className="ka-status" data-tone={waiting ? "warm" : undefined}>{statusLine ?? "KOI"}</span>
+                )}
               </div>
               <div style={{ display: "flex", gap: 2 }}>
                 <button type="button" className="ka-icon-btn" onClick={() => agent.setFollow(!state.follow)} aria-pressed={state.follow} title="Move the page to where KOI is working">{state.follow ? "Following" : "Follow"}</button>
@@ -216,7 +219,7 @@ export default function AgentDock() {
                 value={text}
                 onChange={(e) => setText(e.target.value.slice(0, 600))}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) submit(e); }}
-                placeholder={waiting ? "Answer above, or tell KOI something else…" : running ? "Add something — it sends when KOI finishes" : "Tell KOI what you need…"}
+                placeholder={waiting ? "Answer above, or tell KOI something else…" : running ? "Add something — it sends when KOI finishes" : placeholder}
                 aria-label="Message KOI"
               />
               {running && !text.trim() ? (

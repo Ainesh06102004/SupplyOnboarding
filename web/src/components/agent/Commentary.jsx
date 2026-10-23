@@ -18,6 +18,7 @@ import Link from "next/link";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 import { AskCard, ApprovalCard, ResultCard } from "./cards";
 import { useCartStore } from "@/store/cartStore";
+import { useWorkingWord } from "@/components/store/shell/useBarPrompt";
 
 const cue = "font-koi-mono text-xs font-semibold tracking-[0.26em]";
 
@@ -88,6 +89,9 @@ export default function Commentary({ agent, onLightsUp, onSheet }) {
   const cart = useCartStore((s) => s.items.length);
   const running = state.status === "running";
   const waiting = state.status === "waiting";
+  // The stage direction while KOI works: "(simmering the week… 12s)".
+  const tool = [...state.entries].reverse().find((e) => e.kind === "tool" && e.state === "running")?.tool ?? null;
+  const working = useWorkingWord(tool, state.runStartedAt ?? null, running);
   const firstAsk = state.entries.find((e) => e.kind === "user")?.text ?? "";
   const scene = firstAsk.length > 36 ? `${firstAsk.slice(0, 34).trimEnd()}…` : firstAsk;
 
@@ -158,7 +162,7 @@ export default function Commentary({ agent, onLightsUp, onSheet }) {
           {(running || waiting) && (
             <p data-beat className="m-0 pl-[48px] text-[15px] italic text-koi-bg/65 md:pl-[60px]">
               <span aria-hidden="true" className="mr-2 inline-block size-2 animate-pulse rounded-full bg-koi-ember align-middle" />
-              ({waiting ? (state.pending?.kind === "approval" ? "waits for your OK" : "waits for your answer") : (state.statusLine ?? "KOI is working").replace(/^KOI /, "")})
+              ({waiting ? (state.pending?.kind === "approval" ? "waits for your OK" : "waits for your answer") : working ? `${working.word.toLowerCase()}… ${working.time}` : (state.statusLine ?? "KOI is working").replace(/^KOI /, "")})
             </p>
           )}
         </div>
