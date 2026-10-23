@@ -23,7 +23,9 @@ import { TaskChecklist, ToolCard, AskCard, ApprovalCard, ResultCard } from "./ca
 import Commentary from "./Commentary";
 import { EmberSlot, useEmber } from "@/components/store/ember/Ember";
 import KoiBar, { KoiSubtitle } from "@/components/store/shell/KoiBar";
+import { AskSlot } from "@/components/store/shell/KoiAsk";
 import { useKoiVoice } from "@/store/koiVoiceStore";
+import { useKoiBar } from "@/store/koiBarStore";
 import "./agent.css";
 
 const LoginSheet = dynamic(() => import("@/components/auth/LoginSheet"), { ssr: false });
@@ -50,6 +52,7 @@ export default function AgentDock() {
   const compact = useCartUi((s) => s.totalBar);
   const [text, setText] = useState("");
   const [ph, setPh] = useState(0);
+  const asking = useKoiBar((b) => b.ask);
   // The shopper's choice of view, once made; until then a long conversation is Commentary.
   const [view, setView] = useState(null);
   const inputRef = useRef(null);
@@ -122,12 +125,13 @@ export default function AgentDock() {
 
   return (
     <div className="koi-agent" data-koi-bar>
+      {/* A page asking in the bar ("what did you have instead?") turns the dock into the question. */}
+      {!sheet && asking && <div className="ka-ask"><AskSlot ask={asking} /></div>}
       {/* Signed out, the conversation never opens beside the page; the dock stays the dock. */}
-      {!sheet && (
-        <div className="ka-subtitle" data-compact={compact ? "true" : undefined}><KoiSubtitle /></div>
-      )}
-      {!sheet && (
+      {!sheet && !asking && (
         <form className="ka-dock ka-glass" data-state={dockState} data-compact={compact ? "true" : undefined} onSubmit={submit} role="search" aria-label="Ask KOI">
+          {/* KOI's line rides inside the dock, as its top row: never over the page. */}
+          <KoiSubtitle className="ka-line" />
           <button type="button" className="ka-k" onClick={agent.open} aria-label="Ask KOI">K</button>
           <EmberSlot />
           {running || waiting ? (

@@ -7,7 +7,8 @@
 // Each meal is the person's own plate (lib/plan/today.js): their sized grams
 // on their own numbers, the recipe's serving otherwise, a Take 2's swap or
 // smaller plate where one applies. "Ate it" logs it as planned; "Something
-// else" opens the sheet (MealOutSheet) for a meal out, part of it, or none.
+// else" marks the row and asks in the KOI bar (MealAsk): a meal out, part of
+// it, or none. No sheet: the bar is the one place KOI talks.
 // The day's figures are the ledger's: eaten so far, the day as it is going,
 // against the person's numbers (or, without them, the plan). The week strip
 // (WeekStrip) picks the day, so yesterday can be filled in too.
@@ -20,16 +21,9 @@ import { plateWords } from "@/lib/plan/portions";
 import { SLOT_KEYS, SLOT_LABELS } from "@/lib/plan/schedule";
 import { mealDishFor } from "@/lib/food/estimate";
 import { inr } from "@/components/store/plan/design/tokens";
-import MealOutSheet from "./MealOutSheet";
+import MealAsk, { itemOf } from "./MealAsk";
 
-/** A sheet item from a dish key (a sentence's dish, or one KOI logged). */
-const itemOf = ({ dishKey, text, portion, count }) => {
-  const d = dishKey ? mealDishFor(dishKey) : null;
-  if (!d) return { text, name: text, unit: "plate", portion: portion ?? "usual", count: 1 };
-  return { dishKey, name: d.name, unit: d.unit, noun: d.noun, portion: portion ?? "usual", count: count ?? 1 };
-};
-
-/** What the sheet opens with: the sentence's reading, or the meal as KOI's agent logged it. */
+/** What the bar's ask opens with: the sentence's reading, or the meal as KOI's agent logged it. */
 function initialFor(opening, log) {
   if (opening?.read) {
     const r = opening.read;
@@ -42,6 +36,7 @@ function initialFor(opening, log) {
       // "Full plate" says how much of whichever pizza they pick.
       portion: r.portion ?? "usual",
       setting: r.setting ?? "restaurant",
+      said: opening.sentence,
     };
   }
   if (log) {
@@ -141,8 +136,9 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
           // The plan's dish, when something else was eaten (or nothing), is struck through, not counted.
           const notEaten = log && ["other", "skipped"].includes(log.status);
           const outNames = (log?.other?.items ?? []).map((x) => (x.dish_key ? mealDishFor(x.dish_key)?.name ?? x.dish_key : x.text)).join(", ");
+          const asking = sheet?.slot === row.slot;
           return (
-            <li key={row.slot} className="flex flex-wrap items-center justify-between gap-3 border-b border-koi-forest/10 py-3.5 last:border-b-0">
+            <li key={row.slot} className={`flex flex-wrap items-center justify-between gap-3 border-b py-3.5 last:border-b-0 ${asking ? "-mx-3.5 rounded-[18px] border-transparent bg-koi-warm-bg px-3.5 ring-2 ring-koi-ember" : "border-koi-forest/10"}`}>
               <span className="flex min-w-0 flex-1 basis-[240px] flex-col gap-0.5">
                 <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-koi-muted">{SLOT_LABELS[row.slot] ?? row.slot}</span>
                 <span className={`text-[15px] font-bold ${notEaten && names ? "text-koi-muted line-through decoration-koi-muted/50" : ""}`}>{row.out ? "Out, from your Calendar" : names || (row.extras.length ? row.extras.map((x) => x.name).join(", ") : row.unplanned ? "Not on the plan" : "—")}</span>
@@ -154,6 +150,7 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
                   {row.swap && <span className="block font-semibold text-koi-primary">Take 2: {row.swap === "box" ? "the spare box" : "your packed plate"}</span>}
                   {f && f !== 1 && <span className="block font-semibold text-koi-primary">Take 2: {quarter(f)} of your usual plate</span>}
                   {row.batch && !row.swap && <span className="block text-koi-muted">Batch {row.batch} box</span>}
+                  {asking && <span className="block font-semibold text-koi-warm-ink">KOI is asking in the bar below ↓</span>}
                 </span>
               </span>
               {log ? (
@@ -167,7 +164,7 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
               ) : (
                 <span className="flex gap-2">
                   {(row.cellKey || row.extras.length > 0) && !row.out && <button type="button" onClick={() => ate(row)} className="h-11 rounded-full bg-koi-forest px-4 text-[13.5px] font-bold text-koi-lime">Ate it</button>}
-                  <button type="button" onClick={() => setSheet({ id: `${date}:${row.slot}`, slot: row.slot })} className={`h-11 rounded-full px-4 text-[13.5px] font-semibold ${row.out ? "bg-koi-forest font-bold text-koi-lime" : "border border-koi-forest/20 text-koi-forest hover:border-koi-forest/40"}`}>{row.out ? "Log what you had" : "Something else"}</button>
+                  <button type="button" aria-pressed={asking} onClick={() => setSheet(asking ? null : { id: `${date}:${row.slot}`, slot: row.slot })} className={`h-11 rounded-full px-4 text-[13.5px] font-semibold ${asking ? "bg-koi-ember font-bold text-white" : row.out ? "bg-koi-forest font-bold text-koi-lime" : "border border-koi-forest/20 text-koi-forest hover:border-koi-forest/40"}`}>{row.out ? "Log what you had" : "Something else"}</button>
                 </span>
               )}
             </li>
@@ -196,24 +193,23 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
 
       {s.mealLog.error && <p role="alert" className="m-0 text-xs font-medium text-koi-red">{s.mealLog.error}</p>}
 
-      {sheet && <OpenSheet sheet={sheet} ledger={ledger} s={s} date={date} dayLabel={dayLabel} onClose={() => { setSheet(null); if (sheet.opening) onOpened?.(); }} />}
+      {sheet && <OpenAsk sheet={sheet} ledger={ledger} s={s} date={date} dayLabel={dayLabel} onClose={() => { setSheet(null); if (sheet.opening) onOpened?.(); }} />}
     </article>
   );
 }
 
 /**
- * The sheet for one meal. The planned plate is read live (the week can load
- * after the sheet opens), and a meal KOI logged reopens with what it logged
- * once the log has loaded: the key changes, so the sheet starts again from it.
+ * The bar's ask for one meal. The planned plate is read live (the week can
+ * load after the ask opens), and a meal KOI logged reopens with what it logged
+ * once the log has loaded: the key changes, so the ask starts again from it.
  */
-function OpenSheet({ sheet, ledger, s, date, dayLabel, onClose }) {
+function OpenAsk({ sheet, ledger, s, date, dayLabel, onClose }) {
   const row = ledger.rows.find((r) => r.slot === sheet.slot) ?? null;
   const logged = sheet.opening?.fromLog ? row?.log ?? null : null;
   const initial = initialFor(sheet.opening, logged);
   return (
-    <MealOutSheet
+    <MealAsk
       key={`${sheet.id}:${initial ? "ready" : "blank"}`}
-      open
       onClose={onClose}
       s={s}
       date={date}

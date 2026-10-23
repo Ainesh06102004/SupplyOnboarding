@@ -32,9 +32,10 @@ export default function DemoBadge() {
       type="button"
       onClick={() => setAsking(true)}
       title="Demo mode: no Supabase. Everything is stored in web/.demo/db.json. Press to start again."
-      className="h-8 shrink-0 rounded-full bg-koi-lime px-3 font-koi-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-koi-forest"
+      aria-label="Demo mode: reset"
+      className="h-8 shrink-0 rounded-full bg-koi-lime px-2.5 font-koi-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-koi-forest md:px-3"
     >
-      Demo · reset
+      Demo<span className="hidden md:inline"> · reset</span>
     </button>
   );
 }
