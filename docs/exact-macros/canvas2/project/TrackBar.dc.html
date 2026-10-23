@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Track asks in the bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+@keyframes ember{0%,100%{box-shadow:0 0 0 0 rgba(232,116,59,0.55)}50%{box-shadow:0 0 0 9px rgba(232,116,59,0)}}
+button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+</style>
+</helmet>
+<div style="height: 1000px; background: #f6f5f1; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1c1e17; position: relative; overflow: hidden">
+  <main style="max-width: 1240px; margin: 0 auto; padding: 32px 52px 0; display: flex; flex-direction: column; gap: 20px">
+    <span style="font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #4a4d44">Track · Thursday 23 Oct</span>
+    <h1 class="kc" style="margin: 0; font: 800 60px/0.92 'Bricolage Grotesque', sans-serif; letter-spacing: -0.03em; color: #083d2d">Today</h1>
+    <section style="border-radius: 26px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 8px 20px">
+      <div style="display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid rgba(8,61,45,0.08)">
+        <span style="width: 90px; font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #4a4d44">Breakfast</span>
+        <span style="flex: 1; font-size: 15.5px; font-weight: 700">Oats with banana and almonds <span style="font-weight: 500; color: #4a4d44">· 60 g oats</span></span>
+        <span style="border-radius: 999px; background: #e8f1ea; color: #083d2d; padding: 6px 12px; font-size: 13px; font-weight: 700">✓ Ate it</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 16px 14px; margin: 6px -14px; border-radius: 18px; background: #faece2; box-shadow: inset 0 0 0 2px #e8743b">
+        <span style="width: 90px; font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #7a3d1c">Lunch</span>
+        <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 15.5px; font-weight: 700">Steamed rice with Mushroom pepper fry <span style="font-weight: 500; color: #4a4d44">· 150 g rice</span></span>
+          <span style="font-size: 12.5px; color: #7a3d1c; font-weight: 600">Asking in the KOI bar below ↓</span>
+        </span>
+        <button type="button" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.2); background: #ffffff; font: 600 13px 'Plus Jakarta Sans', sans-serif">Ate it</button>
+        <button type="button" aria-pressed="true" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 0; background: #e8743b; color: #ffffff; font: 700 13px 'Plus Jakarta Sans', sans-serif">Something else</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 16px 0">
+        <span style="width: 90px; font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #4a4d44">Dinner</span>
+        <span style="flex: 1; font-size: 15.5px; font-weight: 700">Rajma with 2 rotis <span style="font-weight: 500; color: #4a4d44">· Box 2 of 3</span></span>
+        <span style="font-size: 13px; color: #4a4d44">Later</span>
+      </div>
+    </section>
+    <section style="display: flex; gap: 12px">
+      <span style="flex: 1; border-radius: 20px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 16px; display: flex; flex-direction: column; gap: 4px"><span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #4a4d44">Kcal so far</span><span style="font: 600 26px 'Space Grotesk', sans-serif">420 <span style="font-size: 14px; color: #4a4d44">/ 2,050</span></span></span>
+      <span style="flex: 1; border-radius: 20px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 16px; display: flex; flex-direction: column; gap: 4px"><span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #4a4d44">Protein</span><span style="font: 600 26px 'Space Grotesk', sans-serif">18 g <span style="font-size: 14px; color: #4a4d44">/ 120 g</span></span></span>
+      <span style="flex: 1; border-radius: 20px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 16px; display: flex; flex-direction: column; gap: 4px"><span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #4a4d44">This week</span><span style="font: 600 26px 'Space Grotesk', sans-serif">On track</span></span>
+    </section>
+  </main>
+
+  <section aria-label="Ask KOI" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 60px 16px 24px; background: linear-gradient(to top, #f6f5f1 62%, rgba(246,245,241,0)); display: flex; flex-direction: column; align-items: center; gap: 10px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 680px">
+      <button type="button" style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.18); background: #ffffff; font: 600 13px 'Plus Jakarta Sans', sans-serif">Skipped it</button>
+      <button type="button" style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.18); background: #ffffff; font: 600 13px 'Plus Jakarta Sans', sans-serif">Had half</button>
+      <button type="button" style="height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.18); background: #ffffff; font: 600 13px 'Plus Jakarta Sans', sans-serif">Veg thali at the canteen <span style="color: #4a4d44; font-weight: 500">· last Tue</span></button>
+      <button type="button" style="height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: transparent; color: #4a4d44; font: 600 13px 'Plus Jakarta Sans', sans-serif">Cancel</button>
+    </div>
+    <form style="position: relative; width: 100%; max-width: 680px; border-radius: 30px; background: #ffffff; border: 2px solid #e8743b; box-shadow: 0 24px 44px -26px rgba(122,61,28,0.5); padding: 8px 8px 8px 20px; display: flex; flex-direction: column; gap: 6px">
+      <span style="display: flex; align-items: center; gap: 8px; padding-top: 6px">
+        <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 999px; background: #e8743b; animation: ember 1.6s ease-in-out infinite"></span>
+        <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #7a3d1c">KOI is asking · Lunch</span>
+      </span>
+      <span style="font-size: 17px; font-weight: 600; line-height: 1.4; color: #1c1e17; padding-right: 12px">What did you have instead of Steamed rice with Mushroom pepper fry?</span>
+      <span style="display: flex; align-items: center; gap: 10px; height: 48px">
+        <input aria-label="What you had instead" placeholder="Say it how you'd say it: “2 idli and a vada at the office”" style="flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: 500 15.5px 'Plus Jakarta Sans', sans-serif; outline: none">
+        <button type="submit" style="height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif">Tell KOI →</button>
+      </span>
+    </form>
+    <span style="font-size: 12px; color: #4a4d44">KOI's words always sit inside the bar now, never over the page.</span>
+  </section>
+
+  <aside style="position: absolute; right: 24px; top: 32px; width: 300px; border-radius: 20px; background: #1c1e17; color: #f6f5f1; padding: 16px; font-size: 13px; line-height: 1.55; display: flex; flex-direction: column; gap: 8px">
+    <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #ddf247">Design note</span>
+    <span>No sheet opens. "Something else" marks the row and turns the bar into the question. The ember pulses until you answer or cancel.</span>
+    <span>The subtitle fix: KOI's line moves out of the floating caption and into the bar's top row, so it can never cover the page. Its height is reserved, so nothing jumps.</span>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

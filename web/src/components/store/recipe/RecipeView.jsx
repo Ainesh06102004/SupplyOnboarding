@@ -13,7 +13,7 @@
 // sum of the plates, and a plate sized to someone's own numbers says so.
 // ============================================================================
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { lineText, renderText } from "@/lib/food/recipes";
 import { gramsText } from "@/lib/food/measures";
@@ -74,6 +74,11 @@ export default function RecipeView({ plan, context, unit, onUnit, servings, onSe
 
   const opts = { scale: plan.scale, unit, gramsOf: plan.gramsOf };
   const multi = plan.servings > 1;
+  // What's been got out, line by line; "Tick all" for a cook who has it all on the counter.
+  const [ticked, setTicked] = useState(() => new Set());
+  const listed = recipe.lines.filter((l) => SUPPLY.some((g) => g.key === l.supply)).map((l) => l.index);
+  const allTicked = listed.length > 0 && listed.every((i) => ticked.has(i));
+  const tick = (i) => setTicked((s) => { const next = new Set(s); if (next.has(i)) next.delete(i); else next.add(i); return next; });
   const sizedBox = plan.boxes.find((b) => b.sized) ?? null;
   const shown = sizedBox ?? plan.boxes[0];
   const dayOf = (cellKey) => (cellKey ? context.dayLabels?.[cellKey.split(":")[0]] ?? null : null);
@@ -118,7 +123,12 @@ export default function RecipeView({ plan, context, unit, onUnit, servings, onSe
             <h2 id="need-h" className="m-0 font-koi-display text-[26px] font-extrabold text-koi-forest">What you need</h2>
             <span className="font-koi-mono text-[11px] font-medium uppercase tracking-[0.12em] text-koi-muted">{plan.servings} {plan.mode === "batch" ? "boxes" : plan.servings === 1 ? "serving" : "servings"}</span>
           </div>
-          <p className="m-0 mb-1 text-[13px] text-koi-muted">Tick things off as you get them out.</p>
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <p className="m-0 text-[13px] text-koi-muted">Tick things off as you get them out.</p>
+            <button type="button" onClick={() => setTicked(allTicked ? new Set() : new Set(listed))} aria-pressed={allTicked} className="h-9 shrink-0 rounded-full border border-koi-forest/15 px-3.5 text-[12.5px] font-semibold text-koi-forest transition-colors hover:border-koi-forest/40">
+              {allTicked ? "Untick all" : "Tick all"}
+            </button>
+          </div>
           {SUPPLY.map((group) => {
             const lines = recipe.lines.filter((l) => l.supply === group.key);
             if (!lines.length) return null;
@@ -130,7 +140,7 @@ export default function RecipeView({ plan, context, unit, onUnit, servings, onSe
                   const id = `ing-${recipe.key}-${l.index}`;
                   return (
                     <label key={l.index} htmlFor={id} className="flex cursor-pointer items-center gap-3.5 border-t border-koi-forest/10 py-3">
-                      <input id={id} type="checkbox" className="peer size-5 shrink-0 cursor-pointer accent-koi-forest" />
+                      <input id={id} type="checkbox" checked={ticked.has(l.index)} onChange={() => tick(l.index)} className="peer size-5 shrink-0 cursor-pointer accent-koi-forest" />
                       <span className="min-w-0 flex-1 text-base leading-snug peer-checked:text-koi-muted peer-checked:line-through">
                         <strong className="font-bold">{t.amount}</strong>{t.name ? ` ${t.name}` : ""}
                         {l.optional && <span className="text-[13px] text-koi-muted"> (optional)</span>}

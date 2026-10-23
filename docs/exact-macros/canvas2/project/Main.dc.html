@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Household</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 1760px; background: #f6f5f1; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1c1e17">
+  <header style="height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 clamp(16px, 4vw, 52px); border-bottom: 1px solid rgba(20,22,15,0.07); background: rgba(246,245,241,0.94)">
+    <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; color: #083d2d">KOI<span style="color: #e8743b">.</span></span>
+    <nav aria-label="Store" style="display: flex; gap: 6px; flex-wrap: wrap">
+      <a href="#" style="padding: 8px 12px; border-radius: 999px; font-size: 14.5px; font-weight: 500; color: #3d4a43; text-decoration: none">Shop</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 999px; font-size: 14.5px; font-weight: 600; color: #1f5c3a; background: #e8f1ea; text-decoration: none">Plan</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 999px; font-size: 14.5px; font-weight: 500; color: #3d4a43; text-decoration: none">Track</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 999px; font-size: 14.5px; font-weight: 500; color: #3d4a43; text-decoration: none">Calendar</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 1360px; margin: 0 auto; padding: 32px clamp(16px, 4vw, 52px) 140px; display: flex; flex-direction: column; gap: 28px">
+    <section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 40px">
+      <div style="display: flex; flex-direction: column; gap: 10px; max-width: 720px">
+        <span style="font: 500 12px 'IBM Plex Mono', monospace; letter-spacing: 0.22em; text-transform: uppercase; color: #4a4d44">(10) Household</span>
+        <h1 class="kc" style="margin: 0; font: 800 clamp(48px, 5.4vw, 80px)/0.92 'Bricolage Grotesque', sans-serif; letter-spacing: -0.03em; color: #083d2d">Your household</h1>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #3d4a43">Each person's whole food profile lives here: who they are, what they eat, and their numbers. Every plan reads it. To change something for one week only, use You in the Plan.</p>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <a href="#" style="height: 44px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 999px; background: #083d2d; color: #ddf247; font-weight: 700; font-size: 14px; text-decoration: none">Plan this week →</a>
+        <a href="#" style="height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); color: #083d2d; font-weight: 600; font-size: 14px; text-decoration: none">What KOI keeps</a>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <aside aria-label="Everyone in your household" style="flex: 1 1 280px; max-width: 340px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #4a4d44; padding: 0 4px">3 people</span>
+        <sc-for list="{{people}}" as="p" hint-placeholder-count="3">
+          <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.on}}" style="{{p.cardStyle}}">
+            <span style="{{p.avatarStyle}}">{{p.initials}}</span>
+            <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; text-align: left">
+              <span style="display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 700">{{p.label}} <sc-if value="{{p.me}}" hint-placeholder-val="{{ true }}"><span style="border-radius: 999px; background: #ddf247; color: #083d2d; padding: 1px 6px; font: 700 9.5px 'IBM Plex Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase">You</span></sc-if></span>
+              <span style="font-size: 12.5px; line-height: 1.4; opacity: 0.85">{{p.summary}}</span>
+              <span style="{{p.tagStyle}}">{{p.tag}}</span>
+            </span>
+          </button>
+        </sc-for>
+        <button type="button" style="min-height: 64px; border-radius: 22px; border: 2px dashed rgba(8,61,45,0.25); background: transparent; color: #083d2d; font: 600 14px 'Plus Jakarta Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+          <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 999px; background: #e8f1ea; display: grid; place-items: center">+</span> Add someone
+        </button>
+        <div style="margin-top: 8px; border-radius: 22px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 14px; font-weight: 700">For the whole house</span>
+          <span style="font-size: 12.5px; color: #3d4a43; line-height: 1.5">Kept out: peanuts. In the pantry: atta, rice, poha. Never buy: one brand.</span>
+          <a href="#house" style="font-size: 13px; font-weight: 600">Kitchen rules ↓</a>
+        </div>
+      </aside>
+
+      <section aria-label="{{editorLabel}}" style="flex: 999 1 640px; min-width: 0; border-radius: 28px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); box-shadow: 0 30px 60px -50px rgba(8,61,45,0.5); overflow: hidden">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px 18px; border-bottom: 1px solid rgba(8,61,45,0.08)">
+          <div style="display: flex; align-items: center; gap: 14px">
+            <span style="width: 56px; height: 56px; border-radius: 999px; background: #083d2d; color: #ddf247; display: grid; place-items: center; font: 700 16px 'Space Grotesk', sans-serif">{{sel.initials}}</span>
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span class="kc" style="font: 800 30px/1 'Bricolage Grotesque', sans-serif; color: #083d2d">{{sel.label}}</span>
+              <span style="font-size: 13px; color: #4a4d44">{{sel.who}}</span>
+            </span>
+          </div>
+          <span style="font: 500 11px 'IBM Plex Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: #4a4d44">Saved 21 Oct · 4 versions</span>
+        </div>
+        <nav aria-label="Sections" style="display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 28px; border-bottom: 1px solid rgba(8,61,45,0.08); background: #fbfaf6">
+          <a href="#about" style="padding: 7px 12px; border-radius: 999px; background: #083d2d; color: #ddf247; font-size: 13px; font-weight: 600; text-decoration: none">About</a>
+          <a href="#food" style="padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); color: #083d2d; font-size: 13px; font-weight: 600; text-decoration: none">Food</a>
+          <a href="#numbers" style="padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); color: #083d2d; font-size: 13px; font-weight: 600; text-decoration: none">Numbers</a>
+          <a href="#meals" style="padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); color: #083d2d; font-size: 13px; font-weight: 600; text-decoration: none">How they eat</a>
+        </nav>
+
+        <div style="padding: 8px 28px 28px; display: flex; flex-direction: column">
+          <section id="about" style="padding: 22px 0; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid rgba(8,61,45,0.08)">
+            <h2 style="margin: 0; font: 800 20px 'Bricolage Grotesque', sans-serif; color: #083d2d">About</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px">
+              <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600">Name or label<input value="{{sel.label}}" style="height: 44px; border-radius: 14px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; padding: 0 12px; font: 500 14.5px 'Plus Jakarta Sans', sans-serif"></label>
+              <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600">Age group<input value="{{sel.band}}" style="height: 44px; border-radius: 14px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; padding: 0 12px; font: 500 14.5px 'Plus Jakarta Sans', sans-serif"></label>
+              <sc-if value="{{sel.adult}}" hint-placeholder-val="{{ true }}">
+                <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600">Age<input value="{{sel.age}}" style="height: 44px; border-radius: 14px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; padding: 0 12px; font: 600 15px 'Space Grotesk', sans-serif"></label>
+                <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600">Height (cm)<input value="{{sel.height}}" style="height: 44px; border-radius: 14px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; padding: 0 12px; font: 600 15px 'Space Grotesk', sans-serif"></label>
+                <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600">Weight (kg)<input value="{{sel.weight}}" style="height: 44px; border-radius: 14px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; padding: 0 12px; font: 600 15px 'Space Grotesk', sans-serif"></label>
+              </sc-if>
+            </div>
+            <sc-if value="{{sel.adult}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <span style="font-size: 12.5px; font-weight: 600">How active</span>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                  <sc-for list="{{activity}}" as="a" hint-placeholder-count="4"><span style="{{a.style}}">{{a.label}}</span></sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </section>
+
+          <section id="food" style="padding: 22px 0; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid rgba(8,61,45,0.08)">
+            <h2 style="margin: 0; font: 800 20px 'Bricolage Grotesque', sans-serif; color: #083d2d">Food</h2>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 12.5px; font-weight: 600">Diet</span>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{diets}}" as="d" hint-placeholder-count="5"><span style="{{d.style}}">{{d.label}}</span></sc-for></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 12.5px; font-weight: 600">Never give them, and how strictly</span>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                <sc-for list="{{sel.avoids}}" as="v" hint-placeholder-count="2"><span style="display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border-radius: 999px; background: #faece2; color: #7a3d1c; font-size: 13px; font-weight: 600">{{v.label}}<span style="border-radius: 999px; background: #ffffff; padding: 3px 8px; font: 700 10px 'IBM Plex Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase">{{v.severity}}</span></span></sc-for>
+                <span style="display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px dashed rgba(8,61,45,0.3); font-size: 13px; font-weight: 600; color: #083d2d">+ Add a food</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px">
+              <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12.5px; font-weight: 600">Loves</span><span style="font-size: 13.5px; color: #3d4a43">{{sel.loves}}</span></div>
+              <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12.5px; font-weight: 600">Spice</span><span style="font-size: 13.5px; color: #3d4a43">{{sel.spice}}</span></div>
+            </div>
+          </section>
+
+          <section id="numbers" style="padding: 22px 0; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid rgba(8,61,45,0.08)">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+              <h2 style="margin: 0; font: 800 20px 'Bricolage Grotesque', sans-serif; color: #083d2d">Numbers</h2>
+              <sc-if value="{{sel.adult}}" hint-placeholder-val="{{ true }}">
+                <div role="radiogroup" aria-label="How detailed" style="display: inline-flex; padding: 4px; border-radius: 999px; background: #f6f5f1; gap: 4px">
+                  <button type="button" role="radio" aria-checked="{{simpleOn}}" onClick="{{toSimple}}" style="{{simpleStyle}}">Simple</button>
+                  <button type="button" role="radio" aria-checked="{{advancedOn}}" onClick="{{toAdvanced}}" style="{{advancedStyle}}">Advanced: P, C, F</button>
+                </div>
+              </sc-if>
+            </div>
+            <sc-if value="{{childNumbers}}" hint-placeholder-val="{{ false }}">
+              <p style="margin: 0; border-radius: 18px; background: #e8f1ea; padding: 16px; font-size: 14px; line-height: 1.55; color: #1f5c3a">Children's portions follow ICMR-NIN's reference for their age group. KOI keeps no weight, goal or targets for anyone under 19.</p>
+            </sc-if>
+            <sc-if value="{{showSimple}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 12px">
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <span style="font-size: 12.5px; font-weight: 600">Goal</span>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                    <span style="height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); font-size: 13.5px; font-weight: 600">Lose weight</span>
+                    <span style="height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; background: #083d2d; color: #ddf247; font-size: 13.5px; font-weight: 600">Stay as I am</span>
+                    <span style="height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.15); font-size: 13.5px; font-weight: 600">Gain</span>
+                  </div>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-radius: 20px; background: #083d2d; color: #f6f5f1; padding: 18px 20px">
+                  <span style="display: flex; flex-direction: column; gap: 4px">
+                    <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #ddf247">KOI's numbers for {{sel.label}}</span>
+                    <span style="font: 600 28px 'Space Grotesk', sans-serif">{{sel.suggestKcal}} kcal · {{sel.suggestProtein}} g protein</span>
+                    <span style="font-size: 12.5px; opacity: 0.8">Mifflin–St Jeor for their age, height and weight, × activity; protein by ICMR-NIN 2020. Carbs and fat follow the dishes.</span>
+                  </span>
+                  <span style="font-size: 12.5px; font-weight: 600; color: #ddf247">Recomputed when anything above changes</span>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{showAdvanced}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 12px">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px">
+                  <sc-for list="{{macros}}" as="m" hint-placeholder-count="4">
+                    <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600">{{m.label}}
+                      <span style="display: flex; align-items: center; gap: 6px; height: 52px; border-radius: 16px; border: 1px solid rgba(8,61,45,0.15); background: #fbfaf6; padding: 0 14px"><input value="{{m.value}}" style="width: 100%; border: 0; background: transparent; font: 600 22px 'Space Grotesk', sans-serif; color: #083d2d"><span style="font-size: 12px; color: #4a4d44">{{m.unit}}</span></span>
+                    </label>
+                  </sc-for>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; border-radius: 16px; background: #e8f1ea; padding: 12px 14px; font-size: 13px; color: #1f5c3a">
+                  <span style="font-weight: 700">Adds up: 150 × 4 + 290 × 4 + 80 × 9 = 2,480 kcal ✓</span>
+                  <span>Within 1% of your 2,500 kcal</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: center">
+                  <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600">Hit them within <span style="display: inline-flex; padding: 3px; border-radius: 999px; background: #f6f5f1; gap: 3px"><span style="padding: 5px 10px; border-radius: 999px; font-size: 12.5px">±3%</span><span style="padding: 5px 10px; border-radius: 999px; background: #083d2d; color: #ddf247; font-size: 12.5px">±5%</span><span style="padding: 5px 10px; border-radius: 999px; font-size: 12.5px">±10%</span></span></span>
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #083d2d"> More carbs on training days (from your Calendar)</label>
+                </div>
+              </div>
+            </sc-if>
+          </section>
+
+          <section id="meals" style="padding: 22px 0 6px; display: flex; flex-direction: column; gap: 14px">
+            <h2 style="margin: 0; font: 800 20px 'Bricolage Grotesque', sans-serif; color: #083d2d">How they eat</h2>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 12.5px; font-weight: 600">Meals eaten from home</span>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{meals}}" as="m" hint-placeholder-count="5"><span style="{{m.style}}">{{m.label}}</span></sc-for></div>
+            </div>
+          </section>
+        </div>
+
+        <div style="position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; border-top: 1px solid rgba(8,61,45,0.1); background: rgba(255,255,255,0.96)">
+          <span style="font-size: 13.5px; color: #3d4a43"><strong style="color: #1c1e17">2 changes</strong> not saved yet</span>
+          <span style="display: flex; gap: 8px">
+            <button type="button" style="height: 48px; padding: 0 16px; border-radius: 999px; border: 0; background: transparent; color: #3d4a43; font: 600 14px 'Plus Jakarta Sans', sans-serif">Discard</button>
+            <button type="button" style="height: 48px; padding: 0 22px; border-radius: 999px; border: 0; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif">Save {{sel.label}}'s profile</button>
+          </span>
+        </div>
+      </section>
+    </div>
+
+    <section id="house" aria-label="For the whole house" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+      <div style="border-radius: 24px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 20px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 16px; font-weight: 700">Keep out of the house</span>
+        <span style="font-size: 13px; color: #3d4a43">For everyone, whoever is eating. Kid's peanut allergy keeps peanuts out unless you say otherwise.</span>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap"><span style="height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: #faece2; color: #7a3d1c; font-size: 13px; font-weight: 600">Peanuts</span><span style="height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; border: 1px dashed rgba(8,61,45,0.3); font-size: 13px; font-weight: 600; color: #083d2d">+ Add</span></div>
+      </div>
+      <div style="border-radius: 24px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 20px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font-size: 16px; font-weight: 700">Kitchen rules</span>
+        <span style="font-size: 13px; color: #3d4a43">Pantry: atta, basmati rice, poha · Leftover packs: a little · Repeats: as usual · Cooking: fresh daily</span>
+        <a href="#" style="font-size: 13px; font-weight: 600">Change kitchen rules</a>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { person: 'me', mode: 'advanced' };
+  }
+  renderVals() {
+    const P = {
+      me: { label: 'Me', initials: 'ME', who: 'You · adult, 31 · the account holder', band: 'Adult (19–59)', adult: true, age: '31', height: '178', weight: '76', activity: 'Moderate', diet: 'Non-veg', avoids: [], loves: 'High-protein snacks, paneer', spice: 'Medium', suggestKcal: '2,350', suggestProtein: '120', meals: ['Breakfast', 'Dinner', 'Snacks'], summary: 'Non-veg · 31 · own numbers 2,500 kcal', tag: 'Advanced numbers', me: true },
+      wife: { label: 'Wife', initials: 'WI', who: 'Adult, 29', band: 'Adult (19–59)', adult: true, age: '29', height: '162', weight: '58', activity: 'Light', diet: 'Vegetarian', avoids: [], loves: 'Fruit, curd', spice: 'Mild', suggestKcal: '1,750', suggestProtein: '52', meals: ['Breakfast', 'Lunch', 'Dinner', 'Snacks'], summary: 'Vegetarian · 29 · KOI suggests 1,750 kcal', tag: 'Simple numbers', me: false },
+      kid: { label: 'Kid', initials: 'KI', who: 'Child, 7–9', band: 'Child (7–9)', adult: false, diet: 'Vegetarian', avoids: [{ label: 'Peanuts', severity: 'Allergy' }], loves: 'Paratha, banana', spice: 'Mild', meals: ['Breakfast', 'Tiffin', 'Dinner'], summary: 'Vegetarian · 7–9 · peanut allergy', tag: 'ICMR reference', me: false },
+    };
+    const id = this.state.person;
+    const sel = P[id];
+    const effective = id === 'me' ? this.state.mode : id === 'wife' ? (this.state.wifeMode ?? 'simple') : null;
+    const chip = (on) => `height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; ${on ? 'background: #083d2d; color: #ddf247' : 'border: 1px solid rgba(8,61,45,0.15); color: #1c1e17'}`;
+    const seg = (on) => `height: 36px; padding: 0 14px; border-radius: 999px; border: 0; cursor: pointer; font: 600 13px 'Plus Jakarta Sans', sans-serif; ${on ? 'background: #083d2d; color: #ddf247' : 'background: transparent; color: #3d4a43'}`;
+    const setMode = (m) => () => (id === 'wife' ? this.setState({ wifeMode: m }) : this.setState({ mode: m }));
+    return {
+      people: Object.entries(P).map(([key, p]) => {
+        const on = key === id;
+        return {
+          ...p, on,
+          pick: () => this.setState({ person: key }),
+          cardStyle: `display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 14px; border-radius: 22px; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; ${on ? 'background: #083d2d; color: #f6f5f1; border: 1px solid #083d2d' : 'background: #ffffff; color: #1c1e17; border: 1px solid rgba(8,61,45,0.1)'}`,
+          avatarStyle: `flex: none; width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; font: 700 13px 'Space Grotesk', sans-serif; ${on ? 'background: #ddf247; color: #083d2d' : 'background: #e8f1ea; color: #083d2d'}`,
+          tagStyle: `align-self: flex-start; border-radius: 999px; padding: 2px 8px; font: 600 10px 'IBM Plex Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase; ${on ? 'background: rgba(246,245,241,0.14); color: #ddf247' : 'background: #f6f5f1; color: #4a4d44'}`,
+        };
+      }),
+      sel,
+      editorLabel: `${sel.label}'s profile`,
+      activity: ['Mostly sitting', 'Light', 'Moderate', 'Very active'].map((label) => ({ label, style: chip(label === sel.activity) })),
+      diets: ['Vegetarian', 'Eggetarian', 'Non-veg', 'Vegan', 'Jain'].map((label) => ({ label, style: chip(label === sel.diet) })),
+      meals: ['Breakfast', 'Lunch', 'Tiffin', 'Dinner', 'Snacks'].map((label) => ({ label, style: chip((sel.meals ?? []).includes(label)) })),
+      macros: [{ label: 'Calories', value: '2500', unit: 'kcal' }, { label: 'Protein', value: '150', unit: 'g' }, { label: 'Carbs', value: '290', unit: 'g' }, { label: 'Fat', value: '80', unit: 'g' }],
+      childNumbers: !sel.adult,
+      showSimple: sel.adult && effective === 'simple',
+      showAdvanced: sel.adult && effective === 'advanced',
+      simpleOn: effective === 'simple',
+      advancedOn: effective === 'advanced',
+      simpleStyle: seg(effective === 'simple'),
+      advancedStyle: seg(effective === 'advanced'),
+      toSimple: setMode('simple'),
+      toAdvanced: setMode('advanced'),
+    };
+  }
+}
+</script>
+</body>
+</html>

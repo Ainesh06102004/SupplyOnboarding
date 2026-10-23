@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pantry and the shop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+a{color:#1f5c3a}a:hover{color:#083d2d}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 1880px; background: #f6f5f1; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1c1e17; position: relative">
+  <main style="max-width: 1360px; margin: 0 auto; padding: 32px clamp(16px, 4vw, 52px) 140px; display: flex; flex-direction: column; gap: 28px">
+    <section aria-label="This week's pantry" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+      <div style="flex: 2 1 520px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #4a4d44">Plan · step 4 of 5</span>
+        <h1 class="kc" style="margin: 0; font: 800 clamp(44px, 5vw, 72px)/0.92 'Bricolage Grotesque', sans-serif; letter-spacing: -0.03em; color: #083d2d">One order. Whole week handled.</h1>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #3d4a43">The plan's 9 products, minus what's already at home. Then the whole shop is below: add anything else, it goes in the same cart.</p>
+      </div>
+      <div style="flex: 1 1 320px; border-radius: 26px; background: #083d2d; color: #f6f5f1; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+        <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #ddf247">From the plan</span>
+        <span style="font: 600 32px 'Space Grotesk', sans-serif">9 products · ₹2,082</span>
+        <span style="font-size: 13px; opacity: 0.85">Atta, rice and poha are already at home, so they're not bought.</span>
+        <a href="#plan-list" style="color: #ddf247; font-size: 13.5px; font-weight: 600">See the plan's list ↓</a>
+      </div>
+    </section>
+
+    <section id="shop" aria-label="The shop" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+        <span style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #4a4d44">The shop · 58 screened</span>
+          <h2 class="kc" style="margin: 0; font: 800 40px/1 'Bricolage Grotesque', sans-serif; color: #083d2d">Anything else for the week?</h2>
+        </span>
+        <span style="font-size: 13px; color: #3d4a43">Added here = <strong>You added</strong> in the cart. Not planned around.</span>
+      </div>
+
+      <div style="position: sticky; top: 64px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,0.96); border: 1px solid rgba(8,61,45,0.1)">
+        <label style="flex: 1 1 260px; display: flex; align-items: center; gap: 8px; height: 44px; border-radius: 14px; background: #f6f5f1; padding: 0 12px">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3d4a43" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input placeholder="Search the shop" aria-label="Search the shop" style="flex: 1; border: 0; background: transparent; font: 500 14.5px 'Plus Jakarta Sans', sans-serif">
+        </label>
+        <sc-for list="{{cats}}" as="c" hint-placeholder-count="6"><button type="button" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button></sc-for>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #083d2d"> Safe for everyone at home</label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px">
+        <sc-for list="{{products}}" as="p" hint-placeholder-count="12">
+          <article aria-label="{{p.name}}" style="border-radius: 22px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 12px; display: flex; flex-direction: column; gap: 10px">
+            <div style="position: relative; height: 140px; border-radius: 16px; background: {{p.tile}}; display: grid; place-items: center">
+              <span style="font: 800 34px 'Bricolage Grotesque', sans-serif; color: rgba(8,61,45,0.35)">{{p.initial}}</span>
+              <span style="position: absolute; top: 8px; right: 8px; width: 38px; height: 38px; border-radius: 999px; background: #083d2d; color: #ddf247; display: grid; place-items: center; font: 700 13px 'Space Grotesk', sans-serif">{{p.score}}</span>
+              <sc-if value="{{p.inPlan}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; left: 8px; top: 8px; border-radius: 999px; background: #ddf247; color: #083d2d; padding: 3px 8px; font: 700 10px 'IBM Plex Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase">In your plan</span></sc-if>
+            </div>
+            <span style="font: 600 10px 'IBM Plex Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: #4a4d44">{{p.brand}}</span>
+            <span style="font-size: 15px; font-weight: 700; line-height: 1.3">{{p.name}}</span>
+            <sc-if value="{{p.warn}}" hint-placeholder-val="{{ false }}"><span style="align-self: flex-start; border-radius: 999px; background: #faece2; color: #7a3d1c; padding: 3px 9px; font-size: 12px; font-weight: 700">{{p.warn}}</span></sc-if>
+            <div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+              <span style="display: flex; flex-direction: column"><span style="font: 600 17px 'Space Grotesk', sans-serif">₹{{p.price}}</span><span style="font-size: 12px; color: #4a4d44">{{p.size}}</span></span>
+              <sc-if value="{{p.none}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{p.add}}" style="height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #083d2d; color: #ddf247; font: 700 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Add</button></sc-if>
+              <sc-if value="{{p.some}}" hint-placeholder-val="{{ false }}">
+                <span style="display: inline-flex; align-items: center; height: 44px; border-radius: 999px; background: #e8f1ea">
+                  <button type="button" onClick="{{p.minus}}" aria-label="One fewer" style="width: 44px; height: 44px; border: 0; background: transparent; font: 700 18px 'Plus Jakarta Sans', sans-serif; color: #083d2d; cursor: pointer">−</button>
+                  <span style="min-width: 20px; text-align: center; font: 700 15px 'Space Grotesk', sans-serif; color: #083d2d">{{p.qty}}</span>
+                  <button type="button" onClick="{{p.add}}" aria-label="One more" style="width: 44px; height: 44px; border: 0; background: transparent; font: 700 18px 'Plus Jakarta Sans', sans-serif; color: #083d2d; cursor: pointer">+</button>
+                </span>
+              </sc-if>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+      <button type="button" style="align-self: center; height: 48px; padding: 0 22px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.2); background: #ffffff; color: #083d2d; font: 600 14px 'Plus Jakarta Sans', sans-serif">Show 46 more</button>
+    </section>
+  </main>
+
+  <div style="position: sticky; bottom: 16px; margin: 0 auto; max-width: 760px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 20px; border-radius: 20px; background: #083d2d; color: #f6f5f1; box-shadow: 0 14px 30px -12px rgba(15,61,46,0.6)">
+    <span style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 14px; font-weight: 700">Cart · 9 from the plan · {{addedCount}} you added</span>
+      <span style="font-size: 12.5px; opacity: 0.8">₹{{total}} in all, before delivery</span>
+    </span>
+    <a href="Cart.dc.html" style="height: 48px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 14px; background: #ddf247; color: #083d2d; font-weight: 700; text-decoration: none">Go to cart →</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1880}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { cat: 'All', qty: { greek: 1 } };
+  }
+  renderVals() {
+    const items = [
+      { id: 'greek', brand: 'Epigamia', name: 'Greek yogurt, plain', price: 90, size: '400 g', score: 86, cat: 'Protein', tile: '#e8f1ea' },
+      { id: 'oats', brand: 'True Elements', name: 'Rolled oats', price: 199, size: '1 kg', score: 91, cat: 'Breakfast', inPlan: true, tile: '#faf3e4' },
+      { id: 'chana', brand: 'Tata Sampann', name: 'Kabuli chana', price: 155, size: '1 kg', score: 89, cat: 'Staples', inPlan: true, tile: '#f6f5f1' },
+      { id: 'makhana', brand: 'Farmley', name: 'Roasted makhana, pudina', price: 149, size: '80 g', score: 78, cat: 'Snacks', tile: '#faece2' },
+      { id: 'pb', brand: 'Pintola', name: 'Peanut butter, crunchy', price: 349, size: '1 kg', score: 80, cat: 'Nuts & seeds', warn: 'Not for Kid: peanuts', tile: '#faf3e4' },
+      { id: 'almond', brand: 'Happilo', name: 'Almonds, Californian', price: 399, size: '200 g', score: 88, cat: 'Nuts & seeds', tile: '#e8f1ea' },
+      { id: 'paneer', brand: 'Milky Mist', name: 'Paneer, high protein', price: 110, size: '200 g', score: 84, cat: 'Protein', tile: '#f6f5f1' },
+      { id: 'ragi', brand: 'Slurrp Farm', name: 'Ragi dosa mix', price: 175, size: '250 g', score: 82, cat: 'Breakfast', tile: '#faece2' },
+    ];
+    const cats = ['All', 'Staples', 'Protein', 'Breakfast', 'Snacks', 'Nuts & seeds'];
+    const qty = this.state.qty;
+    const shown = items.filter((p) => this.state.cat === 'All' || p.cat === this.state.cat);
+    const added = Object.entries(qty).filter(([, n]) => n > 0);
+    const extra = added.reduce((a, [id, n]) => a + (items.find((p) => p.id === id)?.price ?? 0) * n, 0);
+    const set = (id, n) => this.setState({ qty: { ...qty, [id]: Math.max(0, n) } });
+    return {
+      cats: cats.map((label) => ({
+        label,
+        pick: () => this.setState({ cat: label }),
+        style: `height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: 600 13px 'Plus Jakarta Sans', sans-serif; ${label === this.state.cat ? 'border: 0; background: #083d2d; color: #ddf247' : 'border: 1px solid rgba(8,61,45,0.15); background: #ffffff; color: #1c1e17'}`,
+      })),
+      products: shown.map((p) => ({
+        ...p,
+        initial: p.name.slice(0, 1),
+        inPlan: Boolean(p.inPlan),
+        warn: p.warn ?? '',
+        qty: qty[p.id] ?? 0,
+        none: !(qty[p.id] > 0),
+        some: qty[p.id] > 0,
+        add: () => set(p.id, (qty[p.id] ?? 0) + 1),
+        minus: () => set(p.id, (qty[p.id] ?? 0) - 1),
+      })),
+      addedCount: added.reduce((a, [, n]) => a + n, 0),
+      total: (2082 + extra).toLocaleString('en-IN'),
+    };
+  }
+}
+</script>
+</body>
+</html>

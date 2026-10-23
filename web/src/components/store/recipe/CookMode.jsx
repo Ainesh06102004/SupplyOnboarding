@@ -22,9 +22,13 @@ import { lineText, renderText } from "@/lib/food/recipes";
 import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiMotion";
 
 const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-const NUDGE_S = 60;
+const MIN_S = 10;
 const MAX_S = 3 * 60 * 60;
 const DEFAULT_S = 5 * 60;
+/** Fine steps where seconds matter (a tadka, a whistle): 10 s under a minute, 30 s up to five, then minutes. */
+const stepAt = (s) => (s < 60 ? 10 : s < 300 ? 30 : 60);
+const less = (s) => Math.max(MIN_S, s - stepAt(s - 1));
+const more = (s) => Math.min(MAX_S, s + stepAt(s));
 
 /**
  * The cook's timers, at most one per step. They count to an end time rather
@@ -130,9 +134,9 @@ function StepTimer({ step, index, timers }) {
       <span className="font-koi-mono text-[10.5px] uppercase tracking-[0.14em] text-koi-bg/70">{step.timer ? "The recipe says" : "Your timer"}</span>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center justify-between gap-2 sm:justify-start">
-          <button type="button" aria-label="A minute less" disabled={want <= NUDGE_S} onClick={() => setWant((w) => Math.max(NUDGE_S, w - NUDGE_S))} className="grid size-11 place-items-center rounded-[14px] bg-koi-bg/10 text-xl font-semibold disabled:opacity-40">−</button>
+          <button type="button" aria-label={`${stepAt(want - 1) < 60 ? `${stepAt(want - 1)} seconds` : "A minute"} less`} disabled={want <= MIN_S} onClick={() => setWant(less)} className="grid size-11 place-items-center rounded-[14px] bg-koi-bg/10 text-xl font-semibold disabled:opacity-40">−</button>
           <span role="timer" aria-live="polite" className="min-w-[4.6ch] text-center font-koi-num text-[44px] font-semibold leading-none">{clock(want)}</span>
-          <button type="button" aria-label="A minute more" disabled={want >= MAX_S} onClick={() => setWant((w) => Math.min(MAX_S, w + NUDGE_S))} className="grid size-11 place-items-center rounded-[14px] bg-koi-bg/10 text-xl font-semibold disabled:opacity-40">+</button>
+          <button type="button" aria-label={`${stepAt(want) < 60 ? `${stepAt(want)} seconds` : "A minute"} more`} disabled={want >= MAX_S} onClick={() => setWant(more)} className="grid size-11 place-items-center rounded-[14px] bg-koi-bg/10 text-xl font-semibold disabled:opacity-40">+</button>
         </span>
         <button type="button" onClick={() => timers.start(index, step.title, want)} className="h-[52px] w-full rounded-2xl bg-koi-lime px-5 sm:w-auto text-[15px] font-bold text-koi-forest">Start timer</button>
       </div>

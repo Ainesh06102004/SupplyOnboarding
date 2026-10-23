@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cart, two sources</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f5f1}
+.kc{font-variation-settings:"wdth" 84,"opsz" 96}
+a:focus-visible,button:focus-visible{outline:2px solid #2f8050;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 1360px; background: #f6f5f1; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1c1e17">
+  <main style="max-width: 1240px; margin: 0 auto; padding: 32px 52px 80px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+    <div style="flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <span style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #4a4d44">Cart · 13 items</span>
+        <h1 class="kc" style="margin: 0; font: 800 64px/0.92 'Bricolage Grotesque', sans-serif; letter-spacing: -0.03em; color: #083d2d">Your cart</h1>
+      </span>
+      <span style="position: relative">
+        <button type="button" aria-expanded="true" style="height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(8,61,45,0.2); background: #ffffff; color: #083d2d; font: 700 14px 'Plus Jakarta Sans', sans-serif">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+          Export ingredient list
+        </button>
+        <span role="menu" style="position: absolute; right: 0; top: 56px; z-index: 3; width: 340px; border-radius: 22px; background: #ffffff; border: 1px solid rgba(8,61,45,0.12); box-shadow: 0 24px 44px -24px rgba(15,61,46,0.45); padding: 10px; display: flex; flex-direction: column; gap: 2px">
+          <span style="padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px">
+            <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #4a4d44">What goes on the list</span>
+            <label style="display: flex; gap: 8px; font-size: 13.5px; font-weight: 600"><input type="checkbox" checked style="accent-color: #083d2d; width: 18px; height: 18px"> Shelf products (13)</label>
+            <label style="display: flex; gap: 8px; font-size: 13.5px; font-weight: 600"><input type="checkbox" checked style="accent-color: #083d2d; width: 18px; height: 18px"> Fresh list for the week (11)</label>
+            <label style="display: flex; gap: 8px; font-size: 13.5px; font-weight: 600"><input type="checkbox" style="accent-color: #083d2d; width: 18px; height: 18px"> Grams per dish</label>
+          </span>
+          <sc-for list="{{exports}}" as="x" hint-placeholder-count="4">
+            <button type="button" role="menuitem" style="display: flex; align-items: center; justify-content: space-between; height: 46px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; font: 600 14px 'Plus Jakarta Sans', sans-serif; color: #1c1e17; text-align: left; cursor: pointer">{{x.label}}<span style="font-size: 12px; color: #4a4d44; font-weight: 500">{{x.hint}}</span></button>
+          </sc-for>
+        </span>
+      </span>
+    </div>
+
+    <div style="flex: 2 1 640px; display: flex; flex-direction: column; gap: 18px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+        <section aria-label="{{g.title}}" style="border-radius: 26px; background: #ffffff; border: 1px solid rgba(8,61,45,0.1); padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px">
+            <span style="display: flex; align-items: center; gap: 10px">
+              <span style="{{g.chip}}">{{g.tag}}</span>
+              <h2 class="kc" style="margin: 0; font: 800 26px/1 'Bricolage Grotesque', sans-serif; color: #083d2d">{{g.title}}</h2>
+            </span>
+            <span style="font: 600 15px 'Space Grotesk', sans-serif">₹{{g.sum}}</span>
+          </div>
+          <span style="font-size: 13.5px; color: #3d4a43; line-height: 1.5">{{g.note}}</span>
+          <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(8,61,45,0.08)">
+              <span style="width: 54px; height: 54px; flex: none; border-radius: 14px; background: #e8f1ea; display: grid; place-items: center; font: 800 20px 'Bricolage Grotesque', sans-serif; color: rgba(8,61,45,0.4)">{{r.initial}}</span>
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                <span style="font-size: 15px; font-weight: 700">{{r.name}}</span>
+                <span style="font-size: 12.5px; color: #4a4d44">{{r.why}}</span>
+              </span>
+              <span style="display: inline-flex; align-items: center; height: 40px; border-radius: 999px; background: #f6f5f1">
+                <button type="button" aria-label="One fewer" style="width: 40px; height: 40px; border: 0; background: transparent; font: 700 16px 'Plus Jakarta Sans', sans-serif; color: #083d2d">−</button>
+                <span style="min-width: 18px; text-align: center; font: 700 14px 'Space Grotesk', sans-serif">{{r.qty}}</span>
+                <button type="button" aria-label="One more" style="width: 40px; height: 40px; border: 0; background: transparent; font: 700 16px 'Plus Jakarta Sans', sans-serif; color: #083d2d">+</button>
+              </span>
+              <span style="width: 70px; text-align: right; font: 600 15px 'Space Grotesk', sans-serif">₹{{r.price}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </sc-for>
+
+      <section aria-label="Fresh list" style="border-radius: 26px; background: #e8f1ea; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+        <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+          <h2 class="kc" style="margin: 0; font: 800 22px/1 'Bricolage Grotesque', sans-serif; color: #083d2d">Fresh, from your local shop</h2>
+          <span style="font-size: 12.5px; color: #3d4a43">Not in this cart, on the export</span>
+        </span>
+        <span style="font-size: 14px; line-height: 1.7; color: #1c1e17">Onion 1.2 kg · Tomato 1 kg · Spinach 2 bunches · Curd 1.5 kg · Ginger 100 g · Mushroom 400 g · Capsicum 3 · Coriander · Green chilli · Lemon 6 · Bananas 12</span>
+      </section>
+    </div>
+
+    <aside style="flex: 1 1 320px; position: sticky; top: 80px; border-radius: 26px; background: #083d2d; color: #f6f5f1; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font: 600 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #ddf247">Order summary</span>
+      <span style="display: flex; justify-content: space-between; font-size: 14px"><span>From the plan · 9</span><span style="font-family: 'Space Grotesk', sans-serif">₹2,082</span></span>
+      <span style="display: flex; justify-content: space-between; font-size: 14px"><span>You added · 4</span><span style="font-family: 'Space Grotesk', sans-serif">₹698</span></span>
+      <span style="display: flex; justify-content: space-between; font-size: 14px; opacity: 0.8"><span>Delivery</span><span>at checkout</span></span>
+      <span style="height: 1px; background: rgba(246,245,241,0.2)"></span>
+      <span style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700">Total</span><span style="font: 600 30px 'Space Grotesk', sans-serif">₹2,780</span></span>
+      <span style="font-size: 12.5px; line-height: 1.5; opacity: 0.85">If you remove a plan item, KOI tells you which meals it was for before it goes.</span>
+      <button type="button" style="height: 52px; border-radius: 16px; border: 0; background: #ddf247; color: #083d2d; font: 700 15px 'Plus Jakarta Sans', sans-serif">Checkout →</button>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const plan = [
+      { name: 'Rolled oats, 1 kg', why: 'Breakfast · Mon to Sat, everyone', qty: 1, price: 199 },
+      { name: 'Kabuli chana, 1 kg', why: 'Chole Tue · Chana salad Thu', qty: 1, price: 155 },
+      { name: 'Paneer, high protein, 200 g', why: 'Palak paneer Wed · Me, 140 g', qty: 3, price: 330 },
+      { name: 'Moong dal, 1 kg', why: 'Dal tadka Mon, Fri · Cheela Sat', qty: 1, price: 168 },
+      { name: '+ 5 more from the plan', why: 'Show all', qty: '', price: '1,230' },
+    ];
+    const mine = [
+      { name: 'Greek yogurt, plain, 400 g', why: 'Added from the Pantry shop', qty: 1, price: 90 },
+      { name: 'Almonds, Californian, 200 g', why: 'Added from the Pantry shop', qty: 1, price: 399 },
+      { name: 'Roasted makhana, pudina', why: 'Added from the Pantry shop', qty: 1, price: 149 },
+      { name: 'Coconut water, 200 ml', why: 'Added from Shop · Ask KOI', qty: 1, price: 60 },
+    ];
+    const withInitial = (rows) => rows.map((r) => ({ ...r, initial: r.name.replace(/^\+ /, '').slice(0, 1) }));
+    return {
+      groups: [
+        { tag: 'Plan', title: 'From this week’s plan', sum: '2,082', note: 'Bought so the week works: each line says which meals it feeds.', rows: withInitial(plan),
+          chip: "border-radius: 999px; background: #ddf247; color: #083d2d; padding: 4px 10px; font: 700 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase" },
+        { tag: 'You', title: 'You added', sum: '698', note: 'Not planned around. KOI still screens them for everyone at home.', rows: withInitial(mine),
+          chip: "border-radius: 999px; background: #faece2; color: #7a3d1c; padding: 4px 10px; font: 700 10.5px 'IBM Plex Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase" },
+      ],
+      exports: [
+        { label: 'Copy as text', hint: 'for any chat' },
+        { label: 'Send on WhatsApp', hint: 'opens WhatsApp' },
+        { label: 'Download PDF', hint: 'aisle-sorted' },
+        { label: 'Print', hint: 'one page' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

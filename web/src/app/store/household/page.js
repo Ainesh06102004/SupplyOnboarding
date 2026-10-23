@@ -92,8 +92,14 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
   const [error, setError] = useState(null);
   const [suggestion, setSuggestion] = useState(null);
   const [setupNote, setSetupNote] = useState(null);
+  const editorRef = useRef(null);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const adult = goalsAllowed(form.age_band);
+
+  // Picking someone (or "Add someone") brings their editor into view: it opens below the cards.
+  useEffect(() => {
+    editorRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+  }, []);
   const problems = profileProblems(form);
 
   const toggleAvoid = (key) => set({
@@ -153,7 +159,7 @@ function MemberEditor({ initial, onCancel, onSaved, householdId, ensureHousehold
   }
 
   return (
-    <section data-editor className="rounded-[28px] border border-koi-forest/10 bg-white p-6 shadow-[0_30px_60px_-50px_rgba(8,61,45,.5)]">
+    <section ref={editorRef} data-editor className="scroll-mt-[calc(var(--koi-header-h)+16px)] rounded-[28px] border border-koi-forest/10 bg-white p-6 shadow-[0_30px_60px_-50px_rgba(8,61,45,.5)]">
       <h2 className="m-0 font-koi-display text-[24px] font-extrabold text-koi-forest">{form.memberId ? `Edit ${form.label || "this person"}` : "Add someone"}</h2>
 
       {/* Who */}

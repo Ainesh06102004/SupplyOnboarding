@@ -28,10 +28,19 @@ const PLACEHOLDERS = {
 };
 const placeholderFor = (path) => PLACEHOLDERS[path] ?? (path.startsWith("/store/product") ? "Is this okay for my dad? He’s diabetic…" : "Ask KOI…");
 
-/** KOI's current line, word by word. */
+/** How long a line stays up: long enough to read it, then out of the page's way. */
+const holdMs = (line) => Math.min(12000, 4000 + line.split(" ").length * 280);
+
+/**
+ * KOI's current line, word by word. It sits over the page, so it doesn't stay:
+ * it fades once it has been read, and the moment the shopper scrolls; a new line
+ * brings it back.
+ */
 export function KoiSubtitle({ tone = "light" }) {
   const { line, key } = useKoiVoice();
+  const [doneKey, setDoneKey] = useState(null);
   const ref = useRef(null);
+  const showing = Boolean(line) && doneKey !== key;
   useEffect(() => {
     const el = ref.current;
     if (!el || !line) return;
@@ -40,11 +49,21 @@ export function KoiSubtitle({ tone = "light" }) {
     const gsap = setupMotion();
     gsap.fromTo(words, { autoAlpha: 0, y: 10, filter: "blur(8px)" }, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.7, stagger: 0.045, ease: E.reveal });
   }, [line, key]);
+  useEffect(() => {
+    if (!line) return undefined;
+    const done = () => setDoneKey(key);
+    const timer = setTimeout(done, holdMs(line));
+    // Scrolling means they're reading the page, not KOI.
+    let startY = window.scrollY;
+    const onScroll = () => { if (Math.abs(window.scrollY - startY) > 40) done(); };
+    const arm = setTimeout(() => { startY = window.scrollY; window.addEventListener("scroll", onScroll, { passive: true }); }, 600);
+    return () => { clearTimeout(timer); clearTimeout(arm); window.removeEventListener("scroll", onScroll); };
+  }, [line, key]);
   return (
     <p
       ref={ref}
       aria-live="polite"
-      className={`m-0 min-h-[27px] max-w-[780px] text-balance rounded-2xl px-4 py-1 text-center text-[16px] font-medium leading-[1.45] md:text-[19px] ${tone === "dark" ? "text-koi-bg" : "text-koi-ink"} ${line && tone !== "dark" ? "bg-koi-bg/80 backdrop-blur-md" : ""}`}
+      className={`m-0 min-h-[27px] max-w-[780px] text-balance rounded-2xl px-4 py-1 text-center text-[16px] font-medium leading-[1.45] transition-opacity duration-500 md:text-[19px] ${showing ? "opacity-100" : "opacity-0"} ${tone === "dark" ? "text-koi-bg" : "text-koi-ink"} ${showing && tone !== "dark" ? "bg-koi-bg/80 backdrop-blur-md" : ""}`}
     >
       {line.split(" ").filter(Boolean).map((w, i) => (
         <span key={`${key}-${i}`} data-w className="mr-[0.28em] inline-block">{w}</span>
