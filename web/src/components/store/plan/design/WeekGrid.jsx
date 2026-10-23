@@ -10,6 +10,7 @@
 // on the plates are the planner's own shares, spread over the meals.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { alternativesFor, productsFor, SLOT_LABELS } from "@/lib/plan/schedule";
 import { peopleOf } from "@/lib/plan/planView";
 import { goalShortLabel } from "@/lib/plan/goalCards";
@@ -176,6 +177,26 @@ export default function WeekGrid({ s }) {
         </div>
       )}
 
+      {(s.batches ?? []).length > 0 && (
+        <div aria-label="Cooking sessions" className="mb-3.5 grid grid-cols-1 gap-2.5 md:grid-cols-2">
+          {s.batches.map((b) => (
+            <div key={b.id} className="flex items-center gap-3.5 rounded-2xl border border-koi-forest/10 bg-white px-4 py-3">
+              <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-2xl bg-koi-tint font-koi-num text-[17px] font-bold text-koi-primary">{b.id}</span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-koi-muted">Batch {b.id} · cook on {b.cookLabel ?? "the prep day"} · {b.boxes} boxes</span>
+                <span className="text-[14.5px] font-bold leading-snug">{b.dishes.map((x) => x.name).join(" + ")}</span>
+                <span className="text-[12.5px] text-koi-ink2">{b.slot === "lunch" ? "Lunch" : "Dinner"}, {b.cells.map((c) => week.days[Number(c.split(":")[0])]?.label).join(", ")}</span>
+              </span>
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                {b.dishes.map((x) => (
+                  <Link key={x.key} href={`/store/plan/dish/${x.key}?batch=${b.id}`} className="text-[12.5px] font-bold text-koi-primary no-underline hover:underline">{b.dishes.length > 1 ? `${x.name} →` : "Recipe →"}</Link>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mb-3.5 flex flex-wrap items-center gap-4 rounded-xl bg-koi-paper px-3.5 py-2.5 text-[11px] font-medium text-koi-ink2">
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-tint ring-1 ring-koi-tint-border" />Base dish <span className="text-koi-muted">— same for everyone, cooked once</span></span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-koi-lime-soft ring-1 ring-koi-lime" />{s.active?.label === "Me" ? "Your" : `${s.active?.label ?? "Their"}'s`} addition <span className="text-koi-muted">— on that plate only</span></span>
@@ -253,6 +274,10 @@ export default function WeekGrid({ s }) {
                     <span className="shrink-0 font-koi-mono text-[9.5px] text-koi-muted">{String(d.index + 1).padStart(2, "0")}{SLOT_LETTER[slot] ?? ""}</span>
                   </div>
                   {cell.shared?.chosen && <span className="self-start rounded-md bg-koi-lime px-[7px] py-[3px] font-koi-mono text-[9.5px] font-bold tracking-[0.1em] text-koi-forest">YOUR PICK</span>}
+                  {cell.shared?.batch && (() => {
+                    const b = (s.batches ?? []).find((x) => x.id === cell.shared.batch);
+                    return b ? <span className="self-start rounded-md bg-koi-tint px-[7px] py-[3px] font-koi-mono text-[9.5px] font-bold tracking-[0.1em] text-koi-primary">BATCH {b.id} · {b.cells.indexOf(key) + 1}/{b.boxes}</span> : null;
+                  })()}
                   {(mine || notMine || adds.length > 0 || notes?.leaveOut?.length > 0 || notes?.notVerifiedFor?.length > 0 || others.length > 0) && (
                     <div className="flex flex-wrap gap-1">
                       {mine && <Chip tone="goal">{s.active.label}: {mine.dishes.map((x) => x.name).join(" + ")}</Chip>}
@@ -300,6 +325,12 @@ export default function WeekGrid({ s }) {
 
       {openCell && (
         <div role="menu" className="fixed z-[80] max-h-80 w-[212px] overflow-y-auto rounded-2xl border border-koi-forest/10 bg-white p-1 font-koi-sans shadow-[0_18px_34px_-10px_rgba(0,0,0,.28)]" style={{ left: menu.x, top: menu.y }}>
+          <span className="block px-2.5 pb-0.5 pt-1.5 font-koi-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-koi-muted">Recipe</span>
+          {openCell.shared.dishes.map((x) => (
+            <Link key={x.key} role="menuitem" href={`/store/plan/dish/${x.key}?cell=${encodeURIComponent(openCell.key)}${openCell.shared.batch ? `&batch=${openCell.shared.batch}` : ""}`} className="block rounded-lg px-2.5 py-2 text-[12.5px] font-semibold text-koi-primary no-underline hover:bg-koi-paper">
+              {x.name} →
+            </Link>
+          ))}
           <span className="block px-2.5 pb-0.5 pt-1.5 font-koi-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-koi-muted">Swap meal</span>
           {alternatives.length === 0 && <div className="px-2.5 py-2 text-xs text-koi-muted">Nothing else suits everyone here.</div>}
           {alternatives.map((alt) => (

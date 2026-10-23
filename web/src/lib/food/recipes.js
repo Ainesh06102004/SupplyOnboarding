@@ -81,10 +81,15 @@ export function amountText(foodKey, grams, unit = "kitchen") {
   return kitchenMeasure(foodKey, grams).text;
 }
 
-/** A line as a shopping-list / checklist row: "1½ tbsp" + "ghee", with grams beside it. */
-export function lineText(line, { scale = 1, unit = "kitchen" } = {}) {
+/**
+ * A line as a shopping-list / checklist row: "1½ tbsp" + "ghee", with grams beside it.
+ * `gramsOf(index)`, when given, is the line's actual total (a sized batch scales its
+ * protein and its oil differently, so no single scale describes it).
+ */
+export function lineText(line, { scale = 1, unit = "kitchen", gramsOf = null } = {}) {
   const food = foodOf(line.food);
-  const grams = line.grams * scale;
+  const actual = gramsOf?.(line.index);
+  const grams = Number.isFinite(actual) ? actual : line.grams * scale;
   const measure = unit === "kitchen" ? kitchenMeasure(line.food, grams) : null;
   // "2 eggs", not "2 eggs egg": a piece that is the food names it already.
   const named = measure?.unit === "piece" && food?.pieceIsName;
@@ -107,9 +112,10 @@ function waterText(grams, unit, adjective = "") {
  * A method step with its amounts filled in.
  * @param {string} text template
  * @param {object} recipe
- * @param {{ scale?: number, unit?: "kitchen"|"grams" }} [opts]
+ * @param {{ scale?: number, unit?: "kitchen"|"grams", gramsOf?: (index: number) => number }} [opts]
+ *   scale also sizes the water: it is how many servings are being cooked.
  */
-export function renderText(text, recipe, { scale = 1, unit = "kitchen" } = {}) {
+export function renderText(text, recipe, { scale = 1, unit = "kitchen", gramsOf = null } = {}) {
   return String(text).replace(PLACEHOLDER, (_, token) => {
     if (token.startsWith("water:")) {
       const [, grams, adjective] = token.split(":");
@@ -117,7 +123,7 @@ export function renderText(text, recipe, { scale = 1, unit = "kitchen" } = {}) {
     }
     const line = recipe.lines[Number(token)];
     if (!line) return "";
-    const t = lineText(line, { scale, unit });
+    const t = lineText(line, { scale, unit, gramsOf });
     return t.name ? `${t.amount} ${t.name}` : t.amount;
   });
 }

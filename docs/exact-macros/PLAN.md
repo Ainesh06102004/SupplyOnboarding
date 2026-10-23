@@ -226,3 +226,43 @@ UI: the AutoPlan sheet (`components/store/system/Sheet.jsx`) and a header inbox 
   - **Pre-existing:** `syncAccountMember` never read `favourite_categories`, `target_weight_kg` or `spice_tolerance`, so every goal-setup sync wiped them.
   - Reading `*` also keeps the query valid before and after 00089.
 - Tests: `portions.test.js` (10), `reconcile.test.js` (2), and 2 new in `schedule.test.js`. Suite 637/637; eslint and `next build` pass. Not verified live: the week with a signed-in household.
+
+### 23 Oct · P4 batch cooking, the recipe page, Cook mode
+- `lib/plan/batch.js` (`planBatches`):
+  - Groups a meal slot into batches cooked on prep days, Sun/Wed by default until the Calendar (P6).
+  - A batch covers the day after one prep day up to and including the next, capped by the dish's `keeps` days and `MAX_BOXES` (4).
+  - Cooking styles are `fresh`, `batch` (lunch and dinner) and `batch_lunch`.
+  - Returns:
+    - the batches;
+    - the menu overrides that put one dish in every box (`schedule.js` marks them `cell.shared.batch`);
+    - `ties(memberId)`, so the portion engine gives a person the same grams in every box of a batch.
+- `usePlanSession` builds the week in two passes:
+  1. the menu;
+  2. batches over it, then the menu again with the batch overrides under the shopper's own picks.
+  It also reads and saves `household.cooking_style` / `prep_days`.
+- Migration **00090_household_cooking** adds those two columns. **Not applied**; the database is blocked.
+- UI:
+  - The brief has "How you cook" (Fresh / Batch / Batch lunches only) and "Cook on" weekday chips.
+  - WeekGrid shows a "Batch A · 2/3" chip per box and a batch card per cook linking to its recipe. The swap menu opens with "Recipe".
+- `lib/food/cookPlan.js` decides what is being cooked: a batch (every person × every box), one meal (the plates at that table) or plain servings.
+  - The pot is the sum of the plates line by line: a sized plate is more chicken, not more oil. So the method's amounts are the real totals.
+  - The split says who gets which boxes and roughly what each weighs.
+- `/store/plan/dish/[key]` (`RecipeView`):
+  - fact tiles;
+  - servings and cups-or-grams switches;
+  - a checklist grouped by where things come from (your KOI order / fresh / your kitchen);
+  - steps with their amounts and times;
+  - the split card and nutrition per plate.
+  Signed out, or with no plan, it is a plain recipe (`?batch=` falls back).
+- **Cook mode** (`CookMode.jsx`) is full screen, one step at a time, with Wake Lock, keys and the step's amounts. It sits at z-125, above KOI's ember (120).
+  - **Timers are the cook's to start (user, 23 Oct).** Nothing starts on its own:
+    - a step the recipe times offers its time, ±1 min before starting; any other step has "Set a timer for this step";
+    - started timers count to an end time, so a slept tab comes back right;
+    - they keep running in a strip when you move on, and tapping one goes back to its step;
+    - time's up turns it lime, vibrates where it can, and is read out;
+    - leaving with a timer set asks first.
+- Fixed while checking: the grams column repeated amounts already in grams ("150 g … 150 g").
+- Verified:
+  - `batch.test.js` (6), `cookPlan.test.js` (4), the suite (647/647), eslint and `next build`;
+  - Playwright at 390 and 1440: the recipe page, cook mode, and timers through time's up (with a fake clock).
+- Not verified live: batch weeks and the batch/cell recipe links with a signed-in household (the database is blocked; the unit tests cover the cook plan).

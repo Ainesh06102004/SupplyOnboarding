@@ -244,13 +244,14 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       let meal;
       if (forced?.length) {
         const can = at.filter((id) => forced.every((dish) => verdict(dish, people.find((p) => String(p.memberId) === id) ?? {}).ok));
-        meal = { dishes: forced, can, chosen: true };
+        // A batch (lib/plan/batch.js) repeats a meal through overrides too; it is KOI's, not the shopper's pick.
+        meal = { dishes: forced, can, chosen: !overrides[key].batch, batch: overrides[key].batch ?? null };
       } else {
         meal = mealFor(slot, at, day.index);
       }
       const cell = { key, day: day.index, slot, shared: null, own: {}, none: {}, notes: {} };
       if (meal && meal.can.length) {
-        cell.shared = { dishes: meal.dishes.map((dish) => ({ key: dish.key, name: dish.name, kind: dish.kind })), eaters: meal.can, chosen: Boolean(meal.chosen) };
+        cell.shared = { dishes: meal.dishes.map((dish) => ({ key: dish.key, name: dish.name, kind: dish.kind })), eaters: meal.can, chosen: Boolean(meal.chosen), batch: meal.batch ?? null };
         meal.dishes.forEach((dish) => serve(dish, day.index));
         for (const id of meal.can) {
           meal.dishes.forEach((dish) => noteUse(id, dish));

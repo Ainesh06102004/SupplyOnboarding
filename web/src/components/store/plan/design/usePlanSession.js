@@ -33,6 +33,7 @@ import { avoidsFromWords } from "@/lib/plan/restrictions";
 import { buildWeek, productsFor, alternativesFor } from "@/lib/plan/schedule";
 import { sizePortions, labelPer100 } from "@/lib/plan/portions";
 import { reconcileWeek } from "@/lib/plan/reconcile";
+import { planBatches, COOKING_STYLES, DEFAULT_PREP_DAYS } from "@/lib/plan/batch";
 import { parseAmount } from "@/lib/nutrition/basis";
 import { hasExactMacros } from "@/lib/household/profile";
 import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
@@ -72,7 +73,8 @@ async function readHousehold() {
   if (!user) return { user: null, household: null, profiles: [], last: null };
   const { data: household, error } = await supabase
     .from("household")
-    .select(`id, keep_out, repeat_tolerance, household_member(${MEMBER_FIELDS})`)
+    // Every household column (cooking_style and prep_days arrive with 00090; naming them first would fail the read).
+    .select(`*, household_member(${MEMBER_FIELDS})`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -144,6 +146,8 @@ export function usePlanSession() {
   const [qty, setQty] = useState({});
   const [cartResult, setCartResult] = useState(null);
   const [repeat, setRepeat] = useState("usual");
+  // How the household cooks (00090): fresh each day, or batches on prep days.
+  const [cooking, setCookingState] = useState({ style: "fresh", prepDays: DEFAULT_PREP_DAYS });
   const [picks, setPicks] = useState({});
   // The week's first plan: its picks are the week's, saved against it (00078).
   const [weekRootId, setWeekRootId] = useState(null);
@@ -169,6 +173,10 @@ export function usePlanSession() {
     if (read.error) setError(read.error);
     setHouseholdId(read.household?.id ?? null);
     setRepeat(read.household?.repeat_tolerance ?? "usual");
+    setCookingState({
+      style: COOKING_STYLES.some((c) => c.key === read.household?.cooking_style) ? read.household.cooking_style : "fresh",
+      prepDays: Array.isArray(read.household?.prep_days) && read.household.prep_days.length ? read.household.prep_days.map(Number) : DEFAULT_PREP_DAYS,
+    });
     if (read.household?.id) setPicks(readPicks(read.household.id));
     setProfiles(read.profiles);
     setLast(read.last);
@@ -820,7 +828,26 @@ export function usePlanSession() {
   const macroNeeds = useMemo(() => Object.fromEntries(eating.filter(hasExactMacros).map((p) => [
     String(p.memberId), { proteinPer100kcal: (Number(p.target_protein_g) / Number(p.target_kcal)) * 100 },
   ])), [eating]);
-  const week = useMemo(() => (plan ? buildWeek({ report: plan.report, lines, people: eating, days: plan.days, overrides: picks, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds }) : null), [plan, lines, eating, picks, repeat, macroNeeds]);
+  // The week, then its batches (lib/plan/batch.js): a batching household gets the
+  // same meal boxed across the days after each prep day, and the week is built
+  // again with those meals in place. The shopper's own picks win over a batch.
+  const { week, batches } = useMemo(() => {
+    if (!plan) return { week: null, batches: planBatches({ week: null }) };
+    const input = { report: plan.report, lines, people: eating, days: plan.days, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds };
+    const first = buildWeek({ ...input, overrides: picks });
+    const batching = planBatches({ week: first, style: cooking.style, prepDays: cooking.prepDays, picks });
+    if (!batching.batches.length) return { week: first, batches: batching };
+    return { week: buildWeek({ ...input, overrides: { ...batching.overrides, ...picks } }), batches: batching };
+  }, [plan, lines, eating, picks, repeat, macroNeeds, cooking]);
+
+  /** How the household cooks: kept on the household (00090), so the next plan batches the same way. */
+  const setCooking = useCallback(async (patch) => {
+    const next = { ...cooking, ...patch };
+    setCookingState(next);
+    if (!householdId) return;
+    const { error: saveError } = await getSupabaseClient().from("household").update({ cooking_style: next.style, prep_days: next.prepDays }).eq("id", householdId);
+    if (saveError) notify("Your cooking style is set for this plan. It couldn't be saved for next time yet.", "warn");
+  }, [cooking, householdId, notify]);
 
   /** Each exact-macros person's week in grams (lib/plan/portions.js), and what it uses of the basket. */
   const portions = useMemo(() => {
@@ -831,11 +858,11 @@ export function usePlanSession() {
     const training = new Set(week.days.filter((d) => DEFAULT_TRAINING_DAYS.includes(d.label)).map((d) => d.index));
     const out = {};
     for (const p of eating.filter(hasExactMacros)) {
-      const sized = sizePortions({ week, person: p, labels, basket, trainingDays: p.carb_cycling ? training : null });
+      const sized = sizePortions({ week, person: p, labels, basket, trainingDays: p.carb_cycling ? training : null, ties: batches.ties(String(p.memberId)) });
       out[String(p.memberId)] = { ...sized, reconcile: reconcileWeek({ week, portions: sized, share: shares.get(String(p.memberId)) ?? [], basket }) };
     }
     return out;
-  }, [week, lines, eating, plan?.report?.whoEatsWhat]);
+  }, [week, batches, lines, eating, plan?.report?.whoEatsWhat]);
 
   /** Put these dishes in this cell (a swap from the menu). */
   const pickDishes = useCallback((cellKey, dishKeys) => setPicks((all) => {
@@ -988,6 +1015,7 @@ export function usePlanSession() {
     edges, without, seeWithout,
     // the week of dishes
     week, eating, picks, pickDishes, swapCells, clearPicks, buyForMenu, menuNeeds, portions,
+    batches: batches.batches, cooking, setCooking,
     // the agent's page actions
     nav, setNav, agentBridge,
     // pantry / cart

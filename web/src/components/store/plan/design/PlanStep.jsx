@@ -32,6 +32,10 @@ import { setupMotion, prefersReducedMotion, useGSAP, E } from "@/lib/motion/koiM
 import { useEmber } from "@/components/store/ember/Ember";
 import { useKoiVoice } from "@/store/koiVoiceStore";
 import { ProductThumb } from "@/components/store/system/primitives";
+import { COOKING_STYLES } from "@/lib/plan/batch";
+
+/** 0 = Sunday, as household.prep_days stores them (00090). */
+const WEEKDAY_NAMES = Object.freeze(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
 
 const labelOf = (list, key) => list.find((x) => x.key === key)?.label ?? key;
 const amountOf = (perDay, unit) => (perDay === null || perDay === undefined ? null : unit ? `${perDay} ${unit}` : `${perDay}`);
@@ -270,6 +274,36 @@ function ThisWeek({ s }) {
               Budget ₹
               <input type="number" min={1} value={s.budget} placeholder="none" onChange={(e) => s.setBudget(e.target.value)} className="h-9 w-24 rounded-lg border border-koi-forest/15 bg-koi-paper px-2 font-koi-num text-[15px] font-semibold outline-none focus:border-koi-forest" />
             </label>
+          </div>
+          <div>
+            <div className="mb-2 text-[13px] font-medium text-koi-ink2">How you cook <span className="text-koi-muted">— a batch is cooked once and boxed for the days after</span></div>
+            <div role="radiogroup" aria-label="How you cook" className="flex flex-wrap gap-1.5">
+              {COOKING_STYLES.map((c) => {
+                const on = s.cooking.style === c.key;
+                return (
+                  <button key={c.key} type="button" role="radio" aria-checked={on} onClick={() => s.setCooking({ style: c.key })} className={`h-9 rounded-full border px-3.5 text-[13px] font-semibold transition-colors ${on ? "border-koi-forest bg-koi-forest text-koi-lime" : "border-koi-forest/15 bg-white text-koi-muted hover:text-koi-forest"}`}>
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+            {s.cooking.style !== "fresh" && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span className="mr-1 text-[12.5px] font-medium text-koi-muted">Cook on</span>
+                {WEEKDAY_NAMES.map((name, day) => {
+                  const on = s.cooking.prepDays.includes(day);
+                  const toggle = () => {
+                    const next = on ? s.cooking.prepDays.filter((d) => d !== day) : [...s.cooking.prepDays, day].sort();
+                    if (next.length >= 1 && next.length <= 4) s.setCooking({ prepDays: next });
+                  };
+                  return (
+                    <button key={name} type="button" aria-pressed={on} onClick={toggle} className={`h-9 min-w-11 rounded-full border px-2.5 font-koi-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors ${on ? "border-koi-forest bg-koi-tint text-koi-primary" : "border-koi-forest/15 bg-white text-koi-muted hover:text-koi-forest"}`}>
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           {s.active?.memberId && s.categories.length > 0 && (
             <div>
