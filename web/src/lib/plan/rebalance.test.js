@@ -172,6 +172,23 @@ test("adjustments merge what was picked, and an undone one is gone", () => {
   assert.equal(activeEffects([{ ...a, undone: true }]).carry.length, 0);
 });
 
+test("a meal out on the Calendar is a plate of its own: counted as a typical meal out, never resized", () => {
+  const week = weekOf();
+  // Tuesday lunch is out: the week has no plate for them there (buildWeek's away).
+  week.cells["1:lunch"].shared = null;
+  const outs = { "1:lunch": { nutrition: { kcal: 750, protein: 25, carbs: 90, fat: 32, fibre: 7 } } };
+  const plates = platesOfDay({ week, memberId: "m1", dayIndex: 1, outs });
+  const lunch = plates.find((p) => p.slot === "lunch");
+  assert.equal(lunch.out, true);
+  assert.equal(lunch.nutrition.kcal, 750);
+  // Logged as a bigger lunch out than typical: the gap is against the allowance, and the rest of today can shrink.
+  const t = takeTwo({ week, person: HOME_COOK, entry: outLunch(1300), outs });
+  assert.equal(t.meal.kind, null, "nothing planned there to move");
+  const today = t.numbers.find((o) => o.id === "today");
+  if (today) assert.ok(!Object.keys(today.effect.scale).includes("1:lunch"));
+  assert.ok(Math.abs(t.gap.kcal - (1300 - 750)) <= 1);
+});
+
 test("a day outside the week's plan can only be left", () => {
   const t = takeTwo({ week: weekOf(), person: HOME_COOK, entry: { ...outLunch(900), eaten_on: "2026-11-20" } });
   assert.equal(t.inWeek, false);

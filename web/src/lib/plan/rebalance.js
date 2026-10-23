@@ -95,15 +95,16 @@ export function activeEffects(adjustments = []) {
  * boxes and swapped plates, and — on the day being lived — the meals before the
  * last one logged (eaten as planned unless logged otherwise).
  */
-function fixedFor({ week, memberId, dayIndex, base, logs, swaps, upTo = null }) {
-  const plates = platesOfDay({ week, sized: base, memberId, dayIndex, swaps });
+function fixedFor({ week, memberId, dayIndex, base, logs, swaps, outs = {}, upTo = null }) {
+  const plates = platesOfDay({ week, sized: base, memberId, dayIndex, swaps, outs });
   const bySlot = new Map(logs.map((l) => [l.slot, l]));
   const ledger = dayLedger({ plates, logs });
   const fixed = {};
   for (const row of ledger.rows) {
     if (!row.cellKey) continue;
     const before = upTo !== null && order(row.slot) <= upTo;
-    if (bySlot.has(row.slot) || row.batch || row.swap || before) {
+    // A meal out on the Calendar is held at a typical meal out until it is logged.
+    if (bySlot.has(row.slot) || row.batch || row.swap || row.out || before) {
       fixed[row.cellKey] = { name: row.dishes.map((d) => d.name).join(", ") || null, nutrition: row.counted };
     }
   }
@@ -123,8 +124,9 @@ function fixedFor({ week, memberId, dayIndex, base, logs, swaps, upTo = null }) 
  * @param {Array} input.adjustments plan_week.adjustments
  * @param {Object<string, Array>} [input.logsByDate] the person's meal log rows by date
  * @param {object} [input.sizing] { labels, basket, trainingDays } as the week was sized with
+ * @param {object} [input.outs] cell key → the Calendar's meals out for this person
  */
-export function applyAdjustments({ week, person, base = null, adjustments = [], logsByDate = {}, sizing = {} }) {
+export function applyAdjustments({ week, person, base = null, adjustments = [], logsByDate = {}, sizing = {}, outs = {} }) {
   const effects = activeEffects(adjustments);
   const memberId = String(person.memberId);
   const mine = { ...effects, swaps: effects.swaps.filter((s) => String(s.memberId) === memberId) };
@@ -133,8 +135,8 @@ export function applyAdjustments({ week, person, base = null, adjustments = [], 
     if (!mine.resize.has(day.index)) return day;
     const logs = logsByDate[day.date] ?? [];
     const lastLogged = logs.reduce((m, l) => Math.max(m, order(l.slot)), -1);
-    const fixed = fixedFor({ week, memberId, dayIndex: day.index, base, logs, swaps: mine.swaps, upTo: lastLogged >= 0 ? lastLogged : null });
-    const resized = sizePortions({ week: oneDay(week, day.index), person, ...sizing, fixed, shift: mine.shift });
+    const fixed = fixedFor({ week, memberId, dayIndex: day.index, base, logs, swaps: mine.swaps, outs, upTo: lastLogged >= 0 ? lastLogged : null });
+    const resized = sizePortions({ week: oneDay(week, day.index), person, ...sizing, fixed: { ...(sizing.fixed ?? {}), ...fixed }, shift: mine.shift });
     return resized.days[0] ?? day;
   });
   return { sized: { ...base, days, within: days.every((d) => d.within) }, ...mine };
@@ -236,9 +238,10 @@ function mealOptions({ week, batches, memberId, dayIndex, plate, logsByDate, swa
  * @param {Array} [input.swaps] swaps already in force
  * @param {object} [input.shift] day shifts already in force (activeEffects().shift)
  * @param {object} [input.sizing] { labels, basket, trainingDays }
+ * @param {object} [input.outs] cell key → the Calendar's meals out for this person
  * @returns {{ inWeek: boolean, ledger, gap, numbers: Array, meal: { kind, options: Array } }}
  */
-export function takeTwo({ week, batches = [], person, sized = null, entry, logsByDate = {}, swaps = [], shift: shifted = {}, sizing = {} }) {
+export function takeTwo({ week, batches = [], person, sized = null, entry, logsByDate = {}, swaps = [], shift: shifted = {}, sizing = {}, outs = {} }) {
   const R = REBALANCE_RULES;
   const memberId = String(person.memberId);
   const day = week?.days?.find((d) => d.date === entry.eaten_on) ?? null;
@@ -246,7 +249,7 @@ export function takeTwo({ week, batches = [], person, sized = null, entry, logsB
   if (!day) return { inWeek: false, ledger: null, gap: null, numbers: [leaveOnly("This week's plan doesn't cover that day, so there is nothing to rebalance.")], meal: { kind: null, options: [] } };
 
   const logs = [...(logsByDate[day.date] ?? []).filter((l) => l.slot !== entry.slot), entry];
-  const plates = platesOfDay({ week, sized, memberId, dayIndex: day.index, swaps });
+  const plates = platesOfDay({ week, sized, memberId, dayIndex: day.index, swaps, outs });
   const sizedDay = sized?.days?.find((d) => d.index === day.index) ?? null;
   const target = targetFor(person, sizedDay);
   const ledger = dayLedger({ plates, logs, target, tolerancePct: Number(person.target_tolerance_pct) || 5 });
@@ -278,10 +281,10 @@ export function takeTwo({ week, batches = [], person, sized = null, entry, logsB
   });
 
   // ── Today: resize the meals still to come ─────────────────────────────
-  const remaining = ledger.rows.filter((r) => !r.done && r.cellKey && !r.batch && !r.swap && order(r.slot) > order(entry.slot) && r.nutrition.kcal > 0);
+  const remaining = ledger.rows.filter((r) => !r.done && r.cellKey && !r.batch && !r.swap && !r.out && order(r.slot) > order(entry.slot) && r.nutrition.kcal > 0);
   if (!inside && remaining.length) {
     if (sized) {
-      const fixed = fixedFor({ week, memberId, dayIndex: day.index, base: sized, logs, swaps, upTo: order(entry.slot) });
+      const fixed = { ...(sizing.fixed ?? {}), ...fixedFor({ week, memberId, dayIndex: day.index, base: sized, logs, swaps, outs, upTo: order(entry.slot) }) };
       // Protein the meal out brought beyond the plate it replaced raises the day's protein, so the
       // meals still to come keep theirs: protein is never cut to pay for a meal out.
       const extraProtein = Math.max(0, Math.round((ledger.rows.find((r) => r.slot === entry.slot)?.counted.protein ?? 0) - (plate?.nutrition.protein ?? 0)));
@@ -332,7 +335,7 @@ export function takeTwo({ week, batches = [], person, sized = null, entry, logsB
     const scale = {};
     let covered = 0;
     for (const d of later) {
-      const dayPlates = sized ? [] : platesOfDay({ week, sized: null, memberId, dayIndex: d.index, swaps });
+      const dayPlates = sized ? [] : platesOfDay({ week, sized: null, memberId, dayIndex: d.index, swaps, outs });
       const dayRef = sized ? sized.days.find((x) => x.index === d.index)?.target?.kcal ?? ref.kcal : dayPlates.reduce((a, p) => a + p.nutrition.kcal, 0);
       if (!(dayRef > 0)) continue;
       const cap = Math.min((R.spreadCapPct / 100) * dayRef, R.spreadCapKcal);
@@ -348,7 +351,7 @@ export function takeTwo({ week, batches = [], person, sized = null, entry, logsB
       if (Number.isFinite(gapOf("protein")) && gapOf("protein") < 0) s.protein = -Math.round(gapOf("protein") * ratio);
       shift[d.index] = s;
       if (!sized) {
-        const free = dayPlates.filter((p) => p.cellKey && !p.batch && !p.swap);
+        const free = dayPlates.filter((p) => p.cellKey && !p.batch && !p.swap && !p.out);
         const freeK = free.reduce((a, p) => a + p.nutrition.kcal, 0);
         const f = freeK > 0 ? Math.min(R.plateScale[1], Math.max(R.plateScale[0], (freeK - take) / freeK)) : 1;
         for (const p of free) scale[p.cellKey] = Math.round(f * 100) / 100;

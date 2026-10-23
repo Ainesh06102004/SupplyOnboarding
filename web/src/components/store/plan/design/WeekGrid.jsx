@@ -268,6 +268,8 @@ export default function WeekGrid({ s }) {
                   <div className="flex items-start justify-between gap-1.5">
                     {cell.shared ? (
                       <span className="font-koi-display text-[14.5px] font-bold leading-tight text-koi-ink">{cell.shared.dishes.map((x) => x.name).join(" + ")}</span>
+                    ) : cell.away?.length ? (
+                      <span className="text-[12.5px] font-semibold text-koi-warm-ink">Out, from your Calendar</span>
                     ) : (
                       <span className="text-[12px] text-koi-muted/70">—</span>
                     )}
@@ -278,8 +280,9 @@ export default function WeekGrid({ s }) {
                     const b = (s.batches ?? []).find((x) => x.id === cell.shared.batch);
                     return b ? <span className="self-start rounded-md bg-koi-tint px-[7px] py-[3px] font-koi-mono text-[9.5px] font-bold tracking-[0.1em] text-koi-primary">BATCH {b.id} · {b.cells.indexOf(key) + 1}/{b.boxes}</span> : null;
                   })()}
-                  {(mine || notMine || adds.length > 0 || notes?.leaveOut?.length > 0 || notes?.notVerifiedFor?.length > 0 || others.length > 0) && (
+                  {(mine || notMine || adds.length > 0 || notes?.leaveOut?.length > 0 || notes?.notVerifiedFor?.length > 0 || others.length > 0 || (cell.shared && cell.away?.length > 0)) && (
                     <div className="flex flex-wrap gap-1">
+                      {cell.shared && cell.away?.map((id) => <Chip key={`away-${id}`} tone="shared" title="From your Calendar">{s.eating.find((p) => String(p.memberId) === id)?.label ?? "Someone"}: out</Chip>)}
                       {mine && <Chip tone="goal">{s.active.label}: {mine.dishes.map((x) => x.name).join(" + ")}</Chip>}
                       {/* "Not for Me" only beside a dish others have; an empty slot isn't about Me. */}
                       {notMine && cell.shared && <Chip tone="cut" title={notMine}>Not for {s.active.label}</Chip>}

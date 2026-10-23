@@ -16,7 +16,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useKoiVoice } from "@/store/koiVoiceStore";
 import { EmberSlot, useEmber } from "@/components/store/ember/Ember";
 import { setupMotion, prefersReducedMotion, E } from "@/lib/motion/koiMotion";
-import { readMealSentence } from "@/lib/food/mealWords";
+import { readMealSentence, dateFor } from "@/lib/food/mealWords";
+import { readScheduleSentence } from "@/lib/calendar/words";
 
 const PLACEHOLDERS = {
   "/store": "Snacks for evening tea, crunchy, not sweet…",
@@ -86,6 +87,12 @@ export default function KoiBar() {
     if (readMealSentence(q).isMeal) {
       ember.status("Reading");
       router.push(`/store/track?meal=${encodeURIComponent(q)}`);
+      return;
+    }
+    // "Lunch out every Tuesday", "gym Mon Wed Fri": the Calendar, which reads it into an event to confirm.
+    if (readScheduleSentence(q, { today: dateFor("today", { offsetMinutes: -new Date().getTimezoneOffset() }) }).isSchedule) {
+      ember.status("Reading");
+      router.push(`/store/calendar?add=${encodeURIComponent(q)}`);
       return;
     }
     // On the shelf, KOI pulls focus in place; anywhere else the ask goes to it.

@@ -13,7 +13,8 @@ import { readBrief, draftFrom } from "@/lib/planner/brief";
 import { ASKS_CART } from "../router";
 import { asksForParticularProducts } from "../cartWords";
 import { isQuote, norm } from "../evidence";
-import { mealFromConversation } from "@/lib/food/mealWords";
+import { mealFromConversation, dateFor } from "@/lib/food/mealWords";
+import { readScheduleSentence } from "@/lib/calendar/words";
 
 /**
  * @param {{ saved?: Array<{label, age_band, diet_type}>, plan?: boolean, basket?: string[], page?: object }} start
@@ -178,6 +179,17 @@ export function simulated(start = {}) {
         return { card: { kind: "rules", rows: [] } };
       },
       execute: async (c) => { world.meal = mealFromConversation(c.memory.said); return { ok: true, summary: "Logged", forModel: "Logged the meal." }; },
+    },
+    schedule: {
+      kind: "approval",
+      prepare: async (c) => {
+        if (!world.saved.length) return { refused: "There's no household yet: set up people first (draft_people, save_people)." };
+        const r = readScheduleSentence(c.memory.said.at(-1) ?? "", { labels: world.saved.map((p) => p.label), today: dateFor("today") });
+        if (!r.kind) return { refused: "That doesn't say what to put on the calendar." };
+        if (!r.repeatDays && !r.startsOn) return { refused: "That doesn't say when. Ask the shopper which day." };
+        return { card: { kind: "rules", rows: [] } };
+      },
+      execute: async (c) => { world.scheduled = readScheduleSentence(c.memory.said.at(-1) ?? "", { today: dateFor("today") }); return { ok: true, summary: "Added", forModel: "Added to the calendar." }; },
     },
     ask_shopper: {
       kind: "ask",

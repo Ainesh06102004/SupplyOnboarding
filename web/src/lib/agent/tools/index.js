@@ -39,6 +39,8 @@ import { noteLines } from "@/lib/plan/planView";
 import { trackRead } from "@/lib/plan/track";
 import { readMealSentence, slotAt, dateFor } from "@/lib/food/mealWords";
 import { estimateMeal, estimateWords, matchDishes, SETTINGS as MEAL_SETTINGS } from "@/lib/food/estimate";
+import { readScheduleSentence } from "@/lib/calendar/words";
+import { KIND as EVENT_KIND, eventProblems, eventTitle, repeatWords } from "@/lib/calendar/events";
 import { festivalNamed, FAST_WORDS } from "@/lib/calendar/festivals";
 import { blankProfile, memberPayload, profileProblems, profilesNamedIn, SEVERITIES } from "@/lib/household/profile";
 import { mergeAvoids, applyProfileSet, withSuggestedTargets, weakens } from "@/lib/household/save";
@@ -829,6 +831,73 @@ async function executeMeal(ctx, args, prepared) {
   };
 }
 
+// ── schedule (approval): something for the Calendar, from the shopper's words ──
+// lib/calendar/words.js reads the kind, the days or date, the meal, the time and
+// the person from their words; the model may only name the kind when the words
+// imply one the rules don't know. The week is planned around it from then on.
+const shortDay = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
+async function planSchedule(ctx, { quote, kind }) {
+  if (!ctx.household?.id) return { refused: "There's no household yet: set up people first (draft_people, save_people)." };
+  const said = wordsFor(ctx, quote);
+  if (said.error) return { refused: said.error };
+  const today = todayIST();
+  const r = readScheduleSentence(said.text, { labels: ctx.saved.map((p) => p.label), today });
+  const k = r.kind ?? (EVENT_KIND[kind] && kind !== "auto" ? kind : null);
+  if (!k) return { refused: "That doesn't say what to put on the calendar: a meal out, training, travel, batch cooking, shopping, planning or a reminder." };
+  if (r.past) return { refused: "That date has passed; KOI only plans ahead." };
+  if (!r.repeatDays && !r.startsOn) return { refused: "That doesn't say when. Ask the shopper which day with ask_shopper topic=clarify, in their words." };
+  const me = ctx.saved.find((p) => p.is_account_holder) ?? null;
+  const who = r.member ? ctx.saved.find((p) => p.label === r.member) ?? null : me;
+  if (EVENT_KIND[k].person && !who) return { refused: "KOI doesn't know who that is for. Ask which_person." };
+  const event = {
+    kind: k,
+    member_id: EVENT_KIND[k].person ? who.memberId : null,
+    slot: k === "out" ? r.slot ?? "lunch" : null,
+    starts_on: r.startsOn ?? today,
+    ends_on: r.endsOn,
+    repeat_days: r.repeatDays,
+    until: null,
+    at_time: EVENT_KIND[k].person ? null : r.atTime,
+    title: r.title,
+    plan_effect: k === "out" ? { setting: "restaurant", size: "usual" } : {},
+    source: "koi",
+  };
+  const problems = eventProblems(event);
+  if (problems.length) return { refused: problems.join(" ") };
+  return { event, who };
+}
+
+async function prepareSchedule(ctx, args) {
+  const p = await planSchedule(ctx, args);
+  if (p.refused) return p;
+  const e = p.event;
+  const when = repeatWords(e) ?? (e.ends_on ? `${shortDay(e.starts_on)} to ${shortDay(e.ends_on)}` : shortDay(e.starts_on));
+  return {
+    card: {
+      kind: "rules",
+      title: "Add to your calendar?",
+      rows: [{ text: `${eventTitle(e, EVENT_KIND[e.kind].person ? p.who?.label : null)}: ${when}${e.at_time ? ` at ${e.at_time}` : ""}`, tone: "added" }],
+      note: `${EVENT_KIND[e.kind].hint} Change or delete it on the Calendar page.`,
+    },
+    fp: fingerprint(e),
+  };
+}
+
+async function executeSchedule(ctx, args, prepared) {
+  const p = await planSchedule(ctx, args);
+  if (p.refused) return refuse(`Not added: ${p.refused}`);
+  if (fingerprint(p.event) !== prepared.fp) return refuse("The event changed since the shopper saw the card. Nothing was added; call schedule again.");
+  const { error } = await ctx.db.from("calendar_event").insert({ ...p.event, household_id: ctx.household.id });
+  if (error) throw error;
+  return {
+    ok: true,
+    summary: "Added to your calendar",
+    forModel: "Added to the household's calendar. The week is planned around it from now on; don't change the plan for it.",
+    ui: { navigate: { href: "/store/calendar" } },
+  };
+}
+
 // ── week_menu: the week's dishes, changed on the page ───────────────────────
 // The week of dishes is built in the browser from the plan (lib/plan/schedule.js);
 // a change to it is the page's own pickDishes / swapCells / clearPicks, run
@@ -974,6 +1043,7 @@ export const TOOLS = Object.freeze({
   accept_track_proposal: { kind: "approval", prepare: prepareProposal, execute: executeProposal, step: "track" },
   log_weigh_in: { kind: "approval", prepare: prepareWeighIn, execute: executeWeighIn, step: "track" },
   log_meal: { kind: "approval", prepare: prepareMeal, execute: executeMeal, step: "track" },
+  schedule: { kind: "approval", prepare: prepareSchedule, execute: executeSchedule },
   ask_shopper: { kind: "ask", card: askCard },
   finish: { kind: "end", run: finish },
 });

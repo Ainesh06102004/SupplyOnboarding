@@ -77,6 +77,10 @@ export const LOOP_CASES = Object.freeze([
   { id: "meal-out", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["had 2 samosas at the canteen for snack"], expect: { tools: ["log_meal"], never: ["make_plan", "change_plan", "week_menu"] } },
   { id: "meal-hinglish", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["kal raat bahar pizza khaya"], expect: { anyOf: ["log_meal"], asked: true, never: ["make_plan", "change_plan"] } },
   { id: "meal-skipped", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["I skipped lunch today"], expect: { tools: ["log_meal"], never: ["change_plan", "week_menu"] } },
+  // The Calendar (P6): what the weeks are planned around, never a plan change or a meal logged.
+  { id: "schedule-out", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["I have lunch at the office every Tuesday, put it on my calendar"], expect: { tools: ["schedule"], never: ["change_plan", "log_meal", "week_menu"] } },
+  { id: "schedule-gym", start: { saved: [{ ...FAMILY[0], is_account_holder: true }, ...FAMILY.slice(1)], plan: true }, messages: ["gym on mon wed fri at 7am"], expect: { tools: ["schedule"], never: ["change_plan", "make_plan"] } },
+  { id: "schedule-trip", start: { saved: FAMILY, plan: true }, messages: ["Wife is travelling 3 to 5 Nov"], expect: { tools: ["schedule"], never: ["change_plan", "save_people"] } },
 
   // ── Reported live, 27 Sep, and "everything" the pages can do ───────────────
   { id: "show-plan", start: { saved: SON_FAMILY, plan: true, page: { route: "home" } }, messages: ["show me the plan"], expect: { tools: ["show"], never: ["make_plan", "change_plan"] } },

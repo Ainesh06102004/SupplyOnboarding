@@ -35,7 +35,7 @@ export default function MobileTabBar({ pathname, onSignIn }) {
       <Link href="/store/shop" className="ks-tab" aria-current={at(pathname === "/store/shop" || pathname.startsWith("/store/product"))}>
         <span className="ks-tab-icon"><Icon.Shop /></span>Shop
       </Link>
-      <Link href="/store/plan" className="ks-tab" aria-current={at(pathname === "/store/plan" || pathname === "/store/household")}>
+      <Link href="/store/plan" className="ks-tab" aria-current={at(pathname === "/store/plan" || pathname === "/store/household" || pathname === "/store/track" || pathname === "/store/calendar")}>
         <span className="ks-tab-icon"><Icon.Calendar style={{ width: 18, height: 18 }} /></span>Plan
       </Link>
       <button type="button" data-cart-target className="ks-tab" onClick={openSheet} aria-current={at(pathname === "/store/cart")} aria-label={`Cart, ${hydrated ? count : 0} products`}>

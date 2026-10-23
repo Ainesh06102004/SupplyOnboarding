@@ -13,7 +13,9 @@
 import { matchDishes, mealDishFor } from "./estimate";
 
 /** A meal said in the past: English and Hinglish. */
-const EATEN = /\b(ate|eaten|eat out|had|have had|grabbed|ordered|order kiya|khaya|khaaya|khayi|khaayi|khai|kha liya|kha li|kha liye|piya|pi li)\b/;
+const EATEN = /\b(ate|eaten|had|have had|grabbed|ordered|order kiya|khaya|khaaya|khayi|khaayi|khai|kha liya|kha li|kha liye|piya|pi li)\b/;
+/** A habit or a plan ("every Tuesday", "tomorrow") is the Calendar's (lib/calendar/words.js), not a meal eaten. */
+const NOT_YET = /\b(every|each|weekly|daily|tomorrow|next|will|going to|gonna|plan to|planning to|har)\b/;
 const SKIPPED = /\b(skip(ped)?|missed|didn'?t eat|did not eat|nahi khaya|nahin khaya)\b/;
 const PARTIAL = /\b(half|aadha|aadhi|some of|only a bit of|thoda sa)\b.*\b(my|the|mera|meri)?\s*(breakfast|lunch|dinner|snack|plate|meal|khana)\b/;
 
@@ -57,7 +59,7 @@ export function readMealSentence(sentence) {
   const partial = !skipped && PARTIAL.test(lower);
   const eaten = EATEN.test(lower);
   // A dish named with "had"/"khaya", or a meal skipped or half-eaten. "I had a question" is not a meal.
-  const isMeal = Boolean((eaten && (mentions.length || slot)) || ((skipped || partial) && slot));
+  const isMeal = !NOT_YET.test(lower) && Boolean((eaten && (mentions.length || slot)) || ((skipped || partial) && slot));
   const portion = first(PORTIONS, lower);
   const items = mentions.filter((m) => m.options.length === 1).map((m) => {
     const dish = mealDishFor(m.options[0].key);

@@ -41,9 +41,11 @@ export function dishesFor(cell, memberId) {
  * @param {string} input.memberId
  * @param {number} input.dayIndex
  * @param {Array} [input.swaps] Take 2 swaps: { cellKey, memberId, dishes, nutrition, from }
- * @returns {Array<{ slot, label, cellKey, dishes, nutrition, sized, batch, shared, swap, extras }>}
+ * @param {Object<string, {nutrition}>} [input.outs] cell key → the Calendar's meal out for this person
+ *   there (lib/calendar/events.js): a plate of its own, counted as a typical meal out until logged
+ * @returns {Array<{ slot, label, cellKey, dishes, nutrition, sized, batch, shared, swap, extras, out }>}
  */
-export function platesOfDay({ week, sized = null, memberId, dayIndex, swaps = [] }) {
+export function platesOfDay({ week, sized = null, memberId, dayIndex, swaps = [], outs = {} }) {
   const id = String(memberId);
   const day = sized?.days?.find((d) => d.index === dayIndex) ?? null;
   const plates = [];
@@ -53,6 +55,10 @@ export function platesOfDay({ week, sized = null, memberId, dayIndex, swaps = []
     if (!cell) continue;
     const swap = swaps.find((s) => s.cellKey === cellKey && String(s.memberId) === id) ?? null;
     const dishes = dishesFor(cell, id);
+    if (!dishes.length && !swap && outs[cellKey]) {
+      plates.push({ slot, label: SLOT_LABELS[slot] ?? slot, cellKey, dishes: [], nutrition: { ...zero(), ...outs[cellKey].nutrition }, sized: false, batch: null, shared: false, swap: null, extras: [], out: true });
+      continue;
+    }
     if (!dishes.length && !swap) continue;
     const items = (day?.items ?? []).filter((i) => i.cellKey === cellKey && i.kind !== "addition");
     const nutrition = swap ? { ...zero(), ...swap.nutrition }
@@ -69,6 +75,7 @@ export function platesOfDay({ week, sized = null, memberId, dayIndex, swaps = []
       shared: eatsAt(cell, id) && cell.shared.eaters.length > 1,
       swap: swap?.from ?? null,
       extras: [],
+      out: false,
     });
   }
   // A sized person's daily additions sit in their slot's plate (or make one).

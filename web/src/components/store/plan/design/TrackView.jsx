@@ -172,6 +172,7 @@ export default function TrackView({ s, ask = null, onAsked = null }) {
     <nav aria-label="Related" className="mt-7 flex flex-wrap items-center gap-3">
       {adult && <Link href="/store/plan?step=you" className="flex h-14 items-center rounded-2xl border border-koi-forest/15 bg-white px-6 text-[15px] font-semibold text-koi-forest no-underline transition-colors hover:border-koi-forest/40">Your targets in You</Link>}
       <Link href="/store/plan?step=plan" className="flex h-14 items-center rounded-2xl px-5 text-sm font-semibold text-koi-ink2 no-underline transition-colors hover:bg-white">This week&apos;s plan →</Link>
+      <Link href="/store/calendar" className="flex h-14 items-center rounded-2xl px-5 text-sm font-semibold text-koi-ink2 no-underline transition-colors hover:bg-white">Your calendar →</Link>
     </nav>
   );
   const head = <TrackHead />;

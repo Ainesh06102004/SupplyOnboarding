@@ -23,6 +23,7 @@ export const TOOL_LABELS = Object.freeze({
   save_kitchen_rules: "Saving your kitchen rules",
   log_weigh_in: "Logging your weigh-in",
   log_meal: "Logging your meal",
+  schedule: "Adding to your calendar",
   week_menu: "Changing the week's dishes",
   edit_cart: "Changing your cart",
   accept_track_proposal: "Updating your daily calories",

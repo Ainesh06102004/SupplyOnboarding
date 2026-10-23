@@ -10,7 +10,8 @@
 
 import { routeMessage, asksForChange } from "./router";
 import { readFollowUp } from "@/lib/planner/followup";
-import { mealFromConversation } from "@/lib/food/mealWords";
+import { mealFromConversation, dateFor } from "@/lib/food/mealWords";
+import { readScheduleSentence } from "@/lib/calendar/words";
 import { norm } from "./evidence";
 
 const productWords = (text) => {
@@ -56,6 +57,11 @@ export function rulesModel({ memory, state }) {
     if (meal.ambiguous.length && !tried.has("ask_shopper")) return pick("ask_shopper", { topic: "clarify", about: null, options: meal.ambiguous[0].options.map((o) => o.name) });
     if (!meal.ambiguous.length) return pick("log_meal", { quote: null, slot: null, day: null, setting: null });
     return done("cannot_do");
+  }
+
+  // Something the weeks are planned around ("lunch out every Tuesday", "gym Mon Wed Fri") goes on the Calendar.
+  if (readScheduleSentence(text, { labels: (state.saved ?? []).map((p) => p.label), today: dateFor("today") }).isSchedule) {
+    return tried.has("schedule") ? done() : pick("schedule", { quote: null, kind: null });
   }
 
   const steps = routeMessage(text, { hasPlan: state.hasPlan, productWords });

@@ -78,8 +78,10 @@ function suppliersOf(line, basket) {
  * @param {Array} [input.atHome] plan.explanation.products_at_home: { skuId, name, categoryKey }
  * @param {Object<string,{proteinPer100kcal: number}>} [input.macroNeeds] memberId → how protein-dense their
  *   day must be (exact macros). Their meals lean towards dishes that dense; nobody else's change.
+ * @param {Object<string,string[]>} [input.away] "YYYY-MM-DD:slot" → member ids eating elsewhere then (the
+ *   Calendar's meals out and travel, lib/calendar/events.js): no plate for them there
  */
-export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), today = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [], macroNeeds = {} }) {
+export function buildWeek({ report = {}, lines = [], people = [], days = 7, start = new Date(), today = new Date(), overrides = {}, repeat = "usual", dishes = DISHES, atHome: home = [], macroNeeds = {}, away = {} }) {
   const d = Math.max(1, Math.min(14, Number(days) || 7));
   // What the kitchen already has (plan.explanation.products_at_home) is not
   // bought but is cooked: it can be a dish's staple for anyone the dish itself
@@ -242,7 +244,9 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
   for (const day of dayList) {
     for (const slot of slots) {
       const key = `${day.index}:${slot}`;
-      const at = eatersOf(slot);
+      // Whoever the Calendar has eating out (or away) then has no plate here.
+      const out = (away[`${day.date}:${slot}`] ?? []).map(String);
+      const at = eatersOf(slot).filter((id) => !out.includes(id));
       const forced = overrides[key]?.dishes?.map((k) => byDish.get(k)).filter(Boolean);
       let meal;
       if (forced?.length) {
@@ -253,7 +257,7 @@ export function buildWeek({ report = {}, lines = [], people = [], days = 7, star
       } else {
         meal = mealFor(slot, at, day.index);
       }
-      const cell = { key, day: day.index, slot, shared: null, own: {}, none: {}, notes: {} };
+      const cell = { key, day: day.index, slot, shared: null, own: {}, none: {}, notes: {}, away: out.filter((id) => everyone.includes(id)) };
       if (meal && meal.can.length) {
         cell.shared = { dishes: meal.dishes.map((dish) => ({ key: dish.key, name: dish.name, kind: dish.kind })), eaters: meal.can, chosen: Boolean(meal.chosen), batch: meal.batch ?? null };
         meal.dishes.forEach((dish) => serve(dish, day.index));

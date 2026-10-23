@@ -33,12 +33,12 @@ export default function WeekStrip({ s, date, today, onDate }) {
     const sized = s.portions?.[id] ?? null;
     return s.week.days.map((d) => {
       const sizedDay = sized?.days?.find((x) => x.index === d.index) ?? null;
-      const plates = platesOfDay({ week: s.week, sized, memberId: id, dayIndex: d.index, swaps: s.myTake2?.swaps ?? [] });
+      const plates = platesOfDay({ week: s.week, sized, memberId: id, dayIndex: d.index, swaps: s.myTake2?.swaps ?? [], outs: s.myOuts ?? {} });
       const ledger = dayLedger({ plates, logs: s.logsByDate?.[d.date] ?? [], target: targetFor(s.me, sizedDay) });
       const ref = sizedDay ? sizedDay.target.kcal : ledger.planned.kcal;
       return { ...d, ledger, ref };
     });
-  }, [s.week, s.me, s.portions, s.myTake2, s.logsByDate]);
+  }, [s.week, s.me, s.portions, s.myTake2, s.myOuts, s.logsByDate]);
   if (!days.length) return null;
 
   return (

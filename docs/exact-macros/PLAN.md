@@ -322,3 +322,52 @@ UI: the AutoPlan sheet (`components/store/system/Sheet.jsx`) and a header inbox 
   - Tests: estimate (9), mealWords (4), rebalance (9), patterns (2), and 1 new in schedule. The suite is 671/671; eslint passes, as do `buildRecipes --check` and `next build`.
   - **A Playwright walk with Supabase answered by fixtures** (cookie session, household, a plan over test-catalogue SKUs made two days earlier, the meal log in memory), at 1440 and 390: ate breakfast; logged lunch out (a big restaurant chicken biryani, ≈ 1,480 kcal); applied "spread over 4 days" plus "cook it on Saturday lunch"; undid it and redid it; opened from "kal raat bahar pizza khaya".
 - **Not verified live:** the real database (00091 unapplied), `/store/profile/data` (gated server-side), the agent's `log_meal` with a model, and an exact-macros Take 2 in the browser (the unit test covers it).
+
+### 23 Oct · P6 Calendar
+- Migration **00092_calendar_event**. **Not applied** (database blocked).
+  - Event kinds: out, training, travel, prep, shop, plan, remind, auto.
+  - An event is once (`starts_on`, with `ends_on` for a range) or weekly (`repeat_days`, 0 = Sunday, `until`).
+  - Fields: `slot` for a meal out; `at_time`; and `plan_effect` (`{setting, size, kcal}` for a meal out).
+  - RLS through the household owner (`koi_uid()`). A person's event must name a member of that household.
+  - Plus `household.calendar_token` and `calendar_feed(token)`, a SECURITY DEFINER function anyone can call that returns one household's events for its secret address.
+  - **Deviation:** dates, weekdays and a local time instead of an RRULE string and `starts_at`/`ends_at`. That's simpler to validate and to read in the planner; the iCal export writes the RRULE.
+- `lib/calendar/events.js`:
+  - `datesOf` and `occurrences` expand events into dates.
+  - `weekFromCalendar(events, span)` gives the planner:
+    - `away` ("date:slot" → members with no plate there; out and travel);
+    - `outs` (a typical meal out from `GENERIC_MEALS`, or the size the person picked);
+    - `training` (dates per member);
+    - `prepDays` (weekdays, counting the day before the week).
+  - `toICS`: RFC 5545 with an IST VTIMEZONE, the first instance on a matching weekday, ranges ending the day after, escaped text, and lines folded at 75 octets (TextEncoder, so it works in the browser).
+  - `eventProblems`, in words.
+- `lib/calendar/words.js` (`readScheduleSentence`) reads, by rules:
+  - kinds, weekdays (including plurals, weekdays/weekends/daily, Hindi day names) and dates ("3 to 5 Nov", "28 dec to 2 jan" across years, tomorrow, next week, this weekend);
+  - times, the meal and the person (a saved label);
+  - a reminder's title.
+  - Past dates are refused.
+  - `mealWords` gains `NOT_YET` ("every", "tomorrow"…): a habit is the Calendar's, not a meal eaten.
+- **The week reads the Calendar** (`usePlanSession`):
+  - `buildWeek({away})` leaves no plate for whoever is out or away (`cell.away`); the table still cooks for the others.
+  - Batching uses the calendar's prep days when there are any.
+  - Carb cycling uses a person's calendar training days (four a week only as the fallback).
+  - Someone on their own numbers has each meal out as a **fixed** plate in `sizePortions`, so the rest of the day is sized around it.
+  - `platesOfDay`, the ledger and the Take 2 carry meals out (`outs`): "Out, from your Calendar, a typical lunch out about 750 kcal, until you say what it was". A meal out is never resized or plate-scaled.
+- **UI:**
+  - `/store/calendar` (header nav; the phone's Plan tab stays lit on Track and Calendar; Track links to it). It has:
+    - a week board (Mon–Sun, chips by kind, the plan's days marked, "+" per day);
+    - KOI's suggestion from `eatOutPatterns`, which wires P5's habit: "lunch out on Tuesdays 3 of the last 4 weeks… Plan it as out?", adding a weekly meal out from today; "Not now" is remembered on the device;
+    - "How KOI plans around it";
+    - the subscription address (make, copy, open as webcal, turn off), and a `.ics` download.
+  - `EventSheet` asks each kind only what it needs.
+  - `?add=<their words>` opens it filled in. WeekGrid shows "Out, from your Calendar" and "Me: out" chips.
+- `GET /api/calendar/feed/<token>` returns the feed through `calendar_feed` with the anonymous client (no service role): 404 for an unknown token, 503 with Retry-After when the database can't be read.
+- **KOI:**
+  - Agent tool `schedule` (approval card): the event comes from the shopper's words via `words.js`; the model may only name the kind.
+  - The rules model routes scheduling sentences. Eval cases `schedule-out`, `schedule-gym` and `schedule-trip` pass under rules.
+  - The KOI bar sends scheduling sentences to `/store/calendar?add=`.
+- **Verified:**
+  - Tests: events (4), words (3), the out-plate Take 2, and the schedule test. Suite 679/679; eslint and `next build` pass.
+  - Fixture-backed Playwright, 1440 and 390: the suggestion from three seeded Tuesday lunches out, then "Plan it as out", then "gym on mon wed fri at 7am" from the address, filled in and saved.
+  - Then next week's board, Track's Tuesday ("Out, from your Calendar"), and the Plan grid (Wife's lunch cooked, "Me: out").
+  - The feed route's 404 and 503.
+- **Not verified live:** 00092 applied, a real subscription in Google or Apple Calendar, and `schedule` with a model.

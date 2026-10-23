@@ -66,12 +66,12 @@ export function useDay(s, date) {
     const day = s.week?.days?.find((d) => d.date === date) ?? null;
     const sized = id ? s.portions?.[id] ?? null : null;
     const sizedDay = day ? sized?.days?.find((x) => x.index === day.index) ?? null : null;
-    const plates = day && id ? platesOfDay({ week: s.week, sized, memberId: id, dayIndex: day.index, swaps: s.myTake2?.swaps ?? [] }) : [];
+    const plates = day && id ? platesOfDay({ week: s.week, sized, memberId: id, dayIndex: day.index, swaps: s.myTake2?.swaps ?? [], outs: s.myOuts ?? {} }) : [];
     const logs = s.logsByDate?.[date] ?? [];
     const target = me ? targetFor(me, sizedDay) : null;
     const ledger = dayLedger({ plates, logs, target, tolerancePct: Number(me?.target_tolerance_pct) || 5 });
     return { day, plates, logs, ledger, sized: Boolean(sizedDay), target };
-  }, [s.me, s.week, s.portions, s.myTake2, s.logsByDate, date]);
+  }, [s.me, s.week, s.portions, s.myTake2, s.myOuts, s.logsByDate, date]);
 }
 
 /** Eaten (forest) inside the day as it's going (lime), against the day's reference. */
@@ -145,9 +145,10 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
             <li key={row.slot} className="flex flex-wrap items-center justify-between gap-3 border-b border-koi-forest/10 py-3.5 last:border-b-0">
               <span className="flex min-w-0 flex-1 basis-[240px] flex-col gap-0.5">
                 <span className="font-koi-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-koi-muted">{SLOT_LABELS[row.slot] ?? row.slot}</span>
-                <span className={`text-[15px] font-bold ${notEaten && names ? "text-koi-muted line-through decoration-koi-muted/50" : ""}`}>{names || (row.unplanned ? "Not on the plan" : "—")}</span>
+                <span className={`text-[15px] font-bold ${notEaten && names ? "text-koi-muted line-through decoration-koi-muted/50" : ""}`}>{row.out ? "Out, from your Calendar" : names || (row.unplanned ? "Not on the plan" : "—")}</span>
                 <span className={`text-[12.5px] ${notEaten ? "text-koi-muted" : "text-koi-ink2"}`}>
-                  {row.nutrition.kcal > 0 && <>{inr(Math.round(row.nutrition.kcal * (f ?? 1)))} kcal · {Math.round(row.nutrition.protein * (f ?? 1))} g protein</>}
+                  {row.out && !log && <>A typical {row.slot} out: about {inr(Math.round(row.nutrition.kcal))} kcal, until you say what it was</>}
+                  {!row.out && row.nutrition.kcal > 0 && <>{inr(Math.round(row.nutrition.kcal * (f ?? 1)))} kcal · {Math.round(row.nutrition.protein * (f ?? 1))} g protein</>}
                   {row.sized && plateOf(row.cellKey) && <span className="block text-koi-muted">{plateWords(plateOf(row.cellKey))}</span>}
                   {row.extras.length > 0 && <span className="block text-koi-muted">+ {row.extras.map((x) => `${x.name} ${x.grams} g`).join(", ")}</span>}
                   {row.swap && <span className="block font-semibold text-koi-primary">Take 2: {row.swap === "box" ? "the spare box" : "your packed plate"}</span>}
@@ -165,8 +166,8 @@ export default function TodayCard({ s, date, today, opening = null, onOpened = n
                 </span>
               ) : (
                 <span className="flex gap-2">
-                  {row.cellKey && <button type="button" onClick={() => ate(row)} className="h-11 rounded-full bg-koi-forest px-4 text-[13.5px] font-bold text-koi-lime">Ate it</button>}
-                  <button type="button" onClick={() => setSheet({ id: `${date}:${row.slot}`, slot: row.slot })} className="h-11 rounded-full border border-koi-forest/20 px-4 text-[13.5px] font-semibold text-koi-forest hover:border-koi-forest/40">Something else</button>
+                  {row.cellKey && !row.out && <button type="button" onClick={() => ate(row)} className="h-11 rounded-full bg-koi-forest px-4 text-[13.5px] font-bold text-koi-lime">Ate it</button>}
+                  <button type="button" onClick={() => setSheet({ id: `${date}:${row.slot}`, slot: row.slot })} className={`h-11 rounded-full px-4 text-[13.5px] font-semibold ${row.out ? "bg-koi-forest font-bold text-koi-lime" : "border border-koi-forest/20 text-koi-forest hover:border-koi-forest/40"}`}>{row.out ? "Log what you had" : "Something else"}</button>
                 </span>
               )}
             </li>

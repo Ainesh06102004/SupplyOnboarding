@@ -39,7 +39,9 @@ import { hasExactMacros } from "@/lib/household/profile";
 import { restoreFrom, chainOf, MAX_RESTORED_CHANGES } from "@/lib/plan/restore";
 import { takeTwo, applyAdjustments, adjustmentFrom } from "@/lib/plan/rebalance";
 import { goalsAllowed } from "@/lib/planner/goals";
+import { weekFromCalendar } from "@/lib/calendar/events";
 import { useMealLog } from "./useMealLog";
+import { useCalendar } from "@/components/store/calendar/useCalendar";
 
 /** The shopper's own dish picks, kept in this browser, per household. */
 const WEEK_KEY = "koi_plan_week_v1";
@@ -77,13 +79,20 @@ const dayFromToday = (n = 0) => {
 };
 /** How far back Track reads meals: enough weeks to see a habit. */
 const MEAL_HISTORY_DAYS = 56;
+const localIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** The plan's dates, first to last: from the day its week started (a week made now starts today). */
+const spanOf = (plan, startedAt) => {
+  if (!plan) return null;
+  const start = startedAt ? new Date(startedAt) : new Date();
+  return { from: localIso(start), to: localIso(new Date(start.getTime() + (Math.max(1, Number(plan.days) || 7) - 1) * 86400000)) };
+};
 import { MEMBER_COLORS } from "./tokens";
 
 // Every member column, whatever the schema has: exact macros added carbs and fat
 // (00044) and the tolerance and carb cycling (00089), and naming a column the
 // database does not have yet would fail the whole read.
 const MEMBER_FIELDS = "*, household_member_avoid(avoid_key, severity)";
-/** Until the Calendar says which days are training days (P6), the week has four. */
+/** Training days for carb cycling when the person has none on the Calendar: four a week. */
 const DEFAULT_TRAINING_DAYS = Object.freeze(["Mon", "Tue", "Thu", "Fri"]);
 const SAVE_AFTER_MS = 700;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -873,14 +882,35 @@ export function usePlanSession() {
   // Tuesday: picks saved one day mean the same meal the next, and Track can log
   // a meal against its day. A week made in this visit starts today.
   const startedAt = weekStart?.root && weekStart.root === weekRootId ? weekStart.at : null;
+  // The Calendar (00092), read for this week's dates: who is out or away for a
+  // meal, training days, and the days the household batch-cooks.
+  const calendar = useCalendar(householdId);
+  const weekSpan = useMemo(() => spanOf(plan, startedAt), [plan, startedAt]);
+  const fromCalendar = useMemo(() => (weekSpan ? weekFromCalendar(calendar.rows, weekSpan) : null), [calendar.rows, weekSpan]);
   const { week, batches } = useMemo(() => {
     if (!plan) return { week: null, batches: planBatches({ week: null }) };
-    const input = { report: plan.report, lines, people: eating, days: plan.days, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds, ...(startedAt ? { start: new Date(startedAt) } : {}) };
+    const input = {
+      report: plan.report, lines, people: eating, days: plan.days, repeat, atHome: plan.explanation?.products_at_home ?? [], macroNeeds,
+      away: fromCalendar?.away ?? {}, ...(startedAt ? { start: new Date(startedAt) } : {}),
+    };
     const first = buildWeek({ ...input, overrides: picks });
-    const batching = planBatches({ week: first, style: cooking.style, prepDays: cooking.prepDays, picks });
+    const batching = planBatches({ week: first, style: cooking.style, prepDays: fromCalendar?.prepDays ?? cooking.prepDays, picks });
     if (!batching.batches.length) return { week: first, batches: batching };
     return { week: buildWeek({ ...input, overrides: { ...batching.overrides, ...picks } }), batches: batching };
-  }, [plan, lines, eating, picks, repeat, macroNeeds, cooking, startedAt]);
+  }, [plan, lines, eating, picks, repeat, macroNeeds, cooking, startedAt, fromCalendar]);
+  /** Each person's meals out this week, by cell ("2:lunch"): a typical meal out, until they log what it was. */
+  const outsByMember = useMemo(() => {
+    if (!week || !fromCalendar) return {};
+    const index = new Map(week.days.map((d) => [d.date, d.index]));
+    const out = {};
+    for (const [id, meals] of Object.entries(fromCalendar.outs)) {
+      for (const [at, meal] of Object.entries(meals)) {
+        const [date, slot] = at.split(":");
+        if (index.has(date)) (out[id] ??= {})[`${index.get(date)}:${slot}`] = meal;
+      }
+    }
+    return out;
+  }, [week, fromCalendar]);
 
   // Track (00091): the account holder's own meals, as an adult, for this week and
   // the weeks before it (enough to notice a habit).
@@ -919,20 +949,25 @@ export function usePlanSession() {
     const labels = new Map(lines.map((l) => [String(l.skuId), labelPer100(l.product)]).filter(([, v]) => v));
     const shares = new Map((plan?.report?.whoEatsWhat ?? []).map((w) => [String(w.member), w.allowed ?? []]));
     const basket = lines.map((l) => ({ skuId: String(l.skuId), name: l.name, packAmount: parseAmount(l.weight)?.value ?? null }));
-    const training = new Set(week.days.filter((d) => DEFAULT_TRAINING_DAYS.includes(d.label)).map((d) => d.index));
+    // Training days: the person's own from the Calendar, else four a week until they add them.
+    const usual = new Set(week.days.filter((d) => DEFAULT_TRAINING_DAYS.includes(d.label)).map((d) => d.index));
     const out = {};
     const sizing = {};
     for (const p of eating.filter(hasExactMacros)) {
       const id = String(p.memberId);
-      sizing[id] = { labels, basket, trainingDays: p.carb_cycling ? training : null };
+      const trained = fromCalendar?.training?.[id];
+      const trainingDays = !p.carb_cycling ? null : trained?.size ? new Set(week.days.filter((d) => trained.has(d.date)).map((d) => d.index)) : usual;
+      // A meal out on the Calendar holds a typical meal out, and the rest of the day is sized around it.
+      const outs = outsByMember[id] ?? {};
+      sizing[id] = { labels, basket, trainingDays, fixed: Object.fromEntries(Object.entries(outs).map(([cell, o]) => [cell, { name: "Out", nutrition: o.nutrition }])) };
       const base = sizePortions({ week, person: p, ...sizing[id], ties: batches.ties(id) });
       const sized = meTracks && id === String(me.memberId) && adjustments.length
-        ? applyAdjustments({ week, person: p, base, adjustments, logsByDate, sizing: sizing[id] }).sized
+        ? applyAdjustments({ week, person: p, base, adjustments, logsByDate, sizing: sizing[id], outs }).sized
         : base;
       out[id] = { ...sized, reconcile: reconcileWeek({ week, portions: base, share: shares.get(id) ?? [], basket }) };
     }
     return { portions: out, sizingOf: sizing };
-  }, [week, batches, lines, eating, plan?.report?.whoEatsWhat, meTracks, me, adjustments, logsByDate]);
+  }, [week, batches, lines, eating, plan?.report?.whoEatsWhat, meTracks, me, adjustments, logsByDate, fromCalendar, outsByMember]);
 
   // ── Take 2: the week's answer to a meal that wasn't the plan ──────────────
   /** The account holder as this week plans them (a diet chosen for the week included). */
@@ -946,9 +981,9 @@ export function usePlanSession() {
     const id = String(meEating.memberId);
     return takeTwo({
       week, batches: batches.batches, person: meEating, sized: portions[id] ?? null, entry, logsByDate,
-      swaps: myTake2?.swaps ?? [], shift: myTake2?.shift ?? {}, sizing: sizingOf[id] ?? {},
+      swaps: myTake2?.swaps ?? [], shift: myTake2?.shift ?? {}, sizing: sizingOf[id] ?? {}, outs: outsByMember[id] ?? {},
     });
-  }, [meTracks, meEating, week, batches, portions, logsByDate, myTake2, sizingOf]);
+  }, [meTracks, meEating, week, batches, portions, logsByDate, myTake2, sizingOf, outsByMember]);
 
   /** Keep the options the person picked: a dish moved is a pick, the rest is the week's adjustment. */
   const applyTakeTwo = useCallback(({ entry, numbers = null, meal = null }) => {
@@ -1172,6 +1207,8 @@ export function usePlanSession() {
     batches: batches.batches, cooking, setCooking,
     // Track: the account holder's meals and the week's Take 2s
     me: meEating, meTracks, mealLog, logsByDate, adjustments, myTake2, takeTwoFor, applyTakeTwo, undoAdjustment,
+    // the Calendar
+    calendar, fromCalendar, weekSpan, outsByMember, myOuts: outsByMember[String(meEating?.memberId)] ?? {},
     // the agent's page actions
     nav, setNav, agentBridge,
     // pantry / cart

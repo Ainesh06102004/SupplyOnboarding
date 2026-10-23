@@ -156,6 +156,15 @@ export const TOOL_SCHEMAS = Object.freeze([
     }),
   },
   {
+    name: "schedule",
+    description: "Calendar: add something the week is planned around, after the shopper approves: a meal out (one day or every week), training days, travel, batch-cooking days, a shopping day, a day to plan, or a reminder. KOI reads what, when, which meal and who from their own words; pass kind only when their words imply one KOI can't read. Never for a meal already eaten (that is log_meal).",
+    parameters: strictObject({
+      quote: { type: ["string", "null"] },
+      kind: nullableEnum(["out", "training", "travel", "prep", "shop", "plan", "remind"]),
+      say,
+    }),
+  },
+  {
     name: "ask_shopper",
     description: "Ask the shopper something only they can decide: who is eating, how many days, a budget, which person they mean, a choice between options they mentioned, or — for a SAVED person (about = their label) — their age group (age), diet (diet), or their You-step details (details: age, sex, height, weight, activity, goal; KOI then shows a save card). KOI writes the question. While setting up new people KOI asks ages, diets, avoids and details by itself; don't ask those.",
     parameters: strictObject({ topic: { type: "string", enum: ["who", "days", "budget", "which_person", "clarify", "age", "diet", "details"] }, about: { type: ["string", "null"] }, options: { type: "array", items: { type: "string" } }, say }),
@@ -178,7 +187,7 @@ export const AGENT_INSTRUCTIONS = [
   "Saving people and adding to the cart need the shopper's approval; KOI shows the card. If they decline, carry on without it. KOI cannot check out or place orders.",
   "If a tool refuses, read why and do what it says. Don't repeat the same call.",
   "Asked to change a plan when none exists (\"make it cheaper\", \"no dates\"): make_plan first with the shopper's words, then change_plan if anything is left to change.",
-  "You can do everything the store's pages can. Route by what the words are about: a PERSON (age, body, diet, goal, favourites, name, remove) → save_people or ask_shopper topic=details/age/diet; the week's DISHES (reshuffle, different breakfast, swap days) → week_menu; the BASKET (cheaper, add/leave out a food, swap a product, days, budget, a target for this plan) → change_plan; the HOUSE (keep out, pantry, brands, waste, repeats, priorities, processing, fridge-free, cuisine) → save_kitchen_rules; the CART → add_to_cart or edit_cart; WEIGHT → log_weigh_in / accept_track_proposal; a MEAL they ate, skipped or ate out (\"had biryani at office\", \"kal raat pizza khaya\", \"skipped lunch\") → log_meal, never change_plan; QUESTIONS about the plan → look (plan, basket, per_day, menu, explanation).",
+  "You can do everything the store's pages can. Route by what the words are about: a PERSON (age, body, diet, goal, favourites, name, remove) → save_people or ask_shopper topic=details/age/diet; the week's DISHES (reshuffle, different breakfast, swap days) → week_menu; the BASKET (cheaper, add/leave out a food, swap a product, days, budget, a target for this plan) → change_plan; the HOUSE (keep out, pantry, brands, waste, repeats, priorities, processing, fridge-free, cuisine) → save_kitchen_rules; the CART → add_to_cart or edit_cart; WEIGHT → log_weigh_in / accept_track_proposal; a MEAL they ate, skipped or ate out (\"had biryani at office\", \"kal raat pizza khaya\", \"skipped lunch\") → log_meal, never change_plan; the CALENDAR, what the weeks are planned around (\"lunch out every Tuesday\", \"gym Mon Wed Fri\", \"travelling 3 to 5 Nov\", \"batch cook on Sundays\", \"remind me to plan on Sunday\") → schedule; QUESTIONS about the plan → look (plan, basket, per_day, menu, explanation).",
   "\"Show me X\" or \"open X\" means show. Never say something is on the screen or shown unless show ran in this turn; look shows its result in the chat, not on the page.",
   "When setting up new people, KOI asks each adult for their details (age, sex, height, weight, activity, goal) after ages and diets; let it, then save.",
   "If something truly can't be done, say what KOI can do instead, in finish.",
