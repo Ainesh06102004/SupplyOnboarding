@@ -1,8 +1,11 @@
 // ============================================================================
 // Demo mode's household: what a fresh demo database holds. Pure.
 //
-// Three people (a lifter on his own numbers, a vegetarian, a child with a
-// peanut allergy), an address, atta, rice and poha in the pantry, three
+// Three people (a lifter eating high protein, a vegetarian, a child with a
+// peanut allergy), each with KOI's suggested daily targets as a save from
+// Household would store them (Simple numbers: the demo's small test catalogue
+// can't land a week on exact macros, so Advanced is shown live in Household,
+// not seeded), an address, atta, rice and poha in the pantry, three
 // Tuesday lunches out (so KOI notices the habit), training days on the
 // calendar, weigh-ins, and a note in the inbox. The week's
 // plan itself is made by the real planner the first time the demo is opened
@@ -10,6 +13,7 @@
 // ============================================================================
 
 import { DEMO_UID } from "./mode";
+import { suggestTargets } from "@/lib/planner/goals";
 
 export const DEMO_HOUSEHOLD = "d0000000-0000-4000-8000-00000000a001";
 const ME = "d0000000-0000-4000-8000-00000000b001";
@@ -30,6 +34,16 @@ const member = (id, fields) => ({
   ...fields,
 });
 
+/** A person with KOI's suggested calories and protein, and where they come from, as Household saves them. */
+const suggested = (fields) => {
+  const s = suggestTargets({
+    ageBand: fields.age_band, sex: fields.sex ?? null, activity: fields.activity_level ?? null,
+    ageYears: fields.age_years ?? null, weightKg: fields.weight_kg ?? null, heightCm: fields.height_cm ?? null,
+    energyGoal: fields.energy_goal ?? "maintain", eatingPattern: fields.eating_pattern ?? "balanced",
+  });
+  return s ? { ...fields, target_kcal: s.kcal, target_protein_g: Math.round(s.protein), target_source: s.source } : fields;
+};
+
 /** @param {Date} now */
 export function seedTables(now = new Date()) {
   // The last three Tuesdays before today.
@@ -45,12 +59,12 @@ export function seedTables(now = new Date()) {
       cooking_style: "fresh", prep_days: [0, 3], calendar_token: null, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
     }],
     household_member: [
-      member(ME, {
+      member(ME, suggested({
         label: "Me", relation: "self", age_band: "adult_19_59", sex: "male", activity_level: "moderate", age_years: 31, weight_kg: 76, height_cm: 178,
-        target_kcal: 2500, target_protein_g: 150, target_carbs_g: 290, target_fat_g: 80, target_source: "stated", account_profile_id: DEMO_UID,
-      }),
-      member(WIFE, { label: "Wife", relation: "spouse", age_band: "adult_19_59", sex: "female", activity_level: "light", age_years: 29, weight_kg: 58, height_cm: 162, diet_type: "vegetarian", created_at: "2026-09-02T00:00:00Z" }),
-      member(KID, { label: "Kid", relation: "child", age_band: "child_7_9", diet_type: "vegetarian", created_at: "2026-09-03T00:00:00Z" }),
+        eating_pattern: "high_protein", account_profile_id: DEMO_UID,
+      })),
+      member(WIFE, suggested({ label: "Wife", relation: "spouse", age_band: "adult_19_59", sex: "female", activity_level: "light", age_years: 29, weight_kg: 58, height_cm: 162, diet_type: "vegetarian", created_at: "2026-09-02T00:00:00Z" })),
+      member(KID, suggested({ label: "Kid", relation: "child", age_band: "child_7_9", diet_type: "vegetarian", created_at: "2026-09-03T00:00:00Z" })),
     ],
     household_member_avoid: [{ id: "d0000000-0000-4000-8000-00000000e001", member_id: KID, avoid_key: "peanuts", severity: "allergy" }],
     // What the kitchen already has, as most do: the week cooks with it and doesn't buy it.

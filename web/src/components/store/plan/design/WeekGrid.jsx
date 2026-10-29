@@ -235,11 +235,15 @@ export default function WeekGrid({ s }) {
               const mine = me ? cell.own[me] : null;
               const notMine = me ? cell.none[me] : null;
               const notes = me ? cell.notes[me] : null;
-              const adds = me ? (week.additions[me] ?? []).filter((a) => a.slot === slot) : [];
+              // Out for this meal (the Calendar): no additions on a plate they won't eat.
+              const meAway = Boolean(me && cell.away?.some((id) => String(id) === String(me)));
+              const adds = me && !meAway ? (week.additions[me] ?? []).filter((a) => a.slot === slot) : [];
               const others = Object.entries(cell.own).filter(([id]) => id !== me);
               const plate = sized ? plateFor(sized, d.index, key) : null;
-              // A sized week says what each addition weighs that day, not the week's average.
-              const sizedAdd = (a) => sized?.days?.find((x) => x.index === d.index)?.items?.find((i) => i.kind === "addition" && i.skuId === String(a.skuId))?.grams;
+              // A sized week says what each addition weighs that day, not the week's average,
+              // and leaves off one that day's portions don't need (portions.js drops a 0 g addition).
+              const sizedDay = sized?.days?.find((x) => x.index === d.index) ?? null;
+              const sizedAdd = (a) => sizedDay?.items?.find((i) => i.kind === "addition" && i.skuId === String(a.skuId))?.grams;
               const dropOk = drag && drag !== key && SWAPPABLE[week.cells[drag]?.slot]?.includes(slot);
               const open = menu?.key === key;
               return (
@@ -289,6 +293,7 @@ export default function WeekGrid({ s }) {
                       {notes?.leaveOut?.map((i) => <Chip key={i} tone="cut">−{i.toLowerCase()}</Chip>)}
                       {adds.map((a) => {
                         const g = sizedAdd(a);
+                        if (sizedDay && g === undefined) return null;
                         const amount = g !== undefined ? ` ${g} g` : a.perDay ? ` ${a.perDay}${a.unit ? ` ${a.unit}` : ""}` : "";
                         return <Chip key={a.skuId} tone="goal">+{a.asDish ? `${a.asDish.name} (${a.name}` : a.name}{amount}{a.asDish ? ")" : ""}</Chip>;
                       })}

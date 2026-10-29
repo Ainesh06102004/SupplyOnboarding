@@ -76,6 +76,19 @@ test("every role stays inside its bounds; oil can halve, never vanish", () => {
   for (const d of r.days) for (const item of d.items.filter((i) => i.kind === "addition")) assert.ok(item.grams >= 0 && item.grams <= 30 * PORTION_RULES.additionMax);
 });
 
+test("an addition the day doesn't need is left off the plate, never shown as 0 g", () => {
+  // Low numbers: the dishes alone cover them, so the whey shrinks, often to nothing.
+  const light = { ...ME, target_kcal: "1700", target_protein_g: "70", target_carbs_g: "220", target_fat_g: "55" };
+  for (const person of [ME, light]) {
+    const r = sizePortions({ week: weekOf(LIFTER_WEEK), person, labels: LABELS });
+    for (const d of r.days) {
+      for (const item of d.items.filter((i) => i.kind === "addition")) assert.ok(item.grams > 0, `day ${d.index}: ${item.name} ${item.grams} g`);
+      const sum = d.items.reduce((a, i) => a + i.nutrition.kcal, 0);
+      assert.ok(Math.abs(sum - d.totals.kcal) < 1e-6);
+    }
+  }
+});
+
 test("what a person is told to cook is what the totals describe: rounded grams, re-checked", () => {
   const r = sizePortions({ week: weekOf(LIFTER_WEEK), person: ME, labels: LABELS });
   for (const d of r.days) {

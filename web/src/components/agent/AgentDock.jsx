@@ -56,6 +56,13 @@ export default function AgentDock() {
   const running = state?.status === "running";
   const waiting = state?.status === "waiting";
 
+  // A page asking in the bar ("what did you have instead?", the Take 2 after KOI logs a
+  // meal) is what to look at next: once KOI has finished, its panel steps aside for it.
+  const panelOpen = Boolean(state?.open && agent?.signedIn);
+  useEffect(() => {
+    if (asking && panelOpen && !running && !waiting) agent?.close();
+  }, [asking, panelOpen, running, waiting, agent]);
+
   // The placeholder is something KOI can do on this page, for what is on it (lib/koi/barWords.js).
   const placeholder = useBarPrompt({ agent: true, paused: running || Boolean(text) });
   // While KOI works: a kitchen word for the tool it's running, and the time ("Squinting at the label… 6s").

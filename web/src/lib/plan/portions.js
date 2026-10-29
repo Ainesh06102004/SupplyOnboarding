@@ -306,7 +306,10 @@ export function sizePortions({ week, person, labels = new Map(), basket = [], tr
       const scale = baseGrams ? Math.round((plateGrams / baseGrams) * 100) / 100 : 1;
       const servedGrams = item.recipe.served ? Math.round(item.recipe.served * scale) : null;
       return { kind: "dish", id: item.id, cellKey: item.cellKey, slot: item.slot, dishKey: item.dishKey, name: item.name, scale, roles, servedGrams, lines, nutrition };
-    });
+    })
+      // An addition the solver brought down to nothing (0 g once rounded) is not on the plate:
+      // it carries no nutrition, so the day's totals are the same without it.
+      .filter((i) => i.kind !== "addition" || i.grams > 0);
     const totals = items.reduce((acc, i) => addNutrients(acc, i.nutrition), zero());
     const deviation = {};
     for (const n of MACROS) deviation[n] = day.target[n] > 0 ? Math.round(((totals[n] - day.target[n]) / day.target[n]) * 1000) / 10 : 0;

@@ -137,6 +137,11 @@ export default function TrackView({ s, ask = null, onAsked = null }) {
   // The day the meals card shows: today, a day picked on the week strip, or the meal the page opened on.
   const opening = useMemo(() => openingFrom(ask), [ask]);
   const [mealDate, setMealDate] = useState(() => opening?.date ?? localDate());
+  // KOI's agent logged a meal while Track was open (?take2=): read the day again.
+  // The Today card opens on that meal (its key, below), and its Take 2 asks in the bar.
+  const take2 = ask?.take2 ?? null;
+  const reloadMeals = s.mealLog?.reload;
+  useEffect(() => { if (take2) reloadMeals?.(); }, [take2, reloadMeals]);
   const today = localDate();
   const [busy, setBusy] = useState(false);
   const [dismissed, setDismissed] = useState(null);
@@ -233,7 +238,7 @@ export default function TrackView({ s, ask = null, onAsked = null }) {
       {head}
       <section aria-label="Your meals" className="mb-5 flex flex-col gap-4">
         <WeekStrip s={s} date={mealDate} today={today} onDate={setMealDate} />
-        <TodayCard s={s} date={mealDate} today={today} opening={opening} onOpened={onAsked} />
+        <TodayCard key={opening ? `${opening.date}:${opening.slot}:${opening.fromLog ? "log" : opening.sentence}` : "day"} s={s} date={mealDate} today={today} opening={opening} onOpened={onAsked} />
         {(carried.length > 0 || frozen.length > 0) && (
           <div data-card className="flex flex-wrap gap-x-8 gap-y-2 rounded-[22px] bg-koi-paper px-5 py-4 text-[13.5px]">
             {carried.length > 0 && <span><span className="font-semibold">Moved to next week:</span> {names(carried)}</span>}

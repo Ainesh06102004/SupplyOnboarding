@@ -33,6 +33,16 @@ const SHOP = [
 const PLAN = { members: [{ id: "me", label: "Me", targets: {}, avoidFlags: [], softAvoidFlags: [] }], days: 7, budget: null, excludedSkus: [], includedSkus: [], cost: 1800 };
 const applyText = (text, plan = PLAN) => applyFollowUp(plan, readFollowUp(text), SHOP);
 
+test("\"no maida, please\" leaves out maida — it does not avoid gluten (found live, 29 Oct)", () => {
+  for (const text of ["no maida, please", "No maida.", "We never keep peanuts in the house, remember that. And no maida, please."]) {
+    const r = readFollowUp(text);
+    assert.deepEqual(r.leaveOut, ["maida"], text);
+    assert.ok(!r.avoid.some((a) => a.key === "gluten"), `${text}: ${JSON.stringify(r.avoid)}`);
+  }
+  // Naming the allergen itself is still an avoid.
+  assert.ok(readFollowUp("no wheat, please").avoid.some((a) => a.key === "gluten"));
+});
+
 test("\"add oats\" adds oats — it does not leave them out", () => {
   const r = applyText("can you add oats?");
   assert.deepEqual(r.includedSkus, ["oats"]);

@@ -37,7 +37,7 @@ const pick = (row) => Object.fromEntries(FIELDS.map((f) => [f, row[f] ?? null]))
 /**
  * @param {string|null} memberId the account holder's household_member id (null: nothing to load)
  * @param {{ from: string, to: string }} span dates, inclusive
- * @returns {{ rows: Array, loading: boolean, error: string|null, pending: number, save: (row) => Promise<{ok: boolean, pending?: boolean}>, remove: (date, slot) => Promise<boolean> }}
+ * @returns {{ rows: Array, loading: boolean, error: string|null, pending: number, save: (row) => Promise<{ok: boolean, pending?: boolean}>, remove: (date, slot) => Promise<boolean>, reload: () => Promise<void> }}
  */
 export function useMealLog(memberId, { from, to }) {
   const [rows, setRows] = useState([]);
@@ -113,5 +113,6 @@ export function useMealLog(memberId, { from, to }) {
     return true;
   }, [memberId, rows]);
 
-  return { rows, loading, error, pending, save, remove };
+  // reload: read the saved meals again (KOI's agent logged one while the page was open).
+  return { rows, loading, error, pending, save, remove, reload: load };
 }

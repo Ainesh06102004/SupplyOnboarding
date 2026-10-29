@@ -281,8 +281,10 @@ export function readFollowUp(input) {
   // A food left out for one person is theirs alone, not the household's.
   const forOne = leaveOutFor(text);
   const leaveOut = words.leaveOut.filter((w) => !forOne.some((f) => f.product === w || f.product.includes(w) || w.includes(f.product)));
+  // Sentence punctuation is a space here: "no maida, please" kept "maida," in, and
+  // the search reading took it for "avoid gluten" (live, 29 Oct).
   const avoidText = [...leaveOut, ...include, ...swaps.flatMap((s) => [s.from, s.to]), ...forOne.map((f) => f.product)]
-    .reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text);
+    .reduce((t, phrase) => ` ${t} `.replace(` ${phrase} `, " "), text.replace(/[,.;:!?()"]/g, " ").replace(/\s+/g, " "));
   const reading = interpret(avoidText);
   // "keep peanuts away from …" names an avoid the search reading doesn't see.
   const keptAway = [...text.matchAll(KEEP_AWAY)].flatMap((m) => avoidKeysNamed(m[1]));
